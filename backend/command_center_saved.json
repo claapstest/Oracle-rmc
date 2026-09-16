@@ -1,0 +1,37 @@
+[
+  {
+    "id": "saved-1",
+    "name": "All Advanced Controls",
+    "category": "Risk Management",
+    "description": "Live security and segregation of duties controls",
+    "method": "GET",
+    "url": "/fscmRestApi/resources/11.13.18.05/advancedControls",
+    "params": {
+      "limit": "25",
+      "offset": "0"
+    },
+    "createdAt": "2026-09-15T15:37:19.594Z"
+  },
+  {
+    "id": "saved-2",
+    "name": "IT Security Manager Role Definition",
+    "category": "Roles Catalog",
+    "description": "SCIM query for high privilege administrative role",
+    "method": "GET",
+    "url": "/hcmRestApi/scim/Roles",
+    "params": {
+      "filter": "displayName eq \"IT Security Manager\""
+    },
+    "createdAt": "2026-09-15T15:37:19.594Z"
+  },
+  {
+    "id": "saved-3",
+    "name": "Active HCM Person Audit History",
+    "category": "Audit Trail",
+    "description": "Recent ManagePerson audit events",
+    "method": "POST",
+    "url": "/fscmRestApi/fndAuditRESTService/audittrail/getaudithistory?pageNumber=1&pageSize=25",
+    "body": "{\n  \"product\": \"hcmCore\",\n  \"businessObjectType\": \"oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO\",\n  \"eventType\": \"ALL\",\n  \"includeChildObjects\": \"true\",\n  \"includeImpersonator\": \"true\"\n}",
+    "createdAt": "2026-09-15T15:37:19.594Z"
+  }
+]

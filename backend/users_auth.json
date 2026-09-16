@@ -1,0 +1,52 @@
+{
+  "users": {
+    "karthika.gundreddi@claaps.com": {
+      "email": "Karthika.Gundreddi@claaps.com",
+      "passwordHash": "$2b$10$Uo0O32J.x8L8D.6i1RcMHu10BoAAezj7DoE7dC9/Crq9zGyFm42Fa",
+      "setupCompleted": true,
+      "isAdmin": true,
+      "isActive": true,
+      "resetCode": null
+    },
+    "akash.meesarapu@claaps.com": {
+      "email": "akash.meesarapu@claaps.com",
+      "passwordHash": "$2b$10$8AJIRDYf13TXmfrB7SlljucAujfOSdMJNg7to072vC2sZUqWtvZky",
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "resetCode": null
+    },
+    "karthika.test@claaps.com": {
+      "email": "karthika.test@claaps.com",
+      "passwordHash": "$2b$10$dzoGiF.dVWtF4hvkLXJsPODjVMkcLvdeVLXgI2aWXsOMAhSAq4eXO",
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "resetCode": null
+    },
+    "demo.user@claaps.com": {
+      "email": "demo.user@claaps.com",
+      "passwordHash": "$2b$10$4UTqZQXCBRbklAxcLDBMM.kcoSv92Fiq5htkTRNNYhe78/U5b9ADe",
+      "setupCompleted": true,
+      "isAdmin": true,
+      "isActive": true,
+      "resetCode": null
+    },
+    "test.tester@claaps.com": {
+      "email": "test.tester@claaps.com",
+      "passwordHash": "$2b$10$EVOih2NrdN4KDe.aMB6jBuk/olSyFmsWWKa3P.C34to4dN6KHti.G",
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "resetCode": null
+    },
+    "audit.tester@claaps.com": {
+      "email": "audit.tester@claaps.com",
+      "passwordHash": "$2b$10$dGIEFs4/WSrkv0hOwDVpF.hBczZU/0ydZwlUwQMji5F9Q4jFVrsmu",
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "resetCode": null
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+backend/dist/
+
+# Configuration and Secrets
+.env
+backend/oracle_config.json
+backend/oracle_config.json.tmp
+
+# Log Files
+*.log
+backend/oracle_audit.log
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+
+# Vite temporary files
+*.timestamp-*.mjs

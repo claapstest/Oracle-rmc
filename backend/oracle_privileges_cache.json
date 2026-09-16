@@ -1,0 +1,1716 @@
+{
+  "role_privileges:supplier manager": {
+    "data": {
+      "success": true,
+      "dataSource": "Live Oracle Fusion API",
+      "roleName": "Supplier Manager",
+      "roleCode": "ORA_POZ_SUPPLIER_MANAGER_ABSTRACT",
+      "role": {
+        "name": "Supplier Manager",
+        "code": "ORA_POZ_SUPPLIER_MANAGER_ABSTRACT",
+        "category": "Abstract"
+      },
+      "privileges": [
+        {
+          "name": "View Supplier Qualification Question",
+          "code": "VIEW_SUPPLIER_QUALIFICATION_QUESTION",
+          "description": "Allows users to view a supplier qualification question.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Contact",
+          "code": "MAINTAIN_SUPPLIER_CONTACT",
+          "description": "Allows updates to supplier contacts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message Payload",
+          "code": "VIEW_COLLABORATION_MESSAGE_PAYLOAD",
+          "description": "Allow access to view  collaboration messaging XML",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Contact Change Request",
+          "code": "MAINTAIN_SUPPLIER_CONTACT_CHANGE_REQUEST",
+          "description": "Allows updates to supplier contact change requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Tax Third Party Import and Export Services",
+          "code": "MANAGE_TAX_THIRD_PARTY_IMPORT_AND_EXPORT_SERVICES",
+          "description": "Allows access to import and export tax third party configuration data.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run Send Pending LDAP Requests Process",
+          "code": "RUN_SEND_PENDING_LDAP_REQUESTS_PROCESS",
+          "description": "Allows the Send Pending LDAP Requests process to be run.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Document Data Access for Users",
+          "code": "MANAGE_COLLABORATION_DOCUMENT_DATA_ACCESS_FOR_USER",
+          "description": "Allow access to manage collaboration document data access for users UI.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage External Partner",
+          "code": "MANAGE_EXTERNAL_PARTNER",
+          "description": "Allow access to manage external partner",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Location of Final Discharge",
+          "code": "UPDATE_LOCATION_OF_FINAL_DISCHARGE",
+          "description": "Allows update of location of final discharge.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Process Inbound Collaboration Document",
+          "code": "PROCESS_INBOUND_COLLABORATION_DOCUMENT",
+          "description": "Allow access to  process inbound collaboration document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Message Logging",
+          "code": "MANAGE_COLLABORATION_MESSAGE_LOGGING",
+          "description": "Allow access to manage collaboration message logging.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Match Results",
+          "code": "VIEW_SUPPLIER_MATCH_RESULTS",
+          "description": "Allows users to review supplier match results in supplier registration approval flows.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Attribute Validation Response from External Provider",
+          "code": "VIEW_SUPPLIER_ATTRIBUTE_VALIDATION_RESPONSE_FROM_E",
+          "description": "Allows users to view the validation response on supplier attributes from an external service provider, including validation status, messages, and related response details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Reports and Analytics Region",
+          "code": "MAINTAIN_REPORTS_AND_ANALYTICS_REGION",
+          "description": "Allows selection of reports to appear in the Reports and Analytics region of Oracle Fusion Applications work areas.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Cancel Pending Supplier Profile Change Request",
+          "code": "CANCEL_PENDING_SUPPLIER_PROFILE_CHANGE_REQUEST",
+          "description": "Allow canceling pending profile change request submitted by supplier users.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Service Provider",
+          "code": "MANAGE_SERVICE_PROVIDER",
+          "description": "Allow access to manage collaboration messaging service provider.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Profile Change Request",
+          "code": "VIEW_SUPPLIER_PROFILE_CHANGE_REQUEST",
+          "description": "Allows access to supplier profile change request details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Review Collaboration Messaging Setup Data Import",
+          "code": "REVIEW_COLLABORATION_MESSAGING_SETUP_DATA_IMPORT",
+          "description": "Allow Access to Review Collaboration Messaging Setup Data Import",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Party Fiscal Classification",
+          "code": "VIEW_PARTY_FISCAL_CLASSIFICATION",
+          "description": "Allows viewing of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Party Fiscal Classification",
+          "code": "CREATE_PARTY_FISCAL_CLASSIFICATION",
+          "description": "Allows creation of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Location of Final Discharge",
+          "code": "VIEW_LOCATION_OF_FINAL_DISCHARGE",
+          "description": "Allows view of location of final discharge.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Access Suppliers Work Area Overview",
+          "code": "ACCESS_SUPPLIERS_WORK_AREA_OVERVIEW",
+          "description": "Allows access to the suppliers work area.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Contact User Account",
+          "code": "MAINTAIN_SUPPLIER_CONTACT_USER_ACCOUNT",
+          "description": "Allows updates to supplier contact user accounts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run Supplier Background Scheduler",
+          "code": "RUN_SUPPLIER_BACKGROUND_SCHEDULER",
+          "description": "Allows internal users to automatically start scheduled ESS jobs, such as calculating supply base data, sync keyword search and update keyword search based on the frequency setting.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run CRM Export Process",
+          "code": "RUN_CRM_EXPORT_PROCESS",
+          "description": "This privilege would grant a user the ability to schedule CRM object to export to a file",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier",
+          "code": "MAINTAIN_SUPPLIER",
+          "description": "Allows updates to the supplier profile.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Products and Services Categories",
+          "code": "MAINTAIN_SUPPLIER_PRODUCTS_AND_SERVICES_CATEGORIES",
+          "description": "Allows updates to supplier products and services categories.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Application Partners by Web Service",
+          "code": "MANAGE_APPLICATION_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messaging History",
+          "code": "MANAGE_COLLABORATION_MESSAGING_HISTORY",
+          "description": "Allow access to manage collaboration messaging history.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Third Party Site Tax Profile",
+          "code": "UPDATE_THIRD_PARTY_SITE_TAX_PROFILE",
+          "description": "Allows update of tax profiles that contain tax information that relate to a third party site's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Scheduled Job Definition",
+          "code": "MANAGE_SCHEDULED_JOB_DEFINITION",
+          "description": "Manage the definition of a Scheduled Job",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Trading Partners by Web Service",
+          "code": "MANAGE_TRADING_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Import Party Tax Profile",
+          "code": "IMPORT_PARTY_TAX_PROFILE",
+          "description": "Allows import of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third-Party Tax Profile",
+          "code": "VIEW_THIRD_PARTY_TAX_PROFILE",
+          "description": "Allows viewing of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier Registration Request",
+          "code": "SEARCH_SUPPLIER_REGISTRATION_REQUEST",
+          "description": "Allows searching and managing supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Resolve Purchasing Document Actions by REST Service",
+          "code": "RESOLVE_PURCHASING_DOCUMENT_ACTIONS_BY_REST_SERVIC",
+          "description": "Allows an administrator using REST to perform actions such as renumber, resubmit, and communicate again.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Application Partners by Web Service",
+          "code": "VIEW_APPLICATION_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Purchasing Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_PURCHASING_INFORMATION",
+          "description": "Allows updates to supplier site purchasing terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Reprocess Collaboration Message",
+          "code": "REPROCESS_COLLABORATION_MESSAGE",
+          "description": "Allow access to reprocess collaboration message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Message Transactions using a REST Service",
+          "code": "MANAGE_B2B_MESSAGE_TRANSACTIONS_USING_A_REST_SERVI",
+          "description": "Allow access to manage B2B Message Transactions",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Third Party Site Tax Profile",
+          "code": "CREATE_THIRD_PARTY_SITE_TAX_PROFILE",
+          "description": "Allows creation of tax profiles that contain tax information that relate to a third party site's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Assessment",
+          "code": "VIEW_SUPPLIER_ASSESSMENT",
+          "description": "Allows users to view a supplier assessment.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View  Collaboration Message Output Document",
+          "code": "VIEW__COLLABORATION_MESSAGE_OUTPUT_DOCUMENT",
+          "description": "Allow access to view output document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Third Party Tax Profile",
+          "code": "CREATE_THIRD_PARTY_TAX_PROFILE",
+          "description": "Allows creation of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supply Chain Collaboration B2B Infolets",
+          "code": "VIEW_SUPPLY_CHAIN_COLLABORATION_B2B_INFOLETS",
+          "description": "Allows visibility into B2B undelivered and failed messages in the Supply Chain Collaboration landing page.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third Party Bank Account",
+          "code": "VIEW_THIRD_PARTY_BANK_ACCOUNT",
+          "description": "Allows viewing of external bank accounts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Attachment",
+          "code": "MAINTAIN_SUPPLIER_ATTACHMENT",
+          "description": "Allows updates to supplier attachments.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Monitor Collaboration Messaging",
+          "code": "MONITOR_COLLABORATION_MESSAGING",
+          "description": "Allow access to monitor collaboration messaging work area.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site B2B Communication Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_B2B_COMMUNICATION_INFORMATI",
+          "description": "Allows updates to supplier site trading partner information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Organization Details",
+          "code": "MAINTAIN_SUPPLIER_ORGANIZATION_DETAILS",
+          "description": "Allows update to supplier organization details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Retransmit Purchase Orders from Collaboration Messaging",
+          "code": "RETRANSMIT_PURCHASE_ORDERS_FROM_COLLABORATION_MESS",
+          "description": "Allows access to retransmit orders from Collaboration Messaging for which B2B transmission was not initiated or orders with the B2B messaging status of Aborted",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messaging Domain Value Map",
+          "code": "MANAGE_COLLABORATION_MESSAGING_DOMAIN_VALUE_MAP",
+          "description": "Allow access to manage collaboration messaging DVM.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier Qualification",
+          "code": "SEARCH_SUPPLIER_QUALIFICATION",
+          "description": "Allows users to search for a supplier qualification.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier Assessment",
+          "code": "SEARCH_SUPPLIER_ASSESSMENT",
+          "description": "Allows users to search for a supplier assessment.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Third Party Bank Account",
+          "code": "MANAGE_THIRD_PARTY_BANK_ACCOUNT",
+          "description": "Allows update of external bank accounts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Invoicing Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_INVOICING_INFORMATION",
+          "description": "Allows updates to supplier site invoicing terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage File Import and Export",
+          "code": "MANAGE_FILE_IMPORT_AND_EXPORT",
+          "description": "Privilege to manage import and export of files.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Failed Collaboration Messages",
+          "code": "MANAGE_FAILED_COLLABORATION_MESSAGES",
+          "description": "Allow access to manage failed collaboration messages",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Collaboration Messaging Setup Data File",
+          "code": "CREATE_COLLABORATION_MESSAGING_SETUP_DATA_FILE",
+          "description": "Allow Access to Create Collaboration Messaging Setup Data File",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messages",
+          "code": "MANAGE_COLLABORATION_MESSAGES",
+          "description": "Allow access to Manage Collaboration Messages",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Validate Outbound Collaboration Messaging Setup",
+          "code": "VALIDATE_OUTBOUND_COLLABORATION_MESSAGING_SETUP",
+          "description": "Allow access to validate outbound collaboration messaging setup.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create External Partner",
+          "code": "CREATE_EXTERNAL_PARTNER",
+          "description": "Allow access to create external partner.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Qualification Initiative",
+          "code": "VIEW_SUPPLIER_QUALIFICATION_INITIATIVE",
+          "description": "Allows users to view a supplier qualification initiative.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site",
+          "code": "MAINTAIN_SUPPLIER_SITE",
+          "description": "Allows updates to supplier site information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Submit Supplier Spend Authorization Request",
+          "code": "SUBMIT_SUPPLIER_SPEND_AUTHORIZATION_REQUEST",
+          "description": "Allows user to submit supplier spend authorization request by calling supplier REST service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage DataFox Field Mapping for Supplier Intelligence",
+          "code": "MANAGE_DATAFOX_FIELD_MAPPING_FOR_SUPPLIER_INTELLIG",
+          "description": "Manages mapping between Oracle Fusion Procurement Suppliers and Oracle DataFox fields. Applicable only for the Power Supplier Intelligence with Oracle DataFox Smart Data feature and should not be utilized outside of this feature.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Cancel Collaboration Message",
+          "code": "CANCEL_COLLABORATION_MESSAGE",
+          "description": "Allow access to manage cancel collaboration message",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Locations by Web Service",
+          "code": "MANAGE_B2B_LOCATIONS_BY_WEB_SERVICE",
+          "description": "Allow access to manage B2B locations by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Registration Bank Account",
+          "code": "VIEW_SUPPLIER_REGISTRATION_BANK_ACCOUNT",
+          "description": "Allows access to bank account information on supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Import Supplier Bank Accounts",
+          "code": "IMPORT_SUPPLIER_BANK_ACCOUNTS",
+          "description": "Allows import of external payee information and bank accounts belonging to suppliers, supplier sites, and supplier addresses.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Trading Partners",
+          "code": "MANAGE_B2B_TRADING_PARTNERS",
+          "description": "Allow access to manage B2B Trading Partners",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message Setup Details",
+          "code": "VIEW_COLLABORATION_MESSAGE_SETUP_DETAILS",
+          "description": "Allow access to view setup details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Receiving Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_RECEIVING_INFORMATION",
+          "description": "Allows updates to supplier site receiving terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message Definitions by Web Service",
+          "code": "VIEW_COLLABORATION_MESSAGE_DEFINITIONS_BY_WEB_SERV",
+          "description": "Allow access to view collaboration message definitions by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Business Relationship",
+          "code": "MAINTAIN_SUPPLIER_BUSINESS_RELATIONSHIP",
+          "description": "Allows updates to supplier business relationship in supplier registration approval flows.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Assignment",
+          "code": "MAINTAIN_SUPPLIER_SITE_ASSIGNMENT",
+          "description": "Allows updates to supplier site assignment information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Trading Partners by Web Service",
+          "code": "VIEW_TRADING_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to view trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Account Numbers by web service",
+          "code": "VIEW_ACCOUNT_NUMBERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage b2b account number by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Import Supplier",
+          "code": "IMPORT_SUPPLIER",
+          "description": "Allows importing of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Merge Supplier",
+          "code": "MERGE_SUPPLIER",
+          "description": "Allows merging of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Process Collaboration Message",
+          "code": "PROCESS_COLLABORATION_MESSAGE",
+          "description": "Allow access to process collaboration message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Income Tax",
+          "code": "MAINTAIN_SUPPLIER_INCOME_TAX",
+          "description": "Allows updates to supplier income tax reporting information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Message Delivery Endpoint",
+          "code": "MANAGE_MESSAGE_DELIVERY_ENDPOINT",
+          "description": "Allow access to manage message delivery endpoint.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Set Up File Import Object and Mapping",
+          "code": "SET_UP_FILE_IMPORT_OBJECT_AND_MAPPING",
+          "description": "Allows reviewing and registering business objects, such as sales leads and opportunities, intended for import from external files. Also allows creating and maintaining maps of external source file columns to target staging table columns for use in importing those business objects, such as sales leads, customers, contacts, and sales catalogs.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Customer Account Collaboration Configuration",
+          "code": "MANAGE_CUSTOMER_ACCOUNT_COLLABORATION_CONFIGURATIO",
+          "description": "Allow Access to Manage Customer Account Collaboration Configuration",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Set Up CRM Objects for Export",
+          "code": "SET_UP_CRM_OBJECTS_FOR_EXPORT",
+          "description": "This privilege would grant a user the ability to register CRM objects for Export",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Certificates",
+          "code": "MANAGE_B2B_CERTIFICATES",
+          "description": "Allow access to manage B2B certificates",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Undelivered Collaboration Messages",
+          "code": "VIEW_UNDELIVERED_COLLABORATION_MESSAGES",
+          "description": "Allow access to manage undelivered collaboration messages.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Edit Supplier Registration Bank Account",
+          "code": "EDIT_SUPPLIER_REGISTRATION_BANK_ACCOUNT",
+          "description": "Allows updates to bank account information on supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Location of Final Discharge",
+          "code": "CREATE_LOCATION_OF_FINAL_DISCHARGE",
+          "description": "Allows creation of location of final discharge.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Validate Inbound Collaboration Messaging Setup",
+          "code": "VALIDATE_INBOUND_COLLABORATION_MESSAGING_SETUP",
+          "description": "Allow access to validate inbound collaboration messaging setup.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier",
+          "code": "SEARCH_SUPPLIER",
+          "description": "Allows searching of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Get Message Processing Configuration",
+          "code": "GET_MESSAGE_PROCESSING_CONFIGURATION",
+          "description": "Allow access to get message processing configuration.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messaging Configuration",
+          "code": "MANAGE_COLLABORATION_MESSAGING_CONFIGURATION",
+          "description": "Allow access to manage collaboration messaging configuration.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Address",
+          "code": "MAINTAIN_SUPPLIER_ADDRESS",
+          "description": "Allows updates to supplier addresses.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Supplier by Web Service",
+          "code": "MANAGE_SUPPLIER_BY_WEB_SERVICE",
+          "description": "Allows users to manage suppliers using a web service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Associated External Partner",
+          "code": "MANAGE_ASSOCIATED_EXTERNAL_PARTNER",
+          "description": "Allow access to manage associated external partner.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Third Party Tax Profile",
+          "code": "UPDATE_THIRD_PARTY_TAX_PROFILE",
+          "description": "Allows update of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Get Message Transformation Configuration",
+          "code": "GET_MESSAGE_TRANSFORMATION_CONFIGURATION",
+          "description": "Allow access to get message transformation configuration.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Undelivered Collaboration Messages",
+          "code": "MANAGE_UNDELIVERED_COLLABORATION_MESSAGES",
+          "description": "Allow access to manage undelivered collaboration messages.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View B2B Locations by Web Service",
+          "code": "VIEW_B2B_LOCATIONS_BY_WEB_SERVICE",
+          "description": "Allow access to view B2B locations by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Registration Request",
+          "code": "VIEW_SUPPLIER_REGISTRATION_REQUEST",
+          "description": "Allows access to supplier registration request details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Payment",
+          "code": "MAINTAIN_SUPPLIER_PAYMENT",
+          "description": "Allows updates to supplier site payment terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Invoke  Collaboration Message Inbound Service",
+          "code": "INVOKE__COLLABORATION_MESSAGE_INBOUND_SERVICE",
+          "description": "Allow access to invoke inbound service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Output Document",
+          "code": "VIEW_OUTPUT_DOCUMENT",
+          "description": "Allow access to view output document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View  Collaboration Message Source Document",
+          "code": "VIEW__COLLABORATION_MESSAGE_SOURCE_DOCUMENT",
+          "description": "Allow access to view source document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Party Fiscal Classification",
+          "code": "UPDATE_PARTY_FISCAL_CLASSIFICATION",
+          "description": "Allows update of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Transfer  File",
+          "code": "TRANSFER__FILE",
+          "description": "Allows management of file transfer from server",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Use REST Service - Guided Journey Responses",
+          "code": "USE_REST_SERVICE___GUIDED_JOURNEY_RESPONSES",
+          "description": "Allows the user to call all methods associated with the Guided Journey Responses REST service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage External Payee Payment Details",
+          "code": "MANAGE_EXTERNAL_PAYEE_PAYMENT_DETAILS",
+          "description": "Allows management of external payee payment details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Access FSCM Integration Rest Service",
+          "code": "ACCESS_FSCM_INTEGRATION_REST_SERVICE",
+          "description": "Allow financials and supply chain users to access the methods associated with the Integration Rest Service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Account Numbers by web service",
+          "code": "MANAGE_ACCOUNT_NUMBERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage b2b account number by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Set Up File Import Activity",
+          "code": "SET_UP_FILE_IMPORT_ACTIVITY",
+          "description": "Allows creating and maintaining import activities that contain process criteria, file mapping, and schedule to import external files containing business objects, such as customers and contacts, into staging tables.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message",
+          "code": "VIEW_COLLABORATION_MESSAGE",
+          "description": "Allow access to view collaboration message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run File Import Scheduler",
+          "code": "RUN_FILE_IMPORT_SCHEDULER",
+          "description": "Allows scheduling and monitoring the process that schedules file import activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Contact Change Request",
+          "code": "VIEW_SUPPLIER_CONTACT_CHANGE_REQUEST",
+          "description": "Allows access to supplier contact change request details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Supplier",
+          "code": "CREATE_SUPPLIER",
+          "description": "Allows creation of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Service Providers by Web Service",
+          "code": "MANAGE_SERVICE_PROVIDERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage collaboration messaging service provider by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Tax Fiscal Classification Import and Export Services",
+          "code": "MANAGE_TAX_FISCAL_CLASSIFICATION_IMPORT_AND_EXPORT",
+          "description": "Allows access to import and export tax fiscal classification configuration data.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Supplier Trading Partners",
+          "code": "MANAGE_B2B_SUPPLIER_TRADING_PARTNERS",
+          "description": "Allow access to manage B2B Supplier Trading Partners",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Payment Instrument Assignment",
+          "code": "MANAGE_PAYMENT_INSTRUMENT_ASSIGNMENT",
+          "description": "Allows creation of payment instrument assignment",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Use REST Service - Guided Journeys Read Only",
+          "code": "USE_REST_SERVICE___GUIDED_JOURNEYS_READ_ONLY",
+          "description": "Allows the user to call the GET method associated with the Guided Journeys REST service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Transaction Tax",
+          "code": "MAINTAIN_SUPPLIER_TRANSACTION_TAX",
+          "description": "Allows updates to supplier transaction tax information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third Party Bank Account Assignment",
+          "code": "VIEW_THIRD_PARTY_BANK_ACCOUNT_ASSIGNMENT",
+          "description": "Allows viewing of payment instrument assignments.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier in CRM Import Export Management",
+          "code": "MAINTAIN_SUPPLIER_IN_CRM_IMPORT_EXPORT_MANAGEMENT",
+          "description": "Allows users to call supplier REST service in CRM Import and Export management flows.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Edit Supplier Profile Change Request",
+          "code": "EDIT_SUPPLIER_PROFILE_CHANGE_REQUEST",
+          "description": "Allows updates to supplier profile change requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Edit Supplier Registration Request",
+          "code": "EDIT_SUPPLIER_REGISTRATION_REQUEST",
+          "description": "Allows updates to supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Qualification",
+          "code": "VIEW_SUPPLIER_QUALIFICATION",
+          "description": "Allows users to view a supplier qualification.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Message Definitions by Web Service",
+          "code": "MANAGE_COLLABORATION_MESSAGE_DEFINITIONS_BY_WEB_SE",
+          "description": "Allow access to manage collaboration message definitions by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Load Interface File for Import",
+          "code": "LOAD_INTERFACE_FILE_FOR_IMPORT",
+          "description": "Allows a user to load interface file for import",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Service Providers by Web Service",
+          "code": "VIEW_SERVICE_PROVIDERS_BY_WEB_SERVICE",
+          "description": "Allow access to view collaboration messaging service provider by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Application Partner",
+          "code": "MANAGE_APPLICATION_PARTNER",
+          "description": "Allow access to manage Application partner UI.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Business Classification",
+          "code": "MAINTAIN_SUPPLIER_BUSINESS_CLASSIFICATION",
+          "description": "Allows updates to supplier business classifications.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Load File to Interface",
+          "code": "LOAD_FILE_TO_INTERFACE",
+          "description": "Allows file data load to interface tables",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third-Party Site Tax Profile",
+          "code": "VIEW_THIRD_PARTY_SITE_TAX_PROFILE",
+          "description": "Allows viewing of tax profiles that contain tax information that relate to a third-party site's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage External Partner Message",
+          "code": "MANAGE_EXTERNAL_PARTNER_MESSAGE",
+          "description": "Allow access to manage external partner message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Customer Trading Partners",
+          "code": "MANAGE_B2B_CUSTOMER_TRADING_PARTNERS",
+          "description": "Allow access to manage B2B Customer Trading Partners",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Process Brazil Electronic invoices",
+          "code": "PROCESS_BRAZIL_ELECTRONIC_INVOICES",
+          "description": "Allow access to process Brazil electronic invoices",
+          "inheritedFrom": "Supplier Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 138,
+        "directPrivileges": 138,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "<b>Highlights</b><ul><li><i>Supplier Manager</i> (<i>ORA_POZ_SUPPLIER_MANAGER_ABSTRACT</i>)  grants access to a wide range of functionalities related to supplier management and collaboration. It allows users to view and manage supplier qualifications, assessments, and match results. The privilege enables updates to supplier contacts, profiles, and business relationships. Additionally, it provides access to collaboration messaging, including viewing and managing messages, documents, and setup data.  also facilitates the management of external partners, trading partners, and service providers. Users can update tax profiles, fiscal classifications, and location of final discharge. The privilege grants access to various work areas, such as suppliers and collaboration messaging, and allows the monitoring and reprocessing of messages. Furthermore, it enables the management of file import and export, collaboration message logging, and collaboration document data access. With this privilege, users can also search and merge suppliers, as well as manage payment instrument assignments and external payee payment details.</li></ul>Generated from Oracle security information.\nGenerated from Oracle security information.",
+        "roleUsage": "The Supplier Manager role includes 138 privileges, which can be summarized into the following functional categories\n\n\n1. Supplier Management: Involves the comprehensive management of suppliers, encompassing their registration, qualification, and assessment processes. This cluster includes privileges related to maintaining and updating supplier profiles, business relationships, and transaction tax information. It also covers the ability to search and view supplier registration requests, qualifications, and assessments. Additionally, it enables the management of supplier contacts, attachments, and site information, as well as the ability to process and retransmit collaboration messages related to suppliers.\n\n2. Collaboration Messaging: Focuses on the management and configuration of collaboration messaging systems. This cluster includes privileges related to setting up and validating collaboration messaging setup, as well as managing collaboration message logging, history, and domain value maps. It also enables users to view and process collaboration messages, reprocess failed messages, and monitor collaboration messaging work areas. Additionally, it provides access to manage collaboration document data access for users and collaboration message definitions.\n\n3. Tax and Fiscal Management: Pertains to the management of tax-related information and fiscal classifications. This cluster includes privileges related to maintaining and updating tax profiles for third parties and third-party sites, as well as managing tax fiscal classification import and export services. It also enables users to create, view, and update party fiscal classifications and third-party tax profiles. Additionally, it provides access to manage external partner message and trading partners by web service.\n\n4. File and Data Management: Includes the management and import/export of files and data. This cluster includes privileges related to setting up and managing file import and export activities, as well as loading interface files for import and transferring files. It also enables users to set up CRM objects for export and manage customer account collaboration configuration. Additionally, it provides access to manage message delivery endpoints and transformation configurations.\n\n5. Web Service Management: Contains privileges related to managing and accessing various aspects of web services. This cluster includes privileges for managing trading partners, B2B locations, and certificates by web service. It also enables users to manage service providers and collaboration messaging history by web service. Additionally, it provides access to view and manage collaboration message definitions and trading partners by web service.\n\n6. Miscellaneous: Contains items that do not belong to any specific group. This cluster includes privileges related to running background scheduler processes, maintaining reports and analytics, and managing scheduled job definitions. It also enables users to access the suppliers work area overview and monitor collaboration messaging. Additionally, it provides access to use REST services for guided journeys and responses, as well as managing external payee payment details and account numbers by web service.",
+        "privileges": "The Supplier Manager (ORA_POZ_SUPPLIER_MANAGER_ABSTRACT) role includes the following 138 privileges: \n\n1. View Supplier Qualification Question: Allows users to view a supplier qualification question.\n\n2. Maintain Supplier Contact: Allows updates to supplier contacts.\n\n3. View Collaboration Message Payload: Allow access to view  collaboration messaging XML\n\n4. Maintain Supplier Contact Change Request: Allows updates to supplier contact change requests.\n\n5. Manage Tax Third Party Import and Export Services: Allows access to import and export tax third party configuration data.\n\n6. Run Send Pending LDAP Requests Process: Allows the Send Pending LDAP Requests process to be run.\n\n7. Manage Collaboration Document Data Access for Users: Allow access to manage collaboration document data access for users UI.\n\n8. Manage External Partner: Allow access to manage external partner\n\n9. Update Location of Final Discharge: Allows update of location of final discharge.\n\n10. Process Inbound Collaboration Document: Allow access to  process inbound collaboration document.\n\n11. Manage Collaboration Message Logging: Allow access to manage collaboration message logging.\n\n12. View Supplier Match Results: Allows users to review supplier match results in supplier registration approval flows.\n\n13. View Supplier Attribute Validation Response from External Provider: Allows users to view the validation response on supplier attributes from an external service provider, including validation status, messages, and related response details.\n\n14. Maintain Reports and Analytics Region: Allows selection of reports to appear in the Reports and Analytics region of Oracle Fusion Applications work areas.\n\n15. Cancel Pending Supplier Profile Change Request: Allow canceling pending profile change request submitted by supplier users.\n\n16. Manage Service Provider: Allow access to manage collaboration messaging service provider.\n\n17. View Supplier Profile Change Request: Allows access to supplier profile change request details.\n\n18. Review Collaboration Messaging Setup Data Import: Allow Access to Review Collaboration Messaging Setup Data Import\n\n19. View Party Fiscal Classification: Allows viewing of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.\n\n20. Create Party Fiscal Classification: Allows creation of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.\n\n21. View Location of Final Discharge: Allows view of location of final discharge.\n\n22. Access Suppliers Work Area Overview: Allows access to the suppliers work area.\n\n23. Maintain Supplier Contact User Account: Allows updates to supplier contact user accounts.\n\n24. Run Supplier Background Scheduler: Allows internal users to automatically start scheduled ESS jobs, such as calculating supply base data, sync keyword search and update keyword search based on the frequency setting.\n\n25. Run CRM Export Process: This privilege would grant a user the ability to schedule CRM object to export to a file\n\n26. Maintain Supplier: Allows updates to the supplier profile.\n\n27. Maintain Supplier Products and Services Categories: Allows updates to supplier products and services categories.\n\n28. Manage Application Partners by Web Service: Allow access to manage trading partners by web service\n\n29. Manage Collaboration Messaging History: Allow access to manage collaboration messaging history.\n\n30. Update Third Party Site Tax Profile: Allows update of tax profiles that contain tax information that relate to a third party site's transaction tax activities.\n\n31. Manage Scheduled Job Definition: Manage the definition of a Scheduled Job\n\n32. Manage Trading Partners by Web Service: Allow access to manage trading partners by web service\n\n33. Import Party Tax Profile: Allows import of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n34. View Third-Party Tax Profile: Allows viewing of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n35. Search Supplier Registration Request: Allows searching and managing supplier registration requests.\n\n36. Resolve Purchasing Document Actions by REST Service: Allows an administrator using REST to perform actions such as renumber, resubmit, and communicate again.\n\n37. View Application Partners by Web Service: Allow access to manage trading partners by web service\n\n38. Maintain Supplier Site Purchasing Information: Allows updates to supplier site purchasing terms and controls.\n\n39. Reprocess Collaboration Message: Allow access to reprocess collaboration message.\n\n40. Manage B2B Message Transactions using a REST Service: Allow access to manage B2B Message Transactions\n\n41. Create Third Party Site Tax Profile: Allows creation of tax profiles that contain tax information that relate to a third party site's transaction tax activities.\n\n42. View Supplier Assessment: Allows users to view a supplier assessment.\n\n43. View  Collaboration Message Output Document: Allow access to view output document.\n\n44. Create Third Party Tax Profile: Allows creation of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n45. View Supply Chain Collaboration B2B Infolets: Allows visibility into B2B undelivered and failed messages in the Supply Chain Collaboration landing page.\n\n46. View Third Party Bank Account: Allows viewing of external bank accounts.\n\n47. Maintain Supplier Attachment: Allows updates to supplier attachments.\n\n48. Monitor Collaboration Messaging: Allow access to monitor collaboration messaging work area.\n\n49. Maintain Supplier Site B2B Communication Information: Allows updates to supplier site trading partner information.\n\n50. Maintain Supplier Organization Details: Allows update to supplier organization details.\n\n51. Retransmit Purchase Orders from Collaboration Messaging: Allows access to retransmit orders from Collaboration Messaging for which B2B transmission was not initiated or orders with the B2B messaging status of Aborted\n\n52. Manage Collaboration Messaging Domain Value Map: Allow access to manage collaboration messaging DVM.\n\n53. Search Supplier Qualification: Allows users to search for a supplier qualification.\n\n54. Search Supplier Assessment: Allows users to search for a supplier assessment.\n\n55. Manage Third Party Bank Account: Allows update of external bank accounts.\n\n56. Maintain Supplier Site Invoicing Information: Allows updates to supplier site invoicing terms and controls.\n\n57. Manage File Import and Export: Privilege to manage import and export of files.\n\n58. Manage Failed Collaboration Messages: Allow access to manage failed collaboration messages\n\n59. Create Collaboration Messaging Setup Data File: Allow Access to Create Collaboration Messaging Setup Data File\n\n60. Manage Collaboration Messages: Allow access to Manage Collaboration Messages\n\n61. Validate Outbound Collaboration Messaging Setup: Allow access to validate outbound collaboration messaging setup.\n\n62. Create External Partner: Allow access to create external partner.\n\n63. View Supplier Qualification Initiative: Allows users to view a supplier qualification initiative.\n\n64. Maintain Supplier Site: Allows updates to supplier site information.\n\n65. Submit Supplier Spend Authorization Request: Allows user to submit supplier spend authorization request by calling supplier REST service.\n\n66. Manage DataFox Field Mapping for Supplier Intelligence: Manages mapping between Oracle Fusion Procurement Suppliers and Oracle DataFox fields. Applicable only for the Power Supplier Intelligence with Oracle DataFox Smart Data feature and should not be utilized outside of this feature.\n\n67. Cancel Collaboration Message: Allow access to manage cancel collaboration message\n\n68. Manage B2B Locations by Web Service: Allow access to manage B2B locations by web service\n\n69. View Supplier Registration Bank Account: Allows access to bank account information on supplier registration requests.\n\n70. Import Supplier Bank Accounts: Allows import of external payee information and bank accounts belonging to suppliers, supplier sites, and supplier addresses.\n\n71. Manage B2B Trading Partners: Allow access to manage B2B Trading Partners\n\n72. View Collaboration Message Setup Details: Allow access to view setup details.\n\n73. Maintain Supplier Site Receiving Information: Allows updates to supplier site receiving terms and controls.\n\n74. View Collaboration Message Definitions by Web Service: Allow access to view collaboration message definitions by web service\n\n75. Maintain Supplier Business Relationship: Allows updates to supplier business relationship in supplier registration approval flows.\n\n76. Maintain Supplier Site Assignment: Allows updates to supplier site assignment information.\n\n77. View Trading Partners by Web Service: Allow access to view trading partners by web service\n\n78. View Account Numbers by web service: Allow access to manage b2b account number by web service\n\n79. Import Supplier: Allows importing of suppliers.\n\n80. Merge Supplier: Allows merging of suppliers.\n\n81. Process Collaboration Message: Allow access to process collaboration message.\n\n82. Maintain Supplier Income Tax: Allows updates to supplier income tax reporting information.\n\n83. Manage Message Delivery Endpoint: Allow access to manage message delivery endpoint.\n\n84. Set Up File Import Object and Mapping: Allows reviewing and registering business objects, such as sales leads and opportunities, intended for import from external files. Also allows creating and maintaining maps of external source file columns to target staging table columns for use in importing those business objects, such as sales leads, customers, contacts, and sales catalogs.\n\n85. Manage Customer Account Collaboration Configuration: Allow Access to Manage Customer Account Collaboration Configuration\n\n86. Set Up CRM Objects for Export: This privilege would grant a user the ability to register CRM objects for Export\n\n87. Manage B2B Certificates: Allow access to manage B2B certificates\n\n88. View Undelivered Collaboration Messages: Allow access to manage undelivered collaboration messages.\n\n89. Edit Supplier Registration Bank Account: Allows updates to bank account information on supplier registration requests.\n\n90. Create Location of Final Discharge: Allows creation of location of final discharge.\n\n91. Validate Inbound Collaboration Messaging Setup: Allow access to validate inbound collaboration messaging setup.\n\n92. Search Supplier: Allows searching of suppliers.\n\n93. Get Message Processing Configuration: Allow access to get message processing configuration.\n\n94. Manage Collaboration Messaging Configuration: Allow access to manage collaboration messaging configuration.\n\n95. Maintain Supplier Address: Allows updates to supplier addresses.\n\n96. Manage Supplier by Web Service: Allows users to manage suppliers using a web service.\n\n97. Manage Associated External Partner: Allow access to manage associated external partner.\n\n98. Update Third Party Tax Profile: Allows update of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n99. Get Message Transformation Configuration: Allow access to get message transformation configuration.\n\n100. Manage Undelivered Collaboration Messages: Allow access to manage undelivered collaboration messages.\n\n101. View B2B Locations by Web Service: Allow access to view B2B locations by web service\n\n102. View Supplier Registration Request: Allows access to supplier registration request details.\n\n103. Maintain Supplier Payment: Allows updates to supplier site payment terms and controls.\n\n104. Invoke  Collaboration Message Inbound Service: Allow access to invoke inbound service.\n\n105. View Output Document: Allow access to view output document.\n\n106. View  Collaboration Message Source Document: Allow access to view source document.\n\n107. Update Party Fiscal Classification: Allows update of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.\n\n108. Transfer  File: Allows management of file transfer from server\n\n109. Use REST Service - Guided Journey Responses: Allows the user to call all methods associated with the Guided Journey Responses REST service.\n\n110. Manage External Payee Payment Details: Allows management of external payee payment details.\n\n111. Access FSCM Integration Rest Service: Allow financials and supply chain users to access the methods associated with the Integration Rest Service.\n\n112. Manage Account Numbers by web service: Allow access to manage b2b account number by web service\n\n113. Set Up File Import Activity: Allows creating and maintaining import activities that contain process criteria, file mapping, and schedule to import external files containing business objects, such as customers and contacts, into staging tables.\n\n114. View Collaboration Message: Allow access to view collaboration message.\n\n115. Run File Import Scheduler: Allows scheduling and monitoring the process that schedules file import activities.\n\n116. View Supplier Contact Change Request: Allows access to supplier contact change request details.\n\n117. Create Supplier: Allows creation of suppliers.\n\n118. Manage Service Providers by Web Service: Allow access to manage collaboration messaging service provider by web service\n\n119. Manage Tax Fiscal Classification Import and Export Services: Allows access to import and export tax fiscal classification configuration data.\n\n120. Manage B2B Supplier Trading Partners: Allow access to manage B2B Supplier Trading Partners\n\n121. Manage Payment Instrument Assignment: Allows creation of payment instrument assignment\n\n122. Use REST Service - Guided Journeys Read Only: Allows the user to call the GET method associated with the Guided Journeys REST service.\n\n123. Maintain Supplier Transaction Tax: Allows updates to supplier transaction tax information.\n\n124. View Third Party Bank Account Assignment: Allows viewing of payment instrument assignments.\n\n125. Maintain Supplier in CRM Import Export Management: Allows users to call supplier REST service in CRM Import and Export management flows.\n\n126. Edit Supplier Profile Change Request: Allows updates to supplier profile change requests.\n\n127. Edit Supplier Registration Request: Allows updates to supplier registration requests.\n\n128. View Supplier Qualification: Allows users to view a supplier qualification.\n\n129. Manage Collaboration Message Definitions by Web Service: Allow access to manage collaboration message definitions by web service\n\n130. Load Interface File for Import: Allows a user to load interface file for import\n\n131. View Service Providers by Web Service: Allow access to view collaboration messaging service provider by web service\n\n132. Manage Application Partner: Allow access to manage Application partner UI.\n\n133. Maintain Supplier Business Classification: Allows updates to supplier business classifications.\n\n134. Load File to Interface: Allows file data load to interface tables\n\n135. View Third-Party Site Tax Profile: Allows viewing of tax profiles that contain tax information that relate to a third-party site's transaction tax activities.\n\n136. Manage External Partner Message: Allow access to manage external partner message.\n\n137. Manage B2B Customer Trading Partners: Allow access to manage B2B Customer Trading Partners\n\n138. Process Brazil Electronic invoices: Allow access to process Brazil electronic invoices"
+      },
+      "message": "<b>Highlights</b><ul><li><i>Supplier Manager</i> (<i>ORA_POZ_SUPPLIER_MANAGER_ABSTRACT</i>)  grants access to a wide range of functionalities related to supplier management and collaboration. It allows users to view and manage supplier qualifications, assessments, and match results. The privilege enables updates to supplier contacts, profiles, and business relationships. Additionally, it provides access to collaboration messaging, including viewing and managing messages, documents, and setup data.  also facilitates the management of external partners, trading partners, and service providers. Users can update tax profiles, fiscal classifications, and location of final discharge. The privilege grants access to various work areas, such as suppliers and collaboration messaging, and allows the monitoring and reprocessing of messages. Furthermore, it enables the management of file import and export, collaboration message logging, and collaboration document data access. With this privilege, users can also search and merge suppliers, as well as manage payment instrument assignments and external payee payment details.</li></ul>Generated from Oracle security information.\nGenerated from Oracle security information."
+    },
+    "timestamp": 1788895375592
+  },
+  "role_privileges:ora_poz_supplier_manager_abstract": {
+    "data": {
+      "success": true,
+      "dataSource": "Live Oracle Fusion API",
+      "roleName": "Supplier Manager",
+      "roleCode": "ORA_POZ_SUPPLIER_MANAGER_ABSTRACT",
+      "role": {
+        "name": "Supplier Manager",
+        "code": "ORA_POZ_SUPPLIER_MANAGER_ABSTRACT",
+        "category": "Abstract"
+      },
+      "privileges": [
+        {
+          "name": "View Supplier Qualification Question",
+          "code": "VIEW_SUPPLIER_QUALIFICATION_QUESTION",
+          "description": "Allows users to view a supplier qualification question.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Contact",
+          "code": "MAINTAIN_SUPPLIER_CONTACT",
+          "description": "Allows updates to supplier contacts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message Payload",
+          "code": "VIEW_COLLABORATION_MESSAGE_PAYLOAD",
+          "description": "Allow access to view  collaboration messaging XML",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Contact Change Request",
+          "code": "MAINTAIN_SUPPLIER_CONTACT_CHANGE_REQUEST",
+          "description": "Allows updates to supplier contact change requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Tax Third Party Import and Export Services",
+          "code": "MANAGE_TAX_THIRD_PARTY_IMPORT_AND_EXPORT_SERVICES",
+          "description": "Allows access to import and export tax third party configuration data.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run Send Pending LDAP Requests Process",
+          "code": "RUN_SEND_PENDING_LDAP_REQUESTS_PROCESS",
+          "description": "Allows the Send Pending LDAP Requests process to be run.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Document Data Access for Users",
+          "code": "MANAGE_COLLABORATION_DOCUMENT_DATA_ACCESS_FOR_USER",
+          "description": "Allow access to manage collaboration document data access for users UI.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage External Partner",
+          "code": "MANAGE_EXTERNAL_PARTNER",
+          "description": "Allow access to manage external partner",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Location of Final Discharge",
+          "code": "UPDATE_LOCATION_OF_FINAL_DISCHARGE",
+          "description": "Allows update of location of final discharge.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Process Inbound Collaboration Document",
+          "code": "PROCESS_INBOUND_COLLABORATION_DOCUMENT",
+          "description": "Allow access to  process inbound collaboration document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Message Logging",
+          "code": "MANAGE_COLLABORATION_MESSAGE_LOGGING",
+          "description": "Allow access to manage collaboration message logging.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Match Results",
+          "code": "VIEW_SUPPLIER_MATCH_RESULTS",
+          "description": "Allows users to review supplier match results in supplier registration approval flows.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Attribute Validation Response from External Provider",
+          "code": "VIEW_SUPPLIER_ATTRIBUTE_VALIDATION_RESPONSE_FROM_E",
+          "description": "Allows users to view the validation response on supplier attributes from an external service provider, including validation status, messages, and related response details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Reports and Analytics Region",
+          "code": "MAINTAIN_REPORTS_AND_ANALYTICS_REGION",
+          "description": "Allows selection of reports to appear in the Reports and Analytics region of Oracle Fusion Applications work areas.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Cancel Pending Supplier Profile Change Request",
+          "code": "CANCEL_PENDING_SUPPLIER_PROFILE_CHANGE_REQUEST",
+          "description": "Allow canceling pending profile change request submitted by supplier users.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Service Provider",
+          "code": "MANAGE_SERVICE_PROVIDER",
+          "description": "Allow access to manage collaboration messaging service provider.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Profile Change Request",
+          "code": "VIEW_SUPPLIER_PROFILE_CHANGE_REQUEST",
+          "description": "Allows access to supplier profile change request details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Review Collaboration Messaging Setup Data Import",
+          "code": "REVIEW_COLLABORATION_MESSAGING_SETUP_DATA_IMPORT",
+          "description": "Allow Access to Review Collaboration Messaging Setup Data Import",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Party Fiscal Classification",
+          "code": "VIEW_PARTY_FISCAL_CLASSIFICATION",
+          "description": "Allows viewing of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Party Fiscal Classification",
+          "code": "CREATE_PARTY_FISCAL_CLASSIFICATION",
+          "description": "Allows creation of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Location of Final Discharge",
+          "code": "VIEW_LOCATION_OF_FINAL_DISCHARGE",
+          "description": "Allows view of location of final discharge.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Access Suppliers Work Area Overview",
+          "code": "ACCESS_SUPPLIERS_WORK_AREA_OVERVIEW",
+          "description": "Allows access to the suppliers work area.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Contact User Account",
+          "code": "MAINTAIN_SUPPLIER_CONTACT_USER_ACCOUNT",
+          "description": "Allows updates to supplier contact user accounts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run Supplier Background Scheduler",
+          "code": "RUN_SUPPLIER_BACKGROUND_SCHEDULER",
+          "description": "Allows internal users to automatically start scheduled ESS jobs, such as calculating supply base data, sync keyword search and update keyword search based on the frequency setting.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run CRM Export Process",
+          "code": "RUN_CRM_EXPORT_PROCESS",
+          "description": "This privilege would grant a user the ability to schedule CRM object to export to a file",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier",
+          "code": "MAINTAIN_SUPPLIER",
+          "description": "Allows updates to the supplier profile.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Products and Services Categories",
+          "code": "MAINTAIN_SUPPLIER_PRODUCTS_AND_SERVICES_CATEGORIES",
+          "description": "Allows updates to supplier products and services categories.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Application Partners by Web Service",
+          "code": "MANAGE_APPLICATION_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messaging History",
+          "code": "MANAGE_COLLABORATION_MESSAGING_HISTORY",
+          "description": "Allow access to manage collaboration messaging history.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Third Party Site Tax Profile",
+          "code": "UPDATE_THIRD_PARTY_SITE_TAX_PROFILE",
+          "description": "Allows update of tax profiles that contain tax information that relate to a third party site's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Scheduled Job Definition",
+          "code": "MANAGE_SCHEDULED_JOB_DEFINITION",
+          "description": "Manage the definition of a Scheduled Job",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Trading Partners by Web Service",
+          "code": "MANAGE_TRADING_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Import Party Tax Profile",
+          "code": "IMPORT_PARTY_TAX_PROFILE",
+          "description": "Allows import of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third-Party Tax Profile",
+          "code": "VIEW_THIRD_PARTY_TAX_PROFILE",
+          "description": "Allows viewing of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier Registration Request",
+          "code": "SEARCH_SUPPLIER_REGISTRATION_REQUEST",
+          "description": "Allows searching and managing supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Resolve Purchasing Document Actions by REST Service",
+          "code": "RESOLVE_PURCHASING_DOCUMENT_ACTIONS_BY_REST_SERVIC",
+          "description": "Allows an administrator using REST to perform actions such as renumber, resubmit, and communicate again.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Application Partners by Web Service",
+          "code": "VIEW_APPLICATION_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Purchasing Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_PURCHASING_INFORMATION",
+          "description": "Allows updates to supplier site purchasing terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Reprocess Collaboration Message",
+          "code": "REPROCESS_COLLABORATION_MESSAGE",
+          "description": "Allow access to reprocess collaboration message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Message Transactions using a REST Service",
+          "code": "MANAGE_B2B_MESSAGE_TRANSACTIONS_USING_A_REST_SERVI",
+          "description": "Allow access to manage B2B Message Transactions",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Third Party Site Tax Profile",
+          "code": "CREATE_THIRD_PARTY_SITE_TAX_PROFILE",
+          "description": "Allows creation of tax profiles that contain tax information that relate to a third party site's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Assessment",
+          "code": "VIEW_SUPPLIER_ASSESSMENT",
+          "description": "Allows users to view a supplier assessment.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View  Collaboration Message Output Document",
+          "code": "VIEW__COLLABORATION_MESSAGE_OUTPUT_DOCUMENT",
+          "description": "Allow access to view output document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Third Party Tax Profile",
+          "code": "CREATE_THIRD_PARTY_TAX_PROFILE",
+          "description": "Allows creation of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supply Chain Collaboration B2B Infolets",
+          "code": "VIEW_SUPPLY_CHAIN_COLLABORATION_B2B_INFOLETS",
+          "description": "Allows visibility into B2B undelivered and failed messages in the Supply Chain Collaboration landing page.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third Party Bank Account",
+          "code": "VIEW_THIRD_PARTY_BANK_ACCOUNT",
+          "description": "Allows viewing of external bank accounts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Attachment",
+          "code": "MAINTAIN_SUPPLIER_ATTACHMENT",
+          "description": "Allows updates to supplier attachments.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Monitor Collaboration Messaging",
+          "code": "MONITOR_COLLABORATION_MESSAGING",
+          "description": "Allow access to monitor collaboration messaging work area.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site B2B Communication Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_B2B_COMMUNICATION_INFORMATI",
+          "description": "Allows updates to supplier site trading partner information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Organization Details",
+          "code": "MAINTAIN_SUPPLIER_ORGANIZATION_DETAILS",
+          "description": "Allows update to supplier organization details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Retransmit Purchase Orders from Collaboration Messaging",
+          "code": "RETRANSMIT_PURCHASE_ORDERS_FROM_COLLABORATION_MESS",
+          "description": "Allows access to retransmit orders from Collaboration Messaging for which B2B transmission was not initiated or orders with the B2B messaging status of Aborted",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messaging Domain Value Map",
+          "code": "MANAGE_COLLABORATION_MESSAGING_DOMAIN_VALUE_MAP",
+          "description": "Allow access to manage collaboration messaging DVM.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier Qualification",
+          "code": "SEARCH_SUPPLIER_QUALIFICATION",
+          "description": "Allows users to search for a supplier qualification.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier Assessment",
+          "code": "SEARCH_SUPPLIER_ASSESSMENT",
+          "description": "Allows users to search for a supplier assessment.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Third Party Bank Account",
+          "code": "MANAGE_THIRD_PARTY_BANK_ACCOUNT",
+          "description": "Allows update of external bank accounts.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Invoicing Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_INVOICING_INFORMATION",
+          "description": "Allows updates to supplier site invoicing terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage File Import and Export",
+          "code": "MANAGE_FILE_IMPORT_AND_EXPORT",
+          "description": "Privilege to manage import and export of files.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Failed Collaboration Messages",
+          "code": "MANAGE_FAILED_COLLABORATION_MESSAGES",
+          "description": "Allow access to manage failed collaboration messages",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Collaboration Messaging Setup Data File",
+          "code": "CREATE_COLLABORATION_MESSAGING_SETUP_DATA_FILE",
+          "description": "Allow Access to Create Collaboration Messaging Setup Data File",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messages",
+          "code": "MANAGE_COLLABORATION_MESSAGES",
+          "description": "Allow access to Manage Collaboration Messages",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Validate Outbound Collaboration Messaging Setup",
+          "code": "VALIDATE_OUTBOUND_COLLABORATION_MESSAGING_SETUP",
+          "description": "Allow access to validate outbound collaboration messaging setup.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create External Partner",
+          "code": "CREATE_EXTERNAL_PARTNER",
+          "description": "Allow access to create external partner.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Qualification Initiative",
+          "code": "VIEW_SUPPLIER_QUALIFICATION_INITIATIVE",
+          "description": "Allows users to view a supplier qualification initiative.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site",
+          "code": "MAINTAIN_SUPPLIER_SITE",
+          "description": "Allows updates to supplier site information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Submit Supplier Spend Authorization Request",
+          "code": "SUBMIT_SUPPLIER_SPEND_AUTHORIZATION_REQUEST",
+          "description": "Allows user to submit supplier spend authorization request by calling supplier REST service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage DataFox Field Mapping for Supplier Intelligence",
+          "code": "MANAGE_DATAFOX_FIELD_MAPPING_FOR_SUPPLIER_INTELLIG",
+          "description": "Manages mapping between Oracle Fusion Procurement Suppliers and Oracle DataFox fields. Applicable only for the Power Supplier Intelligence with Oracle DataFox Smart Data feature and should not be utilized outside of this feature.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Cancel Collaboration Message",
+          "code": "CANCEL_COLLABORATION_MESSAGE",
+          "description": "Allow access to manage cancel collaboration message",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Locations by Web Service",
+          "code": "MANAGE_B2B_LOCATIONS_BY_WEB_SERVICE",
+          "description": "Allow access to manage B2B locations by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Registration Bank Account",
+          "code": "VIEW_SUPPLIER_REGISTRATION_BANK_ACCOUNT",
+          "description": "Allows access to bank account information on supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Import Supplier Bank Accounts",
+          "code": "IMPORT_SUPPLIER_BANK_ACCOUNTS",
+          "description": "Allows import of external payee information and bank accounts belonging to suppliers, supplier sites, and supplier addresses.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Trading Partners",
+          "code": "MANAGE_B2B_TRADING_PARTNERS",
+          "description": "Allow access to manage B2B Trading Partners",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message Setup Details",
+          "code": "VIEW_COLLABORATION_MESSAGE_SETUP_DETAILS",
+          "description": "Allow access to view setup details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Receiving Information",
+          "code": "MAINTAIN_SUPPLIER_SITE_RECEIVING_INFORMATION",
+          "description": "Allows updates to supplier site receiving terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message Definitions by Web Service",
+          "code": "VIEW_COLLABORATION_MESSAGE_DEFINITIONS_BY_WEB_SERV",
+          "description": "Allow access to view collaboration message definitions by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Business Relationship",
+          "code": "MAINTAIN_SUPPLIER_BUSINESS_RELATIONSHIP",
+          "description": "Allows updates to supplier business relationship in supplier registration approval flows.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Site Assignment",
+          "code": "MAINTAIN_SUPPLIER_SITE_ASSIGNMENT",
+          "description": "Allows updates to supplier site assignment information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Trading Partners by Web Service",
+          "code": "VIEW_TRADING_PARTNERS_BY_WEB_SERVICE",
+          "description": "Allow access to view trading partners by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Account Numbers by web service",
+          "code": "VIEW_ACCOUNT_NUMBERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage b2b account number by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Import Supplier",
+          "code": "IMPORT_SUPPLIER",
+          "description": "Allows importing of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Merge Supplier",
+          "code": "MERGE_SUPPLIER",
+          "description": "Allows merging of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Process Collaboration Message",
+          "code": "PROCESS_COLLABORATION_MESSAGE",
+          "description": "Allow access to process collaboration message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Income Tax",
+          "code": "MAINTAIN_SUPPLIER_INCOME_TAX",
+          "description": "Allows updates to supplier income tax reporting information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Message Delivery Endpoint",
+          "code": "MANAGE_MESSAGE_DELIVERY_ENDPOINT",
+          "description": "Allow access to manage message delivery endpoint.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Set Up File Import Object and Mapping",
+          "code": "SET_UP_FILE_IMPORT_OBJECT_AND_MAPPING",
+          "description": "Allows reviewing and registering business objects, such as sales leads and opportunities, intended for import from external files. Also allows creating and maintaining maps of external source file columns to target staging table columns for use in importing those business objects, such as sales leads, customers, contacts, and sales catalogs.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Customer Account Collaboration Configuration",
+          "code": "MANAGE_CUSTOMER_ACCOUNT_COLLABORATION_CONFIGURATIO",
+          "description": "Allow Access to Manage Customer Account Collaboration Configuration",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Set Up CRM Objects for Export",
+          "code": "SET_UP_CRM_OBJECTS_FOR_EXPORT",
+          "description": "This privilege would grant a user the ability to register CRM objects for Export",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Certificates",
+          "code": "MANAGE_B2B_CERTIFICATES",
+          "description": "Allow access to manage B2B certificates",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Undelivered Collaboration Messages",
+          "code": "VIEW_UNDELIVERED_COLLABORATION_MESSAGES",
+          "description": "Allow access to manage undelivered collaboration messages.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Edit Supplier Registration Bank Account",
+          "code": "EDIT_SUPPLIER_REGISTRATION_BANK_ACCOUNT",
+          "description": "Allows updates to bank account information on supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Location of Final Discharge",
+          "code": "CREATE_LOCATION_OF_FINAL_DISCHARGE",
+          "description": "Allows creation of location of final discharge.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Validate Inbound Collaboration Messaging Setup",
+          "code": "VALIDATE_INBOUND_COLLABORATION_MESSAGING_SETUP",
+          "description": "Allow access to validate inbound collaboration messaging setup.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Search Supplier",
+          "code": "SEARCH_SUPPLIER",
+          "description": "Allows searching of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Get Message Processing Configuration",
+          "code": "GET_MESSAGE_PROCESSING_CONFIGURATION",
+          "description": "Allow access to get message processing configuration.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Messaging Configuration",
+          "code": "MANAGE_COLLABORATION_MESSAGING_CONFIGURATION",
+          "description": "Allow access to manage collaboration messaging configuration.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Address",
+          "code": "MAINTAIN_SUPPLIER_ADDRESS",
+          "description": "Allows updates to supplier addresses.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Supplier by Web Service",
+          "code": "MANAGE_SUPPLIER_BY_WEB_SERVICE",
+          "description": "Allows users to manage suppliers using a web service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Associated External Partner",
+          "code": "MANAGE_ASSOCIATED_EXTERNAL_PARTNER",
+          "description": "Allow access to manage associated external partner.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Third Party Tax Profile",
+          "code": "UPDATE_THIRD_PARTY_TAX_PROFILE",
+          "description": "Allows update of tax profiles that contain tax information that relate to a third party's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Get Message Transformation Configuration",
+          "code": "GET_MESSAGE_TRANSFORMATION_CONFIGURATION",
+          "description": "Allow access to get message transformation configuration.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Undelivered Collaboration Messages",
+          "code": "MANAGE_UNDELIVERED_COLLABORATION_MESSAGES",
+          "description": "Allow access to manage undelivered collaboration messages.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View B2B Locations by Web Service",
+          "code": "VIEW_B2B_LOCATIONS_BY_WEB_SERVICE",
+          "description": "Allow access to view B2B locations by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Registration Request",
+          "code": "VIEW_SUPPLIER_REGISTRATION_REQUEST",
+          "description": "Allows access to supplier registration request details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Payment",
+          "code": "MAINTAIN_SUPPLIER_PAYMENT",
+          "description": "Allows updates to supplier site payment terms and controls.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Invoke  Collaboration Message Inbound Service",
+          "code": "INVOKE__COLLABORATION_MESSAGE_INBOUND_SERVICE",
+          "description": "Allow access to invoke inbound service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Output Document",
+          "code": "VIEW_OUTPUT_DOCUMENT",
+          "description": "Allow access to view output document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View  Collaboration Message Source Document",
+          "code": "VIEW__COLLABORATION_MESSAGE_SOURCE_DOCUMENT",
+          "description": "Allow access to view source document.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Update Party Fiscal Classification",
+          "code": "UPDATE_PARTY_FISCAL_CLASSIFICATION",
+          "description": "Allows update of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Transfer  File",
+          "code": "TRANSFER__FILE",
+          "description": "Allows management of file transfer from server",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Use REST Service - Guided Journey Responses",
+          "code": "USE_REST_SERVICE___GUIDED_JOURNEY_RESPONSES",
+          "description": "Allows the user to call all methods associated with the Guided Journey Responses REST service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage External Payee Payment Details",
+          "code": "MANAGE_EXTERNAL_PAYEE_PAYMENT_DETAILS",
+          "description": "Allows management of external payee payment details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Access FSCM Integration Rest Service",
+          "code": "ACCESS_FSCM_INTEGRATION_REST_SERVICE",
+          "description": "Allow financials and supply chain users to access the methods associated with the Integration Rest Service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Account Numbers by web service",
+          "code": "MANAGE_ACCOUNT_NUMBERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage b2b account number by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Set Up File Import Activity",
+          "code": "SET_UP_FILE_IMPORT_ACTIVITY",
+          "description": "Allows creating and maintaining import activities that contain process criteria, file mapping, and schedule to import external files containing business objects, such as customers and contacts, into staging tables.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Collaboration Message",
+          "code": "VIEW_COLLABORATION_MESSAGE",
+          "description": "Allow access to view collaboration message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Run File Import Scheduler",
+          "code": "RUN_FILE_IMPORT_SCHEDULER",
+          "description": "Allows scheduling and monitoring the process that schedules file import activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Contact Change Request",
+          "code": "VIEW_SUPPLIER_CONTACT_CHANGE_REQUEST",
+          "description": "Allows access to supplier contact change request details.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Create Supplier",
+          "code": "CREATE_SUPPLIER",
+          "description": "Allows creation of suppliers.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Service Providers by Web Service",
+          "code": "MANAGE_SERVICE_PROVIDERS_BY_WEB_SERVICE",
+          "description": "Allow access to manage collaboration messaging service provider by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Tax Fiscal Classification Import and Export Services",
+          "code": "MANAGE_TAX_FISCAL_CLASSIFICATION_IMPORT_AND_EXPORT",
+          "description": "Allows access to import and export tax fiscal classification configuration data.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Supplier Trading Partners",
+          "code": "MANAGE_B2B_SUPPLIER_TRADING_PARTNERS",
+          "description": "Allow access to manage B2B Supplier Trading Partners",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Payment Instrument Assignment",
+          "code": "MANAGE_PAYMENT_INSTRUMENT_ASSIGNMENT",
+          "description": "Allows creation of payment instrument assignment",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Use REST Service - Guided Journeys Read Only",
+          "code": "USE_REST_SERVICE___GUIDED_JOURNEYS_READ_ONLY",
+          "description": "Allows the user to call the GET method associated with the Guided Journeys REST service.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Transaction Tax",
+          "code": "MAINTAIN_SUPPLIER_TRANSACTION_TAX",
+          "description": "Allows updates to supplier transaction tax information.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third Party Bank Account Assignment",
+          "code": "VIEW_THIRD_PARTY_BANK_ACCOUNT_ASSIGNMENT",
+          "description": "Allows viewing of payment instrument assignments.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier in CRM Import Export Management",
+          "code": "MAINTAIN_SUPPLIER_IN_CRM_IMPORT_EXPORT_MANAGEMENT",
+          "description": "Allows users to call supplier REST service in CRM Import and Export management flows.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Edit Supplier Profile Change Request",
+          "code": "EDIT_SUPPLIER_PROFILE_CHANGE_REQUEST",
+          "description": "Allows updates to supplier profile change requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Edit Supplier Registration Request",
+          "code": "EDIT_SUPPLIER_REGISTRATION_REQUEST",
+          "description": "Allows updates to supplier registration requests.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Supplier Qualification",
+          "code": "VIEW_SUPPLIER_QUALIFICATION",
+          "description": "Allows users to view a supplier qualification.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Collaboration Message Definitions by Web Service",
+          "code": "MANAGE_COLLABORATION_MESSAGE_DEFINITIONS_BY_WEB_SE",
+          "description": "Allow access to manage collaboration message definitions by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Load Interface File for Import",
+          "code": "LOAD_INTERFACE_FILE_FOR_IMPORT",
+          "description": "Allows a user to load interface file for import",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Service Providers by Web Service",
+          "code": "VIEW_SERVICE_PROVIDERS_BY_WEB_SERVICE",
+          "description": "Allow access to view collaboration messaging service provider by web service",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage Application Partner",
+          "code": "MANAGE_APPLICATION_PARTNER",
+          "description": "Allow access to manage Application partner UI.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Maintain Supplier Business Classification",
+          "code": "MAINTAIN_SUPPLIER_BUSINESS_CLASSIFICATION",
+          "description": "Allows updates to supplier business classifications.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Load File to Interface",
+          "code": "LOAD_FILE_TO_INTERFACE",
+          "description": "Allows file data load to interface tables",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "View Third-Party Site Tax Profile",
+          "code": "VIEW_THIRD_PARTY_SITE_TAX_PROFILE",
+          "description": "Allows viewing of tax profiles that contain tax information that relate to a third-party site's transaction tax activities.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage External Partner Message",
+          "code": "MANAGE_EXTERNAL_PARTNER_MESSAGE",
+          "description": "Allow access to manage external partner message.",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Manage B2B Customer Trading Partners",
+          "code": "MANAGE_B2B_CUSTOMER_TRADING_PARTNERS",
+          "description": "Allow access to manage B2B Customer Trading Partners",
+          "inheritedFrom": "Supplier Manager"
+        },
+        {
+          "name": "Process Brazil Electronic invoices",
+          "code": "PROCESS_BRAZIL_ELECTRONIC_INVOICES",
+          "description": "Allow access to process Brazil electronic invoices",
+          "inheritedFrom": "Supplier Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 138,
+        "directPrivileges": 138,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "<b>Highlights</b><ul><li><i>Supplier Manager</i> (<i>ORA_POZ_SUPPLIER_MANAGER_ABSTRACT</i>)  grants access to a wide range of functionalities related to supplier management and collaboration. It allows users to view and manage supplier qualifications, assessments, and match results. The privilege enables updates to supplier contacts, profiles, and business relationships. Additionally, it provides access to collaboration messaging, including viewing and managing messages, documents, and setup data.  also facilitates the management of external partners, trading partners, and service providers. Users can update tax profiles, fiscal classifications, and location of final discharge. The privilege grants access to various work areas, such as suppliers and collaboration messaging, and allows the monitoring and reprocessing of messages. Furthermore, it enables the management of file import and export, collaboration message logging, and collaboration document data access. With this privilege, users can also search and merge suppliers, as well as manage payment instrument assignments and external payee payment details.</li></ul>Generated from Oracle security information.\nGenerated from Oracle security information.",
+        "roleUsage": "The Supplier Manager role includes 138 privileges, which can be summarized into the following functional categories\n\n\n1. Supplier Management: Involves the comprehensive management of suppliers, encompassing their registration, qualification, and assessment processes. This cluster includes privileges related to maintaining and updating supplier profiles, business relationships, and transaction tax information. It also covers the ability to search and view supplier registration requests, qualifications, and assessments. Additionally, it enables the management of supplier contacts, attachments, and site information, as well as the ability to process and retransmit collaboration messages related to suppliers.\n\n2. Collaboration Messaging: Focuses on the management and configuration of collaboration messaging systems. This cluster includes privileges related to setting up and validating collaboration messaging setup, as well as managing collaboration message logging, history, and domain value maps. It also enables users to view and process collaboration messages, reprocess failed messages, and monitor collaboration messaging work areas. Additionally, it provides access to manage collaboration document data access for users and collaboration message definitions.\n\n3. Tax and Fiscal Management: Pertains to the management of tax-related information and fiscal classifications. This cluster includes privileges related to maintaining and updating tax profiles for third parties and third-party sites, as well as managing tax fiscal classification import and export services. It also enables users to create, view, and update party fiscal classifications and third-party tax profiles. Additionally, it provides access to manage external partner message and trading partners by web service.\n\n4. File and Data Management: Includes the management and import/export of files and data. This cluster includes privileges related to setting up and managing file import and export activities, as well as loading interface files for import and transferring files. It also enables users to set up CRM objects for export and manage customer account collaboration configuration. Additionally, it provides access to manage message delivery endpoints and transformation configurations.\n\n5. Web Service Management: Contains privileges related to managing and accessing various aspects of web services. This cluster includes privileges for managing trading partners, B2B locations, and certificates by web service. It also enables users to manage service providers and collaboration messaging history by web service. Additionally, it provides access to view and manage collaboration message definitions and trading partners by web service.\n\n6. Miscellaneous: Contains items that do not belong to any specific group. This cluster includes privileges related to running background scheduler processes, maintaining reports and analytics, and managing scheduled job definitions. It also enables users to access the suppliers work area overview and monitor collaboration messaging. Additionally, it provides access to use REST services for guided journeys and responses, as well as managing external payee payment details and account numbers by web service.",
+        "privileges": "The Supplier Manager (ORA_POZ_SUPPLIER_MANAGER_ABSTRACT) role includes the following 138 privileges: \n\n1. View Supplier Qualification Question: Allows users to view a supplier qualification question.\n\n2. Maintain Supplier Contact: Allows updates to supplier contacts.\n\n3. View Collaboration Message Payload: Allow access to view  collaboration messaging XML\n\n4. Maintain Supplier Contact Change Request: Allows updates to supplier contact change requests.\n\n5. Manage Tax Third Party Import and Export Services: Allows access to import and export tax third party configuration data.\n\n6. Run Send Pending LDAP Requests Process: Allows the Send Pending LDAP Requests process to be run.\n\n7. Manage Collaboration Document Data Access for Users: Allow access to manage collaboration document data access for users UI.\n\n8. Manage External Partner: Allow access to manage external partner\n\n9. Update Location of Final Discharge: Allows update of location of final discharge.\n\n10. Process Inbound Collaboration Document: Allow access to  process inbound collaboration document.\n\n11. Manage Collaboration Message Logging: Allow access to manage collaboration message logging.\n\n12. View Supplier Match Results: Allows users to review supplier match results in supplier registration approval flows.\n\n13. View Supplier Attribute Validation Response from External Provider: Allows users to view the validation response on supplier attributes from an external service provider, including validation status, messages, and related response details.\n\n14. Maintain Reports and Analytics Region: Allows selection of reports to appear in the Reports and Analytics region of Oracle Fusion Applications work areas.\n\n15. Cancel Pending Supplier Profile Change Request: Allow canceling pending profile change request submitted by supplier users.\n\n16. Manage Service Provider: Allow access to manage collaboration messaging service provider.\n\n17. View Supplier Profile Change Request: Allows access to supplier profile change request details.\n\n18. Review Collaboration Messaging Setup Data Import: Allow Access to Review Collaboration Messaging Setup Data Import\n\n19. View Party Fiscal Classification: Allows viewing of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.\n\n20. Create Party Fiscal Classification: Allows creation of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.\n\n21. View Location of Final Discharge: Allows view of location of final discharge.\n\n22. Access Suppliers Work Area Overview: Allows access to the suppliers work area.\n\n23. Maintain Supplier Contact User Account: Allows updates to supplier contact user accounts.\n\n24. Run Supplier Background Scheduler: Allows internal users to automatically start scheduled ESS jobs, such as calculating supply base data, sync keyword search and update keyword search based on the frequency setting.\n\n25. Run CRM Export Process: This privilege would grant a user the ability to schedule CRM object to export to a file\n\n26. Maintain Supplier: Allows updates to the supplier profile.\n\n27. Maintain Supplier Products and Services Categories: Allows updates to supplier products and services categories.\n\n28. Manage Application Partners by Web Service: Allow access to manage trading partners by web service\n\n29. Manage Collaboration Messaging History: Allow access to manage collaboration messaging history.\n\n30. Update Third Party Site Tax Profile: Allows update of tax profiles that contain tax information that relate to a third party site's transaction tax activities.\n\n31. Manage Scheduled Job Definition: Manage the definition of a Scheduled Job\n\n32. Manage Trading Partners by Web Service: Allow access to manage trading partners by web service\n\n33. Import Party Tax Profile: Allows import of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n34. View Third-Party Tax Profile: Allows viewing of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n35. Search Supplier Registration Request: Allows searching and managing supplier registration requests.\n\n36. Resolve Purchasing Document Actions by REST Service: Allows an administrator using REST to perform actions such as renumber, resubmit, and communicate again.\n\n37. View Application Partners by Web Service: Allow access to manage trading partners by web service\n\n38. Maintain Supplier Site Purchasing Information: Allows updates to supplier site purchasing terms and controls.\n\n39. Reprocess Collaboration Message: Allow access to reprocess collaboration message.\n\n40. Manage B2B Message Transactions using a REST Service: Allow access to manage B2B Message Transactions\n\n41. Create Third Party Site Tax Profile: Allows creation of tax profiles that contain tax information that relate to a third party site's transaction tax activities.\n\n42. View Supplier Assessment: Allows users to view a supplier assessment.\n\n43. View  Collaboration Message Output Document: Allow access to view output document.\n\n44. Create Third Party Tax Profile: Allows creation of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n45. View Supply Chain Collaboration B2B Infolets: Allows visibility into B2B undelivered and failed messages in the Supply Chain Collaboration landing page.\n\n46. View Third Party Bank Account: Allows viewing of external bank accounts.\n\n47. Maintain Supplier Attachment: Allows updates to supplier attachments.\n\n48. Monitor Collaboration Messaging: Allow access to monitor collaboration messaging work area.\n\n49. Maintain Supplier Site B2B Communication Information: Allows updates to supplier site trading partner information.\n\n50. Maintain Supplier Organization Details: Allows update to supplier organization details.\n\n51. Retransmit Purchase Orders from Collaboration Messaging: Allows access to retransmit orders from Collaboration Messaging for which B2B transmission was not initiated or orders with the B2B messaging status of Aborted\n\n52. Manage Collaboration Messaging Domain Value Map: Allow access to manage collaboration messaging DVM.\n\n53. Search Supplier Qualification: Allows users to search for a supplier qualification.\n\n54. Search Supplier Assessment: Allows users to search for a supplier assessment.\n\n55. Manage Third Party Bank Account: Allows update of external bank accounts.\n\n56. Maintain Supplier Site Invoicing Information: Allows updates to supplier site invoicing terms and controls.\n\n57. Manage File Import and Export: Privilege to manage import and export of files.\n\n58. Manage Failed Collaboration Messages: Allow access to manage failed collaboration messages\n\n59. Create Collaboration Messaging Setup Data File: Allow Access to Create Collaboration Messaging Setup Data File\n\n60. Manage Collaboration Messages: Allow access to Manage Collaboration Messages\n\n61. Validate Outbound Collaboration Messaging Setup: Allow access to validate outbound collaboration messaging setup.\n\n62. Create External Partner: Allow access to create external partner.\n\n63. View Supplier Qualification Initiative: Allows users to view a supplier qualification initiative.\n\n64. Maintain Supplier Site: Allows updates to supplier site information.\n\n65. Submit Supplier Spend Authorization Request: Allows user to submit supplier spend authorization request by calling supplier REST service.\n\n66. Manage DataFox Field Mapping for Supplier Intelligence: Manages mapping between Oracle Fusion Procurement Suppliers and Oracle DataFox fields. Applicable only for the Power Supplier Intelligence with Oracle DataFox Smart Data feature and should not be utilized outside of this feature.\n\n67. Cancel Collaboration Message: Allow access to manage cancel collaboration message\n\n68. Manage B2B Locations by Web Service: Allow access to manage B2B locations by web service\n\n69. View Supplier Registration Bank Account: Allows access to bank account information on supplier registration requests.\n\n70. Import Supplier Bank Accounts: Allows import of external payee information and bank accounts belonging to suppliers, supplier sites, and supplier addresses.\n\n71. Manage B2B Trading Partners: Allow access to manage B2B Trading Partners\n\n72. View Collaboration Message Setup Details: Allow access to view setup details.\n\n73. Maintain Supplier Site Receiving Information: Allows updates to supplier site receiving terms and controls.\n\n74. View Collaboration Message Definitions by Web Service: Allow access to view collaboration message definitions by web service\n\n75. Maintain Supplier Business Relationship: Allows updates to supplier business relationship in supplier registration approval flows.\n\n76. Maintain Supplier Site Assignment: Allows updates to supplier site assignment information.\n\n77. View Trading Partners by Web Service: Allow access to view trading partners by web service\n\n78. View Account Numbers by web service: Allow access to manage b2b account number by web service\n\n79. Import Supplier: Allows importing of suppliers.\n\n80. Merge Supplier: Allows merging of suppliers.\n\n81. Process Collaboration Message: Allow access to process collaboration message.\n\n82. Maintain Supplier Income Tax: Allows updates to supplier income tax reporting information.\n\n83. Manage Message Delivery Endpoint: Allow access to manage message delivery endpoint.\n\n84. Set Up File Import Object and Mapping: Allows reviewing and registering business objects, such as sales leads and opportunities, intended for import from external files. Also allows creating and maintaining maps of external source file columns to target staging table columns for use in importing those business objects, such as sales leads, customers, contacts, and sales catalogs.\n\n85. Manage Customer Account Collaboration Configuration: Allow Access to Manage Customer Account Collaboration Configuration\n\n86. Set Up CRM Objects for Export: This privilege would grant a user the ability to register CRM objects for Export\n\n87. Manage B2B Certificates: Allow access to manage B2B certificates\n\n88. View Undelivered Collaboration Messages: Allow access to manage undelivered collaboration messages.\n\n89. Edit Supplier Registration Bank Account: Allows updates to bank account information on supplier registration requests.\n\n90. Create Location of Final Discharge: Allows creation of location of final discharge.\n\n91. Validate Inbound Collaboration Messaging Setup: Allow access to validate inbound collaboration messaging setup.\n\n92. Search Supplier: Allows searching of suppliers.\n\n93. Get Message Processing Configuration: Allow access to get message processing configuration.\n\n94. Manage Collaboration Messaging Configuration: Allow access to manage collaboration messaging configuration.\n\n95. Maintain Supplier Address: Allows updates to supplier addresses.\n\n96. Manage Supplier by Web Service: Allows users to manage suppliers using a web service.\n\n97. Manage Associated External Partner: Allow access to manage associated external partner.\n\n98. Update Third Party Tax Profile: Allows update of tax profiles that contain tax information that relate to a third party's transaction tax activities.\n\n99. Get Message Transformation Configuration: Allow access to get message transformation configuration.\n\n100. Manage Undelivered Collaboration Messages: Allow access to manage undelivered collaboration messages.\n\n101. View B2B Locations by Web Service: Allow access to view B2B locations by web service\n\n102. View Supplier Registration Request: Allows access to supplier registration request details.\n\n103. Maintain Supplier Payment: Allows updates to supplier site payment terms and controls.\n\n104. Invoke  Collaboration Message Inbound Service: Allow access to invoke inbound service.\n\n105. View Output Document: Allow access to view output document.\n\n106. View  Collaboration Message Source Document: Allow access to view source document.\n\n107. Update Party Fiscal Classification: Allows update of tax classifications used by a tax authority to categorize a party and is applicable in the tax determination process.\n\n108. Transfer  File: Allows management of file transfer from server\n\n109. Use REST Service - Guided Journey Responses: Allows the user to call all methods associated with the Guided Journey Responses REST service.\n\n110. Manage External Payee Payment Details: Allows management of external payee payment details.\n\n111. Access FSCM Integration Rest Service: Allow financials and supply chain users to access the methods associated with the Integration Rest Service.\n\n112. Manage Account Numbers by web service: Allow access to manage b2b account number by web service\n\n113. Set Up File Import Activity: Allows creating and maintaining import activities that contain process criteria, file mapping, and schedule to import external files containing business objects, such as customers and contacts, into staging tables.\n\n114. View Collaboration Message: Allow access to view collaboration message.\n\n115. Run File Import Scheduler: Allows scheduling and monitoring the process that schedules file import activities.\n\n116. View Supplier Contact Change Request: Allows access to supplier contact change request details.\n\n117. Create Supplier: Allows creation of suppliers.\n\n118. Manage Service Providers by Web Service: Allow access to manage collaboration messaging service provider by web service\n\n119. Manage Tax Fiscal Classification Import and Export Services: Allows access to import and export tax fiscal classification configuration data.\n\n120. Manage B2B Supplier Trading Partners: Allow access to manage B2B Supplier Trading Partners\n\n121. Manage Payment Instrument Assignment: Allows creation of payment instrument assignment\n\n122. Use REST Service - Guided Journeys Read Only: Allows the user to call the GET method associated with the Guided Journeys REST service.\n\n123. Maintain Supplier Transaction Tax: Allows updates to supplier transaction tax information.\n\n124. View Third Party Bank Account Assignment: Allows viewing of payment instrument assignments.\n\n125. Maintain Supplier in CRM Import Export Management: Allows users to call supplier REST service in CRM Import and Export management flows.\n\n126. Edit Supplier Profile Change Request: Allows updates to supplier profile change requests.\n\n127. Edit Supplier Registration Request: Allows updates to supplier registration requests.\n\n128. View Supplier Qualification: Allows users to view a supplier qualification.\n\n129. Manage Collaboration Message Definitions by Web Service: Allow access to manage collaboration message definitions by web service\n\n130. Load Interface File for Import: Allows a user to load interface file for import\n\n131. View Service Providers by Web Service: Allow access to view collaboration messaging service provider by web service\n\n132. Manage Application Partner: Allow access to manage Application partner UI.\n\n133. Maintain Supplier Business Classification: Allows updates to supplier business classifications.\n\n134. Load File to Interface: Allows file data load to interface tables\n\n135. View Third-Party Site Tax Profile: Allows viewing of tax profiles that contain tax information that relate to a third-party site's transaction tax activities.\n\n136. Manage External Partner Message: Allow access to manage external partner message.\n\n137. Manage B2B Customer Trading Partners: Allow access to manage B2B Customer Trading Partners\n\n138. Process Brazil Electronic invoices: Allow access to process Brazil electronic invoices"
+      },
+      "message": "<b>Highlights</b><ul><li><i>Supplier Manager</i> (<i>ORA_POZ_SUPPLIER_MANAGER_ABSTRACT</i>)  grants access to a wide range of functionalities related to supplier management and collaboration. It allows users to view and manage supplier qualifications, assessments, and match results. The privilege enables updates to supplier contacts, profiles, and business relationships. Additionally, it provides access to collaboration messaging, including viewing and managing messages, documents, and setup data.  also facilitates the management of external partners, trading partners, and service providers. Users can update tax profiles, fiscal classifications, and location of final discharge. The privilege grants access to various work areas, such as suppliers and collaboration messaging, and allows the monitoring and reprocessing of messages. Furthermore, it enables the management of file import and export, collaboration message logging, and collaboration document data access. With this privilege, users can also search and merge suppliers, as well as manage payment instrument assignments and external payee payment details.</li></ul>Generated from Oracle security information.\nGenerated from Oracle security information."
+    },
+    "timestamp": 1788895375593
+  }
+}

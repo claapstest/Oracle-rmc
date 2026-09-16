@@ -1,0 +1,2775 @@
+[
+  {
+    "sno": 1,
+    "id": "pages_and_business_objects_extensibility_adf",
+    "displayName": "Pages and Business Objects Extensibility (ADF)",
+    "productName": "Pages and Business Objects Extensibility (ADF)",
+    "shortCodes": [
+      "ADF"
+    ],
+    "aliases": [
+      "Pages and Business Objects Extensibility (ADF)",
+      "ADF",
+      "pages and business objects extensibility adf"
+    ],
+    "restProduct": "ADF",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "custom_metadata_operations",
+        "displayName": "Custom Metadata Operations",
+        "aliases": [
+          "Custom Metadata Operations",
+          "custom metadata operations"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 2,
+    "id": "oracle_enterprise_scheduler_service",
+    "displayName": "Oracle Enterprise Scheduler Service (ESS)",
+    "productName": "Oracle Enterprise Scheduler Service",
+    "shortCodes": [
+      "ESS"
+    ],
+    "aliases": [
+      "Oracle Enterprise Scheduler Service",
+      "Oracle Enterprise Scheduler Service (ESS)",
+      "ESS",
+      "oracle enterprise scheduler service"
+    ],
+    "restProduct": "ESS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "job_request",
+        "displayName": "Job Request",
+        "aliases": [
+          "Job Request",
+          "job request"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 3,
+    "id": "opss",
+    "displayName": "Oracle Platform Security Services (OPSS)",
+    "productName": "Oracle Platform Security Services",
+    "shortCodes": [
+      "OPSS"
+    ],
+    "aliases": [
+      "Oracle Platform Security Services",
+      "Oracle Platform Security Services (OPSS)",
+      "OPSS",
+      "opss",
+      "Platform Security Services",
+      "Platform Security",
+      "Security Services"
+    ],
+    "restProduct": "OPSS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
+  },
+  {
+    "sno": 4,
+    "id": "oracle_soa_suite_soa",
+    "displayName": "Oracle SOA Suite (SOA)",
+    "productName": "Oracle SOA Suite (SOA)",
+    "shortCodes": [
+      "SOA"
+    ],
+    "aliases": [
+      "Oracle SOA Suite (SOA)",
+      "SOA",
+      "oracle soa suite soa"
+    ],
+    "restProduct": "SOA",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "soa_dt_rt_change",
+        "displayName": "SOA DT@RT Change",
+        "aliases": [
+          "SOA DT@RT Change",
+          "soa dt rt change"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 5,
+    "id": "oracle_data_integrator_odi",
+    "displayName": "Oracle Data Integrator (ODI)",
+    "productName": "Oracle Data Integrator (ODI)",
+    "shortCodes": [
+      "ODI"
+    ],
+    "aliases": [
+      "Oracle Data Integrator (ODI)",
+      "ODI",
+      "oracle data integrator odi"
+    ],
+    "restProduct": "ODI",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "firstclassobject",
+        "displayName": "FirstClassObject",
+        "aliases": [
+          "FirstClassObject",
+          "firstclassobject"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 6,
+    "id": "oracle_metadata_services_mds",
+    "displayName": "Oracle Metadata Services (MDS)",
+    "productName": "Oracle Metadata Services (MDS)",
+    "shortCodes": [
+      "MDS"
+    ],
+    "aliases": [
+      "Oracle Metadata Services (MDS)",
+      "MDS",
+      "oracle metadata services mds"
+    ],
+    "restProduct": "MDS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "metadata_objects",
+        "displayName": "Metadata Objects",
+        "aliases": [
+          "Metadata Objects",
+          "metadata objects"
+        ]
+      },
+      {
+        "id": "metadata_operations",
+        "displayName": "Metadata Operations",
+        "aliases": [
+          "Metadata Operations",
+          "metadata operations"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 7,
+    "id": "oracle_business_intelligence_enterprise_edition",
+    "displayName": "Oracle Business Intelligence Enterprise Edition (BI EE)",
+    "productName": "Oracle Business Intelligence Enterprise Edition",
+    "shortCodes": [
+      "BI EE"
+    ],
+    "aliases": [
+      "Oracle Business Intelligence Enterprise Edition",
+      "Oracle Business Intelligence Enterprise Edition (BI EE)",
+      "BI EE",
+      "oracle business intelligence enterprise edition"
+    ],
+    "restProduct": "BI EE",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "reportaccess",
+        "displayName": "ReportAccess",
+        "aliases": [
+          "ReportAccess",
+          "reportaccess"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 8,
+    "id": "audit_policies",
+    "displayName": "Audit Policies",
+    "productName": "Audit Policies",
+    "shortCodes": [],
+    "aliases": [
+      "Audit Policies",
+      "audit policies"
+    ],
+    "restProduct": "Audit Policies",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "oracle_fusion_business_objects_and_attributes",
+        "displayName": "Oracle Fusion Business Objects and Attributes",
+        "aliases": [
+          "Oracle Fusion Business Objects and Attributes",
+          "oracle fusion business objects and attributes"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 9,
+    "id": "ai",
+    "displayName": "AI (AI)",
+    "productName": "AI",
+    "shortCodes": [
+      "AI"
+    ],
+    "aliases": [
+      "AI",
+      "AI (AI)",
+      "ai"
+    ],
+    "restProduct": "AI",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "ai_agent",
+        "displayName": "AI Agent",
+        "aliases": [
+          "AI Agent",
+          "ai agent"
+        ]
+      },
+      {
+        "id": "ai_agent_business_object",
+        "displayName": "AI Agent Business Object",
+        "aliases": [
+          "AI Agent Business Object",
+          "ai agent business object"
+        ]
+      },
+      {
+        "id": "ai_agent_deep_link",
+        "displayName": "AI Agent Deep Link",
+        "aliases": [
+          "AI Agent Deep Link",
+          "ai agent deep link"
+        ]
+      },
+      {
+        "id": "ai_agent_tool",
+        "displayName": "AI Agent Tool",
+        "aliases": [
+          "AI Agent Tool",
+          "ai agent tool"
+        ]
+      },
+      {
+        "id": "ai_agent_workflow",
+        "displayName": "AI Agent Workflow",
+        "aliases": [
+          "AI Agent Workflow",
+          "ai agent workflow"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 10,
+    "id": "absence_management",
+    "displayName": "Absence Management (ANC)",
+    "productName": "Absence Management",
+    "shortCodes": [
+      "ANC"
+    ],
+    "aliases": [
+      "Absence Management",
+      "Absence Management (ANC)",
+      "ANC",
+      "absence management"
+    ],
+    "restProduct": "ANC",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "absence_records",
+        "displayName": "Absence Records",
+        "aliases": [
+          "Absence Records",
+          "absence records"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 11,
+    "id": "advanced_collections",
+    "displayName": "Advanced Collections (IEX)",
+    "productName": "Advanced Collections",
+    "shortCodes": [
+      "IEX"
+    ],
+    "aliases": [
+      "Advanced Collections",
+      "Advanced Collections (IEX)",
+      "IEX",
+      "advanced collections"
+    ],
+    "restProduct": "IEX",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "collections_preferences",
+        "displayName": "Collections Preferences",
+        "aliases": [
+          "Collections Preferences",
+          "collections preferences"
+        ]
+      },
+      {
+        "id": "collections_strategies",
+        "displayName": "Collections Strategies",
+        "aliases": [
+          "Collections Strategies",
+          "collections strategies"
+        ]
+      },
+      {
+        "id": "customer_case_folders",
+        "displayName": "Customer Case Folders",
+        "aliases": [
+          "Customer Case Folders",
+          "customer case folders"
+        ]
+      },
+      {
+        "id": "customer_collections_strategies",
+        "displayName": "Customer Collections Strategies",
+        "aliases": [
+          "Customer Collections Strategies",
+          "customer collections strategies"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 12,
+    "id": "applications_common_components",
+    "displayName": "Applications Common Components (ACR)",
+    "productName": "Applications Common Components",
+    "shortCodes": [
+      "ACR"
+    ],
+    "aliases": [
+      "Applications Common Components",
+      "Applications Common Components (ACR)",
+      "ACR",
+      "applications common components"
+    ],
+    "restProduct": "ACR",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "activities",
+        "displayName": "Activities",
+        "aliases": [
+          "Activities",
+          "activities"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 13,
+    "id": "assets",
+    "displayName": "Assets (OFA / FA)",
+    "productName": "Assets",
+    "shortCodes": [
+      "OFA",
+      "FA"
+    ],
+    "aliases": [
+      "Assets",
+      "Assets (OFA / FA)",
+      "OFA",
+      "FA",
+      "assets"
+    ],
+    "restProduct": "OFA",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "asset",
+        "displayName": "Asset",
+        "aliases": [
+          "Asset",
+          "asset"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 14,
+    "id": "benefits",
+    "displayName": "Benefits (BEN)",
+    "productName": "Benefits",
+    "shortCodes": [
+      "BEN"
+    ],
+    "aliases": [
+      "Benefits",
+      "Benefits (BEN)",
+      "BEN",
+      "benefits"
+    ],
+    "restProduct": "BEN",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "program",
+        "displayName": "Program",
+        "aliases": [
+          "Program",
+          "program"
+        ]
+      },
+      {
+        "id": "plan_type",
+        "displayName": "Plan Type",
+        "aliases": [
+          "Plan Type",
+          "plan type"
+        ]
+      },
+      {
+        "id": "plan",
+        "displayName": "Plan",
+        "aliases": [
+          "Plan",
+          "plan"
+        ]
+      },
+      {
+        "id": "option",
+        "displayName": "Option",
+        "aliases": [
+          "Option",
+          "option"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 15,
+    "id": "bill_management",
+    "displayName": "Bill Management",
+    "productName": "Bill Management",
+    "shortCodes": [],
+    "aliases": [
+      "Bill Management",
+      "bill management"
+    ],
+    "restProduct": "Bill Management",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "bill",
+        "displayName": "Bill",
+        "aliases": [
+          "Bill",
+          "bill"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 16,
+    "id": "budgetary_control",
+    "displayName": "Budgetary Control (XCC)",
+    "productName": "Budgetary Control",
+    "shortCodes": [
+      "XCC"
+    ],
+    "aliases": [
+      "Budgetary Control",
+      "Budgetary Control (XCC)",
+      "XCC",
+      "budgetary control"
+    ],
+    "restProduct": "XCC",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "control_budget",
+        "displayName": "Control Budget",
+        "aliases": [
+          "Control Budget",
+          "control budget"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 17,
+    "id": "crm_application_composer",
+    "displayName": "CRM Application Composer (CRM)",
+    "productName": "CRM Application Composer",
+    "shortCodes": [
+      "CRM"
+    ],
+    "aliases": [
+      "CRM Application Composer",
+      "CRM Application Composer (CRM)",
+      "CRM",
+      "crm application composer"
+    ],
+    "restProduct": "CRM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "application_composer_metadata",
+        "displayName": "Application Composer Metadata",
+        "aliases": [
+          "Application Composer Metadata",
+          "application composer metadata"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 18,
+    "id": "campus_community",
+    "displayName": "Campus Community",
+    "productName": "Campus Community",
+    "shortCodes": [],
+    "aliases": [
+      "Campus Community",
+      "campus community"
+    ],
+    "restProduct": "Campus Community",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "person",
+        "displayName": "Person",
+        "aliases": [
+          "Person",
+          "person"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 19,
+    "id": "cash_management",
+    "displayName": "Cash Management (CE)",
+    "productName": "Cash Management",
+    "shortCodes": [
+      "CE"
+    ],
+    "aliases": [
+      "Cash Management",
+      "Cash Management (CE)",
+      "CE",
+      "cash management"
+    ],
+    "restProduct": "CE",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "bank_account",
+        "displayName": "Bank Account",
+        "aliases": [
+          "Bank Account",
+          "bank account"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 20,
+    "id": "common_crm",
+    "displayName": "Common CRM (CRM)",
+    "productName": "Common CRM",
+    "shortCodes": [
+      "CRM"
+    ],
+    "aliases": [
+      "Common CRM",
+      "Common CRM (CRM)",
+      "CRM",
+      "common crm"
+    ],
+    "restProduct": "CRM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "customer",
+        "displayName": "Customer",
+        "aliases": [
+          "Customer",
+          "customer"
+        ]
+      },
+      {
+        "id": "contact",
+        "displayName": "Contact",
+        "aliases": [
+          "Contact",
+          "contact"
+        ]
+      },
+      {
+        "id": "activity",
+        "displayName": "Activity",
+        "aliases": [
+          "Activity",
+          "activity"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 21,
+    "id": "common_work_execution",
+    "displayName": "Common Work Execution",
+    "productName": "Common Work Execution",
+    "shortCodes": [],
+    "aliases": [
+      "Common Work Execution",
+      "common work execution"
+    ],
+    "restProduct": "Common Work Execution",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "work_order",
+        "displayName": "Work Order",
+        "aliases": [
+          "Work Order",
+          "work order"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 22,
+    "id": "common_work_setup",
+    "displayName": "Common Work Setup",
+    "productName": "Common Work Setup",
+    "shortCodes": [],
+    "aliases": [
+      "Common Work Setup",
+      "common work setup"
+    ],
+    "restProduct": "Common Work Setup",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "work_center",
+        "displayName": "Work Center",
+        "aliases": [
+          "Work Center",
+          "work center"
+        ]
+      },
+      {
+        "id": "work_area",
+        "displayName": "Work Area",
+        "aliases": [
+          "Work Area",
+          "work area"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 23,
+    "id": "compensation",
+    "displayName": "Compensation (CMP)",
+    "productName": "Compensation",
+    "shortCodes": [
+      "CMP"
+    ],
+    "aliases": [
+      "Compensation",
+      "Compensation (CMP)",
+      "CMP",
+      "compensation"
+    ],
+    "restProduct": "CMP",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "compensation_plan",
+        "displayName": "Compensation Plan",
+        "aliases": [
+          "Compensation Plan",
+          "compensation plan"
+        ]
+      },
+      {
+        "id": "individual_compensation",
+        "displayName": "Individual Compensation",
+        "aliases": [
+          "Individual Compensation",
+          "individual compensation"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 24,
+    "id": "e_signatures_and_e_records",
+    "displayName": "E-Signatures and E-Records",
+    "productName": "E-Signatures and E-Records",
+    "shortCodes": [],
+    "aliases": [
+      "E-Signatures and E-Records",
+      "e signatures and e records"
+    ],
+    "restProduct": "E-Signatures and E-Records",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "electronic_signature",
+        "displayName": "Electronic Signature",
+        "aliases": [
+          "Electronic Signature",
+          "electronic signature"
+        ]
+      },
+      {
+        "id": "electronic_record",
+        "displayName": "Electronic Record",
+        "aliases": [
+          "Electronic Record",
+          "electronic record"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 25,
+    "id": "employee_wellness",
+    "displayName": "Employee Wellness",
+    "productName": "Employee Wellness",
+    "shortCodes": [],
+    "aliases": [
+      "Employee Wellness",
+      "employee wellness"
+    ],
+    "restProduct": "Employee Wellness",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "wellness_program",
+        "displayName": "Wellness Program",
+        "aliases": [
+          "Wellness Program",
+          "wellness program"
+        ]
+      },
+      {
+        "id": "wellness_activity",
+        "displayName": "Wellness Activity",
+        "aliases": [
+          "Wellness Activity",
+          "wellness activity"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 26,
+    "id": "enterprise_contracts",
+    "displayName": "Enterprise Contracts (OKC)",
+    "productName": "Enterprise Contracts",
+    "shortCodes": [
+      "OKC"
+    ],
+    "aliases": [
+      "Enterprise Contracts",
+      "Enterprise Contracts (OKC)",
+      "OKC",
+      "enterprise contracts"
+    ],
+    "restProduct": "OKC",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "contract",
+        "displayName": "Contract",
+        "aliases": [
+          "Contract",
+          "contract"
+        ]
+      },
+      {
+        "id": "contract_line",
+        "displayName": "Contract Line",
+        "aliases": [
+          "Contract Line",
+          "contract line"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 27,
+    "id": "expenses",
+    "displayName": "Expenses (EXM)",
+    "productName": "Expenses",
+    "shortCodes": [
+      "EXM"
+    ],
+    "aliases": [
+      "Expenses",
+      "Expenses (EXM)",
+      "EXM",
+      "expenses"
+    ],
+    "restProduct": "EXM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "expense_report",
+        "displayName": "Expense Report",
+        "aliases": [
+          "Expense Report",
+          "expense report"
+        ]
+      },
+      {
+        "id": "expense_item",
+        "displayName": "Expense Item",
+        "aliases": [
+          "Expense Item",
+          "expense item"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 28,
+    "id": "financials_common_module",
+    "displayName": "Financials Common Module (FUN)",
+    "productName": "Financials Common Module",
+    "shortCodes": [
+      "FUN"
+    ],
+    "aliases": [
+      "Financials Common Module",
+      "Financials Common Module (FUN)",
+      "FUN",
+      "financials common module"
+    ],
+    "restProduct": "FUN",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "accounting_configuration",
+        "displayName": "Accounting Configuration",
+        "aliases": [
+          "Accounting Configuration",
+          "accounting configuration"
+        ]
+      },
+      {
+        "id": "financial_common_objects",
+        "displayName": "Financial Common Objects",
+        "aliases": [
+          "Financial Common Objects",
+          "financial common objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 29,
+    "id": "financials_for_regionalizations",
+    "displayName": "Financials for Regionalizations (JG)",
+    "productName": "Financials for Regionalizations",
+    "shortCodes": [
+      "JG"
+    ],
+    "aliases": [
+      "Financials for Regionalizations",
+      "Financials for Regionalizations (JG)",
+      "JG",
+      "financials for regionalizations"
+    ],
+    "restProduct": "JG",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "regionalization",
+        "displayName": "Regionalization",
+        "aliases": [
+          "Regionalization",
+          "regionalization"
+        ]
+      },
+      {
+        "id": "localization_objects",
+        "displayName": "Localization Objects",
+        "aliases": [
+          "Localization Objects",
+          "localization objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 30,
+    "id": "financials_for_the_americas",
+    "displayName": "Financials for the Americas (JL)",
+    "productName": "Financials for the Americas",
+    "shortCodes": [
+      "JL"
+    ],
+    "aliases": [
+      "Financials for the Americas",
+      "Financials for the Americas (JL)",
+      "JL",
+      "financials for the americas"
+    ],
+    "restProduct": "JL",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "americas_financial_objects",
+        "displayName": "Americas Financial Objects",
+        "aliases": [
+          "Americas Financial Objects",
+          "americas financial objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 31,
+    "id": "gl",
+    "displayName": "General Ledger (GL)",
+    "productName": "General Ledger",
+    "shortCodes": [
+      "GL"
+    ],
+    "aliases": [
+      "General Ledger",
+      "General Ledger (GL)",
+      "GL",
+      "gl",
+      "Ledger"
+    ],
+    "restProduct": "GL",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "journal",
+        "displayName": "Journal",
+        "aliases": [
+          "Journal",
+          "journal"
+        ]
+      },
+      {
+        "id": "ledger",
+        "displayName": "Ledger",
+        "aliases": [
+          "Ledger",
+          "ledger"
+        ]
+      },
+      {
+        "id": "accounting_period",
+        "displayName": "Accounting Period",
+        "aliases": [
+          "Accounting Period",
+          "accounting period"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 32,
+    "id": "hcm",
+    "displayName": "Global Human Resources (HCM)",
+    "productName": "Global Human Resources",
+    "shortCodes": [
+      "PER",
+      "HCM"
+    ],
+    "aliases": [
+      "Global Human Resources",
+      "Global Human Resources (HCM)",
+      "PER",
+      "HCM",
+      "hcm",
+      "Human Resources",
+      "HR",
+      "Person"
+    ],
+    "restProduct": "hcmCore",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "person",
+        "displayName": "Person",
+        "restBusinessObjectType": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
+        "restValue": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
+        "aliases": [
+          "Person",
+          "person",
+          "ManagePersonVO",
+          "Manage Person"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 33,
+    "id": "global_payroll",
+    "displayName": "Global Payroll (PAY)",
+    "productName": "Global Payroll",
+    "shortCodes": [
+      "PAY"
+    ],
+    "aliases": [
+      "Global Payroll",
+      "Global Payroll (PAY)",
+      "PAY",
+      "global payroll"
+    ],
+    "restProduct": "PAY",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "payroll",
+        "displayName": "Payroll",
+        "aliases": [
+          "Payroll",
+          "payroll"
+        ]
+      },
+      {
+        "id": "element",
+        "displayName": "Element",
+        "aliases": [
+          "Element",
+          "element"
+        ]
+      },
+      {
+        "id": "payroll_relationship",
+        "displayName": "Payroll Relationship",
+        "aliases": [
+          "Payroll Relationship",
+          "payroll relationship"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 34,
+    "id": "goal_management",
+    "displayName": "Goal Management (HRG)",
+    "productName": "Goal Management",
+    "shortCodes": [
+      "HRG"
+    ],
+    "aliases": [
+      "Goal Management",
+      "Goal Management (HRG)",
+      "HRG",
+      "goal management"
+    ],
+    "restProduct": "HRG",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "goal",
+        "displayName": "Goal",
+        "aliases": [
+          "Goal",
+          "goal"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 35,
+    "id": "grants_management",
+    "displayName": "Grants Management (PJF)",
+    "productName": "Grants Management",
+    "shortCodes": [
+      "PJF"
+    ],
+    "aliases": [
+      "Grants Management",
+      "Grants Management (PJF)",
+      "PJF",
+      "grants management"
+    ],
+    "restProduct": "PJF",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "grant",
+        "displayName": "Grant",
+        "aliases": [
+          "Grant",
+          "grant"
+        ]
+      },
+      {
+        "id": "award",
+        "displayName": "Award",
+        "aliases": [
+          "Award",
+          "award"
+        ]
+      },
+      {
+        "id": "project",
+        "displayName": "Project",
+        "aliases": [
+          "Project",
+          "project"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 36,
+    "id": "hcm_common_architecture",
+    "displayName": "HCM Common Architecture (HCA)",
+    "productName": "HCM Common Architecture",
+    "shortCodes": [
+      "HCA"
+    ],
+    "aliases": [
+      "HCM Common Architecture",
+      "HCM Common Architecture (HCA)",
+      "HCA",
+      "hcm common architecture"
+    ],
+    "restProduct": "HCA",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "configure_hcm_data_loader_parameters",
+        "displayName": "Configure HCM Data Loader Parameters",
+        "aliases": [
+          "Configure HCM Data Loader Parameters",
+          "configure hcm data loader parameters"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 37,
+    "id": "incentive_compensation",
+    "displayName": "Incentive Compensation (CN)",
+    "productName": "Incentive Compensation",
+    "shortCodes": [
+      "CN"
+    ],
+    "aliases": [
+      "Incentive Compensation",
+      "Incentive Compensation (CN)",
+      "CN",
+      "incentive compensation"
+    ],
+    "restProduct": "CN",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "incentive_compensation_plan",
+        "displayName": "Incentive Compensation Plan",
+        "aliases": [
+          "Incentive Compensation Plan",
+          "incentive compensation plan"
+        ]
+      },
+      {
+        "id": "participant",
+        "displayName": "Participant",
+        "aliases": [
+          "Participant",
+          "participant"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 38,
+    "id": "inventory_management",
+    "displayName": "Inventory Management (INV)",
+    "productName": "Inventory Management",
+    "shortCodes": [
+      "INV"
+    ],
+    "aliases": [
+      "Inventory Management",
+      "Inventory Management (INV)",
+      "INV",
+      "inventory management"
+    ],
+    "restProduct": "INV",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "inventory_organization",
+        "displayName": "Inventory Organization",
+        "aliases": [
+          "Inventory Organization",
+          "inventory organization"
+        ]
+      },
+      {
+        "id": "item",
+        "displayName": "Item",
+        "aliases": [
+          "Item",
+          "item"
+        ]
+      },
+      {
+        "id": "lot",
+        "displayName": "Lot",
+        "aliases": [
+          "Lot",
+          "lot"
+        ]
+      },
+      {
+        "id": "serial",
+        "displayName": "Serial",
+        "aliases": [
+          "Serial",
+          "serial"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 39,
+    "id": "joint_venture_management",
+    "displayName": "Joint Venture Management (JVM)",
+    "productName": "Joint Venture Management",
+    "shortCodes": [
+      "JVM"
+    ],
+    "aliases": [
+      "Joint Venture Management",
+      "Joint Venture Management (JVM)",
+      "JVM",
+      "joint venture management"
+    ],
+    "restProduct": "JVM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "joint_venture",
+        "displayName": "Joint Venture",
+        "aliases": [
+          "Joint Venture",
+          "joint venture"
+        ]
+      },
+      {
+        "id": "joint_venture_definition",
+        "displayName": "Joint Venture Definition",
+        "aliases": [
+          "Joint Venture Definition",
+          "joint venture definition"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 40,
+    "id": "lease_accounting",
+    "displayName": "Lease Accounting (OKL)",
+    "productName": "Lease Accounting",
+    "shortCodes": [
+      "OKL"
+    ],
+    "aliases": [
+      "Lease Accounting",
+      "Lease Accounting (OKL)",
+      "OKL",
+      "lease accounting"
+    ],
+    "restProduct": "OKL",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "lease",
+        "displayName": "Lease",
+        "aliases": [
+          "Lease",
+          "lease"
+        ]
+      },
+      {
+        "id": "lease_contract",
+        "displayName": "Lease Contract",
+        "aliases": [
+          "Lease Contract",
+          "lease contract"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 41,
+    "id": "legal_entity_configurator",
+    "displayName": "Legal Entity Configurator (XLE)",
+    "productName": "Legal Entity Configurator",
+    "shortCodes": [
+      "XLE"
+    ],
+    "aliases": [
+      "Legal Entity Configurator",
+      "Legal Entity Configurator (XLE)",
+      "XLE",
+      "legal entity configurator"
+    ],
+    "restProduct": "XLE",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "legal_entity",
+        "displayName": "Legal Entity",
+        "aliases": [
+          "Legal Entity",
+          "legal entity"
+        ]
+      },
+      {
+        "id": "legal_entity_registration",
+        "displayName": "Legal Entity Registration",
+        "aliases": [
+          "Legal Entity Registration",
+          "legal entity registration"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 42,
+    "id": "loyalty",
+    "displayName": "Loyalty (LOY)",
+    "productName": "Loyalty",
+    "shortCodes": [
+      "LOY"
+    ],
+    "aliases": [
+      "Loyalty",
+      "Loyalty (LOY)",
+      "LOY",
+      "loyalty"
+    ],
+    "restProduct": "LOY",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "loyalty_program",
+        "displayName": "Loyalty Program",
+        "aliases": [
+          "Loyalty Program",
+          "loyalty program"
+        ]
+      },
+      {
+        "id": "member",
+        "displayName": "Member",
+        "aliases": [
+          "Member",
+          "member"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 43,
+    "id": "marketing",
+    "displayName": "Marketing (MKT)",
+    "productName": "Marketing",
+    "shortCodes": [
+      "MKT"
+    ],
+    "aliases": [
+      "Marketing",
+      "Marketing (MKT)",
+      "MKT",
+      "marketing"
+    ],
+    "restProduct": "MKT",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "campaign",
+        "displayName": "Campaign",
+        "aliases": [
+          "Campaign",
+          "campaign"
+        ]
+      },
+      {
+        "id": "marketing_activity",
+        "displayName": "Marketing Activity",
+        "aliases": [
+          "Marketing Activity",
+          "marketing activity"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 44,
+    "id": "oracle_middleware_extensions_for_applications",
+    "displayName": "Oracle Middleware Extensions for Applications",
+    "productName": "Oracle Middleware Extensions for Applications",
+    "shortCodes": [],
+    "aliases": [
+      "Oracle Middleware Extensions for Applications",
+      "oracle middleware extensions for applications"
+    ],
+    "restProduct": "Oracle Middleware Extensions for Applications",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "middleware_configuration_objects",
+        "displayName": "Middleware Configuration Objects",
+        "aliases": [
+          "Middleware Configuration Objects",
+          "middleware configuration objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 45,
+    "id": "partner_management",
+    "displayName": "Partner Management (ZPM)",
+    "productName": "Partner Management",
+    "shortCodes": [
+      "ZPM"
+    ],
+    "aliases": [
+      "Partner Management",
+      "Partner Management (ZPM)",
+      "ZPM",
+      "partner management"
+    ],
+    "restProduct": "ZPM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "partner",
+        "displayName": "Partner",
+        "aliases": [
+          "Partner",
+          "partner"
+        ]
+      },
+      {
+        "id": "partner_organization",
+        "displayName": "Partner Organization",
+        "aliases": [
+          "Partner Organization",
+          "partner organization"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 46,
+    "id": "payables",
+    "displayName": "Payables (AP / SQLAP)",
+    "productName": "Payables",
+    "shortCodes": [
+      "AP",
+      "SQLAP"
+    ],
+    "aliases": [
+      "Payables",
+      "Payables (AP / SQLAP)",
+      "AP",
+      "SQLAP",
+      "payables"
+    ],
+    "restProduct": "AP",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "invoice",
+        "displayName": "Invoice",
+        "aliases": [
+          "Invoice",
+          "invoice"
+        ]
+      },
+      {
+        "id": "payment",
+        "displayName": "Payment",
+        "aliases": [
+          "Payment",
+          "payment"
+        ]
+      },
+      {
+        "id": "supplier",
+        "displayName": "Supplier",
+        "aliases": [
+          "Supplier",
+          "supplier"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 47,
+    "id": "payments",
+    "displayName": "Payments (IBY)",
+    "productName": "Payments",
+    "shortCodes": [
+      "IBY"
+    ],
+    "aliases": [
+      "Payments",
+      "Payments (IBY)",
+      "IBY",
+      "payments"
+    ],
+    "restProduct": "IBY",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "payment",
+        "displayName": "Payment",
+        "aliases": [
+          "Payment",
+          "payment"
+        ]
+      },
+      {
+        "id": "payment_process_request",
+        "displayName": "Payment Process Request",
+        "aliases": [
+          "Payment Process Request",
+          "payment process request"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 48,
+    "id": "performance_management",
+    "displayName": "Performance Management (PER)",
+    "productName": "Performance Management",
+    "shortCodes": [
+      "PER"
+    ],
+    "aliases": [
+      "Performance Management",
+      "Performance Management (PER)",
+      "PER",
+      "performance management"
+    ],
+    "restProduct": "PER",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "performance_document",
+        "displayName": "Performance Document",
+        "aliases": [
+          "Performance Document",
+          "performance document"
+        ]
+      },
+      {
+        "id": "performance_goal",
+        "displayName": "Performance Goal",
+        "aliases": [
+          "Performance Goal",
+          "performance goal"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 49,
+    "id": "product_hub",
+    "displayName": "Product Hub (EGP)",
+    "productName": "Product Hub",
+    "shortCodes": [
+      "EGP"
+    ],
+    "aliases": [
+      "Product Hub",
+      "Product Hub (EGP)",
+      "EGP",
+      "product hub"
+    ],
+    "restProduct": "EGP",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "item",
+        "displayName": "Item",
+        "aliases": [
+          "Item",
+          "item"
+        ]
+      },
+      {
+        "id": "item_class",
+        "displayName": "Item Class",
+        "aliases": [
+          "Item Class",
+          "item class"
+        ]
+      },
+      {
+        "id": "change_order",
+        "displayName": "Change Order",
+        "aliases": [
+          "Change Order",
+          "change order"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 50,
+    "id": "profile_management",
+    "displayName": "Profile Management (PER)",
+    "productName": "Profile Management",
+    "shortCodes": [
+      "PER"
+    ],
+    "aliases": [
+      "Profile Management",
+      "Profile Management (PER)",
+      "PER",
+      "profile management"
+    ],
+    "restProduct": "PER",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "talent_profile",
+        "displayName": "Talent Profile",
+        "aliases": [
+          "Talent Profile",
+          "talent profile"
+        ]
+      },
+      {
+        "id": "profile_item",
+        "displayName": "Profile Item",
+        "aliases": [
+          "Profile Item",
+          "profile item"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 51,
+    "id": "project_foundation",
+    "displayName": "Project Foundation (PJF)",
+    "productName": "Project Foundation",
+    "shortCodes": [
+      "PJF"
+    ],
+    "aliases": [
+      "Project Foundation",
+      "Project Foundation (PJF)",
+      "PJF",
+      "project foundation"
+    ],
+    "restProduct": "PJF",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "project",
+        "displayName": "Project",
+        "aliases": [
+          "Project",
+          "project"
+        ]
+      },
+      {
+        "id": "project_task",
+        "displayName": "Project Task",
+        "aliases": [
+          "Project Task",
+          "project task"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 52,
+    "id": "public_sector_common_components",
+    "displayName": "Public Sector Common Components (PSB)",
+    "productName": "Public Sector Common Components",
+    "shortCodes": [
+      "PSB"
+    ],
+    "aliases": [
+      "Public Sector Common Components",
+      "Public Sector Common Components (PSB)",
+      "PSB",
+      "public sector common components"
+    ],
+    "restProduct": "PSB",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "public_sector_objects",
+        "displayName": "Public Sector Objects",
+        "aliases": [
+          "Public Sector Objects",
+          "public sector objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 53,
+    "id": "quality_issue_and_action_management",
+    "displayName": "Quality Issue and Action Management (QIM)",
+    "productName": "Quality Issue and Action Management",
+    "shortCodes": [
+      "QIM"
+    ],
+    "aliases": [
+      "Quality Issue and Action Management",
+      "Quality Issue and Action Management (QIM)",
+      "QIM",
+      "quality issue and action management"
+    ],
+    "restProduct": "QIM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "quality_issue",
+        "displayName": "Quality Issue",
+        "aliases": [
+          "Quality Issue",
+          "quality issue"
+        ]
+      },
+      {
+        "id": "quality_action",
+        "displayName": "Quality Action",
+        "aliases": [
+          "Quality Action",
+          "quality action"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 54,
+    "id": "receivables",
+    "displayName": "Receivables (AR)",
+    "productName": "Receivables",
+    "shortCodes": [
+      "AR"
+    ],
+    "aliases": [
+      "Receivables",
+      "Receivables (AR)",
+      "AR",
+      "receivables"
+    ],
+    "restProduct": "AR",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "invoice",
+        "displayName": "Invoice",
+        "aliases": [
+          "Invoice",
+          "invoice"
+        ]
+      },
+      {
+        "id": "receipt",
+        "displayName": "Receipt",
+        "aliases": [
+          "Receipt",
+          "receipt"
+        ]
+      },
+      {
+        "id": "customer_account",
+        "displayName": "Customer Account",
+        "aliases": [
+          "Customer Account",
+          "customer account"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 55,
+    "id": "receiving",
+    "displayName": "Receiving (RCV)",
+    "productName": "Receiving",
+    "shortCodes": [
+      "RCV"
+    ],
+    "aliases": [
+      "Receiving",
+      "Receiving (RCV)",
+      "RCV",
+      "receiving"
+    ],
+    "restProduct": "RCV",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "receipt",
+        "displayName": "Receipt",
+        "aliases": [
+          "Receipt",
+          "receipt"
+        ]
+      },
+      {
+        "id": "receiving_transaction",
+        "displayName": "Receiving Transaction",
+        "aliases": [
+          "Receiving Transaction",
+          "receiving transaction"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 56,
+    "id": "recruiting",
+    "displayName": "Recruiting (IRC)",
+    "productName": "Recruiting",
+    "shortCodes": [
+      "IRC"
+    ],
+    "aliases": [
+      "Recruiting",
+      "Recruiting (IRC)",
+      "IRC",
+      "recruiting"
+    ],
+    "restProduct": "IRC",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "candidate",
+        "displayName": "Candidate",
+        "aliases": [
+          "Candidate",
+          "candidate"
+        ]
+      },
+      {
+        "id": "job_requisition",
+        "displayName": "Job Requisition",
+        "aliases": [
+          "Job Requisition",
+          "job requisition"
+        ]
+      },
+      {
+        "id": "application",
+        "displayName": "Application",
+        "aliases": [
+          "Application",
+          "application"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 57,
+    "id": "revenue_management",
+    "displayName": "Revenue Management (ORA-REV)",
+    "productName": "Revenue Management",
+    "shortCodes": [
+      "ORA-REV"
+    ],
+    "aliases": [
+      "Revenue Management",
+      "Revenue Management (ORA-REV)",
+      "ORA-REV",
+      "revenue management"
+    ],
+    "restProduct": "ORA-REV",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "customer_contract",
+        "displayName": "Customer Contract",
+        "aliases": [
+          "Customer Contract",
+          "customer contract"
+        ]
+      },
+      {
+        "id": "revenue_contract",
+        "displayName": "Revenue Contract",
+        "aliases": [
+          "Revenue Contract",
+          "revenue contract"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 58,
+    "id": "risks_and_controls",
+    "displayName": "Risks and Controls (RACM / RMC)",
+    "productName": "Risks and Controls",
+    "shortCodes": [
+      "RACM",
+      "RMC"
+    ],
+    "aliases": [
+      "Risks and Controls",
+      "Risks and Controls (RACM / RMC)",
+      "RACM",
+      "RMC",
+      "risks and controls"
+    ],
+    "restProduct": "RACM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "advanced_controls",
+        "displayName": "Advanced Controls",
+        "aliases": [
+          "Advanced Controls",
+          "advanced controls"
+        ]
+      },
+      {
+        "id": "entitlements",
+        "displayName": "Entitlements",
+        "aliases": [
+          "Entitlements",
+          "entitlements"
+        ]
+      },
+      {
+        "id": "global_conditions",
+        "displayName": "Global Conditions",
+        "aliases": [
+          "Global Conditions",
+          "global conditions"
+        ]
+      },
+      {
+        "id": "global_users",
+        "displayName": "Global Users",
+        "aliases": [
+          "Global Users",
+          "global users"
+        ]
+      },
+      {
+        "id": "user_groups",
+        "displayName": "User Groups",
+        "aliases": [
+          "User Groups",
+          "user groups"
+        ]
+      },
+      {
+        "id": "business_object_security",
+        "displayName": "Business Object Security",
+        "aliases": [
+          "Business Object Security",
+          "business object security"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 59,
+    "id": "sales",
+    "displayName": "Sales (ZSF / CRM)",
+    "productName": "Sales",
+    "shortCodes": [
+      "ZSF",
+      "CRM"
+    ],
+    "aliases": [
+      "Sales",
+      "Sales (ZSF / CRM)",
+      "ZSF",
+      "CRM",
+      "sales"
+    ],
+    "restProduct": "ZSF",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "account",
+        "displayName": "Account",
+        "aliases": [
+          "Account",
+          "account"
+        ]
+      },
+      {
+        "id": "opportunity",
+        "displayName": "Opportunity",
+        "aliases": [
+          "Opportunity",
+          "opportunity"
+        ]
+      },
+      {
+        "id": "lead",
+        "displayName": "Lead",
+        "aliases": [
+          "Lead",
+          "lead"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 60,
+    "id": "sales_catalog",
+    "displayName": "Sales Catalog (QSC)",
+    "productName": "Sales Catalog",
+    "shortCodes": [
+      "QSC"
+    ],
+    "aliases": [
+      "Sales Catalog",
+      "Sales Catalog (QSC)",
+      "QSC",
+      "sales catalog"
+    ],
+    "restProduct": "QSC",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "product",
+        "displayName": "Product",
+        "aliases": [
+          "Product",
+          "product"
+        ]
+      },
+      {
+        "id": "product_group",
+        "displayName": "Product Group",
+        "aliases": [
+          "Product Group",
+          "product group"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 61,
+    "id": "sales_for_communications",
+    "displayName": "Sales for Communications",
+    "productName": "Sales for Communications",
+    "shortCodes": [],
+    "aliases": [
+      "Sales for Communications",
+      "sales for communications"
+    ],
+    "restProduct": "Sales for Communications",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "communication_objects",
+        "displayName": "Communication Objects",
+        "aliases": [
+          "Communication Objects",
+          "communication objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 62,
+    "id": "service",
+    "displayName": "Service (CS)",
+    "productName": "Service",
+    "shortCodes": [
+      "CS"
+    ],
+    "aliases": [
+      "Service",
+      "Service (CS)",
+      "CS",
+      "service"
+    ],
+    "restProduct": "CS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "service_request",
+        "displayName": "Service Request",
+        "aliases": [
+          "Service Request",
+          "service request"
+        ]
+      },
+      {
+        "id": "customer",
+        "displayName": "Customer",
+        "aliases": [
+          "Customer",
+          "customer"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 63,
+    "id": "sourcing",
+    "displayName": "Sourcing (PON)",
+    "productName": "Sourcing",
+    "shortCodes": [
+      "PON"
+    ],
+    "aliases": [
+      "Sourcing",
+      "Sourcing (PON)",
+      "PON",
+      "sourcing"
+    ],
+    "restProduct": "PON",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "sourcing_event",
+        "displayName": "Sourcing Event",
+        "aliases": [
+          "Sourcing Event",
+          "sourcing event"
+        ]
+      },
+      {
+        "id": "negotiation",
+        "displayName": "Negotiation",
+        "aliases": [
+          "Negotiation",
+          "negotiation"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 64,
+    "id": "student_admissions",
+    "displayName": "Student Admissions (SAD)",
+    "productName": "Student Admissions",
+    "shortCodes": [
+      "SAD"
+    ],
+    "aliases": [
+      "Student Admissions",
+      "Student Admissions (SAD)",
+      "SAD",
+      "student admissions"
+    ],
+    "restProduct": "SAD",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "admission_application",
+        "displayName": "Admission Application",
+        "aliases": [
+          "Admission Application",
+          "admission application"
+        ]
+      },
+      {
+        "id": "applicant",
+        "displayName": "Applicant",
+        "aliases": [
+          "Applicant",
+          "applicant"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 65,
+    "id": "student_financials",
+    "displayName": "Student Financials (SFA)",
+    "productName": "Student Financials",
+    "shortCodes": [
+      "SFA"
+    ],
+    "aliases": [
+      "Student Financials",
+      "Student Financials (SFA)",
+      "SFA",
+      "student financials"
+    ],
+    "restProduct": "SFA",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "student_account",
+        "displayName": "Student Account",
+        "aliases": [
+          "Student Account",
+          "student account"
+        ]
+      },
+      {
+        "id": "financial_aid",
+        "displayName": "Financial Aid",
+        "aliases": [
+          "Financial Aid",
+          "financial aid"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 66,
+    "id": "student_records",
+    "displayName": "Student Records (SSR)",
+    "productName": "Student Records",
+    "shortCodes": [
+      "SSR"
+    ],
+    "aliases": [
+      "Student Records",
+      "Student Records (SSR)",
+      "SSR",
+      "student records"
+    ],
+    "restProduct": "SSR",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "student",
+        "displayName": "Student",
+        "aliases": [
+          "Student",
+          "student"
+        ]
+      },
+      {
+        "id": "academic_record",
+        "displayName": "Academic Record",
+        "aliases": [
+          "Academic Record",
+          "academic record"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 67,
+    "id": "subledger_accounting",
+    "displayName": "Subledger Accounting (XLA)",
+    "productName": "Subledger Accounting",
+    "shortCodes": [
+      "XLA"
+    ],
+    "aliases": [
+      "Subledger Accounting",
+      "Subledger Accounting (XLA)",
+      "XLA",
+      "subledger accounting"
+    ],
+    "restProduct": "XLA",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "subledger_journal_entry",
+        "displayName": "Subledger Journal Entry",
+        "aliases": [
+          "Subledger Journal Entry",
+          "subledger journal entry"
+        ]
+      },
+      {
+        "id": "accounting_event",
+        "displayName": "Accounting Event",
+        "aliases": [
+          "Accounting Event",
+          "accounting event"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 68,
+    "id": "subscription_management",
+    "displayName": "Subscription Management (OSS)",
+    "productName": "Subscription Management",
+    "shortCodes": [
+      "OSS"
+    ],
+    "aliases": [
+      "Subscription Management",
+      "Subscription Management (OSS)",
+      "OSS",
+      "subscription management"
+    ],
+    "restProduct": "OSS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "subscription",
+        "displayName": "Subscription",
+        "aliases": [
+          "Subscription",
+          "subscription"
+        ]
+      },
+      {
+        "id": "subscription_product",
+        "displayName": "Subscription Product",
+        "aliases": [
+          "Subscription Product",
+          "subscription product"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 69,
+    "id": "succession_management",
+    "displayName": "Succession Management (PER)",
+    "productName": "Succession Management",
+    "shortCodes": [
+      "PER"
+    ],
+    "aliases": [
+      "Succession Management",
+      "Succession Management (PER)",
+      "PER",
+      "succession management"
+    ],
+    "restProduct": "PER",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "succession_plan",
+        "displayName": "Succession Plan",
+        "aliases": [
+          "Succession Plan",
+          "succession plan"
+        ]
+      },
+      {
+        "id": "talent_pool",
+        "displayName": "Talent Pool",
+        "aliases": [
+          "Talent Pool",
+          "talent pool"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 70,
+    "id": "supplier_model",
+    "displayName": "Supplier Model (POS)",
+    "productName": "Supplier Model",
+    "shortCodes": [
+      "POS"
+    ],
+    "aliases": [
+      "Supplier Model",
+      "Supplier Model (POS)",
+      "POS",
+      "supplier model"
+    ],
+    "restProduct": "POS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "supplier",
+        "displayName": "Supplier",
+        "aliases": [
+          "Supplier",
+          "supplier"
+        ]
+      },
+      {
+        "id": "supplier_site",
+        "displayName": "Supplier Site",
+        "aliases": [
+          "Supplier Site",
+          "supplier site"
+        ]
+      },
+      {
+        "id": "supplier_bank_account",
+        "displayName": "Supplier Bank Account",
+        "aliases": [
+          "Supplier Bank Account",
+          "supplier bank account"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 71,
+    "id": "supply_chain_management_common_components",
+    "displayName": "Supply Chain Management Common Components (RCS)",
+    "productName": "Supply Chain Management Common Components",
+    "shortCodes": [
+      "RCS"
+    ],
+    "aliases": [
+      "Supply Chain Management Common Components",
+      "Supply Chain Management Common Components (RCS)",
+      "RCS",
+      "supply chain management common components"
+    ],
+    "restProduct": "RCS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "scm_common_objects",
+        "displayName": "SCM Common Objects",
+        "aliases": [
+          "SCM Common Objects",
+          "scm common objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 72,
+    "id": "tax",
+    "displayName": "Tax (ZX)",
+    "productName": "Tax",
+    "shortCodes": [
+      "ZX"
+    ],
+    "aliases": [
+      "Tax",
+      "Tax (ZX)",
+      "ZX",
+      "tax"
+    ],
+    "restProduct": "ZX",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "tax",
+        "displayName": "Tax",
+        "aliases": [
+          "Tax",
+          "tax"
+        ]
+      },
+      {
+        "id": "tax_regime",
+        "displayName": "Tax Regime",
+        "aliases": [
+          "Tax Regime",
+          "tax regime"
+        ]
+      },
+      {
+        "id": "tax_rate",
+        "displayName": "Tax Rate",
+        "aliases": [
+          "Tax Rate",
+          "tax rate"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 73,
+    "id": "territory_management",
+    "displayName": "Territory Management (JTM)",
+    "productName": "Territory Management",
+    "shortCodes": [
+      "JTM"
+    ],
+    "aliases": [
+      "Territory Management",
+      "Territory Management (JTM)",
+      "JTM",
+      "territory management"
+    ],
+    "restProduct": "JTM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "territory",
+        "displayName": "Territory",
+        "aliases": [
+          "Territory",
+          "territory"
+        ]
+      },
+      {
+        "id": "territory_hierarchy",
+        "displayName": "Territory Hierarchy",
+        "aliases": [
+          "Territory Hierarchy",
+          "territory hierarchy"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 74,
+    "id": "time_and_labor",
+    "displayName": "Time and Labor (HXT / TLM)",
+    "productName": "Time and Labor",
+    "shortCodes": [
+      "HXT",
+      "TLM"
+    ],
+    "aliases": [
+      "Time and Labor",
+      "Time and Labor (HXT / TLM)",
+      "HXT",
+      "TLM",
+      "time and labor"
+    ],
+    "restProduct": "HXT",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "time_card",
+        "displayName": "Time Card",
+        "aliases": [
+          "Time Card",
+          "time card"
+        ]
+      },
+      {
+        "id": "time_entry",
+        "displayName": "Time Entry",
+        "aliases": [
+          "Time Entry",
+          "time entry"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 75,
+    "id": "trading_community_model",
+    "displayName": "Trading Community Model (HZ)",
+    "productName": "Trading Community Model",
+    "shortCodes": [
+      "HZ"
+    ],
+    "aliases": [
+      "Trading Community Model",
+      "Trading Community Model (HZ)",
+      "HZ",
+      "trading community model"
+    ],
+    "restProduct": "HZ",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "party",
+        "displayName": "Party",
+        "aliases": [
+          "Party",
+          "party"
+        ]
+      },
+      {
+        "id": "customer",
+        "displayName": "Customer",
+        "aliases": [
+          "Customer",
+          "customer"
+        ]
+      },
+      {
+        "id": "contact",
+        "displayName": "Contact",
+        "aliases": [
+          "Contact",
+          "contact"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 76,
+    "id": "u_s_federal_financials",
+    "displayName": "U.S. Federal Financials (FV)",
+    "productName": "U.S. Federal Financials",
+    "shortCodes": [
+      "FV"
+    ],
+    "aliases": [
+      "U.S. Federal Financials",
+      "U.S. Federal Financials (FV)",
+      "FV",
+      "u s federal financials"
+    ],
+    "restProduct": "FV",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "federal_financial_objects",
+        "displayName": "Federal Financial Objects",
+        "aliases": [
+          "Federal Financial Objects",
+          "federal financial objects"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 77,
+    "id": "workforce_health_and_safety_incidents",
+    "displayName": "Workforce Health and Safety Incidents (HNS)",
+    "productName": "Workforce Health and Safety Incidents",
+    "shortCodes": [
+      "HNS"
+    ],
+    "aliases": [
+      "Workforce Health and Safety Incidents",
+      "Workforce Health and Safety Incidents (HNS)",
+      "HNS",
+      "workforce health and safety incidents"
+    ],
+    "restProduct": "HNS",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "health_and_safety_incident",
+        "displayName": "Health and Safety Incident",
+        "aliases": [
+          "Health and Safety Incident",
+          "health and safety incident"
+        ]
+      }
+    ]
+  },
+  {
+    "sno": 78,
+    "id": "workforce_scheduling",
+    "displayName": "Workforce Scheduling (WFM)",
+    "productName": "Workforce Scheduling",
+    "shortCodes": [
+      "WFM"
+    ],
+    "aliases": [
+      "Workforce Scheduling",
+      "Workforce Scheduling (WFM)",
+      "WFM",
+      "workforce scheduling"
+    ],
+    "restProduct": "WFM",
+    "mappingStatus": "CONFIRMED",
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "workforce_schedule",
+        "displayName": "Workforce Schedule",
+        "aliases": [
+          "Workforce Schedule",
+          "workforce schedule"
+        ]
+      },
+      {
+        "id": "work_shift",
+        "displayName": "Work Shift",
+        "aliases": [
+          "Work Shift",
+          "work shift"
+        ]
+      }
+    ]
+  }
+]
