@@ -29,7 +29,7 @@ export function validateLoginInputs(rawEmail: string, password: string): LoginFi
 // Never reveal whether the email exists (AC6); never leak technical errors (AC10).
 export function mapLoginError(message: string): string {
   const msg = (message || '').toLowerCase();
-  if (msg.includes('deactivat') || msg.includes('suspend') || msg.includes('disabled')) {
+  if (msg.includes('deactivat') || msg.includes('suspend') || msg.includes('disabled') || msg.includes('not active')) {
     return 'Your account has been disabled. Please contact your administrator.';
   }
   if (

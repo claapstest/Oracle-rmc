@@ -24,6 +24,8 @@ eq(mapLoginError('Invalid email address or format. Please use name.name@claaps.c
 if (!/disabled/i.test(mapLoginError('Your account has been deactivated. Please contact an administrator.'))) {
   throw new Error('disabled mapping: expected access-denied message');
 }
+// Backend status rejection must also map to access-denied (Srikar's wording)
+eq(mapLoginError('Your account is not active. Please contact a system administrator.'), 'Your account has been disabled. Please contact your administrator.', 'not-active mapping');
 // AC10 — technical errors never leak
 eq(mapLoginError('ECONNREFUSED connect to db:5432'), 'Something went wrong. Please try again.', 'tech error');
 
