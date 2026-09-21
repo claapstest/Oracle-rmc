@@ -1,0 +1,25 @@
+{
+  "name": "veyra-database",
+  "version": "1.0.0",
+  "description": "PostgreSQL schema, migrations, seed data and verification for VEYRA",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "migrate": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create",
+    "seed": "tsx src/seeds/rbac_seed.ts",
+    "test": "tsx src/tests/verify_story_008_rbac.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "node-pg-migrate": "^7.4.0",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/pg": "^8.11.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.3"
+  }
+}
