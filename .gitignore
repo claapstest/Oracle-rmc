@@ -23,3 +23,10 @@ Thumbs.db
 
 # Vite temporary files
 *.timestamp-*.mjs
+
+# Python Virtual Environments & Bytecode
+.venv/
+*/.venv/
+__pycache__/
+*/__pycache__/
+*.pyc

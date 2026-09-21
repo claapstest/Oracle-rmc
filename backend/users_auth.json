@@ -1,59 +1,221 @@
 {
   "users": {
-    "karthika.gundreddi@claaps.com": {
-      "email": "Karthika.Gundreddi@claaps.com",
-      "passwordHash": "$2b$10$Uo0O32J.x8L8D.6i1RcMHu10BoAAezj7DoE7dC9/Crq9zGyFm42Fa",
+    "admin@admin.com": {
+      "userId": "usr_adm_0001",
+      "email": "admin@admin.com",
+      "displayName": "Site Administrator",
+      "passwordHash": "$2b$10$3Jfk4.v47ne5Xo9S8BHbKehVy3DaEL1B98S2PxiTJReFzmT5Xcnd6",
+      "status": "ACTIVE",
+      "role": "SITE_ADMIN",
+      "permissions": [
+        "ALL",
+        "ADMIN_USERS",
+        "SECURITY_READ",
+        "SECURITY_WRITE",
+        "AUDIT_READ",
+        "RISK_READ",
+        "RISK_WRITE",
+        "SETTINGS_MANAGE",
+        "INVESTIGATIONS_MANAGE",
+        "REPORTS_MANAGE"
+      ],
       "setupCompleted": true,
       "isAdmin": true,
       "isActive": true,
+      "lastLoginAt": "2026-09-21T12:08:06.843Z",
+      "resetCode": null
+    },
+    "karthika.gundreddi@claaps.com": {
+      "userId": "usr_0001",
+      "email": "Karthika.Gundreddi@claaps.com",
+      "displayName": "Karthika Gundreddi",
+      "passwordHash": "$2b$10$Uo0O32J.x8L8D.6i1RcMHu10BoAAezj7DoE7dC9/Crq9zGyFm42Fa",
+      "status": "ACTIVE",
+      "role": "SITE_ADMIN",
+      "permissions": [
+        "ALL",
+        "ADMIN_USERS",
+        "SECURITY_READ",
+        "SECURITY_WRITE",
+        "AUDIT_READ",
+        "RISK_READ",
+        "RISK_WRITE",
+        "SETTINGS_MANAGE",
+        "INVESTIGATIONS_MANAGE",
+        "REPORTS_MANAGE"
+      ],
+      "setupCompleted": true,
+      "isAdmin": true,
+      "isActive": true,
+      "lastLoginAt": null,
       "resetCode": null
     },
     "akash.meesarapu@claaps.com": {
+      "userId": "usr_0002",
       "email": "akash.meesarapu@claaps.com",
-      "passwordHash": "$2b$10$8AJIRDYf13TXmfrB7SlljucAujfOSdMJNg7to072vC2sZUqWtvZky",
+      "displayName": "Akash Meesarapu",
+      "passwordHash": "$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC",
+      "status": "ACTIVE",
+      "role": "AUDIT_MANAGER",
+      "permissions": [
+        "SECURITY_READ",
+        "AUDIT_READ",
+        "RISK_READ",
+        "REPORTS_READ",
+        "INVESTIGATIONS_READ",
+        "INVESTIGATIONS_WRITE"
+      ],
       "setupCompleted": true,
       "isAdmin": false,
       "isActive": true,
-      "resetCode": null
-    },
-    "karthika.test@claaps.com": {
-      "email": "karthika.test@claaps.com",
-      "passwordHash": "$2b$10$dzoGiF.dVWtF4hvkLXJsPODjVMkcLvdeVLXgI2aWXsOMAhSAq4eXO",
-      "setupCompleted": true,
-      "isAdmin": false,
-      "isActive": true,
+      "lastLoginAt": "2026-09-21T12:08:06.971Z",
       "resetCode": null
     },
     "demo.user@claaps.com": {
+      "userId": "usr_0003",
       "email": "demo.user@claaps.com",
+      "displayName": "Demo User",
       "passwordHash": "$2b$10$4UTqZQXCBRbklAxcLDBMM.kcoSv92Fiq5htkTRNNYhe78/U5b9ADe",
+      "status": "ACTIVE",
+      "role": "SITE_ADMIN",
+      "permissions": [
+        "ALL",
+        "ADMIN_USERS",
+        "SECURITY_READ",
+        "SECURITY_WRITE",
+        "AUDIT_READ",
+        "RISK_READ",
+        "RISK_WRITE",
+        "SETTINGS_MANAGE",
+        "INVESTIGATIONS_MANAGE",
+        "REPORTS_MANAGE"
+      ],
       "setupCompleted": true,
       "isAdmin": true,
       "isActive": true,
+      "lastLoginAt": null,
       "resetCode": null
     },
     "test.tester@claaps.com": {
+      "userId": "usr_0004",
       "email": "test.tester@claaps.com",
+      "displayName": "Test Tester",
       "passwordHash": "$2b$10$EVOih2NrdN4KDe.aMB6jBuk/olSyFmsWWKa3P.C34to4dN6KHti.G",
+      "status": "ACTIVE",
+      "role": "SECURITY_ANALYST",
+      "permissions": [
+        "SECURITY_READ",
+        "AUDIT_READ",
+        "RISK_READ",
+        "INVESTIGATIONS_READ"
+      ],
       "setupCompleted": true,
       "isAdmin": false,
       "isActive": true,
+      "lastLoginAt": null,
       "resetCode": null
     },
     "audit.tester@claaps.com": {
+      "userId": "usr_0005",
       "email": "audit.tester@claaps.com",
+      "displayName": "Audit Tester",
       "passwordHash": "$2b$10$dGIEFs4/WSrkv0hOwDVpF.hBczZU/0ydZwlUwQMji5F9Q4jFVrsmu",
+      "status": "ACTIVE",
+      "role": "AUDIT_MANAGER",
+      "permissions": [
+        "SECURITY_READ",
+        "AUDIT_READ",
+        "RISK_READ",
+        "REPORTS_READ",
+        "INVESTIGATIONS_READ",
+        "INVESTIGATIONS_WRITE"
+      ],
       "setupCompleted": true,
       "isAdmin": false,
       "isActive": true,
+      "lastLoginAt": null,
       "resetCode": null
     },
     "hemanth.koppada@claaps.com": {
+      "userId": "usr_0006",
       "email": "hemanth.koppada@claaps.com",
+      "displayName": "Hemanth Koppada",
       "passwordHash": "$2b$10$98vKnuWOKOgGa8ykTvy4AO3B8QmtVgDaIw2oi7q5WDJ5UyVAn4IB6",
+      "status": "ACTIVE",
+      "role": "VIEWER",
+      "permissions": [
+        "SECURITY_READ",
+        "AUDIT_READ"
+      ],
       "setupCompleted": true,
       "isAdmin": false,
       "isActive": true,
+      "lastLoginAt": null,
+      "resetCode": null
+    },
+    "suspended.user@claaps.com": {
+      "userId": "usr_0007",
+      "email": "suspended.user@claaps.com",
+      "displayName": "Suspended User",
+      "passwordHash": "$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC",
+      "status": "SUSPENDED",
+      "role": "VIEWER",
+      "permissions": [
+        "SECURITY_READ"
+      ],
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": false,
+      "lastLoginAt": null,
+      "resetCode": null
+    },
+    "disabled.user@claaps.com": {
+      "userId": "usr_0008",
+      "email": "disabled.user@claaps.com",
+      "displayName": "Disabled User",
+      "passwordHash": "$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC",
+      "status": "DISABLED",
+      "role": "VIEWER",
+      "permissions": [
+        "SECURITY_READ"
+      ],
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": false,
+      "lastLoginAt": null,
+      "resetCode": null
+    },
+    "expired.user@claaps.com": {
+      "userId": "usr_0009",
+      "email": "expired.user@claaps.com",
+      "displayName": "Expired User",
+      "passwordHash": "$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC",
+      "status": "EXPIRED",
+      "role": "VIEWER",
+      "permissions": [
+        "SECURITY_READ"
+      ],
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": false,
+      "lastLoginAt": null,
+      "resetCode": null
+    },
+    "invited.user@claaps.com": {
+      "userId": "usr_0010",
+      "email": "invited.user@claaps.com",
+      "displayName": "Invited User",
+      "passwordHash": null,
+      "status": "INVITED",
+      "role": "AUDIT_MANAGER",
+      "permissions": [
+        "SECURITY_READ",
+        "AUDIT_READ"
+      ],
+      "setupCompleted": false,
+      "isAdmin": false,
+      "isActive": false,
+      "lastLoginAt": null,
       "resetCode": null
     }
   }

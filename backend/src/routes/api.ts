@@ -56,7 +56,11 @@ export function requireAuth(req: Request, res: Response, next: () => void) {
     return res.status(401).json({ success: false, message: 'Session expired or invalid. Please sign in again.' });
   }
 
+  res.locals.userId = session.userId;
   res.locals.email = session.email;
+  res.locals.displayName = session.displayName;
+  res.locals.role = session.role;
+  res.locals.permissions = session.permissions;
   res.locals.isAdmin = session.isAdmin;
   res.locals.token = token;
   next();
@@ -74,27 +78,29 @@ export function requireAdmin(req: Request, res: Response, next: () => void) {
 
 // --- Authentication Endpoints ---
 
-// POST /auth/login - User Sign In / Onboarding
+// POST /auth/login - VEYRA User Sign In (AC1-AC8)
 apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   const { email: rawEmail, password } = req.body;
   if (!rawEmail || !password) {
     return res.status(400).json({ success: false, message: 'Please provide email and password.' });
   }
 
-  const normalizedEmail = authService.normalizeEmail(rawEmail);
-  
   try {
-    const result = await authService.login(normalizedEmail, password);
+    const result = await authService.login(rawEmail, password);
     if (!result.success) {
-      const status = result.message.includes('credentials') ? 401 : 400;
-      return res.status(status).json({ success: false, message: result.message });
+      return res.status(401).json({ success: false, message: result.message });
     }
     
-    logAudit(normalizedEmail, 'USER_LOGIN', `Successful login (isAdmin: ${result.isAdmin})`);
+    logAudit(result.normalizedEmail || rawEmail, 'USER_LOGIN', `Successful login (${result.role || 'User'}, isAdmin: ${result.isAdmin})`);
     return res.json({
       success: true,
       token: result.token,
-      email: result.normalizedEmail || normalizedEmail,
+      userId: result.userId,
+      displayName: result.displayName,
+      email: result.email || result.normalizedEmail || rawEmail,
+      role: result.role,
+      permissions: result.permissions,
+      status: result.status,
       isAdmin: result.isAdmin,
       setupCompleted: result.setupCompleted,
       environmentMode: config.environmentMode,
@@ -106,12 +112,16 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   }
 });
 
-// GET /auth/status - Verify Session Status
+// GET /auth/status - Verify Session Status & Authorization Info
 apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
   res.json({
     success: true,
     loggedIn: true,
+    userId: res.locals.userId,
     email: res.locals.email,
+    displayName: res.locals.displayName,
+    role: res.locals.role,
+    permissions: res.locals.permissions,
     isAdmin: res.locals.isAdmin,
     environmentMode: config.environmentMode
   });
