@@ -261,7 +261,7 @@ export default function FullInvestigationView({
             </div>
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>Ask OracleRisk Investigation</span>
+                <span>Ask VEYRA Investigation</span>
                 <span className={`badge ${isLiveOracle ? 'badge-blue' : 'badge-gold'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.45rem' }}>
                   {isLiveOracle ? 'Live Oracle Fusion' : 'Demo Mode'}
                 </span>
@@ -323,7 +323,7 @@ export default function FullInvestigationView({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.4rem 0.85rem', fontWeight: 600 }}
             >
               <ArrowLeft size={14} />
-              <span>Back to Ask OracleRisk Results</span>
+              <span>Back to Ask VEYRA Results</span>
             </button>
           </div>
         )}
@@ -336,7 +336,7 @@ export default function FullInvestigationView({
                 User Question / Query Scope
               </div>
               <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                {title || userQuery || 'Ask OracleRisk Analysis'}
+                {title || userQuery || 'Ask VEYRA Analysis'}
               </h1>
               {userQuery && (
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>

@@ -75,19 +75,20 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     clean.includes('4078') ||
     clean.includes('114281') ||
     clean.includes('114269') ||
-    (clean.includes('control') && (clean.includes('detail') || clean.includes('incident') || clean.includes('show') || clean.includes('find') || clean.includes('what is') || clean.includes('tell me about'))) ||
-    ((clean.includes('incident') || clean.includes('incidents')) && (clean.includes('for') || clean.includes('of') || clean.includes('in') || clean.includes('show') || clean.includes('list')))
+    clean.includes('114313') ||
+    (clean.includes('control') && (clean.includes('detail') || clean.includes('incident') || clean.includes('show') || clean.includes('find') || clean.includes('what is') || clean.includes('tell me about') || clean.includes('under'))) ||
+    ((clean.includes('incident') || clean.includes('incidents')) && (clean.includes('for') || clean.includes('of') || clean.includes('in') || clean.includes('under') || clean.includes('show') || clean.includes('list') || clean.includes('how many')))
   ) {
     let controlQuery = '';
-    const matchDetailsOf = clean.match(/(?:details\s+(?:of|for)|incidents?\s+(?:for|of|in)|show\s+(?:details\s+of\s+)?(?:control\s+)?|about\s+control\s+)(.+)/i);
-    if (matchDetailsOf && matchDetailsOf[1]) {
-      controlQuery = matchDetailsOf[1].trim();
-    } else if (clean.includes('hsdl')) {
-      controlQuery = 'Manage HSDL Spreadsheets Templates and Load Data using HSDL';
+    const numMatch = clean.match(/\b(\d{4,6})\b/);
+    if (numMatch && numMatch[1]) {
+      controlQuery = numMatch[1];
     } else {
-      const numMatch = clean.match(/\b(\d{4,6})\b/);
-      if (numMatch && numMatch[1]) {
-        controlQuery = numMatch[1];
+      const matchDetailsOf = clean.match(/(?:details\s+(?:of|for)|incidents?\s+(?:for|of|in|under)|show\s+(?:details\s+of\s+)?(?:control\s+)?|about\s+control\s+)(.+)/i);
+      if (matchDetailsOf && matchDetailsOf[1]) {
+        controlQuery = matchDetailsOf[1].trim();
+      } else if (clean.includes('hsdl')) {
+        controlQuery = 'Manage HSDL Spreadsheets Templates and Load Data using HSDL';
       } else {
         controlQuery = '4096';
       }
@@ -97,7 +98,7 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
 
     return {
       intent: 'ADVANCED_CONTROLS',
-      parameters: { controlName: controlQuery, keyword: controlQuery },
+      parameters: { controlName: controlQuery, keyword: controlQuery, controlId: controlQuery },
       explanation: `Detected request for Advanced Control details and incidents matching "${controlQuery}".`
     };
   }
@@ -571,12 +572,19 @@ You can review the full request details and risk flags in the table below or via
       if (data?.control) {
         const ctrl = data.control;
         const incCount = data.incidentCount !== undefined ? data.incidentCount : (ctrl.incidentCount || 0);
-        let answer = `Control:\n**${ctrl.name}**\n\nControl ID:\n\`${ctrl.id}\`\n\nStatus:\n**${ctrl.status}**\n\nState:\n**${ctrl.state}**\n\nIncident Count:\n**${incCount}**\n\n`;
+        let answer = `Control:\n**${ctrl.name}**\n\nControl ID:\n\`${ctrl.id}\`\n\nStatus:\n**${ctrl.status}**\n\nState:\n**${ctrl.state}**\n\nIncident Count:\n**${incCount.toLocaleString()}** (Authoritative Oracle Fusion Data)\n\n`;
+
+        if (data.cacheStatus === 'SYNCING') {
+          const fetched = data.fetchedCount || 0;
+          const total = data.totalCount || incCount;
+          answer += `*Incident Synchronization*: **SYNCING IN PROGRESS** (${fetched.toLocaleString()} / ${total ? total.toLocaleString() : '...'} incidents retrieved so far from Oracle Fusion).\n\nYou can monitor live progress on the Risk Management Controls page.`;
+          return answer;
+        }
 
         if (incCount === 0) {
           answer += `No incidents found for this control.`;
         } else if (Array.isArray(data.incidents) && data.incidents.length > 0) {
-          answer += `### Detected Incidents Summary (${data.incidents.length})\n`;
+          answer += `### Detected Incidents Summary (Showing ${Math.min(data.incidents.length, 5)} of ${incCount.toLocaleString()})\n`;
           data.incidents.slice(0, 5).forEach((inc: any) => {
             const u = inc.globalUserName || inc.globalUserId || 'Unassigned User';
             const r = inc.role ? ` (Role: ${inc.role})` : '';
@@ -585,8 +593,8 @@ You can review the full request details and risk flags in the table below or via
             const desc = inc.incidentInformation ? `\n  *Violation:* ${inc.incidentInformation}` : '';
             answer += `* **Incident #${inc.id}**: User **${u}**${r}${prio}${st}${desc}\n`;
           });
-          if (data.incidents.length > 5) {
-            answer += `\n*...and ${data.incidents.length - 5} additional incident(s). View the complete incident ledger in the Risk Management Controls Catalog.*`;
+          if (incCount > 5) {
+            answer += `\n*...and ${(incCount - 5).toLocaleString()} additional incident(s). View the complete incident ledger and export options in the Risk Management Controls Catalog.*`;
           }
         }
         return answer;

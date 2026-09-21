@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Award, X, Users, Network, KeyRound, AlertTriangle, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../services/api.js';
+import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 
 interface RolesProps {
   initialCategory?: string;
@@ -110,6 +111,28 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
       </div>
     );
   };
+
+  const categoryLabelMap: Record<string, string> = {
+    JOB: 'Job Roles',
+    DUTY: 'Duty Roles',
+    DATA: 'Data Roles',
+    ABSTRACT: 'Abstract Roles',
+    GRC: 'GRC / Access Rules',
+    UNASSIGNED: 'Roles Without Users',
+    OTHER: 'Other Roles'
+  };
+  const activeCategoryName = categoryFilter !== 'ALL' ? (categoryLabelMap[categoryFilter] || 'Roles') : 'Roles';
+
+  const activeFilters = useMemo(() => {
+    const list: { label: string; value: string }[] = [];
+    if (categoryFilter !== 'ALL') {
+      list.push({ label: 'Category', value: categoryLabelMap[categoryFilter] || categoryFilter });
+    }
+    if (searchTerm) {
+      list.push({ label: 'Search', value: `"${searchTerm}"` });
+    }
+    return list;
+  }, [categoryFilter, searchTerm]);
 
   if (loading) {
     return (
@@ -230,6 +253,39 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
               <option value={200}>200</option>
             </select>
           </div>
+
+          <EnterpriseExportControl
+            filename="oracle_roles_catalog"
+            sheetName="Roles Catalog"
+            reportTitle="Oracle Fusion Security Roles Catalog"
+            dataSource={dataSource}
+            entityName="Roles"
+            categoryLabel={categoryFilter !== 'ALL' ? activeCategoryName : undefined}
+            buttonText={categoryFilter !== 'ALL' ? `Export ${activeCategoryName}` : 'Export Roles'}
+            currentPageData={roles}
+            filteredCount={totalResults}
+            totalCount={totalResults}
+            appliedFilters={activeFilters}
+            availableColumns={[
+              { key: 'category', label: 'Category', defaultSelected: true },
+              { key: 'roleCode', label: 'Role Code', defaultSelected: true },
+              { key: 'displayName', label: 'Display Name', defaultSelected: true },
+              { key: 'description', label: 'Description', defaultSelected: true, getValue: (r: any) => r.description || '—' },
+              { key: 'userCount', label: 'User Count', defaultSelected: true, getValue: (r: any) => r.userCount !== undefined ? r.userCount : '—' },
+              { key: 'classification', label: 'Classification', defaultSelected: false, getValue: (r: any) => r.roleCode?.startsWith('CLAAPS_') || r.roleCode?.startsWith('CUSTOM_') ? 'Custom' : 'Standard Oracle' }
+            ]}
+            onFetchScopeData={async (scope) => {
+              if (scope === 'PAGE') return roles;
+              const countToFetch = Math.min(totalResults || 5000, 10000);
+              const res = await api.getRoles(
+                scope === 'FILTERED' ? (searchTerm || undefined) : undefined,
+                scope === 'FILTERED' && categoryFilter !== 'ALL' ? categoryFilter : undefined,
+                1,
+                countToFetch
+              );
+              return res?.roles || [];
+            }}
+          />
         </div>
 
         {/* List Table */}
@@ -498,8 +554,25 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
                     </div>
                   ) : privilegeData?.privileges && privilegeData.privileges.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Entitlements list
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Entitlements list ({privilegeData.privileges.length})
+                        </div>
+                        <EnterpriseExportControl
+                          filename={`${selectedRole.roleCode || selectedRole.displayName}_privileges`}
+                          sheetName="Role Privileges"
+                          reportTitle={`Role ${selectedRole.displayName} Entitlements`}
+                          entityName="Privileges"
+                          buttonText="Export"
+                          size="sm"
+                          currentPageData={privilegeData.privileges}
+                          filteredCount={privilegeData.privileges.length}
+                          totalCount={privilegeData.privileges.length}
+                          availableColumns={[
+                            { key: 'name', label: 'Privilege Name', defaultSelected: true },
+                            { key: 'inheritedFrom', label: 'Inherited From', defaultSelected: true }
+                          ]}
+                        />
                       </div>
                       <div className="table-container" style={{ margin: 0 }}>
                         <table className="enterprise-table" style={{ fontSize: '0.75rem' }}>

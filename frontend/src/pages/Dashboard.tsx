@@ -16,6 +16,7 @@ import {
   Activity
 } from 'lucide-react';
 import { api } from '../services/api';
+import { TableExportControl } from '../components/TableExportControl';
 import { 
   RoleLandscape, 
   UserAccountHealth,
@@ -106,7 +107,7 @@ export default function Dashboard({
     return () => { isMounted = false; };
   }, [environmentMode]);
 
-  // Handle Ask OracleRisk search form submission
+  // Handle Ask VEYRA search form submission
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (heroSearchText.trim() && onFAQSelect) {
@@ -203,7 +204,7 @@ export default function Dashboard({
           </div>
         </div>
 
-        {/* Prominent Ask OracleRisk Search Bar + Quick Actions */}
+        {/* Prominent Ask VEYRA Search Bar + Quick Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', zIndex: 2, maxWidth: '920px' }}>
           <form onSubmit={handleSearchSubmit} style={{ width: '100%' }}>
             <div style={{
@@ -219,7 +220,7 @@ export default function Dashboard({
                 type="text"
                 value={heroSearchText}
                 onChange={(e) => setHeroSearchText(e.target.value)}
-                placeholder="Ask OracleRisk anything... (e.g., 'Who has the Supplier Manager role?' or 'Show users without roles')"
+                placeholder="Ask VEYRA anything... (e.g., 'Who has the Supplier Manager role?' or 'Show users without roles')"
                 style={{
                   flex: 1,
                   border: 'none',
@@ -260,7 +261,7 @@ export default function Dashboard({
                   }}
                 >
                   <Sparkles size={14} />
-                  <span>Ask OracleRisk</span>
+                  <span>Ask VEYRA</span>
                 </button>
               </div>
             </div>
@@ -473,12 +474,27 @@ export default function Dashboard({
                 Latest security audit records captured in Oracle Fusion
               </p>
             </div>
-            <span 
-              onClick={() => onNavigatePage?.('audit')}
-              style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-            >
-              View Full Audit Trail &rarr;
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {recentAudits.length > 0 && (
+                <TableExportControl
+                  filename="recent_security_changes"
+                  data={recentAudits}
+                  totalCount={recentAudits.length}
+                  columns={[
+                    { key: 'timestamp', label: 'Timestamp', getValue: (l: any) => l.timestamp ? new Date(l.timestamp).toLocaleString() : '' },
+                    { key: 'username', label: 'User', getValue: (l: any) => l.username || 'System' },
+                    { key: 'businessObject', label: 'Object Modified', getValue: (l: any) => l.businessObject || l.qualifiedBusinessObject || 'Security Configuration' },
+                    { key: 'action', label: 'Action', getValue: (l: any) => l.action || l.event || 'UPDATE' }
+                  ]}
+                />
+              )}
+              <span 
+                onClick={() => onNavigatePage?.('audit')}
+                style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                View Full Audit Trail &rarr;
+              </span>
+            </div>
           </div>
 
           <div className="table-container" style={{ margin: 0, flex: 1 }}>
@@ -605,7 +621,7 @@ export default function Dashboard({
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1E40AF'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1D4ED8'; }}
         >
-          <span>Ask OracleRisk</span>
+          <span>Ask VEYRA</span>
           <ArrowRight size={15} />
         </button>
       </div>

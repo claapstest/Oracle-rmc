@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  LayoutDashboard, 
-  MessageSquareCode, 
-  Users, 
-  Award, 
-  FileClock, 
-  ShieldAlert, 
-  Settings as SettingsIcon, 
-  LogOut, 
+import {
+  ShieldCheck,
+  LayoutDashboard,
+  MessageSquareCode,
+  Users,
+  Award,
+  FileClock,
+  ShieldAlert,
+  Settings as SettingsIcon,
+  LogOut,
   Database,
   Lock,
   PanelLeft,
   Bell,
-  Terminal
+  Terminal,
+  FileSpreadsheet,
+  FileText,
+  Scale,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 // Pages
@@ -23,7 +28,10 @@ import Assistant from './pages/Assistant';
 import UsersPage from './pages/Users';
 import RolesPage from './pages/Roles';
 import AuditPage from './pages/Audit';
-import RiskPage from './pages/Risk';
+import AdvancedAccessRequestsPage from './pages/AdvancedAccessRequests';
+import AdvancedControlsPage from './pages/AdvancedControls';
+import AccessCertificatesPage from './pages/AccessCertificates';
+import ReportsPage from './pages/Reports';
 import SettingsPage from './pages/Settings';
 import CommandCenter from './pages/CommandCenter';
 import InvestigationWorkspace from './pages/InvestigationWorkspace';
@@ -32,15 +40,59 @@ import FullInvestigationView from './pages/FullInvestigationView';
 import { api, getActiveAuthToken, getActiveUserEmail, setActiveAuthSession, clearActiveAuthSession } from './services/api';
 import { clearSecuritySession } from './services/securitySessionService';
 
+// Risk Management is a parent navigation group (no content page of its own).
+// Its three child pages are distinct application page states.
+interface RiskChildNavItem {
+  id: string;
+  label: string;
+  icon: any;
+}
+
+const RISK_CHILDREN: RiskChildNavItem[] = [
+  { id: 'risk-access-requests', label: 'Advanced Access Requests', icon: FileText },
+  { id: 'risk-controls', label: 'Advanced Controls', icon: Scale },
+  { id: 'risk-certificates', label: 'Access Certificates', icon: Award }
+];
+
+const RISK_CHILD_IDS = new Set(RISK_CHILDREN.map(c => c.id));
+
+const TOP_LEVEL_PAGE_IDS = new Set([
+  'overview',
+  'assistant',
+  'users',
+  'roles',
+  'audit',
+  'reports',
+  'settings',
+  'command-center'
+]);
+
+function resolveStoredPage(): string {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlPage = params.get('page');
+    if (urlPage && (TOP_LEVEL_PAGE_IDS.has(urlPage) || RISK_CHILD_IDS.has(urlPage))) {
+      return urlPage;
+    }
+    const stored = sessionStorage.getItem('activePage') || 'overview';
+    // Migrate the retired Risk Management landing-page route to its first child
+    if (stored === 'risk') return 'risk-access-requests';
+    if (TOP_LEVEL_PAGE_IDS.has(stored) || RISK_CHILD_IDS.has(stored)) return stored;
+  } catch (_) {
+    /* fall through to default */
+  }
+  return 'overview';
+}
+
 export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState('');
   const [currentPage, setCurrentPage] = useState(() => {
-    return sessionStorage.getItem('activePage') || 'overview';
+    return resolveStoredPage();
   });
   const [visitedPages, setVisitedPages] = useState<Set<string>>(() => {
-    const initial = sessionStorage.getItem('activePage') || 'overview';
+    const initial = resolveStoredPage();
     return new Set([initial, 'assistant']);
   });
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>(() => {
@@ -50,6 +102,9 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     return sessionStorage.getItem('activePage') !== 'assistant';
   });
+  // Manual expand/collapse for the Risk Management parent group.
+  // The group is additionally force-expanded whenever a Risk child page is active.
+  const [riskGroupOpen, setRiskGroupOpen] = useState(false);
 
   // Restore authenticated session and environment mode from active session storage on mount,
   // verifying session validity with the backend
@@ -143,7 +198,7 @@ export default function App() {
       if (item.kind === 'query') {
         newUrl = `/?investigationId=${encodeURIComponent(item.id)}`;
       } else {
-        newUrl = `/ask-oraclerisk/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
+        newUrl = `/ask-veyra/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
       }
       window.history.pushState({ investigation: item }, '', newUrl);
     } catch (_) {}
@@ -284,6 +339,13 @@ export default function App() {
   const handlePageSelect = (pageId: string) => {
     setCurrentPage(pageId);
     sessionStorage.setItem('activePage', pageId);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('page', pageId);
+      window.history.replaceState(null, '', url.toString());
+    } catch (_) {
+      /* URL sync is best-effort; sessionStorage remains authoritative */
+    }
     setVisitedPages(prev => {
       if (prev.has(pageId)) return prev;
       const next = new Set(prev);
@@ -294,7 +356,7 @@ export default function App() {
     setInitialRolesCategory('ALL'); // Reset filters
     setInitialUsersFilter('ALL');
     if (pageId === 'assistant') {
-      setIsSidebarOpen(false); // Ask OracleRisk defaults to full width
+      setIsSidebarOpen(false); // Ask VEYRA defaults to full width
     } else {
       setIsSidebarOpen(true); // Normal pages default to visible sidebar
     }
@@ -404,19 +466,30 @@ export default function App() {
     label: string;
     icon: any;
     adminOnly?: boolean;
+    isGroup?: boolean;
     onClick?: () => void;
   }
 
   const allNavItems: NavItem[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'assistant', label: 'Ask OracleRisk', icon: MessageSquareCode },
+    { id: 'assistant', label: 'Ask VEYRA', icon: MessageSquareCode },
     { id: 'users', label: 'Users List', icon: Users },
     { id: 'roles', label: 'Roles Catalog', icon: Award },
     { id: 'audit', label: 'Audit Trail', icon: FileClock },
-    { id: 'risk', label: 'Risk Management', icon: ShieldAlert },
+    { id: 'risk', label: 'Risk Management', icon: ShieldAlert, isGroup: true },
+    { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
     { id: 'settings', label: 'Oracle Integration', icon: SettingsIcon, adminOnly: true },
-    { id: 'command-center', label: 'Command Center', icon: Terminal }
+    { id: 'command-center', label: 'Oracle API Console', icon: Terminal }
   ];
+
+  // Risk Management is a parent group: expanded while a child page is active,
+  // otherwise follows the manual toggle. Clicking the parent never navigates.
+  const isRiskChildActive = RISK_CHILD_IDS.has(currentPage) && !activeInvestigation;
+  const isRiskGroupExpanded = riskGroupOpen || isRiskChildActive;
+
+  const pageLabelMap = new Map<string, string>();
+  allNavItems.forEach(n => pageLabelMap.set(n.id, n.label));
+  RISK_CHILDREN.forEach(c => pageLabelMap.set(c.id, c.label));
 
   return (
     <div className="app-container">
@@ -443,11 +516,58 @@ export default function App() {
         </div>
 
         {/* Clean Navigation Links */}
-        <nav className="nav-links">
+        <nav className="nav-links" aria-label="Primary">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {allNavItems
               .filter(item => !item.adminOnly || isAdmin)
               .map(item => {
+                // Risk Management parent group: expands/collapses, never navigates
+                if (item.isGroup && item.id === 'risk') {
+                  const GroupIcon = item.icon;
+                  return (
+                    <div key={item.id}>
+                      <a
+                        href="#risk"
+                        className={`nav-link ${isRiskChildActive ? 'group-active' : ''}`}
+                        aria-expanded={isRiskGroupExpanded}
+                        aria-label="Risk Management navigation group"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setRiskGroupOpen(prev => !prev);
+                        }}
+                        style={isRiskChildActive ? { backgroundColor: 'rgba(255, 255, 255, 0.06)', color: '#FFFFFF' } : undefined}
+                      >
+                        <GroupIcon size={17} strokeWidth={isRiskChildActive ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{item.label}</span>
+                        {isRiskGroupExpanded ? <ChevronDown size={14} style={{ flexShrink: 0 }} /> : <ChevronRight size={14} style={{ flexShrink: 0 }} />}
+                      </a>
+                      {isRiskGroupExpanded && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.15rem', marginLeft: '1.35rem', paddingLeft: '0.6rem', borderLeft: '1px solid rgba(255, 255, 255, 0.12)' }} role="group" aria-label="Risk Management pages">
+                          {RISK_CHILDREN.map(child => {
+                            const ChildIcon = child.icon;
+                            const isChildActive = currentPage === child.id && !activeInvestigation;
+                            return (
+                              <a
+                                key={child.id}
+                                href={`#${child.id}`}
+                                className={`nav-link nav-link-child ${isChildActive ? 'active' : ''}`}
+                                aria-current={isChildActive ? 'page' : undefined}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageSelect(child.id);
+                                }}
+                                style={{ fontSize: '0.82rem', padding: '0.5rem 0.7rem' }}
+                              >
+                                <ChildIcon size={15} strokeWidth={isChildActive ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
+                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.label}</span>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
                 const Icon = item.icon;
                 const isActive = currentPage === item.id && !activeInvestigation;
                 return (
@@ -517,14 +637,20 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, fontFamily: 'var(--font-header)' }}>
               {activeInvestigation ? (
                 <>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }} onClick={handleClose}>Ask OracleRisk</span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }} onClick={handleClose}>Ask VEYRA</span>
                   <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
                   <span>{activeInvestigation.name}</span>
                 </>
               ) : currentPage === 'assistant' ? (
-                <span>Ask OracleRisk</span>
+                <span>Ask VEYRA</span>
+              ) : RISK_CHILD_IDS.has(currentPage) ? (
+                <>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.75)' }}>Risk Management</span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span>{pageLabelMap.get(currentPage) || 'Overview'}</span>
+                </>
               ) : (
-                <span>{allNavItems.find(n => n.id === currentPage)?.label || 'Overview'}</span>
+                <span>{pageLabelMap.get(currentPage) || 'Overview'}</span>
               )}
             </div>
           </div>
@@ -660,9 +786,28 @@ export default function App() {
                 <AuditPage />
               </div>
             )}
-            {visitedPages.has('risk') && (
-              <div style={{ display: currentPage === 'risk' ? 'block' : 'none', height: '100%' }}>
-                <RiskPage environmentMode={environmentMode} />
+            {visitedPages.has('risk-access-requests') && (
+              <div style={{ display: currentPage === 'risk-access-requests' ? 'block' : 'none', height: '100%' }}>
+                <AdvancedAccessRequestsPage environmentMode={environmentMode} />
+              </div>
+            )}
+            {visitedPages.has('risk-controls') && (
+              <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
+                <AdvancedControlsPage environmentMode={environmentMode} />
+              </div>
+            )}
+            {visitedPages.has('risk-certificates') && (
+              <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
+                <AccessCertificatesPage environmentMode={environmentMode} />
+              </div>
+            )}
+            {visitedPages.has('reports') && (
+              <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
+                <ReportsPage 
+                  environmentMode={environmentMode}
+                  onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
+                  onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                />
               </div>
             )}
             {visitedPages.has('settings') && (

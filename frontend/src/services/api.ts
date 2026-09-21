@@ -222,6 +222,10 @@ export const api = {
     return apiRequest(`/roles/${encodeURIComponent(roleName)}/hierarchy`);
   },
 
+  async getRoleHierarchyReport() {
+    return apiRequest('/reports/role-hierarchy');
+  },
+
   async getRolePrivileges(roleName: string) {
     return apiRequest(`/roles/${encodeURIComponent(roleName)}/privileges`);
   },
@@ -285,8 +289,8 @@ export const api = {
     return apiRequest(`/risk/controls${query}`);
   },
 
-  async getAdvancedControlDetail(controlId: string) {
-    return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}`);
+  async getAdvancedControlDetail(controlId: string, refresh?: boolean) {
+    return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}${refresh ? '?refresh=true' : ''}`);
   },
 
   async refreshAdvancedControls() {
@@ -295,12 +299,29 @@ export const api = {
     });
   },
 
+  // Control Reporting Data Layer API
+  async getControlSummaryReport(options?: { refresh?: boolean; scan?: boolean }) {
+    const params = new URLSearchParams();
+    if (options?.refresh) params.append('refresh', 'true');
+    if (options?.scan) params.append('scan', 'true');
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/risk/reports/control-summary${query}`);
+  },
+
+  async probeControlIncidentCount(controlId: string) {
+    return apiRequest(`/risk/reports/control-summary/${encodeURIComponent(controlId)}`);
+  },
+
   async getRiskCapabilities() {
     return apiRequest('/risk/capabilities');
   },
 
-  async getRiskIncidents() {
-    return apiRequest('/risk/incidents');
+  async getRiskIncidents(options?: { controlId?: string; refresh?: boolean }) {
+    const params = new URLSearchParams();
+    if (options?.controlId) params.append('controlId', options.controlId);
+    if (options?.refresh) params.append('refresh', 'true');
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/risk/incidents${query}`);
   },
 
   async getSoDConflicts() {
@@ -434,7 +455,7 @@ export const api = {
   },
 
   // ==========================================
-  // Command Center API Operations & Diagnostics
+  // Oracle API Console Operations & Diagnostics
   // ==========================================
   async executeCommandCenterRequest(payload: {
     method: string;

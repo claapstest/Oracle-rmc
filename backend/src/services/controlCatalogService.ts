@@ -15,7 +15,7 @@ export interface AdvancedControlItem {
   enforcementType: string | null;
   statusId: number | string | null;
   stateCode: string | null;
-  type: string | null;
+  type: string | number | null;
   lastRunDate: string | null;
   lastUpdateDate: string | null;
   latestJobId: number | string | null;
@@ -36,11 +36,24 @@ export interface ControlIncidentItem {
   controlName?: string;
   globalUserId?: string | null;
   globalUserName?: string | null;
+  userFirstName?: string | null;
+  userLastName?: string | null;
   priority?: string | null;
   role?: string | null;
+  conflictingRoles?: string | null;
+  conflictingAccPointName?: string | null;
+  entitlement?: string | null;
+  accessPointName?: string | null;
+  accessPointType?: string | null;
   state?: string | null;
   status?: string | null;
   creationDate?: string | null;
+  createdBy?: string | null;
+  lastUpdateDate?: string | null;
+  lastUpdatedBy?: string | null;
+  closedDate?: string | null;
+  closedBy?: string | null;
+  resultInvestigator?: string | null;
   incidentInformation?: string | null;
   dataSource?: string | null;
   groupingValue?: string | null;
@@ -61,6 +74,8 @@ export interface ControlCatalogResult {
   message?: string;
 }
 
+import { IncidentCacheService, IncidentSyncProgress } from './incidentCacheService.js';
+
 export interface ControlDetailResult {
   success: boolean;
   dataSource: string;
@@ -68,6 +83,10 @@ export interface ControlDetailResult {
   incidents: ControlIncidentItem[];
   incidentCount: number;
   message?: string;
+  cacheStatus?: 'NOT_CACHED' | 'SYNCING' | 'READY' | 'PARTIAL' | 'ERROR';
+  totalCount?: number;
+  fetchedCount?: number;
+  lastSyncedAt?: string;
 }
 
 // Load authoritative 34 controls and 24 incidents for Control 114281
@@ -86,6 +105,7 @@ try {
 
 export class ControlCatalogService {
   private client: OracleFusionClient;
+  private incidentCacheService: IncidentCacheService;
   private catalog: AdvancedControlItem[] = [];
   private lastRefreshedAt: string = '';
   private byId = new Map<string, AdvancedControlItem>();
@@ -96,11 +116,17 @@ export class ControlCatalogService {
 
   constructor(client: OracleFusionClient) {
     this.client = client;
+    this.incidentCacheService = new IncidentCacheService(client);
   }
 
   public recreateClient(client: OracleFusionClient) {
     this.client = client;
     this.incidentCache.clear();
+    this.incidentCacheService.recreateClient(client);
+  }
+
+  public getIncidentCacheService(): IncidentCacheService {
+    return this.incidentCacheService;
   }
 
   public isDemoMode(): boolean {
@@ -226,7 +252,16 @@ export class ControlCatalogService {
         if (!items.length || !hasMore) break;
       }
 
-      const normalized = allRaw.map(item => this.normalizeControl(item));
+      const normalized = allRaw.map(item => {
+        const ctrl = this.normalizeControl(item);
+        if (ctrl.incidentCount === undefined) {
+          const cachedInc = this.incidentCacheService.readCache(ctrl.id);
+          if (cachedInc) {
+            ctrl.incidentCount = cachedInc.totalResults !== undefined ? cachedInc.totalResults : (cachedInc.incidents?.length || 0);
+          }
+        }
+        return ctrl;
+      });
       this.indexControls(normalized);
       this.lastRefreshedAt = new Date().toISOString();
 
@@ -333,10 +368,10 @@ export class ControlCatalogService {
   }
 
   /**
-   * Retrieves control details and embedded incidents via:
-   * GET /fscmRestApi/resources/11.13.18.05/advancedControls/{controlId}?expand=incidents
+   * Retrieves control details and continuous monitoring incidents via temporary background cache.
+   * Header loads quickly (<1s), while incident pagination runs asynchronously in the background.
    */
-  public async getControlDetail(controlId: string): Promise<ControlDetailResult> {
+  public async getControlDetail(controlId: string, options: { forceRefresh?: boolean } = {}): Promise<ControlDetailResult> {
     if (!controlId) {
       return {
         success: false,
@@ -344,6 +379,7 @@ export class ControlCatalogService {
         control: null,
         incidents: [],
         incidentCount: 0,
+        cacheStatus: 'NOT_CACHED',
         message: 'Control ID is required.'
       };
     }
@@ -360,6 +396,7 @@ export class ControlCatalogService {
           control: null,
           incidents: [],
           incidentCount: 0,
+          cacheStatus: 'NOT_CACHED',
           message: `Control ID "${cleanId}" could not be located in the catalog.`
         };
       }
@@ -370,69 +407,67 @@ export class ControlCatalogService {
         dataSource: 'Sample Data',
         control: {
           ...control,
-          incidentCount: incidents.length
+          incidentCount: incidents.length,
+          incidents
         },
         incidents,
-        incidentCount: incidents.length
+        incidentCount: incidents.length,
+        cacheStatus: 'READY',
+        totalCount: incidents.length,
+        fetchedCount: incidents.length
       };
     }
 
     try {
-      console.log(`[Control Catalog] Fetching live detail for control "${cleanId}" from Oracle Fusion with expand=incidents...`);
-      const raw = await this.client.getAdvancedControlById(cleanId, 'incidents');
+      // 1. Resolve or fetch Control Header (<1s)
+      let control = this.byId.get(cleanId);
+      if (!control) {
+        console.log(`[Control Catalog] Fetching live header for control "${cleanId}" from Oracle Fusion...`);
+        const headerRaw = await this.client.getAdvancedControlHeader(cleanId);
+        if (headerRaw) {
+          control = this.normalizeControl(headerRaw);
+          this.byId.set(control.id, control);
+        }
+      }
 
-      if (!raw) {
+      if (!control) {
         return {
           success: false,
           dataSource: 'Live Oracle Fusion API',
           control: null,
           incidents: [],
           incidentCount: 0,
+          cacheStatus: 'NOT_CACHED',
           message: `Control "${cleanId}" was not found in Oracle Fusion.`
         };
       }
 
-      const control = this.normalizeControl(raw);
+      // 2. Query or start resilient temporary background incident cache
+      const sync = this.incidentCacheService.getOrStartSync(cleanId, {
+        forceRefresh: options.forceRefresh,
+        controlName: control.name
+      });
 
-      // Extract incidents array from Oracle response
-      // Handles: raw.incidents?.items, raw.incidents, raw.Incidents?.items, raw.Incidents
-      const rawIncidents: any[] = 
-        Array.isArray(raw.incidents?.items) ? raw.incidents.items :
-        Array.isArray(raw.incidents) ? raw.incidents :
-        Array.isArray(raw.Incidents?.items) ? raw.Incidents.items :
-        Array.isArray(raw.Incidents) ? raw.Incidents :
-        [];
+      const incidentCount = sync.incidentCount || sync.totalCount || 0;
+      const incidents = sync.incidents || [];
 
-      const incidents: ControlIncidentItem[] = rawIncidents.map((inc: any, idx: number) => ({
-        id: String(inc.Id ?? inc.id ?? inc.IncidentId ?? `INC-${cleanId}-${idx + 1}`),
-        controlId: String(inc.ControlId ?? inc.controlId ?? cleanId),
-        controlName: inc.ControlName ?? control.name,
-        globalUserId: inc.GlobalUserId ?? inc.globalUserId ?? null,
-        globalUserName: inc.GlobalUserName ?? inc.globalUserName ?? null,
-        priority: inc.Priority ?? inc.priority ?? null,
-        role: inc.Role ?? inc.role ?? null,
-        state: inc.State ?? inc.state ?? inc.StateCode ?? null,
-        status: inc.Status ?? inc.status ?? inc.StatusId ?? null,
-        creationDate: inc.CreationDate ?? inc.creationDate ?? null,
-        incidentInformation: inc.IncidentInformation ?? inc.incidentInformation ?? inc.Description ?? null,
-        dataSource: inc.DataSource ?? inc.dataSource ?? 'Oracle Fusion FSCM',
-        groupingValue: inc.GroupingValue ?? inc.groupingValue ?? null,
-        raw: inc
-      }));
-
-      control.incidentCount = incidents.length;
-      control.incidents = incidents;
+      const enrichedControl: AdvancedControlItem = {
+        ...control,
+        incidentCount,
+        incidents: sync.cacheStatus === 'READY' ? incidents : []
+      };
 
       return {
         success: true,
         dataSource: 'Live Oracle Fusion API',
-        control: {
-          ...control,
-          incidents,
-          incidentCount: incidents.length
-        },
-        incidents,
-        incidentCount: incidents.length
+        control: enrichedControl,
+        incidents: sync.cacheStatus === 'READY' ? incidents : [],
+        incidentCount,
+        cacheStatus: sync.cacheStatus,
+        totalCount: sync.totalCount,
+        fetchedCount: sync.fetchedCount,
+        lastSyncedAt: sync.lastSyncedAt,
+        message: sync.message
       };
     } catch (err: any) {
       console.error(`[Control Detail Error] Failed to fetch control "${cleanId}":`, err.message);
@@ -451,7 +486,10 @@ export class ControlCatalogService {
             incidentCount: fallbackIncidents.length
           },
           incidents: fallbackIncidents,
-          incidentCount: fallbackIncidents.length
+          incidentCount: fallbackIncidents.length,
+          cacheStatus: 'READY',
+          totalCount: fallbackIncidents.length,
+          fetchedCount: fallbackIncidents.length
         };
       }
 
@@ -461,6 +499,7 @@ export class ControlCatalogService {
         control: null,
         incidents: [],
         incidentCount: 0,
+        cacheStatus: 'ERROR',
         message: 'Unable to retrieve control details from Oracle Fusion.'
       };
     }

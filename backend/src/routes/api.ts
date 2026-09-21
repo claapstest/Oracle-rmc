@@ -583,6 +583,15 @@ apiRouter.post('/roles/sync', requireAuth, async (req: Request, res: Response) =
   }
 });
 
+apiRouter.get('/reports/role-hierarchy', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const result = await oracleService.getRoleHierarchyReport();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 apiRouter.get('/roles/:name/hierarchy', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getRoleHierarchy(req.params.name);
@@ -744,7 +753,8 @@ apiRouter.post('/risk/controls/refresh', requireAuth, async (req: Request, res: 
 apiRouter.get('/risk/controls/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const controlId = req.params.id;
-    const result = await oracleService.getAdvancedControlDetail(controlId);
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await oracleService.getAdvancedControlDetail(controlId, { forceRefresh });
     if (!result.success && !result.control) {
       return res.status(404).json({
         success: false,
@@ -760,6 +770,39 @@ apiRouter.get('/risk/controls/:id', requireAuth, async (req: Request, res: Respo
   }
 });
 
+// GET /risk/reports/control-summary - Fast, scalable Control Summary reporting endpoint
+apiRouter.get('/risk/reports/control-summary', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const forceRefresh = req.query.refresh === 'true';
+    const scan = req.query.scan === 'true';
+    const result = await oracleService.getControlSummaryReport({ forceRefresh, scan });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// GET /risk/reports/control-summary/:id - Single control incident count probe
+apiRouter.get('/risk/reports/control-summary/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const controlId = req.params.id;
+    const result = await oracleService.scanSingleControlIncidentCount(controlId);
+    res.json({ success: true, scan: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// POST /risk/reports/control-summary/scan - Trigger lightweight count scan across unscanned controls
+apiRouter.post('/risk/reports/control-summary/scan', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const result = await oracleService.getControlSummaryReport({ scan: true });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
 
 apiRouter.get('/risk/capabilities', requireAuth, (req: Request, res: Response) => {
   try {
@@ -772,10 +815,12 @@ apiRouter.get('/risk/capabilities', requireAuth, (req: Request, res: Response) =
 
 apiRouter.get('/risk/incidents', requireAuth, async (req: Request, res: Response) => {
   try {
-    const result = await oracleService.getRiskIncidents();
+    const controlId = req.query.controlId as string | undefined;
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await oracleService.getRiskIncidents({ controlId, forceRefresh });
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 
@@ -965,7 +1010,7 @@ apiRouter.get('/command-center/history', requireAuth, (_req: Request, res: Respo
 apiRouter.delete('/command-center/history', requireAuth, (_req: Request, res: Response) => {
   try {
     commandCenterService.clearHistory();
-    res.json({ success: true, message: 'Command Center history cleared.' });
+    res.json({ success: true, message: 'Oracle API Console history cleared.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

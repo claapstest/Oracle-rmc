@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../services/api.js';
+import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 
 interface UsersProps {
   initialFilter?: string;
@@ -17,6 +18,11 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalResults, setTotalResults] = useState(0);
+
   useEffect(() => {
     const delay = searchTerm ? 350 : 0;
     const delayDebounceFn = setTimeout(() => {
@@ -24,10 +30,12 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
         setLoading(true);
         setError('');
         try {
-          const res = await api.getUsers(searchTerm || undefined);
+          const startIndex = (currentPage - 1) * pageSize + 1;
+          const res = await api.getUsers(searchTerm || undefined, startIndex, pageSize);
           if (res?.users) {
             setUsers(res.users);
-            setDataSource(res.dataSource || 'Oracle Fusion');
+            setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
+            setDataSource(res.dataSource || 'Oracle Fusion SCIM API');
           }
         } catch (err) {
           console.error('Failed to load users:', err);
@@ -40,46 +48,122 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     }, delay);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [searchTerm, currentPage, pageSize]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.assignedRoles.some((r: any) => {
-        const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
-        return val.toLowerCase().includes(searchTerm.toLowerCase());
-      });
-      
-    const matchesStatus = 
-      statusFilter === 'ALL' ||
-      (statusFilter === 'ACTIVE' && user.active) ||
-      (statusFilter === 'INACTIVE' && !user.active);
+  // Client-side filtering on current page items for status/insight tags if applicable
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesStatus = 
+        statusFilter === 'ALL' ||
+        (statusFilter === 'ACTIVE' && user.active) ||
+        (statusFilter === 'INACTIVE' && !user.active);
 
-    // Apply parent insight card filter definitions
-    let matchesInsight = true;
-    if (initialFilter === 'Multiple Role Users') {
-      matchesInsight = user.assignedRoles && user.assignedRoles.length > 1;
-    } else if (initialFilter === 'Users Without Roles') {
-      matchesInsight = !user.assignedRoles || user.assignedRoles.length === 0;
-    } else if (initialFilter === 'Security Administrators') {
-      matchesInsight = user.assignedRoles && user.assignedRoles.some((r: any) => {
-        const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
-        return val.includes('Security Administrator') || val.includes('IT Security Manager');
-      });
-    } else if (initialFilter === 'High-Risk Role Users') {
-      // High-risk users hold sensitive roles like Security Admin, IT Security Manager, or AP Manager
-      matchesInsight = user.assignedRoles && user.assignedRoles.some((r: any) => {
-        const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
-        return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
-      });
+      let matchesInsight = true;
+      if (initialFilter === 'Multiple Role Users') {
+        matchesInsight = user.assignedRoles && user.assignedRoles.length > 1;
+      } else if (initialFilter === 'Users Without Roles') {
+        matchesInsight = !user.assignedRoles || user.assignedRoles.length === 0;
+      } else if (initialFilter === 'Security Administrators') {
+        matchesInsight = user.assignedRoles && user.assignedRoles.some((r: any) => {
+          const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
+          return val.includes('Security Administrator') || val.includes('IT Security Manager');
+        });
+      } else if (initialFilter === 'High-Risk Role Users') {
+        matchesInsight = user.assignedRoles && user.assignedRoles.some((r: any) => {
+          const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
+          return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
+        });
+      }
+
+      return matchesStatus && matchesInsight;
+    });
+  }, [users, statusFilter, initialFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
+
+  // Applied filters list for export metadata
+  const activeFilters = useMemo(() => {
+    const list: { label: string; value: string }[] = [];
+    if (searchTerm) list.push({ label: 'Search', value: `"${searchTerm}"` });
+    if (statusFilter !== 'ALL') list.push({ label: 'Status', value: statusFilter });
+    if (initialFilter !== 'ALL') list.push({ label: 'Category Filter', value: initialFilter });
+    return list;
+  }, [searchTerm, statusFilter, initialFilter]);
+
+  // Page numbering helper
+  const renderPaginationButtons = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
     }
 
-    return matchesSearch && matchesStatus && matchesInsight;
-  });
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <button
+          type="button"
+          disabled={currentPage <= 1}
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          className="btn btn-secondary"
+          style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+          title="Previous Page"
+        >
+          <ChevronLeft size={14} />
+          <span>Prev</span>
+        </button>
 
-  if (loading) {
+        {pages.map((p, idx) => {
+          if (p === '...') {
+            return <span key={`ellipsis-${idx}`} style={{ padding: '0 0.35rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>…</span>;
+          }
+          const pageNum = p as number;
+          const isCurrent = pageNum === currentPage;
+          return (
+            <button
+              key={pageNum}
+              type="button"
+              onClick={() => setCurrentPage(pageNum)}
+              style={{
+                minWidth: '28px',
+                height: '28px',
+                padding: '0 0.35rem',
+                fontSize: '0.78rem',
+                fontWeight: isCurrent ? 700 : 500,
+                borderRadius: '6px',
+                border: isCurrent ? '1px solid #2563EB' : '1px solid var(--border-color)',
+                backgroundColor: isCurrent ? '#2563EB' : 'var(--bg-secondary)',
+                color: isCurrent ? '#FFFFFF' : 'var(--text-primary)',
+                cursor: 'pointer'
+              }}
+            >
+              {pageNum}
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          className="btn btn-secondary"
+          style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+          title="Next Page"
+        >
+          <span>Next</span>
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    );
+  };
+
+  if (loading && users.length === 0) {
     return (
       <div style={{ padding: '2rem' }}>
         <div style={{ height: '35px', width: '150px', marginBottom: '1.5rem' }} className="skeleton" />
@@ -139,7 +223,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
               color: '#ffffff',
               backdropFilter: 'blur(8px)'
             }}>
-              {filteredUsers.length} Users Found
+              {totalResults > 0 ? `${totalResults.toLocaleString()} Users in Directory` : 'Loading directory...'}
             </div>
           </div>
         </div>
@@ -150,9 +234,9 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           </div>
         )}
 
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
+        {/* Search & Filter Bar */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
               <Search size={16} />
             </span>
@@ -160,21 +244,107 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
               type="text"
               className="form-input"
               style={{ paddingLeft: '2.5rem' }}
-              placeholder="Search by name, username, email, or role..."
+              placeholder="Search by username or display name..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
+            {searchTerm && (
+              <button
+                onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           <select
             className="form-select"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{ width: '160px' }}
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active Users</option>
             <option value="INACTIVE">Inactive Users</option>
           </select>
+
+          {/* Enterprise Export Control */}
+          <EnterpriseExportControl
+            filename="users_directory"
+            sheetName="Users Directory"
+            reportTitle="Oracle Fusion Identity & Access Management Directory"
+            dataSource={dataSource}
+            entityName="Users"
+            buttonText="Export Users"
+            currentPageData={filteredUsers}
+            filteredCount={totalResults}
+            totalCount={totalResults}
+            appliedFilters={activeFilters}
+            availableColumns={[
+              { key: 'userName', label: 'Username', defaultSelected: true },
+              { key: 'displayName', label: 'Display Name', defaultSelected: true },
+              { key: 'firstName', label: 'First Name', defaultSelected: false, getValue: (u: any) => u.firstName || '' },
+              { key: 'lastName', label: 'Last Name', defaultSelected: false, getValue: (u: any) => u.lastName || '' },
+              { key: 'email', label: 'Email Address', defaultSelected: true, getValue: (u: any) => u.email || 'N/A' },
+              { key: 'roleCount', label: 'Role Count', defaultSelected: true, getValue: (u: any) => u.assignedRoles?.length || 0 },
+              { key: 'status', label: 'Status', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
+              { key: 'assignedRoles', label: 'Assigned Roles', defaultSelected: true, getValue: (u: any) => u.assignedRoles?.map((r: any) => typeof r === 'string' ? r : (r.roleName || r.roleCode || '')).join('; ') }
+            ]}
+            onFetchScopeData={async (scope) => {
+              if (scope === 'PAGE') return filteredUsers;
+              const countToFetch = scope === 'FILTERED'
+                ? Math.min(totalResults || 5000, 5000)
+                : Math.min(totalResults || 5000, 5000);
+              const res = await api.getUsers(
+                scope === 'FILTERED' ? (searchTerm || undefined) : undefined,
+                1,
+                countToFetch
+              );
+              return res?.users || [];
+            }}
+          />
+        </div>
+
+        {/* Table Toolbar: Clear count and Rows Per Page */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '0.75rem',
+          fontSize: '0.82rem',
+          color: 'var(--text-secondary)',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}>
+          <div>
+            Showing <strong>{totalResults > 0 ? ((currentPage - 1) * pageSize + 1).toLocaleString() : 0}</strong>–<strong>{Math.min(currentPage * pageSize, totalResults).toLocaleString()}</strong> of <strong>{totalResults.toLocaleString()}</strong> users
+            {loading && <span style={{ marginLeft: '0.5rem', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>(updating...)</span>}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="form-select"
+              style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={250}>250</option>
+            </select>
+          </div>
         </div>
 
         {/* Table Grid */}
@@ -193,7 +363,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No security users match the filter criteria.
                   </td>
                 </tr>
@@ -202,7 +372,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                   <tr
                     key={user.id}
                     onClick={() => setSelectedUser(user)}
-                    style={{ cursor: 'pointer', backgroundColor: selectedUser?.id === user.id ? 'rgba(255, 255, 255, 0.04)' : '' }}
+                    style={{ cursor: 'pointer', backgroundColor: selectedUser?.id === user.id ? 'rgba(37, 99, 235, 0.06)' : '' }}
                   >
                     <td><code>{user.userName}</code></td>
                     <td style={{ fontWeight: 600 }}>{user.displayName}</td>
@@ -215,6 +385,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                     </td>
                     <td>
                       <button 
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onInvestigateUser) {
@@ -244,6 +415,24 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls Bar */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '1rem',
+            padding: '0.75rem 0.25rem',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({totalResults.toLocaleString()} total users)
+            </div>
+            {renderPaginationButtons()}
+          </div>
+        )}
       </div>
 
       {/* Right Column: User Details Sidebar Card */}
@@ -284,116 +473,111 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                   {selectedUser.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
-            </div>
-
-            {/* Contacts Info */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                 <Mail size={14} />
-                <span>{selectedUser.email || 'No email configured'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Shield size={14} />
-                <span>Identity Identifier: <code>{selectedUser.id}</code></span>
+                <span>{selectedUser.email || 'No email registered'}</span>
               </div>
             </div>
 
-            {/* Deep Investigation Workspace Trigger */}
+            {/* Quick Action: Full Investigation */}
             {onInvestigateUser && (
-              <button 
+              <button
                 onClick={() => onInvestigateUser(selectedUser.userName, selectedUser.displayName)}
                 className="btn btn-primary"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.6rem 1rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  backgroundColor: 'var(--accent-blue)',
+                  color: '#ffffff',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                }}
               >
                 <Sparkles size={14} />
-                <span>Launch Deep Workspace</span>
+                <span>Deep Security Investigation</span>
               </button>
             )}
 
-            {/* Roles List */}
+            {/* Assigned Roles List */}
             <div>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Assigned Roles ({selectedUser.assignedRoles?.length || 0})
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                Directly Assigned Roles ({selectedUser.assignedRoles?.length || 0})
               </div>
-
-              {selectedUser.assignedRoles && selectedUser.assignedRoles.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {selectedUser.assignedRoles.map((role: any, idx: number) => {
-                    const rName = typeof role === 'string' ? role : (role.roleName || 'Unknown Role Name');
-                    const rCode = typeof role === 'string' ? role : (role.roleCode || '');
-                    const isCustom = typeof role === 'string' ? (role.startsWith('CLAAPS_') || role.startsWith('CUSTOM_')) : (role.isCustom || false);
-                    
-                    // Determine if it is a high privilege role
-                    const isHighPriv = rName.toLowerCase().includes('security manager') || 
-                                       rName.toLowerCase().includes('administrator') || 
-                                       rName.toLowerCase().includes('ap manager') ||
-                                       rCode.toLowerCase().includes('it_security_manager') ||
-                                       rCode.toLowerCase().includes('security_administrator');
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
+                {(!selectedUser.assignedRoles || selectedUser.assignedRoles.length === 0) ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic', padding: '0.5rem 0' }}>
+                    No roles directly assigned to this account.
+                  </div>
+                ) : (
+                  selectedUser.assignedRoles.map((role: any, idx: number) => {
+                    const roleCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
+                    const roleName = typeof role === 'string' ? role : (role.roleName || role.displayName || roleCode);
+                    const category = typeof role === 'object' && role.category ? role.category : 'JOB';
+                    const isCustom = typeof role === 'object' ? Boolean(role.isCustom) : false;
 
                     return (
-                      <div key={idx} className="glass-panel animate-fade-in" style={{
-                        padding: '1rem',
-                        fontSize: '0.8rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        borderLeft: `4px solid ${isHighPriv ? 'var(--accent-red)' : 'var(--accent-gold)'}`,
-                        position: 'relative'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{rName}</span>
-                          {isHighPriv && (
-                            <span className="badge badge-inactive" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>
-                              High Privilege
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
-                          <code style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{rCode}</code>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            {isCustom ? 'Custom Role' : 'Oracle Predefined'}
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          padding: '0.65rem 0.85rem', 
+                          backgroundColor: 'var(--bg-secondary)', 
+                          border: '1px solid var(--border-color)', 
+                          borderRadius: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {roleName}
+                          </span>
+                          <span className={`badge ${category === 'DUTY' ? 'badge-blue' : category === 'ADMIN' ? 'badge-gold' : 'badge-gold'}`} style={{ fontSize: '0.65rem' }}>
+                            {category}
                           </span>
                         </div>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <code style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{roleCode}</code>
+                          {isCustom && (
+                            <span style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 600 }}>Custom</span>
+                          )}
+                        </div>
 
-                        {onInspectRole && rCode && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+                        {onInspectRole && roleCode && (
+                          <div style={{ marginTop: '0.35rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <button
-                              onClick={() => onInspectRole(rCode, rName)}
-                              className="btn btn-secondary"
-                              style={{ 
-                                padding: '0.2rem 0.5rem', 
-                                fontSize: '0.7rem', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '0.25rem',
+                              onClick={() => onInspectRole(roleCode, roleName)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                fontSize: '0.72rem',
                                 color: 'var(--accent-blue)',
-                                borderColor: 'var(--accent-blue-light)',
-                                background: 'transparent',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.2rem',
+                                fontWeight: 500
                               }}
                             >
-                              <span>Inspect Role</span>
+                              <span>Trace Hierarchy</span>
                               <ArrowRight size={10} />
                             </button>
                           </div>
                         )}
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div style={{
-                  padding: '1.5rem',
-                  textAlign: 'center',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)'
-                }}>
-                  No security roles assigned.
-                </div>
-              )}
+                  })
+                )}
+              </div>
             </div>
 
           </div>

@@ -28,6 +28,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { api } from '../services/api';
+import { TableExportControl } from '../components/TableExportControl';
 
 // Global in-memory cache of user profiles to prevent repeated or N+1 lookups
 const globalUserLookupCache: Record<string, { id?: string; userName?: string; displayName?: string; active?: boolean }> = {};
@@ -317,24 +318,6 @@ export default function InvestigationWorkspace({
     localStorage.setItem('saved_investigations', JSON.stringify(items));
   };
 
-  const exportCSV = (tableData: any[], filename: string) => {
-    if (!tableData || tableData.length === 0) return;
-    // Extract headers
-    const headers = Object.keys(tableData[0]).join(',');
-    const rows = tableData.map(row => 
-      Object.values(row)
-        .map(val => `"${String(val).replace(/"/g, '""')}"`)
-        .join(',')
-    );
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const handleAISubmit = async (promptText: string) => {
     const prompt = promptText.trim();
@@ -493,14 +476,6 @@ export default function InvestigationWorkspace({
   const memberEndIndex = membersPageSize === -1 ? filteredMembers.length : Math.min(memberStartIndex + membersPageSize, filteredMembers.length);
   const currentMembers = membersPageSize === -1 ? filteredMembers : filteredMembers.slice(memberStartIndex, memberEndIndex);
 
-  const exportMembersCSV = () => {
-    const exportData = filteredMembers.map(m => ({
-      'Display Name': m.displayName || 'Unknown User',
-      'User Code': m.userName || m.id || '',
-      'Status': m.active !== false ? 'Active' : 'Inactive'
-    }));
-    exportCSV(exportData, `${entity.id || entity.name}_assigned_members.csv`);
-  };
 
   if (loading) {
     return (
@@ -518,7 +493,7 @@ export default function InvestigationWorkspace({
       {/* Breadcrumb Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => onNavigateToPage?.('assistant')}>Ask OracleRisk</span>
+          <span style={{ cursor: 'pointer' }} onClick={() => onNavigateToPage?.('assistant')}>Ask VEYRA</span>
           <span>&gt;</span>
           {isRole ? (
             <>
@@ -932,15 +907,15 @@ export default function InvestigationWorkspace({
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <button 
-                    onClick={exportMembersCSV}
-                    disabled={resolvedMemberList.length === 0}
-                    className="btn btn-secondary" 
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}
-                  >
-                    <Download size={14} />
-                    <span>Export CSV</span>
-                  </button>
+                  <TableExportControl
+                    filename={`${entity.id || entity.name}_assigned_members`}
+                    data={filteredMembers}
+                    totalCount={filteredMembers.length}
+                    columns={[
+                      { key: 'displayName', label: 'Display Name', getValue: (m: any) => m.displayName || m.name || m.userName || '' },
+                      { key: 'userName', label: 'User Code', getValue: (m: any) => m.userName || m.id || m.value || '' }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -1137,14 +1112,14 @@ export default function InvestigationWorkspace({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Assigned Security Roles ({data?.assignedRoles?.length || 0})</h3>
-                <button 
-                  onClick={() => exportCSV(data?.assignedRoles?.map((r: any) => ({ Role: typeof r === 'string' ? r : (r.roleName || r.roleCode || '') })) || [], `${entity.id}_assigned_roles.csv`)}
-                  className="btn btn-secondary" 
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                >
-                  <Download size={14} />
-                  <span>Export CSV</span>
-                </button>
+                <TableExportControl
+                  filename={`${entity.id}_assigned_roles`}
+                  data={data?.assignedRoles?.map((r: any) => ({ Role: typeof r === 'string' ? r : (r.roleName || r.roleCode || '') })) || []}
+                  totalCount={data?.assignedRoles?.length || 0}
+                  columns={[
+                    { key: 'Role', label: 'Role Name' }
+                  ]}
+                />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1295,28 +1270,17 @@ export default function InvestigationWorkspace({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button 
-                    onClick={() => {
-                      const listToExport = filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges;
-                      exportCSV(
-                        listToExport.map(p => ({
-                          'Privilege Name': p.name || '',
-                          'Permission Code': p.code || '',
-                          'Type': p.type || 'Function',
-                          'Inherited From': p.inheritedFrom || entity.name,
-                          'Description': p.description || ''
-                        })),
-                        `${entity.id}_functional_privileges.csv`
-                      );
-                    }}
-                    disabled={allPrivileges.length === 0}
-                    className="btn btn-secondary" 
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
-                    title="Export complete privileges list to CSV"
-                  >
-                    <Download size={14} />
-                    <span>Export CSV ({allPrivileges.length})</span>
-                  </button>
+                  <TableExportControl
+                    filename={`${entity.id}_functional_privileges`}
+                    data={(filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges).map(p => ({
+                      'Privilege Name': p.name || '',
+                      'Permission Code': p.code || '',
+                      'Type': p.type || 'Function',
+                      'Inherited From': p.inheritedFrom || entity.name,
+                      'Description': p.description || ''
+                    }))}
+                    totalCount={(filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges).length}
+                  />
                 </div>
               </div>
 
@@ -1690,14 +1654,18 @@ export default function InvestigationWorkspace({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Security Configuration Logs</h3>
-                <button 
-                  onClick={() => exportCSV(auditData, `${entity.id}_audit_trail.csv`)}
-                  className="btn btn-secondary" 
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                >
-                  <Download size={14} />
-                  <span>Export CSV</span>
-                </button>
+                <TableExportControl
+                  filename={`${entity.id}_audit_trail`}
+                  data={auditData}
+                  totalCount={auditData?.length || 0}
+                  columns={[
+                    { key: 'timestamp', label: 'Timestamp', getValue: (l: any) => l.timestamp ? new Date(l.timestamp).toLocaleString() : '' },
+                    { key: 'username', label: 'Operator' },
+                    { key: 'businessObject', label: 'Object' },
+                    { key: 'action', label: 'Action', getValue: (l: any) => l.action || l.event || 'UPDATE' },
+                    { key: 'details', label: 'Details' }
+                  ]}
+                />
               </div>
 
               <div className="table-container" style={{ margin: 0 }}>

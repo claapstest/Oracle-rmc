@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
+import { TableExportControl } from './TableExportControl';
 
 export interface TableColumnSchema {
   key: string;
@@ -611,6 +612,19 @@ export const PaginatedTable = React.memo(function PaginatedTable({
     return getTableColumns(table.type, table.columns, rows);
   }, [table.type, table.columns, rows]);
 
+  const exportColumns = useMemo(() => {
+    return columns
+      .filter(c => c.key !== 'actions')
+      .map(c => ({
+        key: c.key,
+        label: c.header,
+        getValue: (row: any) => {
+          const foundKey = Object.keys(row).find(k => k.toLowerCase() === c.key.toLowerCase().replace(/\s+/g, '')) || c.key;
+          return row[foundKey] ?? row[c.key];
+        }
+      }));
+  }, [columns]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', margin: '0.35rem 0', width: '100%' }}>
       <div style={{ 
@@ -672,6 +686,13 @@ export const PaginatedTable = React.memo(function PaginatedTable({
               <option value={100}>100</option>
             </select>
           </div>
+
+          <TableExportControl
+            filename={table.type || 'investigation_records'}
+            data={filteredRows}
+            totalCount={filteredRows.length}
+            columns={exportColumns}
+          />
         </div>
       </div>
 

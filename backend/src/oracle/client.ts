@@ -363,5 +363,48 @@ export class OracleFusionClient {
       this.handleError(error, `Get Advanced Control Detail API for ID "${controlId}"`);
     }
   }
+
+  async getAdvancedControlHeader(controlId: string) {
+    try {
+      const path = `/fscmRestApi/resources/11.13.18.05/advancedControls/${encodeURIComponent(controlId)}`;
+      console.log(`[Oracle Client] GET ${path} (Header only)`);
+      const response = await this.client.get(path);
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `Get Advanced Control Header API for ID "${controlId}"`);
+    }
+  }
+
+  async getAdvancedControlIncidents(
+    controlId: string,
+    options: {
+      offset?: number;
+      limit?: number;
+      totalResults?: boolean;
+      timeout?: number;
+    } = {}
+  ) {
+    try {
+      const path = `/fscmRestApi/resources/11.13.18.05/advancedControls/${encodeURIComponent(controlId)}/child/incidents`;
+      const params: Record<string, any> = {
+        offset: options.offset ?? 0,
+        limit: options.limit ?? 500,
+      };
+      if (options.totalResults !== undefined) {
+        params.totalResults = options.totalResults;
+      }
+
+      const timeout = options.timeout || 120000; // 2-minute timeout for heavy count/page queries
+      console.log(`[Oracle Client] GET ${path} offset=${params.offset} limit=${params.limit} totalResults=${params.totalResults ?? false} timeout=${timeout}ms`);
+
+      const response = await this.client.get(path, {
+        params,
+        timeout,
+      });
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `Get Advanced Control Incidents API for ID "${controlId}" (offset: ${options.offset ?? 0})`);
+    }
+  }
 }
 

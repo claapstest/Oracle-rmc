@@ -1,4 +1,5 @@
 import React from 'react';
+import { TableExportControl } from './TableExportControl';
 import { 
   Users, 
   ShieldAlert, 
@@ -932,12 +933,26 @@ export function TopAtRiskBusinessObjects({ businessObjects = [], onNavigatePage 
             Enterprise business entities modified with audit event intensity
           </p>
         </div>
-        <span 
-          onClick={() => onNavigatePage?.('audit')}
-          style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-        >
-          View All &rarr;
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {objects.length > 0 && (
+            <TableExportControl
+              filename="top_at_risk_objects"
+              data={objects}
+              totalCount={objects.length}
+              columns={[
+                { key: 'businessObject', label: 'Business Object' },
+                { key: 'eventCount', label: 'Event Count' },
+                { key: 'riskLevel', label: 'Risk Level', getValue: (obj: any) => obj.riskLevel || obj.activityLevel || (obj.eventCount > 100 ? 'High' : obj.eventCount > 30 ? 'Medium' : 'Low') }
+              ]}
+            />
+          )}
+          <span 
+            onClick={() => onNavigatePage?.('audit')}
+            style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+          >
+            View All &rarr;
+          </span>
+        </div>
       </div>
 
       {/* Table */}

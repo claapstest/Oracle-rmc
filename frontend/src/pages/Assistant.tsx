@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { api, prepareInvestigationTabBridge } from '../services/api';
 import { PaginatedTable, AssignedRolesList } from '../components/InvestigationComponents';
+import { TableExportControl } from '../components/TableExportControl';
 import { 
   saveSecuritySession, 
   loadSecuritySession, 
@@ -212,7 +213,7 @@ export default function Assistant({
     }
   }, [currentUser]);
 
-  // Show Command Center only before the user starts chatting
+  // Show hero search only before the user starts chatting
   const showCommandCenter = messages.length <= 1 && !sending;
 
   // Auto-focus helper
@@ -887,6 +888,18 @@ export default function Assistant({
         if (Array.isArray(data)) {
           return (
             <div className="table-container" style={{ marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.35rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <TableExportControl
+                  filename="assistant_users"
+                  data={data}
+                  totalCount={data.length}
+                  columns={[
+                    { key: 'displayName', label: 'Display Name' },
+                    { key: 'userName', label: 'Username' },
+                    { key: 'status', label: 'Status', getValue: (u: any) => u.active ? 'Active' : 'Inactive' }
+                  ]}
+                />
+              </div>
               <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
                 <thead>
                   <tr>
@@ -983,6 +996,18 @@ export default function Assistant({
         if (Array.isArray(data)) {
           return (
             <div className="table-container" style={{ marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.35rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <TableExportControl
+                  filename="assistant_roles"
+                  data={data}
+                  totalCount={data.length}
+                  columns={[
+                    { key: 'category', label: 'Category' },
+                    { key: 'roleCode', label: 'Role Code' },
+                    { key: 'displayName', label: 'Display Name' }
+                  ]}
+                />
+              </div>
               <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
                 <thead>
                   <tr>
@@ -1027,6 +1052,20 @@ export default function Assistant({
         if (Array.isArray(data)) {
           return (
             <div className="table-container" style={{ marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.35rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <TableExportControl
+                  filename="assistant_audit"
+                  data={data}
+                  totalCount={data.length}
+                  columns={[
+                    { key: 'timestamp', label: 'Timestamp', getValue: (a: any) => a.timestamp ? new Date(a.timestamp).toLocaleString() : '' },
+                    { key: 'username', label: 'User' },
+                    { key: 'businessObject', label: 'Object' },
+                    { key: 'action', label: 'Action', getValue: (a: any) => a.action || a.event || 'UPDATE' },
+                    { key: 'details', label: 'Details' }
+                  ]}
+                />
+              </div>
               <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
                 <thead>
                   <tr>
@@ -1095,6 +1134,18 @@ export default function Assistant({
         if (Array.isArray(data.privileges)) {
           return (
             <div className="table-container" style={{ marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.35rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <TableExportControl
+                  filename="assistant_privileges"
+                  data={data.privileges}
+                  totalCount={data.privileges.length}
+                  columns={[
+                    { key: 'name', label: 'Privilege Name' },
+                    { key: 'code', label: 'Code' },
+                    { key: 'inheritedFrom', label: 'Inherited From' }
+                  ]}
+                />
+              </div>
               <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
                 <thead>
                   <tr>
@@ -1133,7 +1184,7 @@ export default function Assistant({
       
       {showCommandCenter ? (
         // ====================================================
-        // ASK ORACLERISK HERO AI INVESTIGATION WORKSPACE
+        // ASK VEYRA HERO AI INVESTIGATION WORKSPACE
         // ====================================================
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: 'var(--bg-primary)' }} className="animate-fade-in">
           
@@ -1214,7 +1265,7 @@ export default function Assistant({
                 marginBottom: '0.65rem',
                 lineHeight: 1.15
               }}>
-                Ask OracleRisk
+                Ask VEYRA
               </h1>
 
               {/* Subtitle */}
@@ -1226,7 +1277,7 @@ export default function Assistant({
                 lineHeight: 1.5,
                 fontWeight: 400
               }}>
-                Turn complex access and risk questions into clear, actionable insights.
+                Ask questions about your connected enterprise security, access, audit, and risk data.
               </p>
 
               {/* Prominent White Rounded Search Bar */}
@@ -1262,7 +1313,7 @@ export default function Assistant({
                     fontFamily: 'var(--font-main)',
                     minWidth: 0
                   }}
-                  placeholder='Ask OracleRisk anything about your environment (e.g., "Who has the Supplier Manager role?")...'
+                  placeholder='Ask VEYRA anything about your environment (e.g., "Who has the Supplier Manager role?")...'
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend(inputValue)}
@@ -1732,7 +1783,7 @@ export default function Assistant({
                 className="btn btn-secondary" 
                 style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', cursor: 'pointer' }}
               >
-                ← New Query / Command Center
+                ← New Query / Oracle API Console
               </button>
             </div>
           </div>

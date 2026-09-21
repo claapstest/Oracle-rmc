@@ -47,6 +47,14 @@
       "isAdmin": false,
       "isActive": true,
       "resetCode": null
+    },
+    "hemanth.koppada@claaps.com": {
+      "email": "hemanth.koppada@claaps.com",
+      "passwordHash": "$2b$10$98vKnuWOKOgGa8ykTvy4AO3B8QmtVgDaIw2oi7q5WDJ5UyVAn4IB6",
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "resetCode": null
     }
   }
 }

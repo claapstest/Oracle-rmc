@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { OracleFusionClient } from '../oracle/client.js';
 import { RiskService } from './riskService.js';
 import { ControlCatalogService } from './controlCatalogService.js';
+import { ControlSummaryService } from './controlSummaryService.js';
 import { classifyRoleRecord } from './roleClassification.js';
 import { auditProductCatalogService, AuditProduct } from './auditProductCatalogService.js';
 export { classifyRoleRecord };
@@ -80,6 +81,7 @@ class OracleService {
   private client: OracleFusionClient;
   public riskService: RiskService;
   public controlCatalogService: ControlCatalogService;
+  public controlSummaryService: ControlSummaryService;
   private cachedTotalUsers = 7915;
   private cachedActiveUsers = 7731;
   private cachedInactiveUsers = 184;
@@ -100,6 +102,7 @@ class OracleService {
     this.client = new OracleFusionClient();
     this.riskService = new RiskService(this.client);
     this.controlCatalogService = new ControlCatalogService(this.client);
+    this.controlSummaryService = new ControlSummaryService(this.client, this.controlCatalogService);
     this.loadAuthoritativeRolesFromCache();
     this.loadPersistentPrivilegesFromDisk();
     this.triggerBackgroundCounting();
@@ -215,6 +218,7 @@ class OracleService {
     this.client.recreateClient();
     this.riskService = new RiskService(this.client);
     this.controlCatalogService.recreateClient(this.client);
+    this.controlSummaryService.recreateClient(this.client);
     this.loadAuthoritativeRolesFromCache();
     this.triggerBackgroundCounting(true);
   }
@@ -609,11 +613,36 @@ class OracleService {
     const scimResponse = await this.client.getUsers({
       filter: scimFilter,
       startIndex,
-      count
+      count: Math.min(count, 100)
     });
 
-    const resources = scimResponse?.Resources || [];
+    let resources = scimResponse?.Resources || [];
     const totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : (this.cachedTotalUsers || resources.length);
+
+    // If client requested more records than a single Oracle SCIM response (e.g. for enterprise export)
+    // and totalResults indicates more records exist, fetch subsequent pages up to Math.min(count, totalResults, 5000)
+    if (count > resources.length && totalResults > resources.length && count > 100) {
+      let currentStartIndex = startIndex + resources.length;
+      const maxToFetch = Math.min(count, totalResults, 5000);
+      while (resources.length < maxToFetch && currentStartIndex <= totalResults) {
+        const batchCount = Math.min(100, maxToFetch - resources.length);
+        try {
+          const nextBatch = await this.client.getUsers({
+            filter: scimFilter,
+            startIndex: currentStartIndex,
+            count: batchCount
+          });
+          const nextResources = nextBatch?.Resources || [];
+          if (nextResources.length === 0) break;
+          resources = resources.concat(nextResources);
+          currentStartIndex += nextResources.length;
+        } catch (batchErr) {
+          console.warn('[OracleService] User batch pagination reached limit or failed:', batchErr);
+          break;
+        }
+      }
+    }
+
     const mapped = resources.map((res: any) => ({
       id: res.id,
       userName: res.userName || '',
@@ -1459,6 +1488,83 @@ class OracleService {
     };
   }
 
+  async getRoleHierarchyReport() {
+    if (this.isDemoMode()) {
+      const rows: Array<{
+        roleName: string;
+        roleCode: string;
+        category: string;
+        parentRole: string;
+        childRole: string;
+        relationshipType: string;
+      }> = [];
+
+      const roleMap = new Map<string, any>();
+      mockRoles.forEach(r => {
+        roleMap.set(r.roleCode, r);
+        roleMap.set(r.displayName.toLowerCase(), r);
+      });
+
+      mockRoles.forEach(role => {
+        const hasParents = role.parentRoles && role.parentRoles.length > 0;
+        const hasChildren = role.childRoles && role.childRoles.length > 0;
+
+        if (hasChildren) {
+          role.childRoles.forEach(childCode => {
+            const child = roleMap.get(childCode);
+            const childName = child ? child.displayName : childCode;
+            rows.push({
+              roleName: role.displayName,
+              roleCode: role.roleCode,
+              category: role.category,
+              parentRole: hasParents ? role.parentRoles.map(p => roleMap.get(p)?.displayName || p).join(', ') : '—',
+              childRole: childName,
+              relationshipType: `${role.category} grants ${child?.category || 'Duty'}`
+            });
+          });
+        } else if (hasParents) {
+          role.parentRoles.forEach(parentCode => {
+            const parent = roleMap.get(parentCode);
+            const parentName = parent ? parent.displayName : parentCode;
+            rows.push({
+              roleName: role.displayName,
+              roleCode: role.roleCode,
+              category: role.category,
+              parentRole: parentName,
+              childRole: '—',
+              relationshipType: `${role.category} inherited by ${parent?.category || 'Job'}`
+            });
+          });
+        } else {
+          rows.push({
+            roleName: role.displayName,
+            roleCode: role.roleCode,
+            category: role.category,
+            parentRole: '—',
+            childRole: '—',
+            relationshipType: 'Standalone Role'
+          });
+        }
+      });
+
+      return {
+        success: true,
+        dataSource: 'Sample Data',
+        items: rows,
+        totalCount: rows.length
+      };
+    }
+
+    return {
+      success: false,
+      integrationRequired: true,
+      dataSource: 'Oracle Fusion',
+      message: 'Live Oracle Fusion hierarchy data is not currently available. The Oracle Fusion SCIM API (/hcmRestApi/scim/Roles) does not natively return complete role hierarchies. Accessing hierarchies requires either configuration of a custom Oracle BI Publisher report service or the separate Security Console REST APIs.',
+      items: [],
+      totalCount: 0
+    };
+  }
+
   async getPrivilegesForRole(roleName: string) {
     if (this.isDemoMode()) {
       const term = roleName.toLowerCase();
@@ -1881,19 +1987,137 @@ class OracleService {
     }
   }
 
-  async getRiskIncidents(): Promise<any> {
-    if (this.isDemoMode()) {
+  async getRiskIncidents(options?: { controlId?: string; forceRefresh?: boolean; limit?: number; offset?: number }): Promise<any> {
+    const isDemo = this.isDemoMode();
+    const catalogRes = await this.controlCatalogService.getAllControls(options?.forceRefresh);
+    const availableControls = (catalogRes.items || []).map(c => ({
+      id: c.id,
+      name: c.name,
+      status: c.status,
+      state: c.state,
+      type: c.type,
+      incidentCount: c.incidentCount
+    }));
+
+    // Demo Mode
+    if (isDemo) {
+      const selectedId = options?.controlId || '114281';
+      const detail = await this.controlCatalogService.getControlDetail(selectedId, { forceRefresh: options?.forceRefresh });
+      const items = detail.incidents || [];
       return {
         success: true,
         dataSource: 'Sample Data',
-        items: mockRiskIncidents
+        selectedControl: detail.control,
+        items,
+        totalCount: detail.incidentCount || items.length,
+        cacheStatus: 'READY',
+        fetchedCount: items.length,
+        lastSyncedAt: detail.control?.lastUpdateDate || new Date().toISOString(),
+        availableControls,
+        kpis: {
+          total: detail.incidentCount || items.length,
+          openOrActive: items.filter(i => (i.status || '').toUpperCase() === 'ASSIGNED' || (i.state || '').toUpperCase() === 'IN_INVESTIGATION').length,
+          accepted: items.filter(i => (i.state || '').toUpperCase() === 'ACCEPTED').length,
+          closedOrResolved: items.filter(i => (i.status || '').toUpperCase() === 'CLOSED' || (i.status || '').toUpperCase() === 'RESOLVED' || i.closedDate !== null).length,
+          status: 'READY'
+        }
       };
     }
+
+    // Live Oracle Mode
+    const incidentCacheService = this.controlCatalogService.getIncidentCacheService();
+    let targetControlId = options?.controlId;
+
+    if (!targetControlId || targetControlId === 'ALL') {
+      // Find controls that currently have cached incident files
+      const cachedControls = availableControls.filter(c => {
+        const cache = incidentCacheService.readCache(c.id);
+        return cache && cache.complete && cache.incidents.length > 0;
+      });
+
+      if (cachedControls.length > 0) {
+        const allItems: any[] = [];
+        let totalCount = 0;
+        cachedControls.forEach(c => {
+          const cache = incidentCacheService.readCache(c.id);
+          if (cache) {
+            allItems.push(...cache.incidents);
+            totalCount += cache.totalResults;
+          }
+        });
+
+        const openOrActive = allItems.filter(i => (i.status || '').toUpperCase() === 'ASSIGNED' || (i.state || '').toUpperCase() === 'IN_INVESTIGATION').length;
+        const accepted = allItems.filter(i => (i.state || '').toUpperCase() === 'ACCEPTED').length;
+        const closedOrResolved = allItems.filter(i => (i.status || '').toUpperCase() === 'CLOSED' || (i.status || '').toUpperCase() === 'RESOLVED' || i.closedDate !== null).length;
+
+        return {
+          success: true,
+          dataSource: 'Live Oracle Fusion API',
+          selectedControlId: 'ALL',
+          selectedControl: null,
+          items: allItems,
+          totalCount,
+          cacheStatus: 'READY',
+          fetchedCount: allItems.length,
+          lastSyncedAt: new Date().toISOString(),
+          availableControls,
+          kpis: {
+            total: totalCount,
+            openOrActive,
+            accepted,
+            closedOrResolved,
+            status: 'READY'
+          }
+        };
+      } else {
+        // Default to primary control with incidents: 114281
+        targetControlId = '114281';
+      }
+    }
+
+    // Query specific target control
+    const detail = await this.controlCatalogService.getControlDetail(targetControlId, { forceRefresh: options?.forceRefresh });
+    const items = detail.incidents || [];
+    const totalCount = detail.incidentCount !== undefined ? detail.incidentCount : (detail.totalCount || items.length);
+
+    let kpiStatus: 'READY' | 'CALCULATING' | 'PARTIAL' | 'NOT_AVAILABLE' = 'READY';
+    if (detail.cacheStatus === 'SYNCING') {
+      kpiStatus = 'CALCULATING';
+    } else if (detail.cacheStatus === 'PARTIAL') {
+      kpiStatus = 'PARTIAL';
+    } else if (detail.cacheStatus === 'ERROR') {
+      kpiStatus = 'NOT_AVAILABLE';
+    }
+
+    const openOrActive = detail.cacheStatus === 'READY'
+      ? items.filter(i => (i.status || '').toUpperCase() === 'ASSIGNED' || (i.state || '').toUpperCase() === 'IN_INVESTIGATION').length
+      : totalCount;
+    const accepted = detail.cacheStatus === 'READY'
+      ? items.filter(i => (i.state || '').toUpperCase() === 'ACCEPTED').length
+      : 0;
+    const closedOrResolved = detail.cacheStatus === 'READY'
+      ? items.filter(i => (i.status || '').toUpperCase() === 'CLOSED' || (i.status || '').toUpperCase() === 'RESOLVED' || i.closedDate !== null).length
+      : 0;
+
     return {
-      success: false,
-      integrationRequired: true,
-      dataSource: 'Oracle Fusion',
-      message: 'Oracle REST API integration required. Live risk incidents are managed within Oracle Fusion Advanced Access Controls (AAC) and Risk Management, which are licensed separately and communicate via separate GRC REST service endpoints.'
+      success: true,
+      dataSource: 'Live Oracle Fusion API',
+      selectedControlId: targetControlId,
+      selectedControl: detail.control,
+      items,
+      totalCount,
+      cacheStatus: detail.cacheStatus,
+      fetchedCount: detail.fetchedCount || items.length,
+      lastSyncedAt: detail.control?.lastUpdateDate || new Date().toISOString(),
+      message: detail.message,
+      availableControls,
+      kpis: {
+        total: totalCount,
+        openOrActive,
+        accepted,
+        closedOrResolved,
+        status: kpiStatus
+      }
     };
   }
 
@@ -1941,8 +2165,8 @@ class OracleService {
     return this.controlCatalogService.getAllControls(options?.forceRefresh);
   }
 
-  async getAdvancedControlDetail(controlId: string) {
-    return this.controlCatalogService.getControlDetail(controlId);
+  async getAdvancedControlDetail(controlId: string, options?: { forceRefresh?: boolean }) {
+    return this.controlCatalogService.getControlDetail(controlId, options);
   }
 
   resolveAdvancedControl(query: string) {
@@ -1951,6 +2175,14 @@ class OracleService {
 
   getRiskCapabilities() {
     return this.riskService.getRiskCapabilities();
+  }
+
+  async getControlSummaryReport(options?: { forceRefresh?: boolean; scan?: boolean }) {
+    return this.controlSummaryService.getControlSummaryReport(options);
+  }
+
+  async scanSingleControlIncidentCount(controlId: string) {
+    return this.controlSummaryService.scanSingleControlCount(controlId);
   }
 }
 

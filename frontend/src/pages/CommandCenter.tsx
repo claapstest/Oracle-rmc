@@ -32,6 +32,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { api } from '../services/api';
+import { TableExportControl } from '../components/TableExportControl';
 
 interface KeyValueRow {
   id: string;
@@ -484,7 +485,7 @@ export default function CommandCenter({ onNavigatePage }: { onNavigatePage?: (pa
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                Command Center
+                Oracle API Console
               </h1>
               <span style={{
                 fontSize: '0.72rem',
@@ -499,7 +500,7 @@ export default function CommandCenter({ onNavigatePage }: { onNavigatePage?: (pa
               </span>
             </div>
             <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748B' }}>
-              Direct live execution, diagnostics, and payload inspection for Oracle Fusion REST services
+              Live Oracle Fusion API operations, diagnostics, and response inspection.
             </p>
           </div>
         </div>
@@ -1825,6 +1826,19 @@ export default function CommandCenter({ onNavigatePage }: { onNavigatePage?: (pa
                 {/* TAB VIEW 2: TABLE DATA */}
                 {activeResponseTab === 'TABLE' && (
                   <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>
+                        Parsed Response Records ({tableData.rows.length})
+                      </span>
+                      {tableData.rows.length > 0 && (
+                        <TableExportControl
+                          filename="command_center_response_data"
+                          data={tableData.rows}
+                          totalCount={tableData.rows.length}
+                          columns={tableData.columns.map(c => ({ key: c, label: c }))}
+                        />
+                      )}
+                    </div>
                     <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
                         <thead>
@@ -1926,6 +1940,22 @@ export default function CommandCenter({ onNavigatePage }: { onNavigatePage?: (pa
                 {/* TAB VIEW 4: HEADERS VIEW */}
                 {activeResponseTab === 'HEADERS' && (
                   <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>
+                        Response Headers ({Object.keys(responseResult.headers || {}).length})
+                      </span>
+                      {Object.keys(responseResult.headers || {}).length > 0 && (
+                        <TableExportControl
+                          filename="command_center_response_headers"
+                          data={Object.entries(responseResult.headers || {}).map(([k, v]) => ({ headerName: k, headerValue: String(v) }))}
+                          totalCount={Object.keys(responseResult.headers || {}).length}
+                          columns={[
+                            { key: 'headerName', label: 'Header Name' },
+                            { key: 'headerValue', label: 'Header Value' }
+                          ]}
+                        />
+                      )}
+                    </div>
                     <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
                         <thead>

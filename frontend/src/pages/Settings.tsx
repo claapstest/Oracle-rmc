@@ -20,6 +20,7 @@ import {
   Database
 } from 'lucide-react';
 import { api } from '../services/api.js';
+import { TableExportControl } from '../components/TableExportControl';
 
 interface SettingsProps {
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
@@ -1102,6 +1103,19 @@ export default function Settings({ environmentMode, setEnvironmentMode, currentU
               <RefreshCw size={14} className={loadingUsers ? 'animate-spin' : ''} />
               <span>Refresh Users</span>
             </button>
+
+            <TableExportControl
+              filename="admin_users"
+              data={filteredUsers}
+              totalCount={filteredUsers.length}
+              columns={[
+                { key: 'email', label: 'User Email' },
+                { key: 'role', label: 'Role' },
+                { key: 'active', label: 'Account Status', getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
+                { key: 'setupCompleted', label: 'Setup State', getValue: (u: any) => u.setupCompleted ? 'Completed' : 'Pending' },
+                { key: 'resetCode', label: 'Active Reset Code', getValue: (u: any) => u.resetCode || '' }
+              ]}
+            />
           </div>
 
           {/* Users Table */}

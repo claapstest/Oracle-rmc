@@ -255,18 +255,26 @@ export async function getAdvancedControlsTool(params: { controlId?: string; cont
     const query = params.controlId || params.controlName || params.keyword;
     if (query) {
       // 1. Authoritative resolution: resolve name/number to real Control ID
+      let controlIdToFetch: string | null = null;
       const resolved = oracleService.resolveAdvancedControl(query);
-      if (!resolved) {
-        return createResult('getAdvancedControls', params, true, {
-          notFound: true,
-          query,
-          message: `Control "${query}" could not be located in the authoritative Oracle Fusion catalog.`
-        });
+      if (resolved) {
+        controlIdToFetch = resolved.id;
+      } else if (/^\d{3,7}$/.test(query.trim())) {
+        controlIdToFetch = query.trim();
       }
 
-      // 2. Fetch live details with embedded incidents
-      const detail = await oracleService.getAdvancedControlDetail(resolved.id);
-      return createResult('getAdvancedControls', params, detail.success, detail, detail.message);
+      if (controlIdToFetch) {
+        const detail = await oracleService.getAdvancedControlDetail(controlIdToFetch);
+        if (detail && (detail.success || detail.control)) {
+          return createResult('getAdvancedControls', params, true, detail, detail.message);
+        }
+      }
+
+      return createResult('getAdvancedControls', params, true, {
+        notFound: true,
+        query,
+        message: `Control "${query}" could not be located in the authoritative Oracle Fusion catalog.`
+      });
     }
 
     const data = await oracleService.getAdvancedControls();

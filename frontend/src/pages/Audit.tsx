@@ -12,6 +12,7 @@ import {
   Layers 
 } from 'lucide-react';
 import { api } from '../services/api.js';
+import { TableExportControl } from '../components/TableExportControl';
 
 interface AuditProductBO {
   id: string;
@@ -580,8 +581,25 @@ export default function Audit() {
             </div>
           </div>
 
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            Source: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dataSource}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Source: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dataSource}</span>
+            </div>
+            {logs.length > 0 && (
+              <TableExportControl
+                filename="audit_history"
+                data={logs}
+                totalCount={totalRecords || logs.length}
+                columns={[
+                  { key: 'timestamp', label: 'Timestamp' },
+                  { key: 'username', label: 'User' },
+                  { key: 'event', label: 'Event' },
+                  { key: 'businessObject', label: 'Business Object' },
+                  { key: 'identifier', label: 'Identifier' },
+                  { key: 'details', label: 'Details' }
+                ]}
+              />
+            )}
           </div>
         </div>
       )}
@@ -811,9 +829,21 @@ export default function Audit() {
                             {/* Changed Attributes Table */}
                             {hasAttributes && (
                               <div>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  <Layers size={14} style={{ color: 'var(--accent-blue)' }} />
-                                  <span>Changed Attributes ({log.attributeDetails?.length})</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Layers size={14} style={{ color: 'var(--accent-blue)' }} />
+                                    <span>Changed Attributes ({log.attributeDetails?.length})</span>
+                                  </div>
+                                  <TableExportControl
+                                    filename={`audit_${log.id}_changed_attributes`}
+                                    data={log.attributeDetails}
+                                    columns={[
+                                      { key: 'attribute', label: 'Attribute' },
+                                      { key: 'attributeInternalName', label: 'Internal Name' },
+                                      { key: 'oldValue', label: 'Old Value' },
+                                      { key: 'newValue', label: 'New Value' }
+                                    ]}
+                                  />
                                 </div>
 
                                 <div style={{ overflowX: 'auto', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
