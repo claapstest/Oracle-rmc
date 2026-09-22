@@ -262,9 +262,6 @@ export default function FullInvestigationView({
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span>Ask VEYRA Investigation</span>
-                <span className={`badge ${isLiveOracle ? 'badge-blue' : 'badge-gold'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.45rem' }}>
-                  {isLiveOracle ? 'Live Oracle Fusion' : 'Demo Mode'}
-                </span>
               </div>
             </div>
           </div>

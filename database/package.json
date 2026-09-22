@@ -9,14 +9,18 @@
     "migrate:down": "node-pg-migrate down",
     "migrate:create": "node-pg-migrate create",
     "seed": "tsx src/seeds/rbac_seed.ts",
+    "provision:admin": "tsx src/scripts/provision_admin.ts",
     "test": "tsx src/tests/verify_story_008_rbac.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
     "node-pg-migrate": "^7.4.0",
+    "oracle-fusion-security-assistant": "file:..",
     "pg": "^8.11.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.30",
     "@types/pg": "^8.11.2",
     "tsx": "^4.7.1",

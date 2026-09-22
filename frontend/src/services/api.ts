@@ -328,8 +328,9 @@ export const api = {
     return apiRequest('/risk/sod');
   },
 
-  async getAccessCertifications() {
-    return apiRequest('/risk/certifications');
+  async getAccessCertifications(forceRefresh = false) {
+    const query = forceRefresh ? `?t=${Date.now()}` : '';
+    return apiRequest(`/access-certifications${query}`);
   },
 
   // Configuration Settings

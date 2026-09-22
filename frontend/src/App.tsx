@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   Settings as SettingsIcon,
   LogOut,
-  Database,
   Lock,
   PanelLeft,
   Bell,
@@ -677,12 +676,6 @@ export default function App() {
             <div className="topbar-status-pill">
               <Lock size={12} style={{ color: '#34D399' }} />
               <span>Encrypted Session Active</span>
-            </div>
-
-            {/* Environment Indicator Pill */}
-            <div className={`topbar-env-pill ${environmentMode === 'DEMO' ? 'demo' : 'live'}`}>
-              <Database size={12} />
-              <span>{environmentMode === 'DEMO' ? 'SAMPLE DATA' : 'LIVE ORACLE API'}</span>
             </div>
 
             {/* Notification Bell with Badge matching Reference */}

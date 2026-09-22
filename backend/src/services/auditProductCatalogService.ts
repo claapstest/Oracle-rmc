@@ -191,9 +191,8 @@ export class AuditProductCatalogService {
       return null;
     }
 
-    if (!query) {
-      // Default to first business object if available (e.g. Person for HCM)
-      return product.businessObjects[0] || null;
+    if (!query || !query.trim()) {
+      return null;
     }
 
     const clean = query.trim().toLowerCase();
@@ -225,7 +224,7 @@ export class AuditProductCatalogService {
     );
     if (subMatch) return subMatch;
 
-    return product.businessObjects[0] || null;
+    return null;
   }
 
   /**
@@ -261,7 +260,37 @@ export class AuditProductCatalogService {
       };
     }
 
+    // For products that do not require business object type (e.g. OPSS)
+    if (!product.requiresBusinessObjectType) {
+      return {
+        matched: true,
+        product,
+        businessObject: null,
+        status: 'CONFIRMED'
+      };
+    }
+
+    // For products requiring business object type
+    if (!boQuery || !boQuery.trim()) {
+      return {
+        matched: true,
+        product,
+        businessObject: null,
+        status: 'UNRESOLVED',
+        message: 'Oracle Fusion requires a Business Object Type for this audit query.'
+      };
+    }
+
     const businessObject = this.resolveBusinessObject(product, boQuery);
+    if (!businessObject) {
+      return {
+        matched: true,
+        product,
+        businessObject: null,
+        status: 'UNRESOLVED',
+        message: `Invalid Business Object Type "${boQuery}" for product "${product.displayName}".`
+      };
+    }
 
     return {
       matched: true,

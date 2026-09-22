@@ -3,6 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
+import { query as dbQuery } from '../db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,7 +110,6 @@ export class AuthService {
 
   constructor() {
     this.loadUsers();
-    this.ensureInitialAdmin();
   }
 
   private loadUsers() {
@@ -244,13 +244,11 @@ export class AuthService {
   }
 
   /**
-   * AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8:
-   * Main Login Handler for Claaps VEYRA
+   * Story VY-STRY-004 & VY-STRY-008:
+   * Main Login Handler for Claaps VEYRA using PostgreSQL as Single Source of Truth
    */
   public async login(rawEmail: string, rawPassword: string): Promise<LoginResult> {
-    this.loadUsers();
-    
-    // AC2: Normalization
+    // 1. Normalization: trim and lowercase email before database lookup
     const normalized = this.normalizeEmail(rawEmail);
 
     if (!normalized || !rawPassword) {
@@ -261,77 +259,146 @@ export class AuthService {
     }
 
     if (!this.validateEmailFormat(normalized)) {
-      // AC5: Generic failure response
+      // Generic failure response (never reveal format error vs credentials)
       return {
         success: false,
         message: GENERIC_AUTH_FAILURE_MSG
       };
     }
 
-    // AC2: Retrieve user from database
-    const user = this.users[normalized];
+    try {
+      // 2. Query veyra_user from PostgreSQL by normalized email
+      const userRes = await dbQuery(
+        `SELECT id, email, password_hash, display_name, status, is_local_user, last_login_at
+         FROM veyra_user
+         WHERE email = $1`,
+        [normalized]
+      );
 
-    // AC5: If user does not exist, return generic error (do not reveal non-existence)
-    if (!user) {
+      // 3. If user does not exist in database, return generic failure (no account enumeration)
+      if (userRes.rows.length === 0) {
+        return {
+          success: false,
+          message: GENERIC_AUTH_FAILURE_MSG
+        };
+      }
+
+      const dbUser = userRes.rows[0];
+
+      // 4. Validate user status: only ACTIVE accounts may authenticate
+      if (dbUser.status !== 'ACTIVE') {
+        return {
+          success: false,
+          message: 'Your account is not active. Please contact a system administrator.'
+        };
+      }
+
+      // 5. Password verification against veyra_user.password_hash using bcrypt
+      if (!dbUser.password_hash) {
+        // User has no password set (e.g. initial unprovisioned bootstrap)
+        return {
+          success: false,
+          message: GENERIC_AUTH_FAILURE_MSG
+        };
+      }
+
+      const isMatch = bcrypt.compareSync(rawPassword, dbUser.password_hash);
+      if (!isMatch) {
+        return {
+          success: false,
+          message: GENERIC_AUTH_FAILURE_MSG
+        };
+      }
+
+      // 6. Retrieve active roles assigned via veyra_user_role -> veyra_role
+      const rolesRes = await dbQuery(
+        `SELECT r.role_code, r.role_name
+         FROM veyra_role r
+         JOIN veyra_user_role ur ON ur.role_id = r.id
+         WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
+        [dbUser.id]
+      );
+
+      // 7. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
+      const privilegesRes = await dbQuery(
+        `SELECT DISTINCT p.privilege_code
+         FROM veyra_privilege p
+         JOIN veyra_role_privilege rp ON rp.privilege_id = p.id
+         JOIN veyra_user_role ur ON ur.role_id = rp.role_id
+         WHERE ur.user_id = $1 AND p.status = 'ACTIVE'`,
+        [dbUser.id]
+      );
+
+      const assignedRoleCodes: string[] = rolesRes.rows.map((r: any) => r.role_code);
+      const isSiteAdmin = assignedRoleCodes.includes('SITE_ADMIN') || normalized === 'admin@admin.com';
+      const primaryRole = isSiteAdmin ? 'SITE_ADMIN' : (assignedRoleCodes[0] || 'VIEWER');
+
+      let permissions: string[] = privilegesRes.rows.map((p: any) => p.privilege_code);
+
+      // For SITE_ADMIN, guarantee ALL and full admin capabilities
+      if (isSiteAdmin) {
+        if (!permissions.includes('ALL')) {
+          permissions = ['ALL', ...permissions];
+        }
+        for (const perm of (DEFAULT_ROLE_PERMISSIONS.SITE_ADMIN || [])) {
+          if (!permissions.includes(perm)) {
+            permissions.push(perm);
+          }
+        }
+      } else if (permissions.length === 0 && DEFAULT_ROLE_PERMISSIONS[primaryRole]) {
+        permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole];
+      }
+
+      // 8. Update last_login_at in PostgreSQL
+      try {
+        await dbQuery(
+          `UPDATE veyra_user SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1`,
+          [dbUser.id]
+        );
+      } catch (auditErr) {
+        console.error('[Auth Service] Failed to update last_login_at in veyra_user:', auditErr);
+      }
+
+      // 9. Create session in memory (prepared for Single Active Session / Timeout stories)
+      const authUser: AuthUser = {
+        userId: dbUser.id,
+        email: dbUser.email,
+        displayName: dbUser.display_name || this.generateDisplayName(dbUser.email),
+        passwordHash: null, // Strictly excluded from session memory
+        status: dbUser.status as UserStatus,
+        role: primaryRole,
+        permissions,
+        setupCompleted: true,
+        isAdmin: isSiteAdmin,
+        isActive: true,
+        lastLoginAt: new Date().toISOString(),
+        resetCode: null
+      };
+
+      const token = this.createSession(authUser);
+
+      // 10. Return safe authenticated context (never return password or hash)
+      return {
+        success: true,
+        token,
+        userId: dbUser.id,
+        displayName: authUser.displayName,
+        email: dbUser.email,
+        normalizedEmail: normalized,
+        role: primaryRole,
+        permissions,
+        status: dbUser.status as UserStatus,
+        isAdmin: isSiteAdmin,
+        setupCompleted: true,
+        message: 'Authentication successful.'
+      };
+    } catch (dbErr) {
+      console.error('[Auth Service] Database query failure during login:', dbErr);
       return {
         success: false,
-        message: GENERIC_AUTH_FAILURE_MSG
+        message: 'Authentication service temporarily unavailable. Please try again later.'
       };
     }
-
-    // AC4: User status validation (ACTIVE only)
-    if (user.status !== 'ACTIVE' || !user.isActive) {
-      return {
-        success: false,
-        message: 'Your account is not active. Please contact a system administrator.'
-      };
-    }
-
-    // AC3: Verify password against stored password hash
-    if (!user.passwordHash) {
-      // If user has no password yet (e.g. initial onboarding)
-      return {
-        success: false,
-        message: GENERIC_AUTH_FAILURE_MSG
-      };
-    }
-
-    const isMatch = bcrypt.compareSync(rawPassword, user.passwordHash);
-    if (!isMatch) {
-      // AC5: Generic authentication failure
-      return {
-        success: false,
-        message: GENERIC_AUTH_FAILURE_MSG
-      };
-    }
-
-    // AC6: Site Admin local authentication handling
-    if (normalized === 'admin@admin.com') {
-      user.role = 'SITE_ADMIN';
-      user.isAdmin = true;
-      user.permissions = DEFAULT_ROLE_PERMISSIONS.SITE_ADMIN;
-    }
-
-    // AC7: Create session and record login information
-    const token = this.createSession(user);
-    user.lastLoginAt = new Date().toISOString();
-    this.saveUsers();
-
-    // AC8: Return authorization info without sensitive data
-    return {
-      success: true,
-      token,
-      userId: user.userId,
-      displayName: user.displayName || this.generateDisplayName(user.email),
-      email: user.email || normalized,
-      normalizedEmail: normalized,
-      role: user.role,
-      permissions: user.permissions || DEFAULT_ROLE_PERMISSIONS[user.role] || DEFAULT_ROLE_PERMISSIONS.VIEWER,
-      status: user.status,
-      isAdmin: user.isAdmin || user.role === 'SITE_ADMIN',
-      setupCompleted: user.setupCompleted,
-      message: 'Authentication successful.'
-    };
   }
 
   // AC7: Session management

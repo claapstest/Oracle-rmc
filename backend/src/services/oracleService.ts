@@ -7,6 +7,7 @@ import { ControlCatalogService } from './controlCatalogService.js';
 import { ControlSummaryService } from './controlSummaryService.js';
 import { classifyRoleRecord } from './roleClassification.js';
 import { auditProductCatalogService, AuditProduct } from './auditProductCatalogService.js';
+import { bipClient } from '../oracle/bipClient.js';
 export { classifyRoleRecord };
 
 const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
@@ -1245,21 +1246,28 @@ class OracleService {
       throw new Error(`Product "${productQuery}" is not recognized in the Oracle Fusion audit catalog.`);
     }
 
+    if (resolution.status === 'UNRESOLVED') {
+      throw new Error(resolution.message || 'Oracle Fusion requires a Business Object Type for this audit query.');
+    }
+
     const restProduct = resolution.product?.restProduct || resolution.product?.shortCodes?.[0] || productQuery;
+    const isOpss = restProduct === 'OPSS' || resolution.product?.id === 'opss';
+    const isHcm = restProduct === 'hcmCore' || resolution.product?.id === 'hcm' || resolution.product?.productName === 'Global Human Resources';
+
     let restBusinessObjectType: string | undefined = undefined;
-    if (resolution.product?.requiresBusinessObjectType) {
+    // Explicit confirmed mapping for Global Human Resources (reference implementation)
+    if (isHcm) {
+      restBusinessObjectType = 'oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO';
+    } else if (resolution.product?.requiresBusinessObjectType) {
       if (resolution.businessObject?.restBusinessObjectType) {
         restBusinessObjectType = resolution.businessObject.restBusinessObjectType;
       } else if (resolution.businessObject?.restValue) {
         restBusinessObjectType = resolution.businessObject.restValue;
+      } else if (resolution.businessObject?.displayName) {
+        restBusinessObjectType = resolution.businessObject.displayName;
+      } else if (resolution.businessObject?.id) {
+        restBusinessObjectType = resolution.businessObject.id;
       }
-    }
-
-    // Explicit confirmed mapping for Global Human Resources (hcmCore):
-    // The backend MUST use this exact Oracle Fusion REST businessObjectType:
-    // oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO
-    if (restProduct === 'hcmCore' || resolution.product?.id === 'hcm' || resolution.product?.productName === 'Global Human Resources') {
-      restBusinessObjectType = 'oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO';
     }
 
     const productDisplayName = resolution.product?.displayName || productQuery;
@@ -1325,8 +1333,16 @@ class OracleService {
         includeExtendedObjectIdentifierColumns: 'true'
       };
 
-      if (restBusinessObjectType) {
+      if (isHcm) {
         payload.businessObjectType = restBusinessObjectType;
+      } else if (isOpss) {
+        // Reference OPSS payload does not include businessObjectType or timeZone
+      } else {
+        // Other products require timeZone and businessObjectType
+        payload.timeZone = 'UTC';
+        if (restBusinessObjectType) {
+          payload.businessObjectType = restBusinessObjectType;
+        }
       }
 
       // Safe Debug Logging (no tokens, passwords, cookies, or secrets)
@@ -1339,10 +1355,32 @@ class OracleService {
 
       const queryPageSize = params.pageSize && params.pageSize > 50 ? params.pageSize : 500;
       const response = await this.client.getAuditHistory(payload, { pageNumber, pageSize: queryPageSize });
-      const audits = response?.auditData || response?.auditHistory || response?.items || [];
+
+      if (response?.status === 'FAIL' || response?.error) {
+        const errorDetail = response?.error?.errorDetail?.[0]?.detail || response?.error?.detail || response?.error?.title || 'Oracle Fusion audit query failed';
+        throw new Error(errorDetail);
+      }
+
+      const audits = Array.isArray(response?.auditData) ? response.auditData : (response?.auditHistory || response?.items || []);
 
       console.log(`[AUDIT DEBUG] Oracle response status:\n${response?.status || (audits.length > 0 ? 'SUCCESS' : 'EMPTY')}`);
       console.log(`[AUDIT DEBUG] Oracle auditData count:\n${audits.length}`);
+
+      if (audits.length === 0) {
+        return {
+          success: true,
+          dataSource: this.getModeInfo().dataSource,
+          logs: [],
+          totalRecords: 0,
+          pageNumber,
+          pageSize: queryPageSize,
+          product: resolution.product?.id,
+          productDisplayName,
+          businessObject: resolution.businessObject?.id,
+          businessObjectDisplayName: boDisplayName,
+          dateRange: { fromDate: fromDateStr, toDate: toDateStr }
+        };
+      }
 
       let mappedLogs = audits.map((a: any, idx: number) => {
         // Derive clean identifier from description, attributeDetails, or fields
@@ -2138,19 +2176,7 @@ class OracleService {
   }
 
   async getAccessCertifications(): Promise<any> {
-    if (this.isDemoMode()) {
-      return {
-        success: true,
-        dataSource: 'Sample Data',
-        items: mockAccessCertifications
-      };
-    }
-    return {
-      success: false,
-      integrationRequired: true,
-      dataSource: 'Oracle Fusion',
-      message: 'Oracle REST API integration required. Access certifications require Oracle Access Certification Cloud API integration.'
-    };
+    return bipClient.runAccessCertificationReport();
   }
 
   async getAdvancedAccessRequests(options?: { limit?: number; offset?: number; status?: string; user?: string }) {

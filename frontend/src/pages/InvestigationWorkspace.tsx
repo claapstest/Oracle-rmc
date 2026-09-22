@@ -600,17 +600,6 @@ export default function InvestigationWorkspace({
                 }}>
                   {isRole ? `${roleCategory} Role` : 'User Identity'}
                 </span>
-                <span style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  padding: '0.2rem 0.65rem',
-                  borderRadius: '9999px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#E0E7FF'
-                }}>
-                  {environmentMode === 'DEMO' ? 'Demo Mode' : 'Live Integration'}
-                </span>
               </div>
               <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', marginTop: '0.5rem', color: '#ffffff' }}>
                 {entity.name}

@@ -843,12 +843,38 @@ apiRouter.get('/risk/sod', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/access-certifications - Oracle Fusion BI Publisher Access Certification Report
+apiRouter.get('/access-certifications', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const result = await oracleService.getAccessCertifications();
+    if (!result.success) {
+      const statusCode = result.isConfigurationError ? 400 : 502;
+      return res.status(statusCode).json(result);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('[Access Certifications API Error]:', (err as Error).message);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to retrieve Access Certification data from Oracle Fusion.'
+    });
+  }
+});
+
+// Backward-compatible alias for /risk/certifications
 apiRouter.get('/risk/certifications', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getAccessCertifications();
-    res.json(result);
+    if (!result.success) {
+      const statusCode = result.isConfigurationError ? 400 : 502;
+      return res.status(statusCode).json(result);
+    }
+    return res.json(result);
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to retrieve Access Certification data from Oracle Fusion.'
+    });
   }
 });
 

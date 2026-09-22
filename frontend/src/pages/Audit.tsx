@@ -187,6 +187,7 @@ export default function Audit() {
         setLogs([]);
         setTotalRecords(0);
       } else if (res?.logs) {
+        setError('');
         console.log(`[Audit UI DEBUG]\nAPI records: ${res.logs.length}\nNormalized records: ${res.logs.length}\nDisplayed records: ${Math.min(res.logs.length, pageSize)}`);
         setLogs(res.logs);
         setTotalRecords(res.totalRecords !== undefined ? res.totalRecords : res.logs.length);
@@ -199,6 +200,7 @@ export default function Audit() {
           count: res.totalRecords !== undefined ? res.totalRecords : res.logs.length
         });
       } else {
+        setError('');
         setLogs([]);
         setTotalRecords(0);
       }
@@ -363,7 +365,16 @@ export default function Audit() {
               className="form-select"
               style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
               value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setSelectedProductId(nextId);
+                const nextProd = products.find(p => p.id === nextId);
+                if (!nextProd || !nextProd.requiresBusinessObjectType || nextProd.businessObjects.length === 0) {
+                  setSelectedBOId('');
+                } else {
+                  setSelectedBOId(nextProd.businessObjects[0]?.id || '');
+                }
+              }}
               disabled={isSearching}
             >
               {products.map(prod => (

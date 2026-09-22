@@ -11,6 +11,7 @@
     "db:migrate": "npm --prefix database run migrate",
     "db:migrate:down": "npm --prefix database run migrate:down",
     "db:seed": "npm --prefix database run seed",
+    "db:provision-admin": "npm --prefix database run provision:admin",
     "db:test": "npm --prefix database run test"
   },
   "devDependencies": {
