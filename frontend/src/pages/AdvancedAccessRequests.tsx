@@ -468,7 +468,7 @@ export default function AdvancedAccessRequests({ environmentMode }: AdvancedAcce
                 paginatedRequests.map(req => (
                   <tr key={req.id}>
                     <td>
-                      <span style={{ fontWeight: 600, color: 'var(--accent-amber)', fontSize: '0.85rem' }}>#{req.id}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--accent-amber)', fontSize: '0.85rem' }}>{req.id}</span>
                     </td>
                     <td>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{req.requestedFor}</div>
@@ -551,7 +551,7 @@ export default function AdvancedAccessRequests({ environmentMode }: AdvancedAcce
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <div>
                 <span className="badge badge-gold" style={{ fontSize: '0.75rem', marginRight: '0.5rem' }}>
-                  Request #{selectedRequest.id}
+                  Request {selectedRequest.id}
                 </span>
                 <span className={`badge ${selectedRequest.status === 'APPROVED' ? 'badge-active' : 'badge-inactive'}`} style={{ fontSize: '0.75rem' }}>
                   {selectedRequest.status}

@@ -18,7 +18,8 @@ import {
   FileText,
   Scale,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 
 // Pages
@@ -57,7 +58,7 @@ const RISK_CHILDREN: RiskChildNavItem[] = [
 const RISK_CHILD_IDS = new Set(RISK_CHILDREN.map(c => c.id));
 
 const TOP_LEVEL_PAGE_IDS = new Set([
-  'overview',
+  'dashboard',
   'assistant',
   'users',
   'roles',
@@ -74,14 +75,16 @@ function resolveStoredPage(): string {
     if (urlPage && (TOP_LEVEL_PAGE_IDS.has(urlPage) || RISK_CHILD_IDS.has(urlPage))) {
       return urlPage;
     }
-    const stored = sessionStorage.getItem('activePage') || 'overview';
+    const stored = sessionStorage.getItem('activePage') || 'dashboard';
     // Migrate the retired Risk Management landing-page route to its first child
     if (stored === 'risk') return 'risk-access-requests';
+    // Migrate the retired Overview route to Dashboard
+    if (stored === 'overview') return 'dashboard';
     if (TOP_LEVEL_PAGE_IDS.has(stored) || RISK_CHILD_IDS.has(stored)) return stored;
   } catch (_) {
     /* fall through to default */
   }
-  return 'overview';
+  return 'dashboard';
 }
 
 export default function App() {
@@ -408,7 +411,7 @@ export default function App() {
     clearActiveAuthSession();
     setIsLoggedIn(false);
     setCurrentUser('');
-    setCurrentPage('overview');
+    setCurrentPage('dashboard');
     setIsSidebarOpen(true);
     handleClose();
   };
@@ -471,7 +474,7 @@ export default function App() {
   }
 
   const allNavItems: NavItem[] = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'assistant', label: 'Ask VEYRA', icon: MessageSquareCode },
     { id: 'users', label: 'Users List', icon: Users },
     { id: 'roles', label: 'Roles Catalog', icon: Award },
@@ -498,7 +501,7 @@ export default function App() {
       <aside className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}>
         
         {/* Brand Header */}
-        <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => handlePageSelect('overview')}>
+        <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => handlePageSelect('dashboard')}>
           <img 
             src="/logo.png" 
             alt="CLAAPS VEYRA Logo" 
@@ -633,6 +636,18 @@ export default function App() {
               <PanelLeft size={16} />
             </button>
 
+            {/* Drill-down Back Arrow (investigation views only) */}
+            {(activeInvestigation || activeQueryInvestigation) && (
+              <button
+                onClick={handleBack}
+                className="topbar-menu-btn"
+                title={investigationHistory.length > 1 ? 'Back to previous profile' : 'Back to previous view'}
+                aria-label="Go back to previous view"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+
             {/* Breadcrumb Context Indicator */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, fontFamily: 'var(--font-header)' }}>
               {activeInvestigation ? (
@@ -641,16 +656,18 @@ export default function App() {
                   <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
                   <span>{activeInvestigation.name}</span>
                 </>
+              ) : activeQueryInvestigation ? (
+                <span>Investigation Details</span>
               ) : currentPage === 'assistant' ? (
                 <span>Ask VEYRA</span>
               ) : RISK_CHILD_IDS.has(currentPage) ? (
                 <>
                   <span style={{ color: 'rgba(255, 255, 255, 0.75)' }}>Risk Management</span>
                   <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
-                  <span>{pageLabelMap.get(currentPage) || 'Overview'}</span>
+                  <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
                 </>
               ) : (
-                <span>{pageLabelMap.get(currentPage) || 'Overview'}</span>
+                <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
               )}
             </div>
           </div>
@@ -731,8 +748,8 @@ export default function App() {
             height: '100%', 
             overflowY: 'auto' 
           }}>
-            {visitedPages.has('overview') && (
-              <div style={{ display: currentPage === 'overview' ? 'block' : 'none', height: '100%' }}>
+            {visitedPages.has('dashboard') && (
+              <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
                 <Dashboard 
                   onFAQSelect={handleFAQSelect} 
                   environmentMode={environmentMode} 

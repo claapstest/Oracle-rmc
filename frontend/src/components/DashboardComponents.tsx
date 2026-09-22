@@ -30,15 +30,12 @@ interface RoleLandscapeProps {
 }
 
 export function RoleLandscape({ stats, onNavigatePage }: RoleLandscapeProps) {
-  const rolesWithoutUsers = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4918;
-
-  const roleCategories = [
+  const roleCategories: Array<{ id: string; label: string; count: number; desc: string; icon: any; color: string; bg: string; isHighlight?: boolean }> = [
     { id: 'JOB', label: 'Job Roles', count: stats.jobRolesCount || 6014, desc: 'Business responsibilities', icon: Award, color: '#2563EB', bg: '#EFF6FF' },
     { id: 'DUTY', label: 'Duty Roles', count: stats.dutyRolesCount || 55, desc: 'Tasks & granular permissions', icon: Key, color: '#EC4899', bg: '#FDF2F8' },
     { id: 'DATA', label: 'Data Roles', count: stats.dataRolesCount || 336, desc: 'Data security & visibility', icon: FileText, color: '#F59E0B', bg: '#FFFBEB' },
     { id: 'ABSTRACT', label: 'Abstract Roles', count: stats.abstractRolesCount || 521, desc: 'Standard employee identities', icon: Layers, color: '#8B5CF6', bg: '#F5F3FF' },
     { id: 'GRC', label: 'GRC Roles', count: stats.grcRolesCount || 12, desc: 'Governance & SoD definitions', icon: Lock, color: '#10B981', bg: '#ECFDF5' },
-    { id: 'UNASSIGNED', label: 'Roles Without Users', count: rolesWithoutUsers, desc: 'Not assigned to any user', icon: Users, color: '#7C3AED', bg: '#F5F3FF', isHighlight: true },
   ];
 
   return (
@@ -132,6 +129,7 @@ interface UserAccountHealthProps {
     highRiskRolesCount?: number;
     highRiskUsersCount?: number;
     grcRolesCount?: number;
+    rolesWithoutUsersCount?: number;
   };
   onNavigatePage?: (pageId: string, filter?: string) => void;
 }
@@ -148,6 +146,7 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   const singleRole = Math.max(0, (stats.activeUsers || 7731) - multipleRoles - usersNoRoles);
   const securityAdmins = stats.securityAdminsCount || 45;
   const highRiskRoles = stats.highRiskRolesCount || stats.grcRolesCount || 12;
+  const rolesWithoutUsers = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4918;
 
   // Mutually-exclusive user access breakdown for donut
   const accessSegments = [
@@ -216,6 +215,16 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
       color: '#F59E0B',
       bg: '#FFFBEB',
       icon: Lock
+    },
+    {
+      label: 'Roles Without Users',
+      count: rolesWithoutUsers,
+      desc: 'Not assigned to any user',
+      filter: 'UNASSIGNED',
+      page: 'roles',
+      color: '#7C3AED',
+      bg: '#F5F3FF',
+      icon: Users
     }
   ];
 
@@ -807,9 +816,9 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
 
   const maxVal = Math.max(...data.map(d => d.count), 50);
   const width = 560;
-  const height = 185;
+  const height = 140;
   const paddingX = 35;
-  const paddingY = 25;
+  const paddingY = 20;
 
   const points = data.map((d, index) => {
     const x = paddingX + (index / (data.length - 1 || 1)) * (width - 2 * paddingX);
@@ -823,9 +832,9 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
   const areaTotal = `${pathTotal} L ${points[points.length - 1]?.x || width} ${height - paddingY} L ${points[0]?.x || paddingX} ${height - paddingY} Z`;
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem 1.6rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="glass-panel" style={{ padding: '1.1rem 1.4rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
         <div>
           <h3 style={{ fontSize: '1.08rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, color: 'var(--text-primary)' }}>
             Risk Trend <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>(Last 30 Days)</span>
@@ -834,7 +843,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             Daily security changes and audit activity events in Oracle Fusion
           </p>
         </div>
-        <span 
+        <span
           onClick={() => onNavigatePage?.('audit')}
           style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
         >
@@ -843,8 +852,8 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
       </div>
 
       {/* SVG Line / Area Multi-Point Chart */}
-      <div style={{ width: '100%', flex: 1, display: 'flex', alignItems: 'center' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', flex: 1, display: 'flex', alignItems: 'center' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', maxHeight: '200px', display: 'block' }}>
           <defs>
             <linearGradient id="riskAreaGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#2563EB" stopOpacity="0.18" />
@@ -885,7 +894,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
       </div>
 
       {/* Series Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.6rem', marginTop: '0.6rem', fontSize: '0.76rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.6rem', marginTop: '0.4rem', fontSize: '0.76rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Security Changes ({data.reduce((a, b) => a + b.count, 0)})</span>

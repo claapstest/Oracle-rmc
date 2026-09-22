@@ -213,7 +213,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   // Incident statistics for selected subsection
   const controlsWithKnownIncidents = activeSubsectionControls.filter(c => typeof c.incidentCount === 'number');
   const hasIncidentData = controlsWithKnownIncidents.length > 0;
-  const kpiWithIncidentsCount = activeSubsectionControls.filter(c => (c.incidentCount ?? 0) > 0).length;
+  const kpiTotalIncidentsCount = controlsWithKnownIncidents.reduce((sum, c) => sum + (c.incidentCount ?? 0), 0);
 
   // Filter & Search application strictly within selected subsection
   const filteredControls = useMemo(() => {
@@ -800,7 +800,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                       <span className="badge badge-gold" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-                        Control ID: #{selectedControlDetail.id}
+                        Control ID: {selectedControlDetail.id}
                       </span>
                       
                       {/* Product-level Type Label */}
@@ -964,7 +964,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     No continuous monitoring incidents found for this control.
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Oracle Fusion returned zero incidents for control #{selectedControlDetail.id}.
+                    Oracle Fusion returned zero incidents for control {selectedControlDetail.id}.
                   </div>
                 </div>
               )}
@@ -993,7 +993,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         {selectedControlDetail.incidents.map((inc: any, idx: number) => (
                           <tr key={inc.id || idx}>
                             <td>
-                              <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>#{inc.id}</span>
+                              <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{inc.id}</span>
                             </td>
                             <td>
                               <span className="badge" style={{ fontSize: '0.72rem' }}>{inc.status || 'ASSIGNED'}</span>
@@ -1093,17 +1093,17 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               </div>
             </div>
 
-            {/* Controls With Incidents */}
+            {/* Total Incidents */}
             <div className="glass-panel" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <AlertCircle size={16} style={{ color: kpiWithIncidentsCount > 0 ? 'var(--accent-red)' : 'var(--text-muted)' }} />
-                Controls With Incidents
+                <AlertCircle size={16} style={{ color: kpiTotalIncidentsCount > 0 ? 'var(--accent-red)' : 'var(--text-muted)' }} />
+                Total Incidents
               </div>
-              <div style={{ fontSize: hasIncidentData ? '1.75rem' : '1.05rem', fontWeight: 800, color: kpiWithIncidentsCount > 0 ? 'var(--accent-red)' : 'var(--text-primary)', lineHeight: hasIncidentData ? '1.2' : '1.8' }}>
-                {hasIncidentData ? kpiWithIncidentsCount : (controlsRefreshing ? 'Calculating...' : 'Not available')}
+              <div style={{ fontSize: hasIncidentData ? '1.75rem' : '1.05rem', fontWeight: 800, color: kpiTotalIncidentsCount > 0 ? 'var(--accent-red)' : 'var(--text-primary)', lineHeight: hasIncidentData ? '1.2' : '1.8' }}>
+                {hasIncidentData ? kpiTotalIncidentsCount.toLocaleString() : (controlsRefreshing ? 'Calculating...' : 'Not available')}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                {hasIncidentData ? 'Continuous incident exposure' : 'Run incident scan to calculate'}
+                {hasIncidentData ? 'Continuous monitoring incidents detected' : 'Run incident scan to calculate'}
               </div>
             </div>
           </div>
@@ -1601,7 +1601,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         {visibleColumnKeys.has('id') && (
                           <td>
                             <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '0.85rem' }}>
-                              #{ctrl.id}
+                              {ctrl.id}
                             </span>
                           </td>
                         )}

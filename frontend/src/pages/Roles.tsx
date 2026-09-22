@@ -267,9 +267,9 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
             totalCount={totalResults}
             appliedFilters={activeFilters}
             availableColumns={[
-              { key: 'category', label: 'Category', defaultSelected: true },
-              { key: 'roleCode', label: 'Role Code', defaultSelected: true },
               { key: 'displayName', label: 'Display Name', defaultSelected: true },
+              { key: 'roleCode', label: 'Role Code', defaultSelected: true },
+              { key: 'category', label: 'Category', defaultSelected: true },
               { key: 'description', label: 'Description', defaultSelected: true, getValue: (r: any) => r.description || '—' },
               { key: 'userCount', label: 'User Count', defaultSelected: true, getValue: (r: any) => r.userCount !== undefined ? r.userCount : '—' },
               { key: 'classification', label: 'Classification', defaultSelected: false, getValue: (r: any) => r.roleCode?.startsWith('CLAAPS_') || r.roleCode?.startsWith('CUSTOM_') ? 'Custom' : 'Standard Oracle' }
@@ -293,9 +293,9 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
           <table className="enterprise-table">
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Role Code</th>
                 <th>Display Name</th>
+                <th>Role Code</th>
+                <th>Category</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -313,9 +313,9 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
                     onClick={() => setSelectedRole(role)}
                     style={{ cursor: 'pointer', backgroundColor: selectedRole?.roleCode === role.roleCode ? 'rgba(255, 255, 255, 0.04)' : '' }}
                   >
-                    <td><span className="badge badge-blue">{role.category}</span></td>
-                    <td><code>{role.roleCode}</code></td>
                     <td style={{ fontWeight: 600 }}>{role.displayName}</td>
+                    <td><code>{role.roleCode}</code></td>
+                    <td><span className="badge badge-blue">{role.category}</span></td>
                     <td>
                       <button 
                         onClick={(e) => {

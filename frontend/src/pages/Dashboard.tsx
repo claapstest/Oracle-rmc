@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Users, 
-  FileText, 
-  ShieldCheck, 
+import {
+  FileText,
+  ShieldCheck,
   ShieldAlert,
   AlertTriangle,
-  Award, 
-  Search, 
-  Eye, 
+  Eye,
   Sparkles,
   ArrowRight,
   Lock,
@@ -17,8 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { TableExportControl } from '../components/TableExportControl';
-import { 
-  RoleLandscape, 
+import {
   UserAccountHealth,
   RoleDistributionDonut,
   RiskTrend,
@@ -66,7 +62,6 @@ export default function Dashboard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [auditUnavailable, setAuditUnavailable] = useState(false);
-  const [heroSearchText, setHeroSearchText] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -107,14 +102,6 @@ export default function Dashboard({
     return () => { isMounted = false; };
   }, [environmentMode]);
 
-  // Handle Ask VEYRA search form submission
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (heroSearchText.trim() && onFAQSelect) {
-      onFAQSelect(heroSearchText.trim());
-    }
-  };
-
   if (loading) {
     return (
       <div style={{ padding: '2rem', maxWidth: '1440px', margin: '0 auto' }}>
@@ -135,212 +122,6 @@ export default function Dashboard({
   return (
     <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
       
-      {/* ==========================================================
-          1. HERO BANNER: Security & Risk Intelligence Overview
-          ========================================================== */}
-      <div className="page-header-banner animate-fade-in" style={{
-        borderRadius: '16px',
-        padding: '1.75rem 2.25rem',
-        background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 40%, #2563EB 80%, #3B82F6 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-        boxShadow: '0 8px 24px rgba(30, 64, 175, 0.22)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.35rem'
-      }}>
-        {/* Subtle Decorative Wave Curve overlay */}
-        <svg 
-          viewBox="0 0 1440 240" 
-          preserveAspectRatio="none" 
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, opacity: 0.18 }}
-        >
-          <path fill="#ffffff" d="M0,120 C320,190,480,50,800,130 C1120,210,1280,80,1440,120 L1440,240 L0,240 Z" />
-          <path fill="#93C5FD" d="M0,170 C360,90,600,210,960,140 C1200,90,1360,180,1440,150 L1440,240 L0,240 Z" />
-        </svg>
-
-        {/* Top Header Row with Title and Brand Motto */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.9rem', fontWeight: 800, fontFamily: 'var(--font-header)', margin: 0, letterSpacing: '-0.025em', color: '#ffffff', lineHeight: 1.2 }}>
-              Security & Risk Intelligence Overview
-            </h1>
-            <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: '0.35rem 0 0 0', maxWidth: '720px', lineHeight: 1.4 }}>
-              Real-time visibility into identities, access, risks, and compliance across Oracle Fusion.
-            </p>
-          </div>
-
-          {/* Quote & Security Visual Badge */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.75rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.12)',
-            padding: '0.55rem 1rem',
-            borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.22)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '9px',
-              background: 'rgba(255, 255, 255, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-            }}>
-              <img src="/logo.png" alt="CLAAPS VEYRA" style={{ width: '26px', height: '26px', objectFit: 'contain' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', fontStyle: 'italic' }}>
-                "Smarter access. Safer tomorrow."
-              </div>
-              <div style={{ fontSize: '0.68rem', color: '#BAE6FD', fontWeight: 600 }}>
-                — CLAAPS VEYRA Platform
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Prominent Ask VEYRA Search Bar + Quick Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', zIndex: 2, maxWidth: '920px' }}>
-          <form onSubmit={handleSearchSubmit} style={{ width: '100%' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: '#FFFFFF',
-              borderRadius: '10px',
-              padding: '0.35rem 0.6rem 0.35rem 1rem',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.14)'
-            }}>
-              <Search size={18} style={{ color: '#64748B', marginRight: '0.75rem', flexShrink: 0 }} />
-              <input 
-                type="text"
-                value={heroSearchText}
-                onChange={(e) => setHeroSearchText(e.target.value)}
-                placeholder="Ask VEYRA anything... (e.g., 'Who has the Supplier Manager role?' or 'Show users without roles')"
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '0.9rem',
-                  color: '#0F172A',
-                  fontWeight: 500,
-                  backgroundColor: 'transparent'
-                }}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ 
-                  fontSize: '0.7rem', 
-                  fontWeight: 700, 
-                  color: '#64748B', 
-                  backgroundColor: '#F1F5F9', 
-                  padding: '0.2rem 0.45rem', 
-                  borderRadius: '6px',
-                  border: '1px solid #E2E8F0'
-                }}>
-                  Ctrl + K
-                </span>
-                <button 
-                  type="submit"
-                  style={{
-                    backgroundColor: '#1D4ED8',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '7px',
-                    padding: '0.45rem 0.95rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    transition: 'background-color 0.15s ease'
-                  }}
-                >
-                  <Sparkles size={14} />
-                  <span>Ask VEYRA</span>
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Quick Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => onNavigatePage?.('users')}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#FFFFFF',
-                borderRadius: '8px',
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'; }}
-            >
-              <Users size={13} />
-              <span>Explore Identities</span>
-            </button>
-
-            <button
-              onClick={() => onNavigatePage?.('roles')}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#FFFFFF',
-                borderRadius: '8px',
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'; }}
-            >
-              <Award size={13} />
-              <span>Analyze Access</span>
-            </button>
-
-            <button
-              onClick={() => onNavigatePage?.('audit')}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#FFFFFF',
-                borderRadius: '8px',
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'; }}
-            >
-              <FileText size={13} />
-              <span>Audit Changes</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {error && (
         <div className="glass-panel" style={{ padding: '1rem 1.5rem', borderLeft: '4px solid var(--accent-red)' }}>
           <p style={{ color: 'var(--accent-red)', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{error}</p>
@@ -348,7 +129,7 @@ export default function Dashboard({
       )}
 
       {/* ==========================================================
-          2. TOP KPI ROW: Operational & Intelligence Indicators
+          1. TOP KPI ROW: Operational & Intelligence Indicators
           (NO standalone Total Users / Total Roles repetition)
           ========================================================== */}
       <div className="overview-kpi-grid">
@@ -443,18 +224,17 @@ export default function Dashboard({
       </div>
 
       {/* ==========================================================
-          3. TWO-COLUMN SECTION: Role Landscape & User Account Health
+          3. TWO-COLUMN SECTION: Role Distribution & User Account Health
           ========================================================== */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.35rem' }}>
-        <RoleLandscape stats={stats} onNavigatePage={onNavigatePage} />
+        <RoleDistributionDonut stats={stats} onNavigatePage={onNavigatePage} />
         <UserAccountHealth stats={stats} onNavigatePage={onNavigatePage} />
       </div>
 
       {/* ==========================================================
-          4. TWO-COLUMN ANALYTICS: Role Distribution (Donut) & Risk Trend (Line)
+          4. FULL-WIDTH ANALYTICS: Risk Trend (Line)
           ========================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.35rem' }}>
-        <RoleDistributionDonut stats={stats} onNavigatePage={onNavigatePage} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.35rem' }}>
         <RiskTrend activityTrend={stats.activityTrend} onNavigatePage={onNavigatePage} />
       </div>
 

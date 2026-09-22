@@ -224,11 +224,12 @@ export const ReportSelectorDropdown: React.FC<ReportSelectorDropdownProps> = ({
                     data-option-index={globalIndex}
                     onClick={() => chooseOption(item.id)}
                     onMouseEnter={() => setActiveIndex(globalIndex)}
+                    title={item.description}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.65rem',
-                      padding: '0.55rem 0.65rem',
+                      padding: '0.5rem 0.65rem',
                       borderRadius: '7px',
                       cursor: 'pointer',
                       backgroundColor: isActive ? '#F1F5F9' : isSelected ? 'var(--accent-blue-light)' : 'transparent'
@@ -237,13 +238,8 @@ export const ReportSelectorDropdown: React.FC<ReportSelectorDropdownProps> = ({
                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '7px', backgroundColor: isSelected ? 'var(--accent-blue)' : 'var(--accent-blue-light)', color: isSelected ? '#ffffff' : 'var(--accent-blue)', flexShrink: 0 }}>
                       {ItemIcon ? <ItemIcon size={15} /> : null}
                     </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.name}
-                      </span>
-                      <span style={{ display: 'block', fontSize: '0.73rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.description}
-                      </span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.name}
                     </span>
                     {isSelected && <Check size={15} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />}
                   </div>
