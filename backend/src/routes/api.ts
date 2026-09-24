@@ -9,6 +9,7 @@ import { authService } from '../services/authService.js';
 import { tools } from '../tools/index.js';
 import { auditProductCatalogService } from '../services/auditProductCatalogService.js';
 import { commandCenterService } from '../services/commandCenterService.js';
+import { userAccessReportService } from '../services/userAccessReportService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -602,6 +603,17 @@ apiRouter.get('/reports/role-hierarchy', requireAuth, async (req: Request, res: 
   }
 });
 
+apiRouter.get('/reports/user-access', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await userAccessReportService.getUserAccessReport(forceRefresh);
+    res.json(result);
+  } catch (err) {
+    console.error('[API Route /reports/user-access] Error:', err);
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 apiRouter.get('/roles/:name/hierarchy', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getRoleHierarchy(req.params.name);
@@ -857,6 +869,35 @@ apiRouter.get('/access-certifications', requireAuth, async (req: Request, res: R
     return res.status(500).json({
       success: false,
       message: 'Unable to retrieve Access Certification data from Oracle Fusion.'
+    });
+  }
+});
+
+// GET /api/access-certifications/:certificationId/details - Oracle Fusion BI Publisher Certifier Worksheet Drill-Down
+apiRouter.get('/access-certifications/:certificationId/details', requireAuth, async (req: Request, res: Response) => {
+  const certificationId = String(req.params.certificationId || '').trim();
+  if (!certificationId) {
+    return res.status(400).json({
+      success: false,
+      certificationId: '',
+      message: 'Certification ID is required.'
+    });
+  }
+
+  try {
+    const result = await oracleService.getAccessCertificationDetails(certificationId);
+    if (!result.success) {
+      const statusCode = result.isConfigurationError ? 400 : 502;
+      return res.status(statusCode).json(result);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error(`[Access Certification Drill-Down Error for ${certificationId}]:`, (err as Error).message);
+    return res.status(500).json({
+      success: false,
+      certificationId,
+      message: 'Unable to retrieve Access Certification details.',
+      error: (err as Error).message
     });
   }
 });

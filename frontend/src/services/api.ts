@@ -226,6 +226,11 @@ export const api = {
     return apiRequest('/reports/role-hierarchy');
   },
 
+  async getUserAccessReport(options?: { refresh?: boolean }) {
+    const query = options?.refresh ? '?refresh=true' : '';
+    return apiRequest(`/reports/user-access${query}`);
+  },
+
   async getRolePrivileges(roleName: string) {
     return apiRequest(`/roles/${encodeURIComponent(roleName)}/privileges`);
   },
@@ -331,6 +336,11 @@ export const api = {
   async getAccessCertifications(forceRefresh = false) {
     const query = forceRefresh ? `?t=${Date.now()}` : '';
     return apiRequest(`/access-certifications${query}`);
+  },
+
+  async getAccessCertificationDetails(certificationId: string) {
+    const encodedId = encodeURIComponent(String(certificationId || '').trim());
+    return apiRequest(`/access-certifications/${encodedId}/details`);
   },
 
   // Configuration Settings

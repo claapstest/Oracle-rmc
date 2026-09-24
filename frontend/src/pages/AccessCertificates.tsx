@@ -1,5 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Award, RefreshCw, Search, Download, Eye, Info, X, AlertCircle } from 'lucide-react';
+import {
+  Award,
+  RefreshCw,
+  Search,
+  Download,
+  Eye,
+  Info,
+  AlertCircle,
+  ArrowLeft,
+  Users,
+  ShieldCheck,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  FileSpreadsheet
+} from 'lucide-react';
 import { api } from '../services/api.js';
 
 interface AccessCertificatesProps {
@@ -7,6 +23,7 @@ interface AccessCertificatesProps {
 }
 
 export default function AccessCertificates({ environmentMode }: AccessCertificatesProps) {
+  // Main Certification List State
   const [certifications, setCertifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -14,7 +31,16 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastExecuted, setLastExecuted] = useState<string>('');
-  const [selectedCert, setSelectedCert] = useState<any | null>(null);
+
+  // Drill-Down / Certifier Worksheet State
+  const [drillDownCertId, setDrillDownCertId] = useState<string | null>(null);
+  const [drillDownSummary, setDrillDownSummary] = useState<any | null>(null);
+  const [worksheetRows, setWorksheetRows] = useState<any[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
+  const [worksheetSearchTerm, setWorksheetSearchTerm] = useState('');
+  const [worksheetPageSize, setWorksheetPageSize] = useState(10);
+  const [worksheetCurrentPage, setWorksheetCurrentPage] = useState(1);
 
   const fetchCertifications = async (isManualRefresh = false) => {
     setLoading(true);
@@ -29,7 +55,8 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
       }
     } catch (err: any) {
       console.error('[AccessCertificates UI] Failed to load certifications:', err);
-      const errMsg = err?.response?.data?.message || err?.message || 'Unable to retrieve Access Certification data from Oracle Fusion.';
+      const errMsg =
+        err?.response?.data?.message || err?.message || 'Unable to retrieve Access Certification data from Oracle Fusion.';
       setError(errMsg);
       setCertifications([]);
     } finally {
@@ -49,16 +76,24 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
     if (!searchTerm.trim()) return certifications;
     const term = searchTerm.toLowerCase().trim();
     return certifications.filter((item) => {
+      const id = String(item.certificationId || '').toLowerCase();
       const name = String(item.certificationName || '').toLowerCase();
       const status = String(item.status || '').toLowerCase();
       const type = String(item.type || '').toLowerCase();
       const due = String(item.dueDate || '').toLowerCase();
       const creation = String(item.creationDate || '').toLowerCase();
-      return name.includes(term) || status.includes(term) || type.includes(term) || due.includes(term) || creation.includes(term);
+      return (
+        id.includes(term) ||
+        name.includes(term) ||
+        status.includes(term) ||
+        type.includes(term) ||
+        due.includes(term) ||
+        creation.includes(term)
+      );
     });
   }, [certifications, searchTerm]);
 
-  // Pagination calculation
+  // Pagination calculation for main list
   const totalRecords = filteredCertifications.length;
   const totalPages = Math.ceil(totalRecords / pageSize) || 1;
   const paginatedCertifications = useMemo(() => {
@@ -66,12 +101,94 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
     return filteredCertifications.slice(start, start + pageSize);
   }, [filteredCertifications, currentPage, pageSize]);
 
+  // Drill-Down: Open worksheet for selected certification
+  const openCertificationDrillDown = async (cert: any) => {
+    const certId = String(cert?.certificationId ?? cert?.id ?? '').trim();
+    if (!certId) {
+      setDetailsError('Certification ID is missing.');
+      return;
+    }
+
+    setDrillDownCertId(certId);
+    setDrillDownSummary(cert);
+    setLoadingDetails(true);
+    setDetailsError('');
+    setWorksheetRows([]);
+    setWorksheetSearchTerm('');
+    setWorksheetCurrentPage(1);
+
+    try {
+      const res = await api.getAccessCertificationDetails(certId);
+      if (res && res.success) {
+        setWorksheetRows(Array.isArray(res.data) ? res.data : []);
+      } else {
+        setDetailsError(res?.message || 'Unable to load certification details.');
+      }
+    } catch (err: any) {
+      console.error('[AccessCertificates UI] Error loading drill-down:', err);
+      const errMsg =
+        err?.response?.data?.message || err?.message || 'Unable to retrieve Access Certification details.';
+      setDetailsError(errMsg);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const backToList = () => {
+    setDrillDownCertId(null);
+    setDrillDownSummary(null);
+    setWorksheetRows([]);
+    setDetailsError('');
+    setWorksheetSearchTerm('');
+  };
+
+  // Filtered worksheet rows based on search term
+  const filteredWorksheetRows = useMemo(() => {
+    if (!worksheetSearchTerm.trim()) return worksheetRows;
+    const term = worksheetSearchTerm.toLowerCase().trim();
+    return worksheetRows.filter((r) => {
+      const role = String(r.roleName || '').toLowerCase();
+      const user = String(r.userName || r.ownerName || '').toLowerCase();
+      const directMgr = String(r.directManager || '').toLowerCase();
+      const certName = String(r.certificationName || '').toLowerCase();
+      const certId = String(r.certificationId || '').toLowerCase();
+      const bu = String(r.userBusinessUnit || r.businessUnit || '').toLowerCase();
+      return (
+        role.includes(term) ||
+        user.includes(term) ||
+        directMgr.includes(term) ||
+        certName.includes(term) ||
+        certId.includes(term) ||
+        bu.includes(term)
+      );
+    });
+  }, [worksheetRows, worksheetSearchTerm]);
+
+  // Pagination for worksheet rows
+  const totalWorksheetRecords = filteredWorksheetRows.length;
+  const totalWorksheetPages = Math.ceil(totalWorksheetRecords / worksheetPageSize) || 1;
+  const paginatedWorksheetRows = useMemo(() => {
+    const start = (worksheetCurrentPage - 1) * worksheetPageSize;
+    return filteredWorksheetRows.slice(start, start + worksheetPageSize);
+  }, [filteredWorksheetRows, worksheetCurrentPage, worksheetPageSize]);
+
+  // Export functions
   const exportToCsv = () => {
     if (filteredCertifications.length === 0) return;
-    const headers = ['#', 'Certification Name', 'Type', 'Status', 'Certification % Complete', 'Due Date', 'Creation Date'];
+    const headers = [
+      '#',
+      'Certification ID',
+      'Certification Name',
+      'Type',
+      'Status',
+      'Certification % Complete',
+      'Due Date',
+      'Creation Date'
+    ];
     const rows = filteredCertifications.map((item, idx) => [
       idx + 1,
-      `"${String(item.certificationName || '').replace(/"/g, '""')}"`,
+      `"${String(item.certificationId ?? item.id ?? '').replace(/"/g, '""')}"`,
+      `"${String(item.name ?? item.certificationName ?? '').replace(/"/g, '""')}"`,
       `"${String(item.type || '').replace(/"/g, '""')}"`,
       `"${String(item.status || '').replace(/"/g, '""')}"`,
       `"${String(item.certificationPercentComplete ?? '0%').replace(/"/g, '""')}"`,
@@ -79,11 +196,47 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
       `"${String(item.creationDate || '').replace(/"/g, '""')}"`
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `Access_Certifications_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportWorksheetToCsv = () => {
+    if (filteredWorksheetRows.length === 0) return;
+    const headers = [
+      '#',
+      'Role Name',
+      'User Name',
+      'Direct Manager',
+      'Certification Name',
+      'Certification ID',
+      'User Business Unit'
+    ];
+    const rows = filteredWorksheetRows.map((r, idx) => [
+      idx + 1,
+      `"${String(r.roleName || '').replace(/"/g, '""')}"`,
+      `"${String(r.userName || r.ownerName || '').replace(/"/g, '""')}"`,
+      `"${String(r.directManager && r.directManager !== 'null' ? r.directManager : '').replace(/"/g, '""')}"`,
+      `"${String(r.certificationName || '').replace(/"/g, '""')}"`,
+      `"${String(r.certificationId || '').replace(/"/g, '""')}"`,
+      `"${String(r.userBusinessUnit || r.businessUnit || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `Certifier_Worksheet_${drillDownCertId}_${new Date().toISOString().split('T')[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -122,6 +275,689 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
     }
   };
 
+  // =========================================================================
+  // VIEW 2: CERTIFICATION DRILL-DOWN / CERTIFIER WORKSHEET VIEW
+  // =========================================================================
+  if (drillDownCertId !== null) {
+    const firstRow = worksheetRows[0] || {};
+    const certName = firstRow.certificationName || drillDownSummary?.certificationName || 'Access Certification Details';
+    const certStatus = firstRow.status || drillDownSummary?.status || 'Active';
+    const certType = firstRow.type || drillDownSummary?.type || 'Standard';
+    const certPct = getPercentValue(
+      firstRow.completionPercent ?? drillDownSummary?.certificationPercentComplete ?? 0
+    );
+    const certDueDate = firstRow.dueDate || drillDownSummary?.dueDate;
+    const certCreationDate = firstRow.creationDate || drillDownSummary?.creationDate;
+    const certManager =
+      firstRow.certifiedManager ||
+      firstRow.certifierName ||
+      firstRow.userManager ||
+      drillDownSummary?.managerName ||
+      drillDownSummary?.createdBy ||
+      '—';
+
+    return (
+      <div style={{ padding: '1.75rem 2rem', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
+        {/* Navigation Breadcrumb / Back Button */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <button
+            type="button"
+            onClick={backToList}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #CBD5E1',
+              borderRadius: '8px',
+              padding: '0.55rem 1.1rem',
+              color: '#1E293B',
+              fontSize: '0.86rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#F8FAFC';
+              e.currentTarget.style.borderColor = '#94A3B8';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#FFFFFF';
+              e.currentTarget.style.borderColor = '#CBD5E1';
+            }}
+          >
+            <ArrowLeft size={16} style={{ color: '#2563EB' }} />
+            <span>Back to Access Certificates</span>
+          </button>
+        </div>
+
+        {/* Top Header Banner Matching VEYRA Style */}
+        <div
+          className="page-header-banner animate-fade-in"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)',
+            borderRadius: '16px',
+            padding: '2rem 2.25rem',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.25)',
+            marginBottom: '1.25rem',
+            color: '#ffffff',
+            flexWrap: 'wrap',
+            gap: '1.25rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', position: 'relative', zIndex: 2 }}>
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <FileSpreadsheet size={30} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  marginBottom: '0.25rem'
+                }}
+              >
+                <span>Access Certification Drill-Down</span>
+                <span>•</span>
+                <span>ID: {drillDownCertId}</span>
+              </div>
+              <h1
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 800,
+                  fontFamily: 'var(--font-header, sans-serif)',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                  color: '#ffffff'
+                }}
+              >
+                {certName}
+              </h1>
+              <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.92rem', margin: '0.35rem 0 0 0' }}>
+                Oracle Fusion BI Publisher Certifier Worksheet &amp; User Access Details
+              </p>
+            </div>
+          </div>
+
+          {/* Right Badges in Banner */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', position: 'relative', zIndex: 2 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 1rem',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                borderRadius: '9999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                color: '#ffffff'
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: certStatus.toLowerCase() === 'active' ? '#10B981' : '#CBD5E1',
+                  boxShadow: certStatus.toLowerCase() === 'active' ? '0 0 8px #10B981' : 'none'
+                }}
+              />
+              <span>Status: {certStatus}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId })}
+              disabled={loadingDetails}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 1.05rem',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                borderRadius: '9999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                color: '#ffffff',
+                cursor: loadingDetails ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.26)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+              }}
+            >
+              <RefreshCw size={14} className={loadingDetails ? 'animate-spin' : ''} />
+              <span>Refresh Worksheet</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Integration Notification / Notice */}
+        <div
+          className="animate-fade-in"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#EFF6FF',
+            border: '1px solid #DBEAFE',
+            borderRadius: '10px',
+            padding: '0.75rem 1.25rem',
+            marginBottom: '1.25rem',
+            fontSize: '0.84rem',
+            color: '#1E3A8A',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Info size={16} style={{ color: '#2563EB', flexShrink: 0 }} />
+            <span>
+              <strong>BIP Certifier Worksheet Source:</strong> Executed via ExternalReportWSSService with parameter{' '}
+              <code style={{ background: 'rgba(37, 99, 235, 0.08)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
+                P_CERTIFICATION_ID = {drillDownCertId}
+              </code>
+              . Preserving all assigned user and role worksheet rows.
+            </span>
+          </div>
+          <div style={{ color: '#64748B', fontSize: '0.82rem' }}>
+            Rows Loaded:{' '}
+            <strong style={{ color: '#1E293B' }}>{worksheetRows.length}</strong>
+          </div>
+        </div>
+
+        {/* Error Banner if drill-down fetch failed */}
+        {detailsError && (
+          <div
+            role="alert"
+            className="animate-fade-in"
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.85rem',
+              backgroundColor: '#FEF2F2',
+              border: '1px solid #F87171',
+              borderRadius: '10px',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.25rem',
+              color: '#991B1B',
+              fontSize: '0.88rem'
+            }}
+          >
+            <AlertCircle size={18} style={{ color: '#DC2626', flexShrink: 0, marginTop: '0.1rem' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Integration Error</div>
+              <div>{detailsError}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId })}
+              style={{
+                background: '#DC2626',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#ffffff',
+                padding: '0.35rem 0.8rem',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* SECTION 1: CERTIFICATION SUMMARY CARD */}
+        <div
+          className="animate-fade-in"
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '14px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 4px 12px -2px rgba(15, 23, 42, 0.05)',
+            padding: '1.75rem',
+            marginBottom: '1.5rem',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+            <Award size={20} style={{ color: '#2563EB' }} />
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0F172A' }}>
+              Certification Details Summary
+            </h2>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1.25rem'
+            }}
+          >
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Certification Name
+              </span>
+              <div style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+                {certName}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Certification ID
+              </span>
+              <div style={{ fontSize: '1.02rem', fontWeight: 700, color: '#2563EB', marginTop: '0.35rem' }}>
+                {drillDownCertId}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Certifier / Certified Manager
+              </span>
+              <div style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+                {certManager}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Status &amp; Type
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.35rem' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '0.2rem 0.6rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    borderRadius: '9999px',
+                    backgroundColor: certStatus.toLowerCase() === 'active' ? '#DCFCE7' : '#F1F5F9',
+                    color: certStatus.toLowerCase() === 'active' ? '#166534' : '#475569'
+                  }}
+                >
+                  {certStatus}
+                </span>
+                <span style={{ fontSize: '0.86rem', color: '#64748B' }}>({certType})</span>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Certification % Complete
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.45rem' }}>
+                <div style={{ flex: 1, height: '8px', backgroundColor: '#E2E8F0', borderRadius: '9999px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${Math.min(Math.max(certPct, 0), 100)}%`,
+                      height: '100%',
+                      backgroundColor: certPct > 0 ? '#2563EB' : 'transparent',
+                      borderRadius: '9999px'
+                    }}
+                  />
+                </div>
+                <span style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0F172A' }}>{certPct}%</span>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Due Date
+              </span>
+              <div style={{ fontSize: '0.98rem', fontWeight: 600, color: '#334155', marginTop: '0.35rem' }}>
+                {formatDueDate(certDueDate)}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Creation Date
+              </span>
+              <div style={{ fontSize: '0.98rem', fontWeight: 600, color: '#334155', marginTop: '0.35rem' }}>
+                {formatCreationDate(certCreationDate)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: CERTIFIER WORKSHEET TABLE */}
+        <div
+          className="animate-fade-in"
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '14px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 4px 12px -2px rgba(15, 23, 42, 0.05)',
+            padding: '1.5rem',
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* Controls Bar */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Users size={18} style={{ color: '#2563EB' }} />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#0F172A' }}>
+                  Certifier Worksheet / User Access Details
+                </h3>
+              </div>
+              <p style={{ color: '#64748B', fontSize: '0.84rem', margin: '0.25rem 0 0 0' }}>
+                User access privileges and direct manager assignments belonging to this certification.
+              </p>
+            </div>
+
+            {/* Right Search and Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {/* Search Bar */}
+              <div style={{ position: 'relative', minWidth: '280px' }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '0.85rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94A3B8',
+                    display: 'flex'
+                  }}
+                >
+                  <Search size={15} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Filter by user, role, manager, BU..."
+                  value={worksheetSearchTerm}
+                  onChange={(e) => {
+                    setWorksheetSearchTerm(e.target.value);
+                    setWorksheetCurrentPage(1);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.52rem 0.85rem 0.52rem 2.4rem',
+                    fontSize: '0.84rem',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    backgroundColor: '#F8FAFC',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Rows Per Page */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem', color: '#64748B' }}>
+                <span>Rows:</span>
+                <select
+                  value={worksheetPageSize}
+                  onChange={(e) => {
+                    setWorksheetPageSize(Number(e.target.value));
+                    setWorksheetCurrentPage(1);
+                  }}
+                  style={{
+                    padding: '0.45rem 0.75rem',
+                    fontSize: '0.84rem',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              {/* Export Button */}
+              <button
+                type="button"
+                onClick={exportWorksheetToCsv}
+                disabled={filteredWorksheetRows.length === 0}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.48rem 0.95rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '8px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#1E293B',
+                  cursor: filteredWorksheetRows.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: filteredWorksheetRows.length === 0 ? 0.6 : 1
+                }}
+              >
+                <Download size={14} />
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Counts */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.84rem',
+              color: '#64748B',
+              marginBottom: '0.85rem'
+            }}
+          >
+            <div>
+              <strong style={{ color: '#0F172A' }}>{totalWorksheetRecords}</strong> worksheet records returned
+            </div>
+            <div>
+              Showing {totalWorksheetRecords > 0 ? (worksheetCurrentPage - 1) * worksheetPageSize + 1 : 0}-
+              {Math.min(worksheetCurrentPage * worksheetPageSize, totalWorksheetRecords)} of {totalWorksheetRecords}
+            </div>
+          </div>
+
+          {/* REQUIRED CERTIFIER WORKSHEET TABLE (7 COLUMNS) */}
+          <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                  <th style={{ padding: '0.85rem 1rem', width: '45px', fontWeight: 700 }}>#</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>ROLE NAME</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>USER NAME</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>DIRECT MANAGER</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>CERTIFICATION NAME</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>CERTIFICATION ID</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>USER BUSINESS UNIT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingDetails ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                        <RefreshCw size={24} className="animate-spin" style={{ color: '#2563EB' }} />
+                        <span style={{ fontWeight: 600 }}>Loading certification details...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginatedWorksheetRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                      <Users size={32} style={{ color: '#94A3B8', margin: '0 auto 0.75rem auto' }} />
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#334155' }}>
+                        No user access records found for this certification.
+                      </div>
+                      <div style={{ fontSize: '0.82rem', marginTop: '0.25rem', color: '#94A3B8' }}>
+                        {worksheetSearchTerm
+                          ? 'No worksheet records match your filter criteria.'
+                          : 'Oracle BI Publisher returned 0 certifier worksheet rows for this Certification ID.'}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedWorksheetRows.map((row, idx) => {
+                    const rowNum = (worksheetCurrentPage - 1) * worksheetPageSize + idx + 1;
+                    return (
+                      <tr
+                        key={`${row.certificationId}_${row.userName}_${idx}`}
+                        style={{
+                          borderBottom: '1px solid #F1F5F9',
+                          transition: 'background-color 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#64748B' }}>{rowNum}</td>
+                        <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#1E293B' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <ShieldCheck size={15} style={{ color: '#2563EB', flexShrink: 0 }} />
+                            <span>{row.roleName || 'Accounts Receivable Manager'}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', fontWeight: 600, color: '#0F172A' }}>
+                          {row.userName || row.ownerName || '—'}
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>
+                          {row.directManager && row.directManager !== 'null' ? (
+                            <span style={{ fontWeight: 600, color: '#0F172A' }}>{row.directManager}</span>
+                          ) : (
+                            <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>
+                          {row.certificationName || certName || '—'}
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.2rem 0.55rem',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              borderRadius: '4px',
+                              backgroundColor: '#EFF6FF',
+                              color: '#1D4ED8',
+                              border: '1px solid #DBEAFE'
+                            }}
+                          >
+                            {row.certificationId || drillDownCertId}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Building2 size={14} style={{ color: '#64748B', flexShrink: 0 }} />
+                            <span>{row.userBusinessUnit || row.businessUnit || 'Corporate'}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Worksheet Pagination Controls */}
+          {totalWorksheetPages > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '1.25rem',
+                fontSize: '0.84rem',
+                color: '#64748B'
+              }}
+            >
+              <div>
+                Page {worksheetCurrentPage} of {totalWorksheetPages}
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setWorksheetCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={worksheetCurrentPage === 1}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.8rem',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    cursor: worksheetCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: worksheetCurrentPage === 1 ? 0.5 : 1
+                  }}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWorksheetCurrentPage((p) => Math.min(p + 1, totalWorksheetPages))}
+                  disabled={worksheetCurrentPage === totalWorksheetPages}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.8rem',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    cursor: worksheetCurrentPage === totalWorksheetPages ? 'not-allowed' : 'pointer',
+                    opacity: worksheetCurrentPage === totalWorksheetPages ? 0.5 : 1
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 1: MAIN ACCESS CERTIFICATION LIST VIEW
+  // =========================================================================
   return (
     <div style={{ padding: '1.75rem 2rem', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
       {/* Top Banner Matching Screenshot */}
@@ -236,7 +1072,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
         </div>
       </div>
 
-      {/* On-Demand Report Notice Bar Matching Screenshot */}
+      {/* On-Demand Report Notice Bar */}
       <div
         className="animate-fade-in"
         style={{
@@ -261,7 +1097,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
             <code style={{ background: 'rgba(37, 99, 235, 0.08)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
               /Custom/Claaps Access Certification.xdo
             </code>
-            ). Freshness reflects the latest reporting subject area snapshot.
+            ). Click <strong>View</strong> on any certification row to drill down into the live Certifier Worksheet.
           </span>
         </div>
         {lastExecuted && (
@@ -352,7 +1188,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
             </span>
             <input
               type="text"
-              placeholder="Search by certification name, status, type, or date..."
+              placeholder="Search by certification name, ID, status, type, or date..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -447,7 +1283,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
           </div>
         </div>
 
-        {/* Counts Row Matching Screenshot */}
+        {/* Counts Row */}
         <div
           style={{
             display: 'flex',
@@ -467,7 +1303,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
           </div>
         </div>
 
-        {/* Table Container with Horizontal Scroll */}
+        {/* Table Container */}
         <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
             <thead>
@@ -479,7 +1315,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                 <th style={{ padding: '0.85rem 1rem', fontWeight: 700, minWidth: '160px' }}>CERTIFICATION % COMPLETE</th>
                 <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>DUE DATE</th>
                 <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>CREATION DATE</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 700, textAlign: 'center', width: '100px' }}>ACTIONS</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700, textAlign: 'center', width: '110px' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -508,10 +1344,12 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                 paginatedCertifications.map((item, idx) => {
                   const rowNum = (currentPage - 1) * pageSize + idx + 1;
                   const pct = getPercentValue(item.certificationPercentComplete);
+                  const certId = String(item.certificationId ?? item.id ?? '').trim();
+                  const certName = item.name || item.certificationName || '—';
 
                   return (
                     <tr
-                      key={item.certificationName ? `${item.certificationName}_${idx}` : idx}
+                      key={certId || certName ? `${certName}_${certId || idx}` : idx}
                       style={{
                         borderBottom: '1px solid #F1F5F9',
                         transition: 'background-color 0.15s ease'
@@ -520,12 +1358,62 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#334155' }}>{rowNum}</td>
-                      <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#0F172A' }}>
-                        {item.certificationName || '—'}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => openCertificationDrillDown(item)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              margin: 0,
+                              textAlign: 'left',
+                              fontWeight: 700,
+                              fontSize: '0.88rem',
+                              color: '#1D4ED8',
+                              cursor: 'pointer'
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                          >
+                            {certName}
+                          </button>
+                          {certId && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '0.1rem 0.45rem',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  backgroundColor: '#EFF6FF',
+                                  color: '#2563EB',
+                                  borderRadius: '4px',
+                                  border: '1px solid #DBEAFE'
+                                }}
+                              >
+                                ID: {certId}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>{item.type || 'Standard'}</td>
-                      <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#0F172A' }}>
-                        {item.status || 'Active'}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '0.2rem 0.55rem',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            borderRadius: '9999px',
+                            backgroundColor: String(item.status).toLowerCase() === 'active' ? '#DCFCE7' : '#F1F5F9',
+                            color: String(item.status).toLowerCase() === 'active' ? '#166534' : '#475569'
+                          }}
+                        >
+                          {item.status || 'Active'}
+                        </span>
                       </td>
                       <td style={{ padding: '0.9rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '130px' }}>
@@ -555,19 +1443,26 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                       <td style={{ padding: '0.9rem 1rem', textAlign: 'center' }}>
                         <button
                           type="button"
-                          onClick={() => setSelectedCert(item)}
+                          onClick={() => openCertificationDrillDown(item)}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.35rem',
-                            padding: '0.35rem 0.75rem',
-                            fontSize: '0.78rem',
+                            padding: '0.38rem 0.85rem',
+                            fontSize: '0.8rem',
                             fontWeight: 600,
                             borderRadius: '6px',
-                            border: '1px solid #CBD5E1',
-                            backgroundColor: '#FFFFFF',
-                            color: '#1E293B',
-                            cursor: 'pointer'
+                            border: '1px solid #2563EB',
+                            backgroundColor: '#2563EB',
+                            color: '#FFFFFF',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#1D4ED8';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#2563EB';
                           }}
                         >
                           <Eye size={14} />
@@ -634,158 +1529,6 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
           </div>
         )}
       </div>
-
-      {/* Details View Modal */}
-      {selectedCert && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1.5rem'
-          }}
-          onClick={() => setSelectedCert(null)}
-        >
-          <div
-            className="animate-fade-in"
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '14px',
-              maxWidth: '640px',
-              width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
-              overflow: 'hidden'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Award size={20} style={{ color: '#2563EB' }} />
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
-                  Access Certification Details
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedCert(null)}
-                style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: 0 }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div>
-                <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                  Certification Name
-                </label>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginTop: '0.2rem' }}>
-                  {selectedCert.certificationName || '—'}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                    Type
-                  </label>
-                  <div style={{ fontSize: '0.95rem', color: '#334155', marginTop: '0.2rem' }}>
-                    {selectedCert.type || 'Standard'}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                    Status
-                  </label>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', marginTop: '0.2rem' }}>
-                    {selectedCert.status || 'Active'}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                    Due Date
-                  </label>
-                  <div style={{ fontSize: '0.95rem', color: '#334155', marginTop: '0.2rem' }}>
-                    {formatDueDate(selectedCert.dueDate)}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                    Creation Date
-                  </label>
-                  <div style={{ fontSize: '0.95rem', color: '#334155', marginTop: '0.2rem' }}>
-                    {formatCreationDate(selectedCert.creationDate)}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                  Certification Completion
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.4rem' }}>
-                  <div style={{ flex: 1, height: '8px', backgroundColor: '#E2E8F0', borderRadius: '9999px', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        width: `${Math.min(Math.max(getPercentValue(selectedCert.certificationPercentComplete), 0), 100)}%`,
-                        height: '100%',
-                        backgroundColor: '#2563EB',
-                        borderRadius: '9999px'
-                      }}
-                    />
-                  </div>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>
-                    {getPercentValue(selectedCert.certificationPercentComplete)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: '1rem 1.5rem',
-                borderTop: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC',
-                display: 'flex',
-                justifyContent: 'flex-end'
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setSelectedCert(null)}
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  backgroundColor: '#1E293B',
-                  color: '#FFFFFF',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.86rem',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

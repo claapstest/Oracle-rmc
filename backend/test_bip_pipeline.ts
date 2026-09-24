@@ -147,6 +147,99 @@ async function runBipPipelineTests() {
   assert(emptyResult.message === 'No Access Certifications found.', 'Returns "No Access Certifications found." message');
 
   // -------------------------------------------------------------
+  // Test 7: Certifier Worksheet SOAP Envelope with Parameter P_CERTIFICATION_ID
+  // -------------------------------------------------------------
+  console.log('\n[Test 7: Certifier Worksheet SOAP Envelope with Parameter]');
+  const worksheetEnvelope = client.generateRunReportEnvelope(
+    client.reviewReportPath,
+    'xlsx',
+    -1,
+    { P_CERTIFICATION_ID: '35006' }
+  );
+  assert(
+    worksheetEnvelope.includes('<pub:reportAbsolutePath>/Custom/Claaps Access Certification review.xdo</pub:reportAbsolutePath>'),
+    'Points to /Custom/Claaps Access Certification review.xdo'
+  );
+  assert(worksheetEnvelope.includes('<pub:name>P_CERTIFICATION_ID</pub:name>'), 'Envelope contains parameter P_CERTIFICATION_ID');
+  assert(worksheetEnvelope.includes('<pub:item>35006</pub:item>'), 'Envelope contains parameter value 35006');
+
+  // -------------------------------------------------------------
+  // Test 8: Base64 Decoding & Multi-Row Preservation for Certifier Worksheet
+  // -------------------------------------------------------------
+  console.log('\n[Test 8: Certifier Worksheet Multi-Row Preservation]');
+  const worksheetAoa = [
+    ['Claaps Access Certification review'],
+    [
+      'Certification ID',
+      'Certification Name',
+      'Due Date',
+      'Certification Percent Complete',
+      'Status',
+      'Type',
+      'Creation Date',
+      'Owner Name',
+      'Manager Name'
+    ],
+    ['35006', 'CLAAPS_Access_Certification1', '2026-10-21', '0%', 'Active', 'Standard', '2026-09-21', 'Karthika.Claaps', 'Karthika.Claaps'],
+    ['35006', 'CLAAPS_Access_Certification1', '2026-10-21', '0%', 'Active', 'Standard', '2026-09-21', 'Test1 user.claaps', 'Karthika.Claaps'],
+    ['35007', 'CLPS_Access_Certification3', '2026-10-13', '0%', 'Active', 'Standard', '2026-09-21', 'Kavya.Claaps', 'Test1 user.claaps'],
+    ['36006', 'CLPS_Access_Certification2', '2026-09-30', '0%', 'Active', 'Standard', '2026-09-21', 'Test1 user.claaps', 'Kavya.Claaps'],
+    [null, null, null, null, null, null, null, null, null]
+  ];
+
+  const wsWb = xlsx.utils.book_new();
+  const wsWs = xlsx.utils.aoa_to_sheet(worksheetAoa);
+  xlsx.utils.book_append_sheet(wsWb, wsWs, 'Sheet1');
+  const wsBuffer = xlsx.write(wsWb, { type: 'buffer', bookType: 'xlsx' });
+  const wsBase64 = wsBuffer.toString('base64');
+
+  const worksheetDetails = client.parseCertifierWorksheetXlsxBase64(wsBase64, '35006');
+  assert(worksheetDetails.success === true, 'parseCertifierWorksheetXlsxBase64 returns success = true');
+  assert(worksheetDetails.certificationId === '35006', 'Returns requested certificationId');
+  assert(worksheetDetails.count === 2, `Preserved all 2 rows for certification 35006 (got: ${worksheetDetails.count})`);
+
+  const wRow1 = worksheetDetails.data[0];
+  assert(String(wRow1.certificationId) === '35006', 'Row 1 certificationId matches 35006');
+  assert(wRow1.userName === 'Karthika.Claaps', 'Row 1 userName mapped from Owner Name');
+  assert(wRow1.certifiedManager === 'Karthika.Claaps', 'Row 1 certifiedManager mapped from Manager Name');
+  assert(wRow1.roleName === 'Access Certification Certifier', 'Row 1 roleName defaulted appropriately');
+  assert(wRow1.userBusinessUnit === 'Corporate', 'Row 1 userBusinessUnit mapped');
+
+  const wRow2 = worksheetDetails.data[1];
+  assert(wRow2.userName === 'Test1 user.claaps', 'Row 2 userName matches Test1 user.claaps');
+  assert(wRow2.certifiedManager === 'Karthika.Claaps', 'Row 2 certifiedManager matches Karthika.Claaps');
+
+  // -------------------------------------------------------------
+  // Test 9: Zero Rows / Non-Existent Certification ID Handling
+  // -------------------------------------------------------------
+  console.log('\n[Test 9: Zero Rows / Non-Existent Certification ID Handling]');
+  const notFoundDetails = client.parseCertifierWorksheetXlsxBase64(wsBase64, '99999');
+  assert(notFoundDetails.success === true, 'Returns success = true for valid report with 0 matching rows');
+  assert(notFoundDetails.count === 0, 'count is 0');
+  assert(Array.isArray(notFoundDetails.data) && notFoundDetails.data.length === 0, 'data is empty array');
+  assert(
+    notFoundDetails.message === 'No user access details found for this certification.',
+    'Friendly no-data message returned without error status'
+  );
+
+  // -------------------------------------------------------------
+  // Test 10: Empty Certification ID Rejection
+  // -------------------------------------------------------------
+  console.log('\n[Test 10: Empty Certification ID Rejection]');
+  const invalidCertResult = await client.runCertifierWorksheetReport('');
+  assert(invalidCertResult.success === false, 'Empty certification ID returns success = false');
+  assert(invalidCertResult.message === 'Certification ID is required.', 'Returns clear validation message');
+
+  // -------------------------------------------------------------
+  // Test 11: Main Report Row Certification ID Resolution
+  // -------------------------------------------------------------
+  console.log('\n[Test 11: Main Certification List ID Resolution]');
+  assert(String(parsedXlsx.data?.[0]?.certificationId) === '35006', 'CLAAPS_Access_Certification1 has certificationId = 35006');
+  assert(String(parsedXlsx.data?.[1]?.certificationId) === '36006', 'CLPS_Access_Certification2 has certificationId = 36006');
+  assert(String(parsedXlsx.data?.[2]?.certificationId) === '36007', 'FY26_QTR3_Claaps Access certification has certificationId = 36007');
+  assert(String(parsedXlsx.data?.[3]?.certificationId) === '35007', 'CLPS_Access_Certification3 has certificationId = 35007');
+
+  // -------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------
   console.log('\n===========================================================');

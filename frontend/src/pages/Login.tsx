@@ -190,8 +190,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       {/* Left brand panel — Mock Screen 1 */}
       <div className="veyra-login-brand">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <img src="/logo.png" alt="VEYRA logo" style={{ height: '44px', width: 'auto', objectFit: 'contain' }} />
-          <span style={{ fontSize: '1.9rem', fontWeight: 800, letterSpacing: '0.04em' }}>VEYRA</span>
+          <img src="/logo.png" alt="CLAAPS VEYRA logo" style={{ height: '44px', width: 'auto', objectFit: 'contain' }} />
+          <span style={{ fontSize: '1.9rem', fontWeight: 800, letterSpacing: '0.04em', color: '#FFFFFF' }}>
+            CLAAPS <span style={{ color: '#38BDF8' }}>VEYRA</span>
+          </span>
         </div>
         <div>
           <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>Audit Intelligence Platform</div>
@@ -221,7 +223,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div style={{ marginBottom: '1.5rem' }}>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#0a2540' }}>Sign in</h1>
             <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.3rem 0 0' }}>
-              to continue to VEYRA
+              to continue to CLAAPS VEYRA
             </p>
           </div>
 

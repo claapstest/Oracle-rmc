@@ -12,6 +12,7 @@ backend/dist/
 backend/oracle_config.json
 backend/oracle_config.json.tmp
 backend/cache/
+backend/oracle_user_access_report_cache.json
 
 # Log Files
 *.log
