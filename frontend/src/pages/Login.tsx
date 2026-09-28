@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Mail, AlertCircle, ArrowLeft, Key, Check, X, Eye, EyeOff, Shield, Users, FileText } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, AlertCircle, ArrowLeft, Key, Check, X, Eye, EyeOff, Shield, Users, FileText, ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
-import { normalizeEmail, validateLoginInputs, mapLoginError, type LoginFieldErrors } from '../utils/loginValidation';
+import { normalizeEmail, validateLoginInputs, mapLoginError, isActiveSessionError, type LoginFieldErrors } from '../utils/loginValidation';
 
 interface LoginProps {
   onLoginSuccess: (username: string, token: string, envMode?: 'DEMO' | 'ORACLE_FUSION') => void;
@@ -16,8 +16,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Tab control: 'LOGIN' or 'RESET_PASSWORD'
-  const [view, setView] = useState<'LOGIN' | 'RESET_PASSWORD'>('LOGIN');
+  // View control: 'LOGIN', 'RESET_PASSWORD', or 'ACTIVE_SESSION'
+  const [view, setView] = useState<'LOGIN' | 'RESET_PASSWORD' | 'ACTIVE_SESSION'>('LOGIN');
 
   // Reset Password form fields
   const [resetEmail, setResetEmail] = useState('');
@@ -32,6 +32,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     lower: /[a-z]/.test(newPassword),
     number: /[0-9]/.test(newPassword),
     special: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+  };
+
+  const handleBackToLogin = () => {
+    setView('LOGIN');
+    setPassword('');
+    setError('');
+    setFieldErrors({});
+    setSuccessMsg('');
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -57,12 +65,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const res = await api.login({ email: cleanEmail, password });
       if (res.success && res.token) {
         onLoginSuccess(res.email, res.token, res.environmentMode);
+      } else if (isActiveSessionError(res)) {
+        // Backend returned active session conflict in 200 payload wrapper
+        setView('ACTIVE_SESSION');
+        setPassword('');
+        setError('');
       } else {
         // AC6/AC7/AC10 — mapped, never raw backend text
-        setError(mapLoginError(res.message || 'Login failed.'));
+        setError(mapLoginError(res));
       }
     } catch (err: any) {
-      setError(mapLoginError(err?.message || ''));
+      if (isActiveSessionError(err)) {
+        // HTTP 409 Conflict: Active Session Exists
+        // Do NOT call logout, do NOT touch existing session, show dedicated screen
+        setView('ACTIVE_SESSION');
+        setPassword('');
+        setError('');
+        return;
+      }
+      setError(mapLoginError(err));
     } finally {
       setLoading(false);
     }
@@ -220,14 +241,18 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       {/* Right sign-in card */}
       <div className="veyra-login-form-wrap">
         <div className="veyra-login-card animate-fade-in">
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#0a2540' }}>Sign in</h1>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.3rem 0 0' }}>
-              to continue to CLAAPS VEYRA
-            </p>
-          </div>
+          {view !== 'ACTIVE_SESSION' && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#0a2540' }}>
+                {view === 'LOGIN' ? 'Sign in' : 'Reset Password'}
+              </h1>
+              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.3rem 0 0' }}>
+                {view === 'LOGIN' ? 'to continue to CLAAPS VEYRA' : 'Enter your reset code to choose a new password'}
+              </p>
+            </div>
+          )}
 
-          {error && (
+          {error && view !== 'ACTIVE_SESSION' && (
             <div role="alert" style={{
               display: 'flex',
               alignItems: 'center',
@@ -245,7 +270,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
           )}
 
-          {successMsg && (
+          {successMsg && view !== 'ACTIVE_SESSION' && (
             <div role="status" style={{
               display: 'flex',
               alignItems: 'center',
@@ -263,7 +288,114 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
           )}
 
-          {view === 'LOGIN' ? (
+          {view === 'ACTIVE_SESSION' ? (
+            <div className="veyra-active-session-wrap" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Header badge & icon */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '12px',
+                  backgroundColor: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#d97706',
+                  flexShrink: 0
+                }}>
+                  <ShieldAlert size={26} />
+                </div>
+                <div>
+                  <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#0a2540' }}>
+                    Active Session Detected
+                  </h1>
+                  <span style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Security Policy Notice
+                  </span>
+                </div>
+              </div>
+
+              {/* Informational card */}
+              <div style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '1.1rem',
+                fontSize: '0.875rem',
+                color: '#334155',
+                lineHeight: 1.55
+              }}>
+                <p style={{ margin: '0 0 0.65rem 0', fontWeight: 600, color: '#0f172a' }}>
+                  You already have an active session in VEYRA from another device or browser.
+                </p>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '0.825rem' }}>
+                  Please continue using your existing session or return to the login page.
+                </p>
+                {email && (
+                  <div style={{
+                    marginTop: '0.85rem',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.8rem',
+                    color: '#475569'
+                  }}>
+                    <Mail size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      Account: <strong>{normalizeEmail(email)}</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Reassurance note */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.6rem',
+                padding: '0.75rem 0.9rem',
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                border: '1px solid rgba(59, 130, 246, 0.18)',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                color: '#1e40af',
+                lineHeight: 1.45
+              }}>
+                <ShieldCheck size={16} style={{ flexShrink: 0, marginTop: '0.15rem', color: '#2563eb' }} />
+                <span>
+                  Your existing session remains valid and untouched. No session tokens were issued to this browser.
+                </span>
+              </div>
+
+              {/* Action: Back to Login */}
+              <button
+                type="button"
+                id="veyra-back-to-login-btn"
+                onClick={handleBackToLogin}
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#1d4ed8',
+                  borderColor: '#1d4ed8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  marginTop: '0.25rem'
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>Back to Login</span>
+              </button>
+            </div>
+          ) : view === 'LOGIN' ? (
             <form onSubmit={handleLoginSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               <div>
                 <label htmlFor="veyra-email" style={{ display: 'block', fontSize: '0.78rem', color: '#475569', marginBottom: '0.4rem', fontWeight: 600 }}>

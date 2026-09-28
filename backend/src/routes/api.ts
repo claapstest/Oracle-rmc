@@ -87,8 +87,20 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await authService.login(rawEmail, password);
+    const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = req.get('user-agent') || 'Unknown Client';
+    const result = await authService.login(rawEmail, password, { ipAddress: rawIp, userAgent });
+
     if (!result.success) {
+      if (result.code === 'ACTIVE_SESSION_EXISTS') {
+        return res.status(409).json({
+          code: 'ACTIVE_SESSION_EXISTS',
+          message: 'An active session already exists for this user.'
+        });
+      }
+      if (result.status && result.status !== 'ACTIVE') {
+        return res.status(403).json({ success: false, code: 'USER_DISABLED', message: result.message });
+      }
       return res.status(401).json({ success: false, message: result.message });
     }
     
@@ -96,6 +108,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       token: result.token,
+      sessionId: result.token,
       userId: result.userId,
       displayName: result.displayName,
       email: result.email || result.normalizedEmail || rawEmail,
@@ -129,8 +142,8 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
 });
 
 // POST /auth/logout - Sign Out User
-apiRouter.post('/auth/logout', requireAuth, (req: Request, res: Response) => {
-  authService.logout(res.locals.token);
+apiRouter.post('/auth/logout', requireAuth, async (req: Request, res: Response) => {
+  await authService.logout(res.locals.token);
   logAudit(res.locals.email, 'USER_LOGOUT', 'Logged out successfully');
   res.json({ success: true, message: 'Logged out successfully.' });
 });

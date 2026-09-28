@@ -46,6 +46,7 @@ export interface Session {
 
 export interface LoginResult {
   success: boolean;
+  code?: string;
   token?: string;
   userId?: string;
   displayName?: string;
@@ -247,7 +248,16 @@ export class AuthService {
    * Story VY-STRY-004 & VY-STRY-008:
    * Main Login Handler for Claaps VEYRA using PostgreSQL as Single Source of Truth
    */
-  public async login(rawEmail: string, rawPassword: string): Promise<LoginResult> {
+  /**
+   * Story VY-STRY-004, VY-STRY-008 & VY-STRY-005:
+   * Main Login Handler for Claaps VEYRA using PostgreSQL as Single Source of Truth
+   * Enforces SINGLE ACTIVE SESSION per user via database check + partial unique index.
+   */
+  public async login(
+    rawEmail: string,
+    rawPassword: string,
+    clientMeta?: { ipAddress?: string; userAgent?: string }
+  ): Promise<LoginResult> {
     // 1. Normalization: trim and lowercase email before database lookup
     const normalized = this.normalizeEmail(rawEmail);
 
@@ -285,17 +295,17 @@ export class AuthService {
 
       const dbUser = userRes.rows[0];
 
-      // 4. Validate user status: only ACTIVE accounts may authenticate
+      // 4. Validate user status: only ACTIVE accounts may authenticate (AC7)
       if (dbUser.status !== 'ACTIVE') {
         return {
           success: false,
+          status: dbUser.status as UserStatus,
           message: 'Your account is not active. Please contact a system administrator.'
         };
       }
 
       // 5. Password verification against veyra_user.password_hash using bcrypt
       if (!dbUser.password_hash) {
-        // User has no password set (e.g. initial unprovisioned bootstrap)
         return {
           success: false,
           message: GENERIC_AUTH_FAILURE_MSG
@@ -310,7 +320,38 @@ export class AuthService {
         };
       }
 
-      // 6. Retrieve active roles assigned via veyra_user_role -> veyra_role
+      // 6. AC6: Transition any expired ACTIVE sessions for this user to EXPIRED status
+      try {
+        await dbQuery(
+          `UPDATE veyra_session
+           SET status = 'EXPIRED'
+           WHERE user_id = $1 AND status = 'ACTIVE' AND expires_at IS NOT NULL AND expires_at < NOW()`,
+          [dbUser.id]
+        );
+      } catch (expErr) {
+        console.error('[Auth Service] Error updating expired sessions:', expErr);
+      }
+
+      // 7. AC2 & AC3: Check if an ACTIVE session already exists for this user in PostgreSQL
+      const existingActiveRes = await dbQuery(
+        `SELECT id, session_id, created_at, expires_at
+         FROM veyra_session
+         WHERE user_id = $1 AND status = 'ACTIVE'
+         LIMIT 1`,
+        [dbUser.id]
+      );
+
+      if (existingActiveRes.rows.length > 0) {
+        // Active session already exists: reject second login with 409 conflict
+        // AC4: Existing session remains completely valid and untouched
+        return {
+          success: false,
+          code: 'ACTIVE_SESSION_EXISTS',
+          message: 'An active session already exists for this user.'
+        };
+      }
+
+      // 8. Retrieve active roles assigned via veyra_user_role -> veyra_role
       const rolesRes = await dbQuery(
         `SELECT r.role_code, r.role_name
          FROM veyra_role r
@@ -319,7 +360,7 @@ export class AuthService {
         [dbUser.id]
       );
 
-      // 7. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
+      // 9. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
       const privilegesRes = await dbQuery(
         `SELECT DISTINCT p.privilege_code
          FROM veyra_privilege p
@@ -349,7 +390,46 @@ export class AuthService {
         permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole];
       }
 
-      // 8. Update last_login_at in PostgreSQL
+      // 10. Generate cryptographically secure session identifier & expiry
+      const sessionId = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours validity
+
+      // Sanitize IP address for PostgreSQL INET (handle IPv4/IPv6 cleanly)
+      let rawIp = clientMeta?.ipAddress || '127.0.0.1';
+      if (rawIp.startsWith('::ffff:')) {
+        rawIp = rawIp.replace('::ffff:', '');
+      }
+      const ipAddress = (rawIp === '::1' || /^[\d.]+$/.test(rawIp) || /^[a-fA-F0-9:]+$/.test(rawIp)) ? rawIp : '127.0.0.1';
+      const userAgent = (clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
+
+      // 11. AC1 & AC5: Create veyra_session row with PostgreSQL partial unique constraint protection
+      try {
+        await dbQuery(
+          `INSERT INTO veyra_session (
+             session_id, user_id, status, created_at, last_activity_at, expires_at, ip_address, user_agent, created_by
+           ) VALUES ($1, $2, 'ACTIVE', NOW(), NOW(), $3, $4, $5, 'AUTH_SERVICE')`,
+          [sessionId, dbUser.id, expiresAt, ipAddress, userAgent]
+        );
+      } catch (insertErr: any) {
+        // AC5: Concurrency race protection — catch PostgreSQL unique constraint violation on partial index
+        if (
+          insertErr.code === '23505' &&
+          (insertErr.constraint === 'uq_veyra_session_user_active' ||
+           insertErr.message?.includes('uq_veyra_session_user_active') ||
+           insertErr.detail?.includes('user_id'))
+        ) {
+          console.warn(`[Auth Service] Caught concurrent active session race condition for user ${dbUser.id}`);
+          return {
+            success: false,
+            code: 'ACTIVE_SESSION_EXISTS',
+            message: 'An active session already exists for this user.'
+          };
+        }
+        console.error('[Auth Service] Database session creation failure:', insertErr);
+        throw insertErr;
+      }
+
+      // 12. Update last_login_at in veyra_user
       try {
         await dbQuery(
           `UPDATE veyra_user SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1`,
@@ -359,12 +439,12 @@ export class AuthService {
         console.error('[Auth Service] Failed to update last_login_at in veyra_user:', auditErr);
       }
 
-      // 9. Create session in memory (prepared for Single Active Session / Timeout stories)
+      // 13. Populate in-memory session cache for fast auth verification
       const authUser: AuthUser = {
         userId: dbUser.id,
         email: dbUser.email,
         displayName: dbUser.display_name || this.generateDisplayName(dbUser.email),
-        passwordHash: null, // Strictly excluded from session memory
+        passwordHash: null,
         status: dbUser.status as UserStatus,
         role: primaryRole,
         permissions,
@@ -375,12 +455,22 @@ export class AuthService {
         resetCode: null
       };
 
-      const token = this.createSession(authUser);
+      activeSessions.set(sessionId, {
+        token: sessionId,
+        userId: dbUser.id,
+        email: normalized,
+        displayName: authUser.displayName,
+        role: primaryRole,
+        permissions,
+        isAdmin: isSiteAdmin,
+        createdAt: Date.now(),
+        expiresAt: expiresAt.getTime()
+      });
 
-      // 10. Return safe authenticated context (never return password or hash)
+      // 14. Return safe authenticated context (never return password or hash)
       return {
         success: true,
-        token,
+        token: sessionId,
         userId: dbUser.id,
         displayName: authUser.displayName,
         email: dbUser.email,
@@ -455,8 +545,19 @@ export class AuthService {
     return { ...user };
   }
 
-  public logout(token: string) {
+  public async logout(token: string) {
+    if (!token) return;
     activeSessions.delete(token);
+    try {
+      await dbQuery(
+        `UPDATE veyra_session 
+         SET status = 'LOGGED_OUT', logged_out_at = NOW() 
+         WHERE session_id = $1 AND status = 'ACTIVE'`,
+        [token]
+      );
+    } catch (err) {
+      console.error('[Auth Service] Error updating veyra_session on logout:', err);
+    }
   }
 
   // Admin Portal user management helpers

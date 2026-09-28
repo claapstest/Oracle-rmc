@@ -88,6 +88,21 @@ export function clearClientApiCache() {
   clientCache.clear();
 }
 
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  data?: any;
+
+  constructor(message: string, status: number, code?: string, data?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.data = data;
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
+}
+
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const method = options.method || 'GET';
   const body = options.body ? String(options.body) : '';
@@ -125,7 +140,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
           window.dispatchEvent(new CustomEvent('auth:expired'));
         }
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || `Request failed with status ${res.status}`);
+        const message = errorData.message || errorData.error || `Request failed with status ${res.status}`;
+        const code = errorData.code || errorData.errorCode || errorData.error_code;
+        throw new ApiError(message, res.status, code, errorData);
       }
       
       const data = await res.json();

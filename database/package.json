@@ -10,7 +10,9 @@
     "migrate:create": "node-pg-migrate create",
     "seed": "tsx src/seeds/rbac_seed.ts",
     "provision:admin": "tsx src/scripts/provision_admin.ts",
-    "test": "tsx src/tests/verify_story_008_rbac.ts"
+    "test:story8": "tsx src/tests/verify_story_008_rbac.ts",
+    "test:story9": "tsx src/tests/verify_story_009_session.ts",
+    "test": "tsx src/tests/verify_story_008_rbac.ts && tsx src/tests/verify_story_009_session.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
