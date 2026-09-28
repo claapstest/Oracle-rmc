@@ -27,6 +27,6 @@ if (!/disabled/i.test(mapLoginError('Your account has been deactivated. Please c
 // Backend status rejection must also map to access-denied (Srikar's wording)
 eq(mapLoginError('Your account is not active. Please contact a system administrator.'), 'Your account has been disabled. Please contact your administrator.', 'not-active mapping');
 // AC10 — technical errors never leak
-eq(mapLoginError('ECONNREFUSED connect to db:5432'), 'Something went wrong. Please try again.', 'tech error');
+eq(mapLoginError('ECONNREFUSED connect to db:5432'), 'Something went wrong. Please try again later.', 'tech error');
 
 console.log('loginValidation checks passed');
