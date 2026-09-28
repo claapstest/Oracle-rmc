@@ -22,6 +22,51 @@ interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
 }
 
+// Certifier worksheet columns (23). Each column lists candidate row-field keys so
+// both camelCase and UPPER_SNAKE BIP payload shapes resolve; missing fields render '—'.
+interface WorksheetColumn {
+  header: string;
+  keys: string[];
+  icon?: 'role';
+}
+
+export const WORKSHEET_COLUMNS: WorksheetColumn[] = [
+  { header: 'ROLE NAME', keys: ['roleName', 'ROLE_NAME'], icon: 'role' },
+  { header: 'USER NAME', keys: ['userName', 'ownerName', 'USER_NAME'] },
+  { header: 'DIRECT MANAGER', keys: ['directManager', 'DIRECT_MANAGER'] },
+  { header: 'ACTION', keys: ['action', 'certificationAction', 'ACTION'] },
+  { header: 'ATTACHMENTS', keys: ['attachments', 'attachmentCount', 'ATTACHMENTS'] },
+  { header: 'COMMENTS', keys: ['comments', 'commentCount', 'COMMENTS'] },
+  { header: 'FOLLOW-UP', keys: ['followUp', 'FOLLOW_UP'] },
+  { header: 'BUSINESS UNIT', keys: ['businessUnit', 'userBusinessUnit', 'BUSINESS_UNIT'] },
+  { header: 'CREATED BY', keys: ['createdBy', 'CREATED_BY'] },
+  { header: 'CREATION DATE', keys: ['creationDate', 'CREATION_DATE'] },
+  { header: 'FOLLOW-UP STATUS', keys: ['followUpStatus', 'FOLLOW_UP_STATUS'] },
+  { header: 'JOB NAME', keys: ['jobName', 'JOB_NAME'] },
+  { header: 'LAST DECISION BY', keys: ['lastDecisionBy', 'LAST_DECISION_BY'] },
+  { header: 'LAST DECISION DATE', keys: ['lastDecisionDate', 'LAST_DECISION_DATE'] },
+  { header: 'LAST UPDATED DATE', keys: ['lastUpdatedDate', 'LAST_UPDATED_DATE'] },
+  { header: 'LOCATION', keys: ['location', 'LOCATION'] },
+  { header: 'PENDING SUBMISSION', keys: ['pendingSubmission', 'PENDING_SUBMISSION'] },
+  { header: 'POSITION NAME', keys: ['positionName', 'POSITION_NAME'] },
+  { header: 'USER-ROLE BUSINESS UNIT', keys: ['userRoleBusinessUnit', 'USER_ROLE_BUSINESS_UNIT'] },
+  { header: 'ROLE CODE', keys: ['roleCode', 'ROLE_CODE'] },
+  { header: 'ROLE DESCRIPTION', keys: ['roleDescription', 'ROLE_DESCRIPTION'] },
+  { header: 'SELF-CERTIFIED', keys: ['selfCertified', 'SELF_CERTIFIED'] },
+  { header: 'UPDATED BY', keys: ['updatedBy', 'UPDATED_BY'] }
+];
+
+export function wsVal(row: any, keys: string[]): string {
+  for (const k of keys) {
+    const v = row?.[k];
+    if (v !== undefined && v !== null) {
+      const s = String(v).trim();
+      if (s !== '' && s.toLowerCase() !== 'null') return s;
+    }
+  }
+  return '';
+}
+
 export default function AccessCertificates({ environmentMode }: AccessCertificatesProps) {
   // Main Certification List State
   const [certifications, setCertifications] = useState<any[]>([]);
@@ -142,25 +187,12 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
     setWorksheetSearchTerm('');
   };
 
-  // Filtered worksheet rows based on search term
+  // Filtered worksheet rows based on search term (matches across all 23 columns)
   const filteredWorksheetRows = useMemo(() => {
     if (!worksheetSearchTerm.trim()) return worksheetRows;
     const term = worksheetSearchTerm.toLowerCase().trim();
     return worksheetRows.filter((r) => {
-      const role = String(r.roleName || '').toLowerCase();
-      const user = String(r.userName || r.ownerName || '').toLowerCase();
-      const directMgr = String(r.directManager || '').toLowerCase();
-      const certName = String(r.certificationName || '').toLowerCase();
-      const certId = String(r.certificationId || '').toLowerCase();
-      const bu = String(r.userBusinessUnit || r.businessUnit || '').toLowerCase();
-      return (
-        role.includes(term) ||
-        user.includes(term) ||
-        directMgr.includes(term) ||
-        certName.includes(term) ||
-        certId.includes(term) ||
-        bu.includes(term)
-      );
+      return WORKSHEET_COLUMNS.some((c) => wsVal(r, c.keys).toLowerCase().includes(term));
     });
   }, [worksheetRows, worksheetSearchTerm]);
 
@@ -209,23 +241,10 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
 
   const exportWorksheetToCsv = () => {
     if (filteredWorksheetRows.length === 0) return;
-    const headers = [
-      '#',
-      'Role Name',
-      'User Name',
-      'Direct Manager',
-      'Certification Name',
-      'Certification ID',
-      'User Business Unit'
-    ];
+    const headers = ['#', ...WORKSHEET_COLUMNS.map((c) => c.header)];
     const rows = filteredWorksheetRows.map((r, idx) => [
       idx + 1,
-      `"${String(r.roleName || '').replace(/"/g, '""')}"`,
-      `"${String(r.userName || r.ownerName || '').replace(/"/g, '""')}"`,
-      `"${String(r.directManager && r.directManager !== 'null' ? r.directManager : '').replace(/"/g, '""')}"`,
-      `"${String(r.certificationName || '').replace(/"/g, '""')}"`,
-      `"${String(r.certificationId || '').replace(/"/g, '""')}"`,
-      `"${String(r.userBusinessUnit || r.businessUnit || '').replace(/"/g, '""')}"`
+      ...WORKSHEET_COLUMNS.map((c) => `"${wsVal(r, c.keys).replace(/"/g, '""')}"`)
     ]);
 
     const csvContent =
@@ -705,7 +724,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                 </span>
                 <input
                   type="text"
-                  placeholder="Filter by user, role, manager, BU..."
+                  placeholder="Filter by any column value..."
                   value={worksheetSearchTerm}
                   onChange={(e) => {
                     setWorksheetSearchTerm(e.target.value);
@@ -798,24 +817,21 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
             </div>
           </div>
 
-          {/* REQUIRED CERTIFIER WORKSHEET TABLE (7 COLUMNS) */}
+          {/* REQUIRED CERTIFIER WORKSHEET TABLE (23 COLUMNS) */}
           <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
                   <th style={{ padding: '0.85rem 1rem', width: '45px', fontWeight: 700 }}>#</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>ROLE NAME</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>USER NAME</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>DIRECT MANAGER</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>CERTIFICATION NAME</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>CERTIFICATION ID</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>USER BUSINESS UNIT</th>
+                  {WORKSHEET_COLUMNS.map((c) => (
+                    <th key={c.header} style={{ padding: '0.85rem 1rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{c.header}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {loadingDetails ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                    <td colSpan={WORKSHEET_COLUMNS.length + 1} style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                         <RefreshCw size={24} className="animate-spin" style={{ color: '#2563EB' }} />
                         <span style={{ fontWeight: 600 }}>Loading certification details...</span>
@@ -824,7 +840,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                   </tr>
                 ) : paginatedWorksheetRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                    <td colSpan={WORKSHEET_COLUMNS.length + 1} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
                       <Users size={32} style={{ color: '#94A3B8', margin: '0 auto 0.75rem auto' }} />
                       <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#334155' }}>
                         No user access records found for this certification.
@@ -850,47 +866,21 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                       >
                         <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#64748B' }}>{rowNum}</td>
-                        <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#1E293B' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <ShieldCheck size={15} style={{ color: '#2563EB', flexShrink: 0 }} />
-                            <span>{row.roleName || 'Accounts Receivable Manager'}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', fontWeight: 600, color: '#0F172A' }}>
-                          {row.userName || row.ownerName || '—'}
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>
-                          {row.directManager && row.directManager !== 'null' ? (
-                            <span style={{ fontWeight: 600, color: '#0F172A' }}>{row.directManager}</span>
-                          ) : (
-                            <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>
-                          {row.certificationName || certName || '—'}
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '0.2rem 0.55rem',
-                              fontSize: '0.78rem',
-                              fontWeight: 700,
-                              borderRadius: '4px',
-                              backgroundColor: '#EFF6FF',
-                              color: '#1D4ED8',
-                              border: '1px solid #DBEAFE'
-                            }}
-                          >
-                            {row.certificationId || drillDownCertId}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Building2 size={14} style={{ color: '#64748B', flexShrink: 0 }} />
-                            <span>{row.userBusinessUnit || row.businessUnit || 'Corporate'}</span>
-                          </div>
-                        </td>
+                        {WORKSHEET_COLUMNS.map((c) => {
+                          const v = wsVal(row, c.keys) || '—';
+                          return (
+                            <td key={c.header} style={{ padding: '0.9rem 1rem', color: '#334155', whiteSpace: 'nowrap' }}>
+                              {c.icon === 'role' ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <ShieldCheck size={15} style={{ color: '#2563EB', flexShrink: 0 }} />
+                                  <span style={{ fontWeight: 700, color: '#1E293B' }}>{v}</span>
+                                </div>
+                              ) : (
+                                <span>{v}</span>
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })
