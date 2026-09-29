@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Mail, AlertCircle, ArrowLeft, Key, Check, X, Eye, EyeOff, Shield, Users, FileText, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, AlertCircle, ArrowLeft, Key, Check, X, Eye, EyeOff, Shield, Users, FileText, ShieldAlert, Clock } from 'lucide-react';
 import { api } from '../services/api';
 import { normalizeEmail, validateLoginInputs, mapLoginError, isActiveSessionError, type LoginFieldErrors } from '../utils/loginValidation';
 
 interface LoginProps {
   onLoginSuccess: (username: string, token: string, envMode?: 'DEMO' | 'ORACLE_FUSION') => void;
+  sessionExpiredNotice?: string;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -249,6 +250,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.3rem 0 0' }}>
                 {view === 'LOGIN' ? 'to continue to CLAAPS VEYRA' : 'Enter your reset code to choose a new password'}
               </p>
+            </div>
+          )}
+
+          {sessionExpiredNotice && !error && view !== 'ACTIVE_SESSION' && (
+            <div role="status" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              backgroundColor: '#FFF7ED',
+              border: '1px solid #FED7AA',
+              borderRadius: '8px',
+              padding: '0.7rem 0.9rem',
+              color: '#C2410C',
+              fontSize: '0.85rem',
+              marginBottom: '1.25rem',
+              fontWeight: 500
+            }}>
+              <Clock size={16} style={{ flexShrink: 0 }} />
+              <span>{sessionExpiredNotice}</span>
             </div>
           )}
 

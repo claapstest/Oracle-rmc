@@ -159,6 +159,16 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
   });
 });
 
+// POST /auth/refresh - Refresh Active Session Inactivity Timer (AC3)
+apiRouter.post('/auth/refresh', requireAuth, (req: Request, res: Response) => {
+  logAudit(res.locals.email, 'SESSION_REFRESH', 'User requested session keep-alive refresh');
+  res.json({
+    success: true,
+    message: 'Session activity refreshed successfully.',
+    lastActivityAt: Date.now()
+  });
+});
+
 // POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9)
 apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
   const authHeader = req.header('Authorization');

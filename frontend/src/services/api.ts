@@ -405,6 +405,12 @@ export const api = {
     return apiRequest('/auth/status');
   },
 
+  async refreshSession() {
+    return apiRequest('/auth/refresh', {
+      method: 'POST',
+    });
+  },
+
   async logout() {
     return apiRequest('/auth/logout', {
       method: 'POST',

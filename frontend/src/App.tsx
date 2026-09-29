@@ -37,8 +37,10 @@ import CommandCenter from './pages/CommandCenter';
 import InvestigationWorkspace from './pages/InvestigationWorkspace';
 import FullInvestigationView from './pages/FullInvestigationView';
 
-import { api, getActiveAuthToken, getActiveUserEmail, setActiveAuthSession, clearActiveAuthSession } from './services/api';
+import { api, getActiveAuthToken, getActiveUserEmail, setActiveAuthSession, clearActiveAuthSession, clearClientApiCache } from './services/api';
 import { clearSecuritySession } from './services/securitySessionService';
+import { SessionTimeoutModal } from './components/SessionTimeoutModal';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 
 // Risk Management is a parent navigation group (no content page of its own).
 // Its three child pages are distinct application page states.
@@ -108,6 +110,8 @@ export default function App() {
   // The group is additionally force-expanded whenever a Risk child page is active.
   const [riskGroupOpen, setRiskGroupOpen] = useState(false);
 
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState<string>('');
+
   // Restore authenticated session and environment mode from active session storage on mount,
   // verifying session validity with the backend
   useEffect(() => {
@@ -159,13 +163,11 @@ export default function App() {
   useEffect(() => {
     const handleAuthExpired = () => {
       console.warn('Authentication session expired. Prompting for credentials.');
-      clearActiveAuthSession();
-      setIsLoggedIn(false);
-      setIsAdmin(false);
+      handleLogout('EXPIRED');
     };
     window.addEventListener('auth:expired', handleAuthExpired);
     return () => window.removeEventListener('auth:expired', handleAuthExpired);
-  }, []);
+  }, [currentUser]);
   
   // Bridge state for FAQ clicking
   const [faqQuestion, setFaqQuestion] = useState('');
@@ -393,6 +395,7 @@ export default function App() {
   const handleLoginSuccess = (username: string, token: string, envMode?: 'DEMO' | 'ORACLE_FUSION') => {
     setActiveAuthSession(token, username);
     setCurrentUser(username);
+    setSessionExpiredNotice('');
     setIsLoggedIn(true);
     setAuthChecked(true);
     if (envMode) {
@@ -401,19 +404,60 @@ export default function App() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (reason: 'MANUAL' | 'EXPIRED' = 'MANUAL') => {
     try {
       await api.logout();
     } catch (err) {
       console.error('Failed to logout cleanly from server:', err);
     }
     clearActiveAuthSession();
+    clearSecuritySession(currentUser);
+    clearClientApiCache();
     setIsLoggedIn(false);
     setCurrentUser('');
+    setIsAdmin(false);
     setCurrentPage('dashboard');
     setIsSidebarOpen(true);
     handleClose();
+    setVisitedPages(new Set(['dashboard']));
+    setFaqQuestion('');
+    try {
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (_) {}
+
+    if (reason === 'EXPIRED') {
+      setSessionExpiredNotice('Your session has expired due to inactivity. Please log in again.');
+    } else {
+      setSessionExpiredNotice('');
+    }
   };
+
+  // Session Inactivity Monitoring & Warning Hook (AC1, AC2, AC3, AC4, AC5)
+  const {
+    isWarningOpen,
+    secondsRemaining,
+    handleStayLoggedIn,
+    handleLogoutNow
+  } = useSessionTimeout({
+    isLoggedIn,
+    onLogout: (reason) => handleLogout(reason),
+    timeoutSeconds: 5 * 60, // 5 minutes inactivity (AC1)
+    warningSeconds: 30       // 30 seconds warning (AC2)
+  });
+
+  // Browser Back Button Protection (AC8)
+  useEffect(() => {
+    const handlePopState = () => {
+      const token = getActiveAuthToken();
+      if (!token) {
+        setIsLoggedIn(false);
+        setCurrentUser('');
+        setIsAdmin(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleFAQSelect = (question: string) => {
     setFaqQuestion(question);
@@ -437,7 +481,7 @@ export default function App() {
   }
 
   if (!isLoggedIn) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    return <Login sessionExpiredNotice={sessionExpiredNotice} onLoginSuccess={handleLoginSuccess} />;
   }
 
   // Helper to extract initials for user avatar
@@ -609,7 +653,7 @@ export default function App() {
               </span>
             </div>
             <button 
-              onClick={handleLogout}
+              onClick={() => handleLogout('MANUAL')}
               className="user-logout-btn"
               title="Sign Out of Session"
             >
@@ -872,8 +916,15 @@ export default function App() {
             </div>
           )}
         </div>
-
       </main>
+
+      {/* Session Inactivity Timeout Warning Modal matching Mock Screen 3 */}
+      <SessionTimeoutModal
+        isOpen={isWarningOpen}
+        secondsRemaining={secondsRemaining}
+        onStayLoggedIn={handleStayLoggedIn}
+        onLogoutNow={handleLogoutNow}
+      />
     </div>
   );
 }
