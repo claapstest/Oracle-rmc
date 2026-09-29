@@ -168,7 +168,7 @@ export default function App() {
     window.addEventListener('auth:expired', handleAuthExpired);
     return () => window.removeEventListener('auth:expired', handleAuthExpired);
   }, [currentUser]);
-  
+
   // Bridge state for FAQ clicking
   const [faqQuestion, setFaqQuestion] = useState('');
 
@@ -205,13 +205,13 @@ export default function App() {
         newUrl = `/ask-veyra/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
       }
       window.history.pushState({ investigation: item }, '', newUrl);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const resetUrlToCurrentPage = () => {
     try {
       window.history.pushState(null, '', `/?page=${currentPage}`);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleOpenQueryInvestigation = (invId: string, _payload?: any) => {
@@ -423,7 +423,7 @@ export default function App() {
     setFaqQuestion('');
     try {
       window.history.replaceState(null, '', window.location.pathname);
-    } catch (_) {}
+    } catch (_) { }
 
     if (reason === 'EXPIRED') {
       setSessionExpiredNotice('Your session has expired due to inactivity. Please log in again.');
@@ -539,22 +539,22 @@ export default function App() {
 
   return (
     <div className="app-container">
-      
+
       {/* Redesigned Enterprise Dark Navy Navigation Sidebar */}
       <aside className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}>
-        
+
         {/* Brand Header */}
         <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => handlePageSelect('dashboard')}>
-          <img 
-            src="/logo.png" 
-            alt="CLAAPS VEYRA Logo" 
-            style={{ 
-              width: '34px', 
-              height: '34px', 
+          <img
+            src="/logo.png"
+            alt="CLAAPS VEYRA Logo"
+            style={{
+              width: '34px',
+              height: '34px',
               objectFit: 'contain',
               flexShrink: 0,
               filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))'
-            }} 
+            }}
           />
           <span className="logo-text" style={{ letterSpacing: '0.01em', fontSize: '1.14rem', fontWeight: 800 }}>
             CLAAPS <span className="logo-accent">VEYRA</span>
@@ -652,7 +652,7 @@ export default function App() {
                 {currentUser || 'karthika.gundreddi@claaps.com'}
               </span>
             </div>
-            <button 
+            <button
               onClick={() => handleLogout('MANUAL')}
               className="user-logout-btn"
               title="Sign Out of Session"
@@ -667,7 +667,7 @@ export default function App() {
 
       {/* Main Panel Viewport */}
       <main className="main-content">
-        
+
         {/* Topbar matching Blue Gradient Theme */}
         <header className="topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
@@ -723,11 +723,11 @@ export default function App() {
             </div>
 
             {/* Notification Bell with Badge matching Reference */}
-            <div style={{ 
-              position: 'relative', 
-              cursor: 'pointer', 
-              padding: '0.4rem', 
-              borderRadius: '8px', 
+            <div style={{
+              position: 'relative',
+              cursor: 'pointer',
+              padding: '0.4rem',
+              borderRadius: '8px',
               backgroundColor: 'rgba(255, 255, 255, 0.15)',
               display: 'flex',
               alignItems: 'center',
@@ -777,19 +777,19 @@ export default function App() {
 
         {/* View Switcher wrapper with display toggling to preserve component states */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-          
+
           {/* Main page content wrapper */}
-          <div style={{ 
-            flex: 1, 
-            display: (activeInvestigation || activeQueryInvestigation) ? 'none' : 'block', 
-            height: '100%', 
-            overflowY: 'auto' 
+          <div style={{
+            flex: 1,
+            display: (activeInvestigation || activeQueryInvestigation) ? 'none' : 'block',
+            height: '100%',
+            overflowY: 'auto'
           }}>
             {visitedPages.has('dashboard') && (
               <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
-                <Dashboard 
-                  onFAQSelect={handleFAQSelect} 
-                  environmentMode={environmentMode} 
+                <Dashboard
+                  onFAQSelect={handleFAQSelect}
+                  environmentMode={environmentMode}
                   onInvestigate={handleInvestigate}
                   onNavigatePage={(pageId, filter) => {
                     handlePageSelect(pageId);
@@ -799,14 +799,14 @@ export default function App() {
                 />
               </div>
             )}
-            <div style={{ 
-              display: currentPage === 'assistant' ? 'flex' : 'none', 
-              height: '100%', 
-              flexDirection: 'column' 
+            <div style={{
+              display: currentPage === 'assistant' ? 'flex' : 'none',
+              height: '100%',
+              flexDirection: 'column'
             }}>
-              <Assistant 
+              <Assistant
                 currentUser={currentUser}
-                initialQuestion={faqQuestion} 
+                initialQuestion={faqQuestion}
                 clearInitialQuestion={() => setFaqQuestion('')}
                 environmentMode={environmentMode}
                 onNavigatePage={(pageId, filter) => {
@@ -820,18 +820,18 @@ export default function App() {
             </div>
             {visitedPages.has('users') && (
               <div style={{ display: currentPage === 'users' ? 'block' : 'none', height: '100%' }}>
-                <UsersPage 
-                  initialFilter={initialUsersFilter} 
-                  onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)} 
+                <UsersPage
+                  initialFilter={initialUsersFilter}
+                  onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
                   onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
                 />
               </div>
             )}
             {visitedPages.has('roles') && (
               <div style={{ display: currentPage === 'roles' ? 'block' : 'none', height: '100%' }}>
-                <RolesPage 
-                  initialCategory={initialRolesCategory} 
-                  onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)} 
+                <RolesPage
+                  initialCategory={initialRolesCategory}
+                  onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
                 />
               </div>
             )}
@@ -857,7 +857,7 @@ export default function App() {
             )}
             {visitedPages.has('reports') && (
               <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
-                <ReportsPage 
+                <ReportsPage
                   environmentMode={environmentMode}
                   onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
                   onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
@@ -866,9 +866,9 @@ export default function App() {
             )}
             {visitedPages.has('settings') && (
               <div style={{ display: currentPage === 'settings' ? 'block' : 'none', height: '100%' }}>
-                <SettingsPage 
-                  environmentMode={environmentMode} 
-                  setEnvironmentMode={setEnvironmentMode} 
+                <SettingsPage
+                  environmentMode={environmentMode}
+                  setEnvironmentMode={setEnvironmentMode}
                   currentUser={currentUser}
                 />
               </div>
@@ -883,7 +883,7 @@ export default function App() {
           {/* Query Investigation View Panel (Same Tab) */}
           {activeQueryInvestigation && !activeInvestigation && (
             <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
-              <FullInvestigationView 
+              <FullInvestigationView
                 investigationId={activeQueryInvestigation}
                 environmentMode={environmentMode}
                 onInvestigate={handleInvestigateFromQuery}
@@ -901,7 +901,7 @@ export default function App() {
           {/* Entity Investigation Workspace Panel */}
           {activeInvestigation && (
             <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
-              <InvestigationWorkspace 
+              <InvestigationWorkspace
                 entity={activeInvestigation}
                 onClose={handleClose}
                 onNavigate={handleNavigate}

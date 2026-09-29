@@ -9,8 +9,9 @@ export interface SessionTimeoutModalProps {
 }
 
 /**
- * Session Timeout Warning Modal matching Mock Screen 3 specs.
- * Warns user when session is within warning period (default 30 seconds before 5-min limit).
+ * Session Timeout Warning Modal strictly matching Mock Screen 3 specs.
+ * Rendered as a high-contrast modal overlay centered on the screen.
+ * Uses 100% pure inline styles & CSS variables to avoid Tailwind dependency.
  */
 export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
   isOpen,
@@ -22,84 +23,192 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)'
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(15, 23, 42, 0.55)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.25rem',
+        boxSizing: 'border-box'
       }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="session-warning-title"
     >
       <div
-        className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border border-amber-200 animate-in fade-in zoom-in-95 duration-200"
         style={{
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          background: '#FFFFFF'
+          width: '100%',
+          maxWidth: '450px',
+          backgroundColor: '#FFFDF7',
+          border: '1px solid #FED7AA',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.1)',
+          padding: '2.25rem 2rem',
+          textAlign: 'center',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          boxSizing: 'border-box',
+          position: 'relative',
+          overflow: 'hidden',
+          animation: 'veyraModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        {/* Mock Screen 3 Inner Card Container with subtle warm amber tint */}
-        <div className="p-7 text-center" style={{ backgroundColor: '#FFFBF0' }}>
-          {/* Circular Clock Icon Header Badge */}
-          <div
-            className="mx-auto mb-4 flex items-center justify-center rounded-full"
+        <style>{`
+          @keyframes veyraModalPop {
+            0% { opacity: 0; transform: scale(0.94) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .veyra-btn-primary {
+            background-color: #2563EB !important;
+            color: #FFFFFF !important;
+            border: 1px solid #2563EB !important;
+          }
+          .veyra-btn-primary:hover {
+            background-color: #1D4ED8 !important;
+            border-color: #1D4ED8 !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+          }
+          .veyra-btn-secondary {
+            background-color: #FFFFFF !important;
+            color: #334155 !important;
+            border: 1px solid #CBD5E1 !important;
+          }
+          .veyra-btn-secondary:hover {
+            background-color: #F8FAFC !important;
+            border-color: #94A3B8 !important;
+            color: #0F172A !important;
+          }
+        `}</style>
+
+        {/* Circular Clock Icon Badge — Mock Screen 3 Header */}
+        <div
+          style={{
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            backgroundColor: '#FFEDD5',
+            border: '2px solid #FDBA74',
+            color: '#EA580C',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.25rem',
+            boxShadow: '0 4px 12px rgba(234, 88, 12, 0.12)'
+          }}
+        >
+          <Clock size={34} strokeWidth={2.2} />
+        </div>
+
+        {/* Title — Mock Screen 3 Heading */}
+        <h2
+          id="session-warning-title"
+          style={{
+            fontSize: '1.35rem',
+            fontWeight: 700,
+            color: '#7C2D12',
+            fontFamily: "'Outfit', 'Inter', sans-serif",
+            margin: '0 0 0.85rem 0',
+            letterSpacing: '-0.01em'
+          }}
+        >
+          Session Expiring Soon
+        </h2>
+
+        {/* Body Line 1 — Mock Screen 3 Countdown Text */}
+        <p
+          style={{
+            color: '#334155',
+            fontSize: '0.95rem',
+            fontWeight: 500,
+            margin: '0 0 0.6rem 0',
+            lineHeight: 1.5
+          }}
+        >
+          You will be logged out in{' '}
+          <span
             style={{
-              width: '64px',
-              height: '64px',
+              color: '#C2410C',
+              fontWeight: 700,
               backgroundColor: '#FFEDD5',
-              border: '2px solid #FED7AA'
+              padding: '0.15rem 0.5rem',
+              borderRadius: '6px',
+              border: '1px solid #FDBA74',
+              display: 'inline-block'
             }}
           >
-            <Clock className="w-8 h-8 text-amber-600" aria-hidden="true" />
-          </div>
+            {secondsRemaining} {secondsRemaining === 1 ? 'second' : 'seconds'}
+          </span>{' '}
+          due to inactivity.
+        </p>
 
-          {/* Heading */}
-          <h2
-            id="session-warning-title"
-            className="text-xl font-bold text-slate-900 mb-3"
-            style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}
+        {/* Body Line 2 — Mock Screen 3 Question */}
+        <p
+          style={{
+            color: '#1E293B',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            margin: '0 0 1.75rem 0'
+          }}
+        >
+          Do you want to continue your session?
+        </p>
+
+        {/* Action Buttons — Mock Screen 3 Buttons */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.85rem',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          {/* Stay Logged In — Solid Blue Primary Button */}
+          <button
+            type="button"
+            onClick={onStayLoggedIn}
+            className="veyra-btn-primary"
+            style={{
+              flex: 1,
+              borderRadius: '8px',
+              padding: '0.75rem 1.25rem',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.18s ease',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+              outline: 'none'
+            }}
           >
-            Session Expiring Soon
-          </h2>
+            Stay Logged In
+          </button>
 
-          {/* Subtitle / Description - AC2: Dynamic Countdown Display */}
-          <p className="text-slate-700 text-sm mb-2 font-medium">
-            You will be logged out in{' '}
-            <span className="font-bold text-amber-700 text-base underline decoration-amber-400 decoration-2">
-              {secondsRemaining} {secondsRemaining === 1 ? 'second' : 'seconds'}
-            </span>{' '}
-            due to inactivity.
-          </p>
-
-          <p className="text-slate-800 text-sm font-semibold mb-6">
-            Do you want to continue your session?
-          </p>
-
-          {/* Action Buttons: AC3 & AC4 */}
-          <div className="flex items-center justify-center gap-3 mt-2">
-            {/* AC3: Stay Logged In (Primary Action) */}
-            <button
-              type="button"
-              onClick={onStayLoggedIn}
-              className="flex-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              style={{
-                backgroundColor: '#2563EB',
-                borderColor: '#2563EB'
-              }}
-            >
-              Stay Logged In
-            </button>
-
-            {/* AC4: Logout Now (Secondary Action) */}
-            <button
-              type="button"
-              onClick={onLogoutNow}
-              className="flex-1 px-5 py-2.5 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg border border-slate-300 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-            >
-              Logout Now
-            </button>
-          </div>
+          {/* Logout Now — White Outlined Secondary Button */}
+          <button
+            type="button"
+            onClick={onLogoutNow}
+            className="veyra-btn-secondary"
+            style={{
+              flex: 1,
+              borderRadius: '8px',
+              padding: '0.75rem 1.25rem',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.18s ease',
+              outline: 'none'
+            }}
+          >
+            Logout Now
+          </button>
         </div>
       </div>
     </div>
