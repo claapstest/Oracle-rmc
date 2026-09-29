@@ -154,6 +154,15 @@ export default function Audit() {
     }
   }, [fromDate, toDate]);
 
+  // Auto-run initial search once product catalog is loaded
+  const [hasAutoSearched, setHasAutoSearched] = useState(false);
+  useEffect(() => {
+    if (!hasAutoSearched && products.length > 0 && selectedProductId) {
+      setHasAutoSearched(true);
+      handleSearch(1);
+    }
+  }, [products, selectedProductId, hasAutoSearched]);
+
   // Execute Search
   const handleSearch = async (targetPage = 1) => {
     if (dateWarning && (new Date(toDate).getTime() < new Date(fromDate).getTime())) {

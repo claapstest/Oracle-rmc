@@ -111,6 +111,7 @@ export class AuthService {
 
   constructor() {
     this.loadUsers();
+    this.loadActiveSessionsFromDb().catch(() => {});
   }
 
   private loadUsers() {
@@ -534,6 +535,115 @@ export class AuthService {
     }
 
     return session;
+  }
+
+  public async restoreSessionFromDb(token: string): Promise<Session | null> {
+    if (!token) return null;
+    try {
+      const res = await dbQuery(
+        `SELECT s.session_id, s.user_id, s.created_at, s.expires_at,
+                u.email, u.display_name, u.status as user_status
+         FROM veyra_session s
+         JOIN veyra_user u ON u.id = s.user_id
+         WHERE s.session_id = $1 AND s.status = 'ACTIVE' AND (s.expires_at IS NULL OR s.expires_at > NOW())
+         LIMIT 1`,
+        [token]
+      );
+
+      if (res.rows.length === 0) return null;
+      const row = res.rows[0];
+
+      const rolesRes = await dbQuery(
+        `SELECT r.role_code FROM veyra_role r
+         JOIN veyra_user_role ur ON ur.role_id = r.id
+         WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
+        [row.user_id]
+      );
+      const roleCodes = rolesRes.rows.map((r: any) => r.role_code);
+      const primaryRole = roleCodes[0] || 'SITE_ADMIN';
+      const isSiteAdmin = roleCodes.includes('SITE_ADMIN') || row.email === 'admin@admin.com';
+
+      const privsRes = await dbQuery(
+        `SELECT DISTINCT p.privilege_code FROM veyra_privilege p
+         JOIN veyra_role_privilege rp ON rp.privilege_id = p.id
+         JOIN veyra_user_role ur ON ur.role_id = rp.role_id
+         WHERE ur.user_id = $1 AND p.status = 'ACTIVE'`,
+        [row.user_id]
+      );
+      let permissions = privsRes.rows.map((p: any) => p.privilege_code);
+      if (permissions.length === 0) {
+        permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole] || ['ALL'];
+      }
+
+      const session: Session = {
+        token: row.session_id,
+        userId: row.user_id,
+        email: row.email,
+        displayName: row.display_name || row.email,
+        role: primaryRole,
+        permissions,
+        isAdmin: isSiteAdmin,
+        createdAt: new Date(row.created_at).getTime(),
+        expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000
+      };
+
+      activeSessions.set(token, session);
+      return session;
+    } catch (err) {
+      console.warn('[Auth Service] Could not restore session from DB:', (err as Error).message);
+      return null;
+    }
+  }
+
+  public async loadActiveSessionsFromDb() {
+    try {
+      const res = await dbQuery(
+        `SELECT s.session_id, s.user_id, s.created_at, s.expires_at,
+                u.email, u.display_name, u.status as user_status
+         FROM veyra_session s
+         JOIN veyra_user u ON u.id = s.user_id
+         WHERE s.status = 'ACTIVE' AND (s.expires_at IS NULL OR s.expires_at > NOW())`
+      );
+
+      for (const row of res.rows) {
+        const rolesRes = await dbQuery(
+          `SELECT r.role_code FROM veyra_role r
+           JOIN veyra_user_role ur ON ur.role_id = r.id
+           WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
+          [row.user_id]
+        );
+        const roleCodes = rolesRes.rows.map((r: any) => r.role_code);
+        const primaryRole = roleCodes[0] || 'SITE_ADMIN';
+        const isSiteAdmin = roleCodes.includes('SITE_ADMIN') || row.email === 'admin@admin.com';
+
+        const privsRes = await dbQuery(
+          `SELECT DISTINCT p.privilege_code FROM veyra_privilege p
+           JOIN veyra_role_privilege rp ON rp.privilege_id = p.id
+           JOIN veyra_user_role ur ON ur.role_id = rp.role_id
+           WHERE ur.user_id = $1 AND p.status = 'ACTIVE'`,
+          [row.user_id]
+        );
+        let permissions = privsRes.rows.map((p: any) => p.privilege_code);
+        if (permissions.length === 0) {
+          permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole] || ['ALL'];
+        }
+
+        activeSessions.set(row.session_id, {
+          token: row.session_id,
+          userId: row.user_id,
+          email: row.email,
+          displayName: row.display_name || row.email,
+          role: primaryRole,
+          permissions,
+          isAdmin: isSiteAdmin,
+          createdAt: new Date(row.created_at).getTime(),
+          expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000
+        });
+      }
+      console.log(`[Auth Service] Restored ${res.rows.length} active session(s) from PostgreSQL.`);
+    } catch (err) {
+      console.warn('[Auth Service] Could not restore active sessions from DB on startup:', (err as Error).message);
+    }
   }
 
   public getUserByEmail(email: string): AuthUser | null {

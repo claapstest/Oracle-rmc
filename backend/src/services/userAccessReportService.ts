@@ -319,18 +319,15 @@ export class UserAccessReportService {
 
   // Public retrieval method with caching and refresh support
   async getUserAccessReport(forceRefresh = false): Promise<UserAccessReportResult> {
-    // If not forcing refresh, return in-memory cache if available and fresh
+    // If not forcing refresh, return in-memory cache if available
     if (!forceRefresh && this.cachedReport) {
-      const cacheAge = Date.now() - new Date(this.cachedReport.calculatedAt).getTime();
-      if (cacheAge < CACHE_TTL_MS) {
-        return {
-          success: true,
-          summary: this.cachedReport.summary,
-          data: this.cachedReport.data,
-          calculatedAt: this.cachedReport.calculatedAt,
-          source: 'Cache (Oracle Fusion)'
-        };
-      }
+      return {
+        success: true,
+        summary: this.cachedReport.summary,
+        data: this.cachedReport.data,
+        calculatedAt: this.cachedReport.calculatedAt,
+        source: 'Cache (Oracle Fusion)'
+      };
     }
 
     // If generation is already in flight, reuse existing promise to prevent duplicate API bursts

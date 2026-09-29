@@ -45,14 +45,17 @@ function logAudit(username: string, action: string, details: string) {
 }
 
 // Authentication middleware to verify session tokens
-export function requireAuth(req: Request, res: Response, next: () => void) {
+export async function requireAuth(req: Request, res: Response, next: () => void) {
   const authHeader = req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Authentication required. Missing or malformed token.' });
   }
 
   const token = authHeader.substring(7);
-  const session = authService.verifySession(token);
+  let session = authService.verifySession(token);
+  if (!session) {
+    session = await authService.restoreSessionFromDb(token);
+  }
   if (!session) {
     return res.status(401).json({ success: false, message: 'Session expired or invalid. Please sign in again.' });
   }
