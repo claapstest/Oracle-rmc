@@ -529,7 +529,10 @@ apiRouter.post('/settings/toggle-mode', requireAdmin, (req: Request, res: Respon
     const oldAuth = config.oracle.authType;
 
     if (mode === 'DEMO' || mode === 'ORACLE_FUSION') {
-      config.environmentMode = mode;
+      // Live-instance-only: DEMO/sample mode is disabled. Always run live.
+      config.environmentMode = 'ORACLE_FUSION';
+    } else if (mode === undefined) {
+      config.environmentMode = 'ORACLE_FUSION';
     }
     
     if (baseUrl !== undefined) {
@@ -571,6 +574,24 @@ apiRouter.post('/settings/toggle-mode', requireAdmin, (req: Request, res: Respon
   } catch (err) {
     logAudit(adminUser, 'CONFIGURATION_SAVE_FAILED', `Error: ${(err as Error).message}`);
     res.status(400).json({ success: false, message: (err as Error).message });
+  }
+});
+
+apiRouter.post('/oracle/refresh-live-data', requireAdmin, async (req: Request, res: Response) => {
+  const adminUser = res.locals.username;
+  try {
+    console.log(`[Oracle API] Live data refresh initiated by ${adminUser}...`);
+    oracleService.clearInstanceCache();
+    oracleService.recreateClient();
+    logAudit(adminUser, 'LIVE_DATA_REFRESHED', `Cleared old cache and initiated live dynamic sync for ${config.oracle.baseUrl}`);
+    res.json({
+      success: true,
+      message: 'Old cache invalidated. Live dynamic data fetch initiated from Oracle instance.',
+      mode: config.environmentMode,
+      baseUrl: config.oracle.baseUrl
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
   }
 });
 
@@ -623,39 +644,25 @@ apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => 
 // AC1, AC4, AC5, AC6: User Management APIs
 // ==========================================
 
-// GET /users - List users (AC1, AC5, AC7, AC8, AC9)
+// GET /users - List users (live Oracle instance only, no fallback)
 apiRouter.get('/users', requirePrivilege(['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
     const filter = req.query.filter as string | undefined;
-    if (req.query.source === 'oracle' || req.query.type === 'oracle') {
-      const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
-      const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-      const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
-      return res.json({ ...result, ...oracleService.getModeInfo() });
-    }
+    // Live-instance-only: ignore source=local, always serve from configured Oracle instance link.
 
-    const usersList = authService.getUsersList(filter);
-    res.json({
-      success: true,
-      users: usersList,
-      total: usersList.length,
-      totalResults: usersList.length,
-      ...oracleService.getModeInfo()
-    });
+    const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
+    const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
+    const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
+    return res.json({ ...result, ...oracleService.getModeInfo() });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 
-// GET /users/:id - Get single user by ID or Email (AC1, AC5, AC7, AC8, AC9)
+// GET /users/:id - Get single user by ID or Email (live Oracle instance only)
 apiRouter.get('/users/:id', requirePrivilege(['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const authUser = authService.getUserByIdOrEmail(id);
-    if (authUser) {
-      return res.json({ success: true, user: authUser, ...oracleService.getModeInfo() });
-    }
-
     const oracleUser = await oracleService.getUser(id);
     if (oracleUser) {
       return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
@@ -748,25 +755,16 @@ apiRouter.delete('/users/:id', requireAdmin, async (req: Request, res: Response)
 // AC2: Role APIs
 // ==========================================
 
-// GET /roles - List roles (AC2, AC5, AC7, AC8, AC9)
+// GET /roles - List roles (live Oracle instance only, no fallback)
 apiRouter.get('/roles', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
-    if (req.query.source === 'oracle') {
-      const filter = req.query.filter as string | undefined;
-      const category = req.query.category as string | undefined;
-      const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
-      const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-      const result = await oracleService.getRoles({ filterText: filter, category, startIndex, count });
-      return res.json({ ...result, ...oracleService.getModeInfo() });
-    }
-
-    const rolesList = authService.getRolesList();
-    res.json({
-      success: true,
-      roles: rolesList,
-      total: rolesList.length,
-      ...oracleService.getModeInfo()
-    });
+    // Live-instance-only: ignore source=local, always serve from configured Oracle instance link.
+    const filter = req.query.filter as string | undefined;
+    const category = req.query.category as string | undefined;
+    const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
+    const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
+    const result = await oracleService.getRoles({ filterText: filter, category, startIndex, count });
+    return res.json({ ...result, ...oracleService.getModeInfo() });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
   }
@@ -789,15 +787,10 @@ apiRouter.get('/roles/single', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', '
   }
 });
 
-// GET /roles/:id - Get single role by ID or Code (AC2, AC5, AC7, AC8, AC9)
+// GET /roles/:id - Get single role by ID or Code (live Oracle instance only)
 apiRouter.get('/roles/:id', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const authRole = authService.getRoleByIdOrCode(id);
-    if (authRole) {
-      return res.json({ success: true, role: authRole, ...oracleService.getModeInfo() });
-    }
-
     const oracleRole = await oracleService.getRole(id);
     if (oracleRole) {
       return res.json({ success: true, role: oracleRole, ...oracleService.getModeInfo() });

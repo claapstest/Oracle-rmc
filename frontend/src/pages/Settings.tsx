@@ -225,7 +225,7 @@ export default function Settings({ environmentMode, setEnvironmentMode, currentU
       const normalizedBaseUrl = validateAndNormalizeUrl(baseUrl);
       setBaseUrl(normalizedBaseUrl);
       const res = await api.saveSettings({
-        mode: environmentMode,
+        mode: 'ORACLE_FUSION' as const,
         baseUrl: normalizedBaseUrl,
         authType,
         username,
@@ -413,7 +413,7 @@ export default function Settings({ environmentMode, setEnvironmentMode, currentU
             color: '#ffffff',
             backdropFilter: 'blur(8px)'
           }}>
-            {environmentMode === 'DEMO' ? 'Sample Data Mode' : 'Live Oracle Fusion API'}
+            {environmentMode === 'DEMO' ? 'Sample Data Mode (disabled — live only)' : 'Live Oracle Fusion API'}
           </div>
         </div>
       </div>
@@ -511,27 +511,29 @@ export default function Settings({ environmentMode, setEnvironmentMode, currentU
                 Execution Environment Mode
               </h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
-                Choose whether queries run against static demo databases or live Oracle Web Services.
+                Live-instance-only: all queries run against the Oracle instance link configured below. Sample/demo data is disabled.
               </p>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div
-                  onClick={() => setEnvironmentMode('DEMO')}
+                  onClick={() => setEnvironmentMode('ORACLE_FUSION')}
                   className="glass-panel"
+                  title="Demo mode disabled — live Oracle instance only"
                   style={{
                     flex: 1,
                     padding: '1rem',
-                    cursor: 'pointer',
-                    border: environmentMode === 'DEMO' ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                    backgroundColor: environmentMode === 'DEMO' ? 'var(--accent-gold-light)' : '',
+                    cursor: 'not-allowed',
+                    opacity: 0.5,
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: '',
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: environmentMode === 'DEMO' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
-                    DEMO MODE
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    DEMO MODE (DISABLED)
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    Safe offline mode using high-fidelity pre-configured security records.
+                    Offline sample data is disabled. Configure the live instance link below.
                   </div>
                 </div>
 

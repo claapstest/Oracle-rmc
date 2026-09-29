@@ -81,6 +81,25 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
 
   const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
 
+  // Live-only pagination guard: if total shrinks below current page (e.g. instance switch), reset to page 1
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const getPrimaryRole = (user: any) => {
+    const roles = user?.assignedRoles || [];
+    if (!roles.length) return null;
+    const r = roles[0];
+    if (typeof r === 'string') return { roleName: r, roleCode: r, autoProvisioned: null };
+    return {
+      roleName: r.roleName || r.displayName || r.roleCode || '',
+      roleCode: r.roleCode || r.value || '',
+      autoProvisioned: r.autoProvisioned ?? null,
+    };
+  };
+
   // Applied filters list for export metadata
   const activeFilters = useMemo(() => {
     const list: { label: string; value: string }[] = [];
@@ -289,13 +308,24 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             appliedFilters={activeFilters}
             availableColumns={[
               { key: 'userName', label: 'Username', defaultSelected: true },
-              { key: 'displayName', label: 'Display Name', defaultSelected: true },
-              { key: 'firstName', label: 'First Name', defaultSelected: false, getValue: (u: any) => u.firstName || '' },
-              { key: 'lastName', label: 'Last Name', defaultSelected: false, getValue: (u: any) => u.lastName || '' },
+              { key: 'userCategory', label: 'User Category', defaultSelected: true, getValue: (u: any) => u.userCategory || '' },
+              { key: 'firstName', label: 'First Name', defaultSelected: true, getValue: (u: any) => u.firstName || '' },
+              { key: 'lastName', label: 'Last Name', defaultSelected: true, getValue: (u: any) => u.lastName || '' },
+              { key: 'displayName', label: 'Display Name', defaultSelected: false },
               { key: 'email', label: 'Email Address', defaultSelected: true, getValue: (u: any) => u.email || 'N/A' },
+              { key: 'status', label: 'Active', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
+              { key: 'roleName', label: 'Role Name (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.roleName || '' },
+              { key: 'roleCode', label: 'Role Code (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.roleCode || '' },
+              { key: 'autoProvisioned', label: 'Auto-Provisioned (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.autoProvisioned ?? '' },
               { key: 'roleCount', label: 'Role Count', defaultSelected: true, getValue: (u: any) => u.assignedRoles?.length || 0 },
-              { key: 'status', label: 'Status', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
-              { key: 'assignedRoles', label: 'Assigned Roles', defaultSelected: true, getValue: (u: any) => u.assignedRoles?.map((r: any) => typeof r === 'string' ? r : (r.roleName || r.roleCode || '')).join('; ') }
+              { key: 'personId', label: 'Person ID', defaultSelected: true, getValue: (u: any) => u.personId || '' },
+              { key: 'personNumber', label: 'Person Number', defaultSelected: true, getValue: (u: any) => u.personNumber || '' },
+              { key: 'department', label: 'Department', defaultSelected: true, getValue: (u: any) => u.department || '' },
+              { key: 'job', label: 'Job', defaultSelected: true, getValue: (u: any) => u.job || '' },
+              { key: 'businessUnit', label: 'Business Unit', defaultSelected: true, getValue: (u: any) => u.businessUnit || '' },
+              { key: 'location', label: 'Location', defaultSelected: true, getValue: (u: any) => u.location || '' },
+              { key: 'manager', label: 'Manager', defaultSelected: true, getValue: (u: any) => u.manager || '' },
+              { key: 'assignedRoles', label: 'All Assigned Roles', defaultSelected: false, getValue: (u: any) => u.assignedRoles?.map((r: any) => typeof r === 'string' ? r : (`${r.roleName || r.roleCode || ''} [${r.roleCode || ''}]${r.autoProvisioned ? ` Auto:${r.autoProvisioned}` : ''}`)).join('; ') }
             ]}
             onFetchScopeData={async (scope) => {
               if (scope === 'PAGE') return filteredUsers;
@@ -347,42 +377,68 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           </div>
         </div>
 
-        {/* Table Grid */}
-        <div className="table-container" style={{ margin: 0 }}>
-          <table className="enterprise-table">
+        {/* Table Grid: live Oracle User Details Report (SCIM + HCM + BIP) */}
+        <div className="table-container" style={{ margin: 0, overflowX: 'auto' }}>
+          <table className="enterprise-table" style={{ minWidth: '2100px' }}>
             <thead>
               <tr>
                 <th>Username</th>
-                <th>Display Name</th>
+                <th>User Category</th>
+                <th>First Name</th>
+                <th>Last Name</th>
                 <th>Email Address</th>
-                <th>Role Count</th>
-                <th>Status</th>
+                <th>Active</th>
+                <th>Role Name</th>
+                <th>Role Code</th>
+                <th>Auto-Provisioned</th>
+                <th>Person ID</th>
+                <th>Person Number</th>
+                <th>Department</th>
+                <th>Job</th>
+                <th>Business Unit</th>
+                <th>Location</th>
+                <th>Manager</th>
+                <th>Roles</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={18} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No security users match the filter criteria.
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map(user => (
+                filteredUsers.map(user => {
+                  const primary = getPrimaryRole(user);
+                  return (
                   <tr
                     key={user.id}
                     onClick={() => setSelectedUser(user)}
                     style={{ cursor: 'pointer', backgroundColor: selectedUser?.id === user.id ? 'rgba(37, 99, 235, 0.06)' : '' }}
                   >
                     <td><code>{user.userName}</code></td>
-                    <td style={{ fontWeight: 600 }}>{user.displayName}</td>
+                    <td>{user.userCategory || '—'}</td>
+                    <td style={{ fontWeight: 600 }}>{user.firstName || '—'}</td>
+                    <td style={{ fontWeight: 600 }}>{user.lastName || '—'}</td>
                     <td>{user.email || 'N/A'}</td>
-                    <td>{user.assignedRoles?.length || 0}</td>
                     <td>
                       <span className={`badge ${user.active ? 'badge-active' : 'badge-inactive'}`}>
                         {user.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td>{primary?.roleName || '—'}</td>
+                    <td><code style={{ fontSize: '0.7rem' }}>{primary?.roleCode || '—'}</code></td>
+                    <td>{primary?.autoProvisioned ?? '—'}</td>
+                    <td>{user.personId || '—'}</td>
+                    <td>{user.personNumber || '—'}</td>
+                    <td>{user.department || '—'}</td>
+                    <td>{user.job || '—'}</td>
+                    <td>{user.businessUnit || '—'}</td>
+                    <td>{user.location || '—'}</td>
+                    <td>{user.manager || '—'}</td>
+                    <td>{user.assignedRoles?.length || 0}</td>
                     <td>
                       <button 
                         type="button"
@@ -410,7 +466,8 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                       </button>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -463,15 +520,29 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
-            {/* Identity Profile */}
+            {/* Identity Profile: live User Details Report fields */}
             <div>
               <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{selectedUser.displayName}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                 <code>{selectedUser.userName}</code>
                 <span style={{ color: 'var(--text-muted)' }}>•</span>
                 <span className={`badge ${selectedUser.active ? 'badge-active' : 'badge-inactive'}`} style={{ fontSize: '0.65rem' }}>
                   {selectedUser.active ? 'Active' : 'Inactive'}
                 </span>
+                {selectedUser.userCategory && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>{selectedUser.userCategory}</span>
+                )}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem 0.75rem', color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+                <div><strong>First Name:</strong> {selectedUser.firstName || '—'}</div>
+                <div><strong>Last Name:</strong> {selectedUser.lastName || '—'}</div>
+                <div><strong>Person ID:</strong> {selectedUser.personId || '—'}</div>
+                <div><strong>Person Number:</strong> {selectedUser.personNumber || '—'}</div>
+                <div><strong>Department:</strong> {selectedUser.department || '—'}</div>
+                <div><strong>Job:</strong> {selectedUser.job || '—'}</div>
+                <div><strong>Business Unit:</strong> {selectedUser.businessUnit || '—'}</div>
+                <div><strong>Location:</strong> {selectedUser.location || '—'}</div>
+                <div style={{ gridColumn: '1 / -1' }}><strong>Manager:</strong> {selectedUser.manager || '—'}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                 <Mail size={14} />
@@ -519,6 +590,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                   selectedUser.assignedRoles.map((role: any, idx: number) => {
                     const roleCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
                     const roleName = typeof role === 'string' ? role : (role.roleName || role.displayName || roleCode);
+                    const autoProvisioned = typeof role === 'object' ? (role.autoProvisioned ?? null) : null;
                     const category = typeof role === 'object' && role.category ? role.category : 'JOB';
                     const isCustom = typeof role === 'object' ? Boolean(role.isCustom) : false;
 
@@ -546,9 +618,14 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                         
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <code style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{roleCode}</code>
-                          {isCustom && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 600 }}>Custom</span>
-                          )}
+                          <span style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                            {autoProvisioned && (
+                              <span style={{ fontSize: '0.65rem', color: 'var(--accent-green, #059669)', fontWeight: 600 }}>Auto: {autoProvisioned}</span>
+                            )}
+                            {isCustom && (
+                              <span style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 600 }}>Custom</span>
+                            )}
+                          </span>
                         </div>
 
                         {onInspectRole && roleCode && (

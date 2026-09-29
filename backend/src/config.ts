@@ -14,7 +14,7 @@ dotenv.config(); // fallback to current working directory .env
 export const config = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  environmentMode: (process.env.ENVIRONMENT_MODE || 'DEMO').toUpperCase() as 'DEMO' | 'ORACLE_FUSION',
+  environmentMode: (process.env.ENVIRONMENT_MODE || 'ORACLE_FUSION').toUpperCase() as 'DEMO' | 'ORACLE_FUSION',
   groqApiKey: process.env.GROQ_API_KEY || '',
   groqModel: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
   oracle: {

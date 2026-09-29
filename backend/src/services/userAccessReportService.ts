@@ -5,11 +5,15 @@ import { config, decrypt } from '../config.js';
 
 export interface UserAccessReportRow {
   username: string;
+  userCategory: string | null;
+  firstName: string | null;
+  lastName: string | null;
   displayName: string | null;
   email: string | null;
   active: boolean;
   roleName: string | null;
   roleCode: string | null;
+  autoProvisioned: 'Yes' | 'No' | null;
   personId: string | null;
   personNumber: string | null;
   department: string | null;
@@ -64,13 +68,36 @@ export class UserAccessReportService {
       headers['Authorization'] = `Basic ${token}`;
     }
 
-    const activeBaseUrl = config.oracle.baseUrl || 'https://mock.fusion.oracle.com';
+    const activeBaseUrl = (config.oracle.baseUrl || '').trim();
 
     this.client = axios.create({
-      baseURL: activeBaseUrl,
+      baseURL: activeBaseUrl || 'https://oracle-instance-not-configured.invalid',
       headers,
       timeout: 120000, // 2 minutes for heavy Oracle queries
     });
+  }
+
+  private workersCache: { data: any[]; expiresAt: number } | null = null;
+  private bipCache: { rows: import('../oracle/bipClient.js').UserRoleAutoProvisionRow[]; expiresAt: number } | null = null;
+
+  public async getWorkersCached(): Promise<any[]> {
+    if (this.workersCache && Date.now() < this.workersCache.expiresAt) return this.workersCache.data;
+    const workers = await this.getAllWorkers();
+    this.workersCache = { data: workers, expiresAt: Date.now() + 60 * 60 * 1000 };
+    return workers;
+  }
+
+  public async getBipRowsCached(): Promise<import('../oracle/bipClient.js').UserRoleAutoProvisionRow[]> {
+    if (this.bipCache && Date.now() < this.bipCache.expiresAt) return this.bipCache.rows;
+    try {
+      const { bipClient } = await import('../oracle/bipClient.js');
+      const rows = await bipClient.runUserRoleAutoProvisioningReport();
+      this.bipCache = { rows, expiresAt: Date.now() + 60 * 60 * 1000 };
+      return rows;
+    } catch (err) {
+      console.warn('[User Access Report] BIP Auto-Provisioning fetch failed (live-only, leaving null):', (err as Error).message);
+      return [];
+    }
   }
 
   private loadFromDisk() {
@@ -197,13 +224,22 @@ export class UserAccessReportService {
     console.log('[User Access Report] Starting report generation from live Oracle Fusion APIs...');
     const startTime = Date.now();
 
-    // Concurrently fetch SCIM Users (master) and Public Workers (enrichment)
-    const [scimUsers, workers] = await Promise.all([
+    // Concurrently fetch SCIM Users (master), Public Workers (enrichment), BIP Auto-Provisioned (roles)
+    const [scimUsers, workers, bipRows] = await Promise.all([
       this.getAllScimUsers(),
-      this.getAllWorkers()
+      this.getWorkersCached(),
+      this.getBipRowsCached()
     ]);
 
-    console.log(`[User Access Report] Fetched ${scimUsers.length} SCIM users and ${workers.length} Public Workers in ${Date.now() - startTime}ms`);
+    console.log(`[User Access Report] Fetched ${scimUsers.length} SCIM users, ${workers.length} Public Workers, ${bipRows.length} BIP role rows in ${Date.now() - startTime}ms`);
+
+    // Index BIP rows by USERNAME|ROLE_CODE (upper-cased) for merge
+    const bipMap = new Map<string, { roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>();
+    for (const r of bipRows) {
+      const key = `${(r.username || '').toUpperCase()}|${(r.roleCode || '').toUpperCase()}`;
+      if (!r.username) continue;
+      bipMap.set(key, { roleName: r.roleName || '', roleCode: r.roleCode || '', autoProvisioned: r.autoProvisioned ?? null });
+    }
 
     // Build index by Username.toUpperCase()
     const workerMap = new Map<string, any>();
@@ -252,11 +288,15 @@ export class UserAccessReportService {
         usersWithoutRoles++;
         report.push({
           username,
+          userCategory: user.userCategory || null,
+          firstName: user.name?.givenName || null,
+          lastName: user.name?.familyName || null,
           displayName: user.displayName || null,
           email: primaryEmail,
           active: isActive,
           roleName: null,
           roleCode: null,
+          autoProvisioned: null,
           personId: worker?.PersonId ? String(worker.PersonId) : null,
           personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
           department: assignment?.DepartmentName || null,
@@ -271,15 +311,23 @@ export class UserAccessReportService {
       usersWithRoles++;
       totalRoleAssignments += roles.length;
 
-      // Produce ONE row per assigned role
+      // Produce ONE row per assigned role, merged with BIP authoritative Role Name/Code + Auto-Provisioned
       for (const role of roles) {
+        const scimRoleCode = role.value || null;
+        const scimRoleName = role.displayName || null;
+        const bipKey = `${username.toUpperCase()}|${(scimRoleCode || '').toUpperCase()}`;
+        const bip = bipMap.get(bipKey);
         report.push({
           username,
+          userCategory: user.userCategory || null,
+          firstName: user.name?.givenName || null,
+          lastName: user.name?.familyName || null,
           displayName: user.displayName || null,
           email: primaryEmail,
           active: isActive,
-          roleName: role.displayName || null,
-          roleCode: role.value || null,
+          roleName: bip?.roleName || scimRoleName,
+          roleCode: bip?.roleCode || scimRoleCode,
+          autoProvisioned: bip?.autoProvisioned ?? null,
           personId: worker?.PersonId ? String(worker.PersonId) : null,
           personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
           department: assignment?.DepartmentName || null,

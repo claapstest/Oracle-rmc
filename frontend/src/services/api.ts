@@ -199,6 +199,7 @@ export const api = {
     if (filter) params.append('filter', filter);
     if (startIndex) params.append('startIndex', String(startIndex));
     if (count) params.append('count', String(count));
+    params.append('source', 'oracle');
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/users${query}`);
   },
@@ -214,6 +215,7 @@ export const api = {
     if (category && category !== 'ALL') params.append('category', category);
     if (startIndex) params.append('startIndex', String(startIndex));
     if (count) params.append('count', String(count));
+    params.append('source', 'oracle');
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/roles${query}`);
   },

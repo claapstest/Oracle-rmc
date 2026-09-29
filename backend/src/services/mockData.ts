@@ -1,12 +1,20 @@
 export interface User {
   id: string;
   userName: string;
+  userCategory?: string | null;
   displayName: string;
   firstName: string;
   lastName: string;
   email: string;
   active: boolean;
   assignedRoles: any[]; // Role objects or names
+  personId?: string | null;
+  personNumber?: string | null;
+  department?: string | null;
+  job?: string | null;
+  businessUnit?: string | null;
+  location?: string | null;
+  manager?: string | null;
 }
 
 export interface Role {

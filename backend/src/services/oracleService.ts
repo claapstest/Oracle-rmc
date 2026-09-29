@@ -84,16 +84,16 @@ class OracleService {
   public riskService: RiskService;
   public controlCatalogService: ControlCatalogService;
   public controlSummaryService: ControlSummaryService;
-  private cachedTotalUsers = 7915;
-  private cachedActiveUsers = 7731;
-  private cachedInactiveUsers = 184;
-  private cachedTotalRoles = 6956;
-  private cachedJobRoles = 5992;
-  private cachedDutyRoles = 55;
-  private cachedDataRoles = 329;
-  private cachedAbstractRoles = 517;
-  private cachedGrcRoles = 12;
-  private cachedOtherRoles = 51;
+  private cachedTotalUsers = 0;
+  private cachedActiveUsers = 0;
+  private cachedInactiveUsers = 0;
+  private cachedTotalRoles = 0;
+  private cachedJobRoles = 0;
+  private cachedDutyRoles = 0;
+  private cachedDataRoles = 0;
+  private cachedAbstractRoles = 0;
+  private cachedGrcRoles = 0;
+  private cachedOtherRoles = 0;
   private isCounting = false;
   private authoritativeRoles: Role[] = [];
   private lastRolesSyncTime = '';
@@ -211,28 +211,54 @@ class OracleService {
     this.queryCache.set(key, { data, expiresAt: Date.now() + ttlMs });
   }
 
-  public clearQueryCache(): void {
+  public clearInstanceCache(): void {
     this.queryCache.clear();
+    this.authoritativeRoles = [];
+    this.cachedTotalUsers = 0;
+    this.cachedActiveUsers = 0;
+    this.cachedInactiveUsers = 0;
+    this.cachedTotalRoles = 0;
+    try {
+      if (fs.existsSync(ROLES_CACHE_FILE)) {
+        fs.unlinkSync(ROLES_CACHE_FILE);
+        console.log('[Oracle Service] Cleared old disk roles cache for fresh instance sync.');
+      }
+    } catch (err) {
+      console.warn('[Oracle Service] Failed to remove disk roles cache file:', (err as Error).message);
+    }
   }
 
   recreateClient() {
-    this.clearQueryCache();
     this.client.recreateClient();
     this.riskService = new RiskService(this.client);
     this.controlCatalogService.recreateClient(this.client);
     this.controlSummaryService.recreateClient(this.client);
-    this.loadAuthoritativeRolesFromCache();
-    this.triggerBackgroundCounting(true);
+
+    if (config.environmentMode === 'ORACLE_FUSION') {
+      console.log('[Oracle Service] Live ORACLE_FUSION mode active. Invalidating old cache and initiating live dynamic data sync...');
+      this.clearInstanceCache();
+      this.triggerBackgroundCounting(true);
+    } else {
+      this.loadAuthoritativeRolesFromCache();
+      this.triggerBackgroundCounting(false);
+    }
   }
 
   isDemoMode(): boolean {
-    return config.environmentMode === 'DEMO';
+    // Live-instance-only: never serve sample/fallback data.
+    return false;
+  }
+
+  private assertLiveInstance(context = 'Oracle request'): void {
+    if (!config.oracle.baseUrl || !config.oracle.baseUrl.trim()) {
+      throw new Error(`${context} failed: Oracle instance link is not configured. Please configure it in Oracle Integration (frontend) and try again.`);
+    }
   }
 
   getModeInfo() {
     return {
-      mode: config.environmentMode,
-      dataSource: this.isDemoMode() ? 'Sample Oracle Fusion Data' : 'Live Oracle Fusion API',
+      mode: 'ORACLE_FUSION' as const,
+      dataSource: 'Live Oracle Fusion API',
       connectionConfigured: !!config.oracle.baseUrl
     };
   }
@@ -426,7 +452,7 @@ class OracleService {
       this.cachedOtherRoles = otherRoles;
       this.lastRolesSyncTime = new Date().toISOString();
       this.saveAuthoritativeRolesToCache();
-      this.clearQueryCache();
+      this.queryCache.clear();
 
       const duration = `${((Date.now() - start) / 1000).toFixed(1)}s`;
       console.log(`[Oracle Service] Authoritative role sync complete in ${duration}. Total: ${totalRoles}`);
@@ -605,6 +631,7 @@ class OracleService {
     }
 
     // Call live Oracle Fusion SCIM Users API
+    this.assertLiveInstance('Users list');
     const scimFilter = filterText ? `userName co "${filterText}" or displayName co "${filterText}"` : undefined;
     const cacheKey = `users:${scimFilter || 'all'}:${startIndex}:${count}`;
     const cached = this.getFromCache<{ users: User[]; totalResults: number; startIndex: number; count: number }>(cacheKey);
@@ -619,7 +646,11 @@ class OracleService {
     });
 
     let resources = scimResponse?.Resources || [];
-    const totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : (this.cachedTotalUsers || resources.length);
+    // Live-only total: prefer SCIM totalResults; otherwise use background-cached total;
+    // otherwise assume current page is the tail (startIndex-1+len) so deep pages don't collapse to page length.
+    const totalResults = scimResponse?.totalResults !== undefined
+      ? scimResponse.totalResults
+      : (this.cachedTotalUsers > 0 ? this.cachedTotalUsers : startIndex - 1 + resources.length);
 
     // If client requested more records than a single Oracle SCIM response (e.g. for enterprise export)
     // and totalResults indicates more records exist, fetch subsequent pages up to Math.min(count, totalResults, 5000)
@@ -645,16 +676,70 @@ class OracleService {
       }
     }
 
-    const mapped = resources.map((res: any) => ({
+    const baseMapped = resources.map((res: any) => ({
       id: res.id,
       userName: res.userName || '',
+      userCategory: res.userCategory || null,
       displayName: res.name?.formatted || res.displayName || `${res.name?.givenName || ''} ${res.name?.familyName || ''}`.trim(),
       firstName: res.name?.givenName || '',
       lastName: res.name?.familyName || '',
-      email: res.emails?.[0]?.value || '',
+      email: res.emails?.find?.((e: any) => e.primary)?.value || res.emails?.[0]?.value || '',
       active: typeof res.active === 'boolean' ? res.active : true,
       assignedRoles: normalizeAssignedRoles(res.roles || res.assignedRoles, false)
     }));
+
+    // Enrich current page with live HCM (publicWorkers/assignments) + BIP Auto-Provisioned.
+    // Uses 1h caches so paging stays fast; failures leave HCM/BIP fields null (live-only, no mock).
+    let mapped: any[] = baseMapped;
+    try {
+      const [workers, bipRows] = await Promise.all([
+        userAccessReportService.getWorkersCached().catch(() => [] as any[]),
+        userAccessReportService.getBipRowsCached().catch(() => [] as any[]),
+      ]);
+      const workerMap = new Map<string, any>();
+      for (const w of workers as any[]) {
+        if (w?.Username) workerMap.set(String(w.Username).toUpperCase(), w);
+      }
+      const bipMap = new Map<string, { roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>();
+      for (const r of (bipRows as any[])) {
+        if (!r?.username) continue;
+        bipMap.set(`${String(r.username).toUpperCase()}|${String(r.roleCode || '').toUpperCase()}`, {
+          roleName: r.roleName || '', roleCode: r.roleCode || '', autoProvisioned: r.autoProvisioned ?? null,
+        });
+      }
+      mapped = baseMapped.map((u: any) => {
+        const worker = workerMap.get(String(u.userName || '').toUpperCase()) || null;
+        const assignments: any[] = worker?.assignments || [];
+        const assignment = assignments.find((a: any) => a.PrimaryAssignmentFlag === true)
+          || assignments.find((a: any) => a.PrimaryFlag === true) || assignments[0] || null;
+        const enrichedRoles = (u.assignedRoles || []).map((role: any) => {
+          const code = typeof role === 'string' ? role : (role.roleCode || role.value || '');
+          const bip = bipMap.get(`${String(u.userName || '').toUpperCase()}|${String(code || '').toUpperCase()}`);
+          if (typeof role === 'string') {
+            return { roleCode: code, roleName: code, autoProvisioned: bip?.autoProvisioned ?? null };
+          }
+          return {
+            ...role,
+            roleName: bip?.roleName || (role as any).roleName || (role as any).displayName || code,
+            roleCode: bip?.roleCode || (role as any).roleCode || code,
+            autoProvisioned: bip?.autoProvisioned ?? (role as any).autoProvisioned ?? null,
+          };
+        });
+        return {
+          ...u,
+          assignedRoles: enrichedRoles,
+          personId: worker?.PersonId ? String(worker.PersonId) : null,
+          personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
+          department: assignment?.DepartmentName || null,
+          job: assignment?.JobName || null,
+          businessUnit: assignment?.BusinessUnitName || null,
+          location: assignment?.LocationName || null,
+          manager: assignment?.ManagerName || null,
+        };
+      });
+    } catch (enrichErr) {
+      console.warn('[OracleService] Users page enrichment failed (returning SCIM base, live-only):', (enrichErr as Error).message);
+    }
 
     const result = {
       users: mapped,
@@ -669,6 +754,7 @@ class OracleService {
 
   async getUser(userId: string): Promise<User | null> {
     const cleanUserId = userId.trim();
+    this.assertLiveInstance('User lookup');
     console.log(`[USER LOOKUP DEBUG] Extracted username: "${userId}"`);
     console.log(`[USER LOOKUP DEBUG] Normalized username: "${cleanUserId}"`);
 
@@ -799,15 +885,80 @@ class OracleService {
 
     if (matchedUserResource) {
       console.log(`[USER LOOKUP DEBUG] Final matched user: "${matchedUserResource.userName}"`);
+      const baseRoles = normalizeAssignedRoles(matchedUserResource.roles || matchedUserResource.assignedRoles, false);
+      const username = matchedUserResource.userName || '';
+      // Enrich single-user detail with live HCM + BIP (null on failure, never mock)
+      try {
+        const [workers, bipRows] = await Promise.all([
+          userAccessReportService.getWorkersCached().catch(() => [] as any[]),
+          userAccessReportService.getBipRowsCached().catch(() => [] as any[]),
+        ]);
+        const worker = (workers as any[]).find((w: any) => String(w?.Username || '').toUpperCase() === String(username).toUpperCase()) || null;
+        let assignments: any[] = worker?.assignments || [];
+        if ((!assignments || assignments.length === 0) && worker?.PersonId) {
+          try {
+            const res = await this.client.getWorkerAssignments(worker.PersonId);
+            assignments = res?.items || [];
+          } catch { assignments = []; }
+        }
+        const assignment = assignments.find((a: any) => a.PrimaryAssignmentFlag === true)
+          || assignments.find((a: any) => a.PrimaryFlag === true) || assignments[0] || null;
+        let managerName: string | null = assignment?.ManagerName || null;
+        if (!managerName && worker?.PersonId && (assignment?.AssignmentId || assignment?.Id)) {
+          try {
+            const mgrRes = await this.client.getAssignmentManagers(worker.PersonId, assignment.AssignmentId || assignment.Id);
+            const mgrs = mgrRes?.items || [];
+            managerName = mgrs[0]?.ManagerName || mgrs[0]?.ManagerDisplayName || null;
+          } catch { managerName = null; }
+        }
+        const bipMap = new Map<string, { roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>();
+        for (const r of (bipRows as any[])) {
+          if (!r?.username) continue;
+          bipMap.set(`${String(r.username).toUpperCase()}|${String(r.roleCode || '').toUpperCase()}`, {
+            roleName: r.roleName || '', roleCode: r.roleCode || '', autoProvisioned: r.autoProvisioned ?? null,
+          });
+        }
+        const enrichedRoles = (baseRoles || []).map((role: any) => {
+          const code = (role as any).roleCode || '';
+          const bip = bipMap.get(`${String(username).toUpperCase()}|${String(code).toUpperCase()}`);
+          return {
+            ...(role as any),
+            roleName: bip?.roleName || (role as any).roleName || code,
+            roleCode: bip?.roleCode || code,
+            autoProvisioned: bip?.autoProvisioned ?? null,
+          };
+        });
+        return {
+          id: matchedUserResource.id,
+          userName: username,
+          userCategory: matchedUserResource.userCategory || null,
+          displayName: matchedUserResource.name?.formatted || matchedUserResource.displayName || `${matchedUserResource.name?.givenName || ''} ${matchedUserResource.name?.familyName || ''}`.trim(),
+          firstName: matchedUserResource.name?.givenName || '',
+          lastName: matchedUserResource.name?.familyName || '',
+          email: matchedUserResource.emails?.find?.((e: any) => e.primary)?.value || matchedUserResource.emails?.[0]?.value || '',
+          active: typeof matchedUserResource.active === 'boolean' ? matchedUserResource.active : true,
+          assignedRoles: enrichedRoles,
+          personId: worker?.PersonId ? String(worker.PersonId) : null,
+          personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
+          department: assignment?.DepartmentName || null,
+          job: assignment?.JobName || null,
+          businessUnit: assignment?.BusinessUnitName || null,
+          location: assignment?.LocationName || null,
+          manager: managerName,
+        };
+      } catch (enrichErr) {
+        console.warn('[OracleService] User detail enrichment failed (returning SCIM base):', (enrichErr as Error).message);
+      }
       return {
         id: matchedUserResource.id,
         userName: matchedUserResource.userName || '',
+        userCategory: matchedUserResource.userCategory || null,
         displayName: matchedUserResource.name?.formatted || matchedUserResource.displayName || `${matchedUserResource.name?.givenName || ''} ${matchedUserResource.name?.familyName || ''}`.trim(),
         firstName: matchedUserResource.name?.givenName || '',
         lastName: matchedUserResource.name?.familyName || '',
         email: matchedUserResource.emails?.[0]?.value || '',
         active: typeof matchedUserResource.active === 'boolean' ? matchedUserResource.active : true,
-        assignedRoles: normalizeAssignedRoles(matchedUserResource.roles || matchedUserResource.assignedRoles, false)
+        assignedRoles: baseRoles
       };
     }
 
@@ -821,6 +972,7 @@ class OracleService {
     startIndexArg?: number,
     countArg?: number
   ): Promise<{ roles: Role[]; totalResults: number; startIndex: number; count: number }> {
+    this.assertLiveInstance('Roles list');
     let filterText: string | undefined;
     let category: string | undefined = categoryArg;
     let startIndex = startIndexArg || 1;
@@ -1388,6 +1540,7 @@ class OracleService {
     }
 
     // 3. Query Live Oracle Fusion Audit REST endpoint
+    this.assertLiveInstance('Audit history');
     try {
       const payload: any = {
         fromDate: fromDateStr,
@@ -1435,18 +1588,12 @@ class OracleService {
       console.log(`[AUDIT DEBUG] Oracle auditData count:\n${audits.length}`);
 
       if (audits.length === 0) {
-        const fallbackResults = this.getFallbackAuditLogs({
-          restBusinessObjectType,
-          boDisplayName,
-          username: params.username,
-          action: params.action
-        });
-
+        // Live-instance-only: return empty live result, never fallback snapshot data.
         return {
           success: true,
-          dataSource: 'Oracle Fusion Audit Trail (Cached Snapshot)',
-          logs: fallbackResults,
-          totalRecords: fallbackResults.length,
+          dataSource: 'Live Oracle Fusion API',
+          logs: [],
+          totalRecords: 0,
           pageNumber,
           pageSize: queryPageSize,
           product: resolution.product?.id,
@@ -1541,7 +1688,7 @@ class OracleService {
         dateRange: { fromDate: fromDateStr, toDate: toDateStr }
       };
     } catch (err: any) {
-      console.warn('[Oracle Service] Live getAuditHistory unavailable, serving authoritative audit snapshot:', err.message);
+      console.warn('[Oracle Service] Live getAuditHistory failed (live-only, no fallback):', err.message);
       const errMsg = String(err.message || '');
       if (
         errMsg.toLowerCase().includes('businessobject') ||
@@ -1551,26 +1698,8 @@ class OracleService {
         throw new Error('Oracle Fusion requires a Business Object Type for this audit query.');
       }
 
-      const fallbackLogs = this.getFallbackAuditLogs({
-        restBusinessObjectType,
-        boDisplayName,
-        username: params.username,
-        action: params.action
-      });
-
-      return {
-        success: true,
-        dataSource: 'Oracle Fusion Audit Trail (Cached Snapshot)',
-        logs: fallbackLogs,
-        totalRecords: fallbackLogs.length,
-        pageNumber,
-        pageSize,
-        product: resolution.product?.id,
-        productDisplayName,
-        businessObject: resolution.businessObject?.id,
-        businessObjectDisplayName: boDisplayName,
-        dateRange: { fromDate: fromDateStr, toDate: toDateStr }
-      };
+      // Live-instance-only: propagate the live error instead of serving snapshot/fallback logs.
+      throw err;
     }
   }
 

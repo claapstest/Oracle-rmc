@@ -113,10 +113,23 @@ export const CANONICAL_ACCESS_CERTIFICATIONS: Record<string, any>[] = [
   }
 ];
 
+export interface UserRoleAutoProvisionRow {
+  username: string;
+  roleName: string;
+  roleCode: string;
+  autoProvisioned: 'Yes' | 'No' | null;
+}
+
 export class BipClient {
   private axiosInstance: AxiosInstance;
   public readonly reportPath = '/Custom/Claaps Access Certification.xdo';
   public readonly reviewReportPath = '/Custom/Claaps Access Certification review.xdo';
+  public readonly userRoleAutoProvReportPaths = [
+    '/Custom/CLAAPS_User_Role_AutoProvisioning.xdo',
+    '/Custom/CLAAPS_User_Role_AutoProvisioning',
+    'CLAAPS_User_Role_AutoProvisioning.xdo',
+    'CLAAPS_User_Role_AutoProvisioning',
+  ];
   private readonly defaultTimeoutMs = 60000; // 60 seconds for BI Publisher report generation
 
   constructor() {
@@ -670,6 +683,100 @@ export class BipClient {
         data: [],
         message: 'Unable to retrieve Access Certification details.'
       };
+    }
+  }
+
+  /**
+   * Runs the CLAAPS_User_Role_AutoProvisioning BIP report (live instance only).
+   * Returns USERNAME, ROLE_NAME, ROLE_CODE, AUTO_PROVISIONED rows.
+   * On any failure returns empty array (never mock) so callers leave autoProvisioned=null.
+   */
+  public async runUserRoleAutoProvisioningReport(): Promise<UserRoleAutoProvisionRow[]> {
+    if (!this.isConfigured()) {
+      console.warn('[BIP Client] Auto-Provisioning report skipped: Oracle instance link not configured.');
+      return [];
+    }
+    const { baseUrl } = this.getCredentials();
+    const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
+    for (const reportPath of this.userRoleAutoProvReportPaths) {
+      try {
+        console.log(`[BIP Client] Executing Auto-Provisioning BIP report: "${reportPath}"`);
+        const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
+        const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
+          headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
+          responseType: 'text',
+        });
+        const rows = await this.parseUserRoleAutoProvSoapResponse(response.data);
+        if (rows.length > 0) {
+          console.log(`[BIP Client] Auto-Provisioning report "${reportPath}" returned ${rows.length} rows.`);
+          return rows;
+        }
+      } catch (err: any) {
+        console.warn(`[BIP Client] Auto-Provisioning report "${reportPath}" failed:`, err.message);
+      }
+    }
+    return [];
+  }
+
+  public async parseUserRoleAutoProvSoapResponse(xmlContent: string): Promise<UserRoleAutoProvisionRow[]> {
+    if (!xmlContent || typeof xmlContent !== 'string') return [];
+    let parsedXml: any;
+    try {
+      parsedXml = await xml2js.parseStringPromise(xmlContent, {
+        explicitArray: false, ignoreAttrs: true, tagNameProcessors: [xml2js.processors.stripPrefix],
+      });
+    } catch {
+      return [];
+    }
+    const fault = this.extractSoapFaultFromParsed(parsedXml);
+    if (fault) {
+      console.warn('[BIP Client] Auto-Provisioning SOAP Fault:', fault);
+      return [];
+    }
+    const rawReportBytes = this.findFieldRecursively(parsedXml, 'reportBytes');
+    if (!rawReportBytes || typeof rawReportBytes !== 'string') return [];
+    return this.parseUserRoleAutoProvXlsxBase64(rawReportBytes);
+  }
+
+  public parseUserRoleAutoProvXlsxBase64(base64Data: string): UserRoleAutoProvisionRow[] {
+    try {
+      const buffer = Buffer.from(base64Data.replace(/\s+/g, ''), 'base64');
+      if (buffer.length === 0) return [];
+      const workbook = xlsx.read(buffer, { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!sheet) return [];
+      const rawRows = xlsx.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null, blankrows: false });
+      if (!rawRows || rawRows.length === 0) return [];
+      // Detect header row containing USERNAME / ROLE_NAME
+      let headerIdx = 0;
+      for (let r = 0; r < Math.min(15, rawRows.length); r++) {
+        const row = (rawRows[r] as any[]).map(c => String(c || '').toLowerCase());
+        if (row.some(c => c.includes('username')) && row.some(c => c.includes('role'))) {
+          headerIdx = r;
+          break;
+        }
+      }
+      const headers = (rawRows[headerIdx] as any[]).map(h => String(h || '').trim().toUpperCase());
+      const idxUser = headers.findIndex(h => h.includes('USERNAME'));
+      const idxRoleName = headers.findIndex(h => h === 'ROLE_NAME' || (h.includes('ROLE') && h.includes('NAME') && !h.includes('COMMON') && !h.includes('CODE')));
+      const idxRoleCode = headers.findIndex(h => h.includes('ROLE_CODE') || h.includes('ROLE_COMMON'));
+      const idxAuto = headers.findIndex(h => h.includes('AUTO'));
+      const out: UserRoleAutoProvisionRow[] = [];
+      for (let r = headerIdx + 1; r < rawRows.length; r++) {
+        const row = rawRows[r] as any[];
+        if (!row || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
+        const username = idxUser >= 0 ? String(row[idxUser] || '').trim() : '';
+        if (!username) continue;
+        const roleName = idxRoleName >= 0 ? String(row[idxRoleName] || '').trim() : '';
+        const roleCode = idxRoleCode >= 0 ? String(row[idxRoleCode] || '').trim() : '';
+        const autoRaw = idxAuto >= 0 ? String(row[idxAuto] || '').trim().toLowerCase() : '';
+        const autoProvisioned = autoRaw === 'yes' || autoRaw === 'y' || autoRaw === 'true' ? 'Yes' : (autoRaw === 'no' || autoRaw === 'n' || autoRaw === 'false' ? 'No' : null);
+        out.push({ username, roleName, roleCode, autoProvisioned });
+      }
+      return out;
+    } catch (err: any) {
+      console.warn('[BIP Client] Auto-Provisioning XLSX parse failed:', err.message);
+      return [];
     }
   }
 

@@ -21,14 +21,23 @@ export class OracleFusionClient {
       headers['Authorization'] = `Basic ${token}`;
     }
 
-    const activeBaseUrl = config.oracle.baseUrl || 'https://mock.fusion.oracle.com';
-    console.log(`[Oracle Config] Active Base URL: ${activeBaseUrl}`);
+    const activeBaseUrl = (config.oracle.baseUrl || '').trim();
+    if (!activeBaseUrl) {
+      console.warn('[Oracle Config] No instance link configured. Set it in Oracle Integration (frontend) before requesting live data.');
+    }
+    console.log(`[Oracle Config] Active Base URL: ${activeBaseUrl || '(not configured)'}`);
 
     this.client = axios.create({
-      baseURL: activeBaseUrl,
+      baseURL: activeBaseUrl || 'https://oracle-instance-not-configured.invalid',
       headers,
       timeout: 30000, // 30 seconds
     });
+  }
+
+  public requireInstanceConfigured(context = 'Oracle request'): void {
+    if (!config.oracle.baseUrl || !config.oracle.baseUrl.trim()) {
+      throw new Error(`${context} failed: Oracle instance link is not configured. Please configure it in Oracle Integration (frontend) and try again.`);
+    }
   }
 
   // Translate raw Axios errors into human-friendly business messages
@@ -229,6 +238,46 @@ export class OracleFusionClient {
       return response.data;
     } catch (error) {
       this.handleError(error, `Get Users by Role API for role "${roleName}"`);
+    }
+  }
+
+  async getPublicWorkers(params: { limit?: number; offset?: number; expand?: string } = {}) {
+    try {
+      this.requireInstanceConfigured('Public Workers');
+      const response = await this.client.get('/hcmRestApi/resources/11.13.18.05/publicWorkers', {
+        params: {
+          limit: params.limit ?? 500,
+          offset: params.offset ?? 0,
+          expand: params.expand ?? 'assignments',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      this.handleError(error, 'Public Workers API');
+    }
+  }
+
+  async getWorkerAssignments(personId: string | number) {
+    try {
+      this.requireInstanceConfigured('Worker Assignments');
+      const response = await this.client.get(
+        `/hcmRestApi/resources/11.13.18.05/publicWorkers/${encodeURIComponent(String(personId))}/child/assignments`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `Worker Assignments API for PersonId "${personId}"`);
+    }
+  }
+
+  async getAssignmentManagers(personId: string | number, assignmentId: string | number) {
+    try {
+      this.requireInstanceConfigured('Assignment Managers');
+      const response = await this.client.get(
+        `/hcmRestApi/resources/11.13.18.05/publicWorkers/${encodeURIComponent(String(personId))}/child/assignments/${encodeURIComponent(String(assignmentId))}/child/managers`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `Assignment Managers API for PersonId "${personId}"`);
     }
   }
 

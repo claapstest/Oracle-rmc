@@ -22,13 +22,53 @@ import {
 } from '../components/DashboardComponents';
 
 interface DashboardProps {
+  currentUser?: string;
   onFAQSelect?: (question: string) => void;
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
   onInvestigate?: (type: 'role' | 'user', id: string, name: string) => void;
   onNavigatePage?: (pageId: string, filter?: string) => void;
 }
 
+function getFirstName(str?: string): string {
+  if (!str) return 'Admin';
+  let clean = str.trim();
+  if (clean.includes('@')) {
+    clean = clean.split('@')[0];
+  }
+  if (clean.toLowerCase() === 'admin') return 'Admin';
+  const parts = clean.split(/[\s._-]+/);
+  const first = parts[0] || clean;
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
+const SUBTITLE_POOL = [
+  "Here's what's happening in your audit environment.",
+  "Monitor audit activities, security posture, and access risks.",
+  "Track real-time security changes and user account health.",
+  "Manage users, access permissions, and system compliance.",
+  "Access governance insights and role distribution analytics."
+];
+
+function getSubtitleText(username?: string): string {
+  if (!username) return SUBTITLE_POOL[0];
+  const norm = username.trim().toLowerCase();
+
+  if (norm.includes('admin')) {
+    return "Manage users, integrations and system configuration.";
+  }
+
+  // Dynamic hash distribution for any new member logging into VEYRA
+  let hash = 0;
+  for (let i = 0; i < norm.length; i++) {
+    hash = (hash << 5) - hash + norm.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % SUBTITLE_POOL.length;
+  return SUBTITLE_POOL[index];
+}
+
 export default function Dashboard({ 
+  currentUser,
   onFAQSelect, 
   environmentMode,
   onInvestigate,
@@ -121,7 +161,27 @@ export default function Dashboard({
 
   return (
     <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
-      
+      {/* ==========================================================
+          WELCOME GREETING - Clean Canvas Typography (Mock Screens 4, 5, 6, 7)
+          ========================================================== */}
+      <div style={{ marginBottom: '0.2rem' }}>
+        <h1 
+          style={{
+            fontSize: '1.75rem',
+            fontWeight: 800,
+            color: '#0F172A',
+            fontFamily: "'Outfit', 'Inter', sans-serif",
+            margin: 0,
+            letterSpacing: '-0.025em'
+          }}
+        >
+          Welcome back, {getFirstName(currentUser)}!
+        </h1>
+        <p style={{ color: '#64748B', fontSize: '0.95rem', margin: '0.35rem 0 0 0', fontWeight: 500 }}>
+          {getSubtitleText(currentUser)}
+        </p>
+      </div>
+
       {error && (
         <div className="glass-panel" style={{ padding: '1rem 1.5rem', borderLeft: '4px solid var(--accent-red)' }}>
           <p style={{ color: 'var(--accent-red)', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{error}</p>

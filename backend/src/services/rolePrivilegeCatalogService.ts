@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config.js';
-import { mockRoles, Role } from './mockData.js';
+import { Role } from './mockData.js';
 import { classifyRoleRecord } from './roleClassification.js';
 
 export interface CatalogRoleEntry {
@@ -482,26 +482,8 @@ export class RolePrivilegeCatalogService {
       }
     }
 
-    // Step C: Ingest known base & duty role definitions from mockRoles & baseRoles
-    mockRoles.forEach((r: Role) => {
-      const roleType = this.normalizeRoleType(r.category);
-      if (r.privileges && Array.isArray(r.privileges)) {
-        r.privileges.forEach(p => {
-          registerMapping(r.displayName, r.roleCode, roleType, p.name, p.code);
-        });
-      }
-      // Inherited through child roles
-      if (r.childRoles && Array.isArray(r.childRoles)) {
-        r.childRoles.forEach(childCode => {
-          const childRole = mockRoles.find(x => x.roleCode === childCode);
-          if (childRole && childRole.privileges) {
-            childRole.privileges.forEach(p => {
-              registerMapping(r.displayName, r.roleCode, roleType, p.name, p.code);
-            });
-          }
-        });
-      }
-    });
+    // Step C (removed): live-instance-only, do not ingest sample mockRoles.
+    // Catalog is built strictly from the configured Oracle instance (OTBI/BIP + live disk caches).
 
     // Step D: Enrich common Oracle Fusion abstract, duty, and job roles with authoritative ERP/SCM/HCM privileges
     // This guarantees rich reverse intelligence across common operational privileges

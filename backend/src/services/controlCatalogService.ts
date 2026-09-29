@@ -130,7 +130,8 @@ export class ControlCatalogService {
   }
 
   public isDemoMode(): boolean {
-    return config.environmentMode !== 'ORACLE_FUSION';
+    // Live-instance-only: never serve sample data.
+    return false;
   }
 
   private normalizeControl(item: any): AdvancedControlItem {
@@ -267,6 +268,22 @@ export class ControlCatalogService {
 
       const activeCount = normalized.filter(c => c.status === 'ACTIVE').length;
       const approvedCount = normalized.filter(c => c.state === 'APPROVED').length;
+      const missingCounts = normalized.filter(c => c.incidentCount === undefined).length;
+
+      // Live-only incident totals: the list API does not return IncidentCount.
+      // Kick off non-blocking background sync so counts populate on next refresh/detail open.
+      // Never block the list response and never inject sample data.
+      if (missingCounts > 0) {
+        const toSync = normalized.filter(c => c.incidentCount === undefined).slice(0, 25);
+        console.log(`[Control Catalog] ${missingCounts} controls missing incident counts; starting background sync for ${toSync.length} (live-only).`);
+        for (const ctrl of toSync) {
+          try {
+            this.incidentCacheService.getOrStartSync(ctrl.id, { controlName: ctrl.name });
+          } catch (syncErr) {
+            console.warn(`[Control Catalog] Background incident sync start failed for ${ctrl.id}:`, (syncErr as Error).message);
+          }
+        }
+      }
 
       return {
         success: true,
@@ -278,7 +295,10 @@ export class ControlCatalogService {
           total: normalized.length,
           active: activeCount,
           approved: approvedCount
-        }
+        },
+        message: missingCounts > 0
+          ? `Incident counts are being calculated live from the configured instance (${missingCounts} pending). Open a control or refresh again shortly.`
+          : undefined
       };
     } catch (err: any) {
       console.error('[Control Catalog Error] Failed to fetch controls from Oracle Fusion:', err.message);
@@ -299,23 +319,19 @@ export class ControlCatalogService {
         };
       }
 
-      // If in Oracle mode but network/auth failed, fallback gracefully to demo catalog so workspace never crashes
-      console.warn('[Control Catalog] Populating fallback controls catalog due to Oracle connection issue.');
-      this.indexControls(DEMO_CONTROLS);
-      this.lastRefreshedAt = new Date().toISOString();
-
+      // Live-instance-only: never populate sample/demo controls. Return empty live error.
       return {
-        success: true,
-        dataSource: this.isDemoMode() ? 'Sample Controls Data' : 'Live Oracle Fusion API (Cached Reference)',
-        items: this.catalog,
-        totalCount: this.catalog.length,
+        success: false,
+        dataSource: 'Live Oracle Fusion API',
+        items: [],
+        totalCount: 0,
         lastRefreshed: this.lastRefreshedAt,
         counts: {
-          total: this.catalog.length,
-          active: this.catalog.filter(c => c.status === 'ACTIVE').length,
-          approved: this.catalog.filter(c => c.state === 'APPROVED').length
+          total: 0,
+          active: 0,
+          approved: 0
         },
-        message: 'Loaded authoritative controls catalog.'
+        message: err.message || 'Failed to retrieve controls from the configured Oracle instance. Please verify the instance link in Oracle Integration.'
       };
     }
   }
@@ -472,27 +488,7 @@ export class ControlCatalogService {
     } catch (err: any) {
       console.error(`[Control Detail Error] Failed to fetch control "${cleanId}":`, err.message);
 
-      // If live call fails, check if we have a demo control for 114281 or 114269 as graceful fallback
-      const fallbackCtrl = this.byId.get(cleanId) || DEMO_CONTROLS.find(c => c.id === cleanId);
-      if (fallbackCtrl) {
-        console.warn(`[Control Detail] Returning reference detail for "${cleanId}" due to Oracle error.`);
-        const fallbackIncidents = cleanId === '114281' ? DEMO_INCIDENTS_114281 : [];
-        return {
-          success: true,
-          dataSource: 'Oracle Fusion (Cached Reference)',
-          control: {
-            ...fallbackCtrl,
-            incidents: fallbackIncidents,
-            incidentCount: fallbackIncidents.length
-          },
-          incidents: fallbackIncidents,
-          incidentCount: fallbackIncidents.length,
-          cacheStatus: 'READY',
-          totalCount: fallbackIncidents.length,
-          fetchedCount: fallbackIncidents.length
-        };
-      }
-
+      // Live-instance-only: never return sample/demo reference details.
       return {
         success: false,
         dataSource: 'Live Oracle Fusion API',

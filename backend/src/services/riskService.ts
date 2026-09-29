@@ -60,7 +60,8 @@ export class RiskService {
   }
 
   isDemoMode(): boolean {
-    return config.environmentMode !== 'ORACLE_FUSION';
+    // Live-instance-only: never serve sample data.
+    return false;
   }
 
   // 1. Get Advanced Access Requests

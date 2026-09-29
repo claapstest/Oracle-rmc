@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -111,6 +111,20 @@ export default function App() {
   const [riskGroupOpen, setRiskGroupOpen] = useState(false);
 
   const [sessionExpiredNotice, setSessionExpiredNotice] = useState<string>('');
+
+  // Topbar user account dropdown menu state
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Restore authenticated session and environment mode from active session storage on mount,
   // verifying session validity with the backend
@@ -638,28 +652,8 @@ export default function App() {
           </div>
         </nav>
 
-        {/* Sidebar Footer - Professional User Account Card */}
+        {/* Sidebar Footer */}
         <div className="sidebar-footer">
-          <div className="user-profile-card">
-            <div className="user-avatar-pill">
-              {getUserInitials(currentUser)}
-            </div>
-            <div className="user-info-stack">
-              <span className="user-email-text" title={currentUser}>
-                {getUserDisplayName(currentUser)}
-              </span>
-              <span className="user-role-badge" title={currentUser || 'karthika.gundreddi@claaps.com'}>
-                {currentUser || 'karthika.gundreddi@claaps.com'}
-              </span>
-            </div>
-            <button
-              onClick={() => handleLogout('MANUAL')}
-              className="user-logout-btn"
-              title="Sign Out of Session"
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
           <div className="sidebar-brand-motto">A SAFER TOMORROW</div>
           <div className="sidebar-copyright">© 2026 CLAAPS VEYRA. All rights reserved.</div>
         </div>
@@ -716,215 +710,346 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Encrypted Session Product Status Pill */}
-            <div className="topbar-status-pill">
-              <Lock size={12} style={{ color: '#34D399' }} />
-              <span>Encrypted Session Active</span>
-            </div>
-
             {/* Notification Bell with Badge matching Reference */}
-            <div style={{
-              position: 'relative',
-              cursor: 'pointer',
-              padding: '0.4rem',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+          <div style={{
+            position: 'relative',
+            cursor: 'pointer',
+            padding: '0.4rem',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff'
+          }} title="0 active alerts">
+            <Bell size={15} />
+            <span style={{
+              position: 'absolute',
+              top: '-3px',
+              right: '-3px',
+              backgroundColor: '#EF4444',
+              color: '#ffffff',
+              fontSize: '0.6rem',
+              fontWeight: 800,
+              width: '14px',
+              height: '14px',
+              borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff'
-            }} title="0 active alerts">
-              <Bell size={15} />
-              <span style={{
-                position: 'absolute',
-                top: '-3px',
-                right: '-3px',
-                backgroundColor: '#EF4444',
+              border: '1px solid #1D4ED8'
+            }}>
+              0
+            </span>
+          </div>
+
+          {/* Topbar User Profile Dropdown Menu - Clean Unpill Layout */}
+          <div ref={userMenuRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.55rem',
+                backgroundColor: 'transparent',
+                border: 'none',
+                padding: '0.2rem 0.3rem',
                 color: '#ffffff',
-                fontSize: '0.6rem',
-                fontWeight: 800,
-                width: '14px',
-                height: '14px',
+                cursor: 'pointer',
+                transition: 'opacity 0.18s ease',
+                outline: 'none'
+              }}
+              title="User Account Options & Sign Out"
+              aria-expanded={userMenuOpen}
+            >
+              {/* Vibrant Blue Avatar Circle */}
+              <div style={{
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
+                backgroundColor: '#2563EB',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid #1D4ED8'
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
+                flexShrink: 0
               }}>
-                0
-              </span>
-            </div>
+                {getUserInitials(currentUser)}
+              </div>
 
-            {/* Topbar User Avatar Circle */}
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: '#1D4ED8',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              border: '2px solid rgba(255, 255, 255, 0.4)',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
-            }} title={getUserDisplayName(currentUser)}>
-              {getUserInitials(currentUser)}
-            </div>
-          </div>
-        </header>
+              {/* User Name & Role Text Stack */}
+              <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 700, letterSpacing: '0.01em', color: '#ffffff' }}>
+                  {getUserDisplayName(currentUser)}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500, fontStyle: 'italic' }}>
+                  {isAdmin ? 'Site Admin' : 'Audit Manager'}
+                </span>
+              </div>
 
-        {/* View Switcher wrapper with display toggling to preserve component states */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+              <ChevronDown size={14} style={{ color: 'rgba(255, 255, 255, 0.8)', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease', marginLeft: '0.15rem', flexShrink: 0 }} />
+            </button>
 
-          {/* Main page content wrapper */}
-          <div style={{
-            flex: 1,
-            display: (activeInvestigation || activeQueryInvestigation) ? 'none' : 'block',
-            height: '100%',
-            overflowY: 'auto'
-          }}>
-            {visitedPages.has('dashboard') && (
-              <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
-                <Dashboard
-                  onFAQSelect={handleFAQSelect}
-                  environmentMode={environmentMode}
-                  onInvestigate={handleInvestigate}
-                  onNavigatePage={(pageId, filter) => {
-                    handlePageSelect(pageId);
-                    if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
-                    if (pageId === 'users' && filter) setInitialUsersFilter(filter);
+            {/* Dropdown Menu Popup */}
+            {userMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  width: '240px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1)',
+                  padding: '0.5rem',
+                  zIndex: 1000,
+                  animation: 'veyraMenuPop 0.15s ease-out'
+                }}
+              >
+                <style>{`
+                  @keyframes veyraMenuPop {
+                    0% { opacity: 0; transform: translateY(-6px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                  }
+                  .veyra-menu-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.65rem;
+                    width: 100%;
+                    padding: 0.6rem 0.85rem;
+                    border-radius: 8px;
+                    border: none;
+                    background: transparent;
+                    color: #0F172A;
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    text-align: left;
+                    transition: background 0.15s ease;
+                  }
+                  .veyra-menu-btn:hover {
+                    background-color: #F1F5F9;
+                  }
+                  .veyra-menu-logout {
+                    color: #DC2626 !important;
+                  }
+                  .veyra-menu-logout:hover {
+                    background-color: #FEF2F2 !important;
+                  }
+                `}</style>
+
+                {/* Account Details Header */}
+                <div style={{ padding: '0.65rem 0.85rem 0.55rem 0.85rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.35rem' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>
+                    {getUserDisplayName(currentUser)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.15rem' }}>
+                    {currentUser || 'admin@admin.com'}
+                  </div>
+                  <div style={{ marginTop: '0.4rem' }}>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      backgroundColor: isAdmin ? '#EFF6FF' : '#F1F5F9',
+                      color: isAdmin ? '#1D4ED8' : '#475569',
+                      border: isAdmin ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '9999px',
+                      display: 'inline-block'
+                    }}>
+                      {isAdmin ? 'SITE ADMIN' : 'AUDIT MANAGER'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Settings Item */}
+                <button
+                  type="button"
+                  className="veyra-menu-btn"
+                  onClick={() => {
+                    setUserMenuOpen(false);
                   }}
-                />
-              </div>
-            )}
-            <div style={{
-              display: currentPage === 'assistant' ? 'flex' : 'none',
-              height: '100%',
-              flexDirection: 'column'
-            }}>
-              <Assistant
-                currentUser={currentUser}
-                initialQuestion={faqQuestion}
-                clearInitialQuestion={() => setFaqQuestion('')}
-                environmentMode={environmentMode}
-                onNavigatePage={(pageId, filter) => {
-                  handlePageSelect(pageId);
-                  if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
-                  if (pageId === 'users' && filter) setInitialUsersFilter(filter);
-                }}
-                onInvestigate={handleInvestigate}
-                onOpenFullInvestigation={handleOpenQueryInvestigation}
-              />
-            </div>
-            {visitedPages.has('users') && (
-              <div style={{ display: currentPage === 'users' ? 'block' : 'none', height: '100%' }}>
-                <UsersPage
-                  initialFilter={initialUsersFilter}
-                  onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
-                  onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
-                />
-              </div>
-            )}
-            {visitedPages.has('roles') && (
-              <div style={{ display: currentPage === 'roles' ? 'block' : 'none', height: '100%' }}>
-                <RolesPage
-                  initialCategory={initialRolesCategory}
-                  onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
-                />
-              </div>
-            )}
-            {visitedPages.has('audit') && (
-              <div style={{ display: currentPage === 'audit' ? 'block' : 'none', height: '100%' }}>
-                <AuditPage />
-              </div>
-            )}
-            {visitedPages.has('risk-access-requests') && (
-              <div style={{ display: currentPage === 'risk-access-requests' ? 'block' : 'none', height: '100%' }}>
-                <AdvancedAccessRequestsPage environmentMode={environmentMode} />
-              </div>
-            )}
-            {visitedPages.has('risk-controls') && (
-              <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
-                <AdvancedControlsPage environmentMode={environmentMode} />
-              </div>
-            )}
-            {visitedPages.has('risk-certificates') && (
-              <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
-                <AccessCertificatesPage environmentMode={environmentMode} />
-              </div>
-            )}
-            {visitedPages.has('reports') && (
-              <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
-                <ReportsPage
-                  environmentMode={environmentMode}
-                  onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
-                  onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
-                />
-              </div>
-            )}
-            {visitedPages.has('settings') && (
-              <div style={{ display: currentPage === 'settings' ? 'block' : 'none', height: '100%' }}>
-                <SettingsPage
-                  environmentMode={environmentMode}
-                  setEnvironmentMode={setEnvironmentMode}
-                  currentUser={currentUser}
-                />
-              </div>
-            )}
-            {visitedPages.has('command-center') && (
-              <div style={{ display: currentPage === 'command-center' ? 'block' : 'none', height: '100%' }}>
-                <CommandCenter onNavigatePage={handlePageSelect} />
+                >
+                  <SettingsIcon size={15} style={{ color: '#64748B' }} />
+                  <span>Account Settings</span>
+                </button>
+
+                <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '0.35rem 0' }} />
+
+                {/* Explicit Logout Option */}
+                <button
+                  type="button"
+                  className="veyra-menu-btn veyra-menu-logout"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    handleLogout('MANUAL');
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span style={{ fontWeight: 600 }}>Sign Out / Logout</span>
+                </button>
               </div>
             )}
           </div>
+        </div>
+      </header>
 
-          {/* Query Investigation View Panel (Same Tab) */}
-          {activeQueryInvestigation && !activeInvestigation && (
-            <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
-              <FullInvestigationView
-                investigationId={activeQueryInvestigation}
+      {/* View Switcher wrapper with display toggling to preserve component states */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+
+        {/* Main page content wrapper */}
+        <div style={{
+          flex: 1,
+          display: (activeInvestigation || activeQueryInvestigation) ? 'none' : 'block',
+          height: '100%',
+          overflowY: 'auto'
+        }}>
+          {visitedPages.has('dashboard') && (
+            <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
+              <Dashboard
+                currentUser={currentUser}
+                onFAQSelect={handleFAQSelect}
                 environmentMode={environmentMode}
-                onInvestigate={handleInvestigateFromQuery}
+                onInvestigate={handleInvestigate}
                 onNavigatePage={(pageId, filter) => {
                   handlePageSelect(pageId);
                   if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
                   if (pageId === 'users' && filter) setInitialUsersFilter(filter);
-                  handleClose();
                 }}
-                onBack={handleBack}
               />
             </div>
           )}
-
-          {/* Entity Investigation Workspace Panel */}
-          {activeInvestigation && (
-            <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
-              <InvestigationWorkspace
-                entity={activeInvestigation}
-                onClose={handleClose}
-                onNavigate={handleNavigate}
-                onBack={handleBack}
-                historyCount={investigationHistory.length}
-                onNavigateToPage={(pageId) => {
-                  setCurrentPage(pageId);
-                  handleClose();
-                }}
-                environmentMode={environmentMode}
+          <div style={{
+            display: currentPage === 'assistant' ? 'flex' : 'none',
+            height: '100%',
+            flexDirection: 'column'
+          }}>
+            <Assistant
+              currentUser={currentUser}
+              initialQuestion={faqQuestion}
+              clearInitialQuestion={() => setFaqQuestion('')}
+              environmentMode={environmentMode}
+              onNavigatePage={(pageId, filter) => {
+                handlePageSelect(pageId);
+                if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
+                if (pageId === 'users' && filter) setInitialUsersFilter(filter);
+              }}
+              onInvestigate={handleInvestigate}
+              onOpenFullInvestigation={handleOpenQueryInvestigation}
+            />
+          </div>
+          {visitedPages.has('users') && (
+            <div style={{ display: currentPage === 'users' ? 'block' : 'none', height: '100%' }}>
+              <UsersPage
+                initialFilter={initialUsersFilter}
+                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
+                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
               />
+            </div>
+          )}
+          {visitedPages.has('roles') && (
+            <div style={{ display: currentPage === 'roles' ? 'block' : 'none', height: '100%' }}>
+              <RolesPage
+                initialCategory={initialRolesCategory}
+                onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+              />
+            </div>
+          )}
+          {visitedPages.has('audit') && (
+            <div style={{ display: currentPage === 'audit' ? 'block' : 'none', height: '100%' }}>
+              <AuditPage />
+            </div>
+          )}
+          {visitedPages.has('risk-access-requests') && (
+            <div style={{ display: currentPage === 'risk-access-requests' ? 'block' : 'none', height: '100%' }}>
+              <AdvancedAccessRequestsPage environmentMode={environmentMode} />
+            </div>
+          )}
+          {visitedPages.has('risk-controls') && (
+            <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
+              <AdvancedControlsPage environmentMode={environmentMode} />
+            </div>
+          )}
+          {visitedPages.has('risk-certificates') && (
+            <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
+              <AccessCertificatesPage environmentMode={environmentMode} />
+            </div>
+          )}
+          {visitedPages.has('reports') && (
+            <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
+              <ReportsPage
+                environmentMode={environmentMode}
+                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
+                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+              />
+            </div>
+          )}
+          {visitedPages.has('settings') && (
+            <div style={{ display: currentPage === 'settings' ? 'block' : 'none', height: '100%' }}>
+              <SettingsPage
+                environmentMode={environmentMode}
+                setEnvironmentMode={setEnvironmentMode}
+                currentUser={currentUser}
+              />
+            </div>
+          )}
+          {visitedPages.has('command-center') && (
+            <div style={{ display: currentPage === 'command-center' ? 'block' : 'none', height: '100%' }}>
+              <CommandCenter onNavigatePage={handlePageSelect} />
             </div>
           )}
         </div>
-      </main>
 
-      {/* Session Inactivity Timeout Warning Modal matching Mock Screen 3 */}
-      <SessionTimeoutModal
-        isOpen={isWarningOpen}
-        secondsRemaining={secondsRemaining}
-        onStayLoggedIn={handleStayLoggedIn}
-        onLogoutNow={handleLogoutNow}
-      />
-    </div>
+        {/* Query Investigation View Panel (Same Tab) */}
+        {activeQueryInvestigation && !activeInvestigation && (
+          <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
+            <FullInvestigationView
+              investigationId={activeQueryInvestigation}
+              environmentMode={environmentMode}
+              onInvestigate={handleInvestigateFromQuery}
+              onNavigatePage={(pageId, filter) => {
+                handlePageSelect(pageId);
+                if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
+                if (pageId === 'users' && filter) setInitialUsersFilter(filter);
+                handleClose();
+              }}
+              onBack={handleBack}
+            />
+          </div>
+        )}
+
+        {/* Entity Investigation Workspace Panel */}
+        {activeInvestigation && (
+          <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
+            <InvestigationWorkspace
+              entity={activeInvestigation}
+              onClose={handleClose}
+              onNavigate={handleNavigate}
+              onBack={handleBack}
+              historyCount={investigationHistory.length}
+              onNavigateToPage={(pageId) => {
+                setCurrentPage(pageId);
+                handleClose();
+              }}
+              environmentMode={environmentMode}
+            />
+          </div>
+        )}
+      </div>
+    </main>
+
+      {/* Session Inactivity Timeout Warning Modal matching Mock Screen 3 */ }
+  <SessionTimeoutModal
+    isOpen={isWarningOpen}
+    secondsRemaining={secondsRemaining}
+    onStayLoggedIn={handleStayLoggedIn}
+    onLogoutNow={handleLogoutNow}
+  />
+    </div >
   );
 }
