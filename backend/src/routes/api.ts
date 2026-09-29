@@ -80,13 +80,75 @@ export async function requireAuth(req: Request, res: Response, next: () => void)
   next();
 }
 
-// Middleware to enforce backend admin authorization
+// Middleware to enforce backend admin authorization (Site Admin only - AC6)
 export function requireAdmin(req: Request, res: Response, next: () => void) {
   requireAuth(req, res, () => {
-    if (!res.locals.isAdmin) {
-      return res.status(403).json({ success: false, message: 'Access denied. Authorized administrators only.' });
+    const isAdmin = res.locals.isAdmin === true || res.locals.role === 'SITE_ADMIN' || res.locals.permissions?.includes('ALL');
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Access denied. Site Administrator privileges required.'
+      });
     }
     next();
+  });
+}
+
+// Middleware to enforce specific privileges (AC5)
+export function requirePrivilege(requiredPrivileges: string | string[]) {
+  const reqPrivList = Array.isArray(requiredPrivileges) ? requiredPrivileges : [requiredPrivileges];
+  return (req: Request, res: Response, next: () => void) => {
+    requireAuth(req, res, () => {
+      const userPermissions: string[] = res.locals.permissions || [];
+      const isAdmin: boolean = res.locals.isAdmin === true || res.locals.role === 'SITE_ADMIN';
+
+      if (isAdmin || userPermissions.includes('ALL')) {
+        return next();
+      }
+
+      const hasPrivilege = reqPrivList.some(p => 
+        userPermissions.map(x => x.toUpperCase()).includes(p.toUpperCase())
+      );
+
+      if (!hasPrivilege) {
+        return res.status(403).json({
+          success: false,
+          code: 'FORBIDDEN',
+          message: 'Access denied. Insufficient privileges.'
+        });
+      }
+
+      next();
+    });
+  };
+}
+
+// Middleware to enforce Ask Veyra AI assistant access (AC8)
+export function requireAskVeyra(req: Request, res: Response, next: () => void) {
+  requireAuth(req, res, () => {
+    const userRole = (res.locals.role || '').toUpperCase();
+    const userPermissions: string[] = res.locals.permissions || [];
+    const isAdmin: boolean = res.locals.isAdmin === true || userRole === 'SITE_ADMIN';
+
+    // AC8: Audit Supervisor must not receive Ask Veyra privileges
+    if (userRole === 'AUDIT_SUPERVISOR') {
+      return res.status(403).json({
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Access denied. Audit Supervisor does not have privilege to access Ask Veyra.'
+      });
+    }
+
+    if (isAdmin || userPermissions.includes('ALL') || userPermissions.includes('ASK_VEYRA')) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. Ask Veyra privileges required.'
+    });
   });
 }
 
@@ -543,8 +605,8 @@ apiRouter.get('/overview/stats', requireAuth, async (req: Request, res: Response
   }
 });
 
-// 2. Chat / NLU Assistant API
-apiRouter.post('/chat', requireAuth, async (req: Request, res: Response) => {
+// 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
+apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {
   try {
     const { message, context } = req.body;
     if (!message) {
@@ -557,47 +619,161 @@ apiRouter.post('/chat', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// 3. User Data APIs
-apiRouter.get('/users', requireAuth, async (req: Request, res: Response) => {
+// ==========================================
+// AC1, AC4, AC5, AC6: User Management APIs
+// ==========================================
+
+// GET /users - List users (AC1, AC5, AC7, AC8, AC9)
+apiRouter.get('/users', requirePrivilege(['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
     const filter = req.query.filter as string | undefined;
-    const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
-    const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-    const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
-    res.json({ ...result, ...oracleService.getModeInfo() });
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-apiRouter.get('/users/:id', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const user = await oracleService.getUser(req.params.id);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (req.query.source === 'oracle' || req.query.type === 'oracle') {
+      const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
+      const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
+      const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
+      return res.json({ ...result, ...oracleService.getModeInfo() });
     }
-    res.json({ user, ...oracleService.getModeInfo() });
+
+    const usersList = authService.getUsersList(filter);
+    res.json({
+      success: true,
+      users: usersList,
+      total: usersList.length,
+      totalResults: usersList.length,
+      ...oracleService.getModeInfo()
+    });
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 
-// 4. Role Data APIs
-apiRouter.get('/roles', requireAuth, async (req: Request, res: Response) => {
+// GET /users/:id - Get single user by ID or Email (AC1, AC5, AC7, AC8, AC9)
+apiRouter.get('/users/:id', requirePrivilege(['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
-    const filter = req.query.filter as string | undefined;
-    const category = req.query.category as string | undefined;
-    const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
-    const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-    const result = await oracleService.getRoles({ filterText: filter, category, startIndex, count });
-    res.json({ ...result, ...oracleService.getModeInfo() });
+    const id = req.params.id;
+    const authUser = authService.getUserByIdOrEmail(id);
+    if (authUser) {
+      return res.json({ success: true, user: authUser, ...oracleService.getModeInfo() });
+    }
+
+    const oracleUser = await oracleService.getUser(id);
+    if (oracleUser) {
+      return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
+    }
+
+    return res.status(404).json({ success: false, code: 'USER_NOT_FOUND', message: 'User not found.' });
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 
-// Single Role Lookup Endpoint (Fast In-Memory 0ms, avoids downloading entire /api/roles list)
-apiRouter.get('/roles/single', requireAuth, async (req: Request, res: Response) => {
+// POST /users - Create a new user (AC1, AC4, AC5, AC6: Site Admin only)
+apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { email, displayName, role, password, status } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, code: 'INVALID_INPUT', message: 'Email is required.' });
+    }
+
+    const result = await authService.createUser({
+      email,
+      displayName,
+      role,
+      password,
+      status,
+      createdBy: res.locals.email
+    });
+
+    if (!result.success) {
+      if (result.code === 'USER_ALREADY_EXISTS') {
+        return res.status(409).json({ success: false, code: result.code, message: result.message });
+      }
+      return res.status(400).json({ success: false, code: result.code || 'INVALID_INPUT', message: result.message });
+    }
+
+    logAudit(res.locals.email, 'ADMIN_CREATE_USER', `Created user ${result.user?.email} with role ${result.user?.role}`);
+    return res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// PUT /users/:id - Update user / role assignment (AC1, AC4, AC5, AC6: Site Admin only)
+apiRouter.put('/users/:id', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    const { displayName, role, status, password, permissions } = req.body;
+
+    const result = await authService.updateUser(id, {
+      displayName,
+      role,
+      status,
+      password,
+      permissions,
+      updatedBy: res.locals.email
+    });
+
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+
+    logAudit(res.locals.email, 'ADMIN_UPDATE_USER', `Updated user ${id} (role: ${role || 'unchanged'}, status: ${status || 'unchanged'})`);
+    return res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// DELETE /users/:id - Delete user (AC1, AC5, AC6: Site Admin only)
+apiRouter.delete('/users/:id', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    const result = await authService.deleteUser(id, res.locals.email);
+
+    if (!result.success) {
+      if (result.code === 'CANNOT_DELETE_SELF') {
+        return res.status(400).json(result);
+      }
+      return res.status(404).json(result);
+    }
+
+    logAudit(res.locals.email, 'ADMIN_DELETE_USER', `Permanently deleted user account ${id}`);
+    return res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// ==========================================
+// AC2: Role APIs
+// ==========================================
+
+// GET /roles - List roles (AC2, AC5, AC7, AC8, AC9)
+apiRouter.get('/roles', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
+  try {
+    if (req.query.source === 'oracle') {
+      const filter = req.query.filter as string | undefined;
+      const category = req.query.category as string | undefined;
+      const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
+      const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
+      const result = await oracleService.getRoles({ filterText: filter, category, startIndex, count });
+      return res.json({ ...result, ...oracleService.getModeInfo() });
+    }
+
+    const rolesList = authService.getRolesList();
+    res.json({
+      success: true,
+      roles: rolesList,
+      total: rolesList.length,
+      ...oracleService.getModeInfo()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Single Role Lookup Endpoint (Fast In-Memory 0ms)
+apiRouter.get('/roles/single', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
   try {
     const identifier = (req.query.identifier || req.query.id || req.query.name) as string;
     if (!identifier) {
@@ -613,8 +789,28 @@ apiRouter.get('/roles/single', requireAuth, async (req: Request, res: Response) 
   }
 });
 
-// Assigned Role Members Endpoint (Batched User Lookup, no N+1)
-apiRouter.get('/roles/:name/members', requireAuth, async (req: Request, res: Response) => {
+// GET /roles/:id - Get single role by ID or Code (AC2, AC5, AC7, AC8, AC9)
+apiRouter.get('/roles/:id', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    const authRole = authService.getRoleByIdOrCode(id);
+    if (authRole) {
+      return res.json({ success: true, role: authRole, ...oracleService.getModeInfo() });
+    }
+
+    const oracleRole = await oracleService.getRole(id);
+    if (oracleRole) {
+      return res.json({ success: true, role: oracleRole, ...oracleService.getModeInfo() });
+    }
+
+    return res.status(404).json({ success: false, code: 'ROLE_NOT_FOUND', message: 'Role not found.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Assigned Role Members Endpoint
+apiRouter.get('/roles/:name/members', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT']), async (req: Request, res: Response) => {
   try {
     const roleName = req.params.name;
     const members = await oracleService.getRoleMembers(roleName);
@@ -631,7 +827,7 @@ apiRouter.get('/roles/:name/members', requireAuth, async (req: Request, res: Res
 });
 
 // Authoritative Role Dataset Validation Endpoint
-apiRouter.get('/roles/validation', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/roles/validation', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), async (req: Request, res: Response) => {
   try {
     const validation = oracleService.validateRoleCounts();
     res.json(validation);
@@ -640,8 +836,8 @@ apiRouter.get('/roles/validation', requireAuth, async (req: Request, res: Respon
   }
 });
 
-// Authoritative Role Dataset Sync Endpoint
-apiRouter.post('/roles/sync', requireAuth, async (req: Request, res: Response) => {
+// Authoritative Role Dataset Sync Endpoint (Admin only)
+apiRouter.post('/roles/sync', requireAdmin, async (req: Request, res: Response) => {
   try {
     const syncResult = await oracleService.syncAuthoritativeRoles();
     res.json(syncResult);
@@ -650,7 +846,29 @@ apiRouter.post('/roles/sync', requireAuth, async (req: Request, res: Response) =
   }
 });
 
-apiRouter.get('/reports/role-hierarchy', requireAuth, async (req: Request, res: Response) => {
+// ==========================================
+// AC3: Privilege APIs
+// ==========================================
+
+// GET /privileges - List privileges (AC3, AC5, AC7, AC8, AC9)
+apiRouter.get('/privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'PRIVILEGE_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), (_req: Request, res: Response) => {
+  try {
+    const privs = authService.getPrivilegesList();
+    res.json({
+      success: true,
+      privileges: privs,
+      total: privs.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// ==========================================
+// Reports APIs (AC9: Audit User allowed)
+// ==========================================
+
+apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getRoleHierarchyReport();
     res.json(result);
@@ -659,7 +877,7 @@ apiRouter.get('/reports/role-hierarchy', requireAuth, async (req: Request, res: 
   }
 });
 
-apiRouter.get('/reports/user-access', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/reports/user-access', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
   try {
     const forceRefresh = req.query.refresh === 'true';
     const result = await userAccessReportService.getUserAccessReport(forceRefresh);
@@ -670,7 +888,7 @@ apiRouter.get('/reports/user-access', requireAuth, async (req: Request, res: Res
   }
 });
 
-apiRouter.get('/roles/:name/hierarchy', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/roles/:name/hierarchy', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getRoleHierarchy(req.params.name);
     res.json(result);
@@ -679,7 +897,7 @@ apiRouter.get('/roles/:name/hierarchy', requireAuth, async (req: Request, res: R
   }
 });
 
-apiRouter.get('/roles/:name/privileges', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/roles/:name/privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getPrivilegesForRole(req.params.name);
     res.json(result);
@@ -688,8 +906,11 @@ apiRouter.get('/roles/:name/privileges', requireAuth, async (req: Request, res: 
   }
 });
 
-// 5. Audit logs API
-apiRouter.get('/audit/products', requireAuth, (req: Request, res: Response) => {
+// ==========================================
+// 5. Audit logs API (AC5, AC7, AC8: Audit User blocked)
+// ==========================================
+
+apiRouter.get('/audit/products', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), (req: Request, res: Response) => {
   try {
     const products = auditProductCatalogService.getPublicCatalog();
     res.json({
@@ -701,7 +922,7 @@ apiRouter.get('/audit/products', requireAuth, (req: Request, res: Response) => {
   }
 });
 
-apiRouter.get('/audit', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
   try {
     const product = req.query.product as string | undefined;
     const businessObjectType = req.query.businessObjectType as string | undefined;
@@ -740,7 +961,7 @@ apiRouter.get('/audit', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-apiRouter.post('/audit/query', requireAuth, async (req: Request, res: Response) => {
+apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
   try {
     const {
       product,
@@ -781,8 +1002,11 @@ apiRouter.post('/audit/query', requireAuth, async (req: Request, res: Response) 
   }
 });
 
-// 6. Risk Dashboard APIs
-apiRouter.get('/risk/access-requests', requireAuth, async (req: Request, res: Response) => {
+// ==========================================
+// 6. Risk Dashboard APIs (AC5, AC7, AC8: Audit User blocked)
+// ==========================================
+
+apiRouter.get('/risk/access-requests', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
@@ -795,7 +1019,7 @@ apiRouter.get('/risk/access-requests', requireAuth, async (req: Request, res: Re
   }
 });
 
-apiRouter.get('/risk/access-requests/:id', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/access-requests/:id', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getAccessRequestById(req.params.id);
     if (!result.item) {
@@ -807,7 +1031,7 @@ apiRouter.get('/risk/access-requests/:id', requireAuth, async (req: Request, res
   }
 });
 
-apiRouter.get('/risk/controls', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/controls', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
@@ -819,7 +1043,7 @@ apiRouter.get('/risk/controls', requireAuth, async (req: Request, res: Response)
   }
 });
 
-apiRouter.post('/risk/controls/refresh', requireAuth, async (req: Request, res: Response) => {
+apiRouter.post('/risk/controls/refresh', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getAdvancedControls({ forceRefresh: true });
     res.json(result);
@@ -828,7 +1052,7 @@ apiRouter.post('/risk/controls/refresh', requireAuth, async (req: Request, res: 
   }
 });
 
-apiRouter.get('/risk/controls/:id', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/controls/:id', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const controlId = req.params.id;
     const forceRefresh = req.query.refresh === 'true';
@@ -848,8 +1072,7 @@ apiRouter.get('/risk/controls/:id', requireAuth, async (req: Request, res: Respo
   }
 });
 
-// GET /risk/reports/control-summary - Fast, scalable Control Summary reporting endpoint
-apiRouter.get('/risk/reports/control-summary', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/reports/control-summary', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const forceRefresh = req.query.refresh === 'true';
     const scan = req.query.scan === 'true';
@@ -860,8 +1083,7 @@ apiRouter.get('/risk/reports/control-summary', requireAuth, async (req: Request,
   }
 });
 
-// GET /risk/reports/control-summary/:id - Single control incident count probe
-apiRouter.get('/risk/reports/control-summary/:id', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/reports/control-summary/:id', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const controlId = req.params.id;
     const result = await oracleService.scanSingleControlIncidentCount(controlId);
@@ -871,8 +1093,7 @@ apiRouter.get('/risk/reports/control-summary/:id', requireAuth, async (req: Requ
   }
 });
 
-// POST /risk/reports/control-summary/scan - Trigger lightweight count scan across unscanned controls
-apiRouter.post('/risk/reports/control-summary/scan', requireAuth, async (req: Request, res: Response) => {
+apiRouter.post('/risk/reports/control-summary/scan', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getControlSummaryReport({ scan: true });
     res.json(result);
@@ -881,8 +1102,7 @@ apiRouter.post('/risk/reports/control-summary/scan', requireAuth, async (req: Re
   }
 });
 
-
-apiRouter.get('/risk/capabilities', requireAuth, (req: Request, res: Response) => {
+apiRouter.get('/risk/capabilities', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), (req: Request, res: Response) => {
   try {
     const capabilities = oracleService.getRiskCapabilities();
     res.json({ success: true, capabilities });
@@ -891,7 +1111,7 @@ apiRouter.get('/risk/capabilities', requireAuth, (req: Request, res: Response) =
   }
 });
 
-apiRouter.get('/risk/incidents', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/incidents', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const controlId = req.query.controlId as string | undefined;
     const forceRefresh = req.query.refresh === 'true';
@@ -902,7 +1122,7 @@ apiRouter.get('/risk/incidents', requireAuth, async (req: Request, res: Response
   }
 });
 
-apiRouter.get('/risk/sod', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/sod', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getSoDConflicts();
     res.json(result);
@@ -911,8 +1131,7 @@ apiRouter.get('/risk/sod', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/access-certifications - Oracle Fusion BI Publisher Access Certification Report
-apiRouter.get('/access-certifications', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/access-certifications', requirePrivilege(['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getAccessCertifications();
     if (!result.success) {
@@ -929,8 +1148,7 @@ apiRouter.get('/access-certifications', requireAuth, async (req: Request, res: R
   }
 });
 
-// GET /api/access-certifications/:certificationId/details - Oracle Fusion BI Publisher Certifier Worksheet Drill-Down
-apiRouter.get('/access-certifications/:certificationId/details', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/access-certifications/:certificationId/details', requirePrivilege(['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL']), async (req: Request, res: Response) => {
   const certificationId = String(req.params.certificationId || '').trim();
   if (!certificationId) {
     return res.status(400).json({
@@ -958,8 +1176,7 @@ apiRouter.get('/access-certifications/:certificationId/details', requireAuth, as
   }
 });
 
-// Backward-compatible alias for /risk/certifications
-apiRouter.get('/risk/certifications', requireAuth, async (req: Request, res: Response) => {
+apiRouter.get('/risk/certifications', requirePrivilege(['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getAccessCertifications();
     if (!result.success) {
@@ -976,11 +1193,11 @@ apiRouter.get('/risk/certifications', requireAuth, async (req: Request, res: Res
 });
 
 // ==========================================
-// Role & Privilege Intelligence Catalog APIs
+// Role & Privilege Intelligence Catalog APIs (AC5, AC7, AC8: Audit User blocked)
 // ==========================================
 
 // Get Catalog Metadata (status, counts, instance, last sync)
-apiRouter.get('/catalog/role-privileges', requireAuth, (req: Request, res: Response) => {
+apiRouter.get('/catalog/role-privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), (req: Request, res: Response) => {
   try {
     const meta = rolePrivilegeCatalogService.getMetadata();
     res.json({ success: true, catalog: meta });
@@ -989,8 +1206,8 @@ apiRouter.get('/catalog/role-privileges', requireAuth, (req: Request, res: Respo
   }
 });
 
-// Trigger Background Catalog Synchronization
-apiRouter.post('/catalog/role-privileges/sync', requireAuth, async (req: Request, res: Response) => {
+// Trigger Background Catalog Synchronization (Admin only)
+apiRouter.post('/catalog/role-privileges/sync', requireAdmin, async (req: Request, res: Response) => {
   try {
     logAudit(res.locals.email || 'SYSTEM', 'CATALOG_SYNC_TRIGGERED', 'Role & Privilege catalog sync started in background');
     const result = await rolePrivilegeCatalogService.syncCatalogInBackground(oracleService);
@@ -1001,7 +1218,7 @@ apiRouter.post('/catalog/role-privileges/sync', requireAuth, async (req: Request
 });
 
 // Reverse Lookup: Privilege -> Roles (OTBI Authoritative Source)
-apiRouter.get('/catalog/role-privileges/roles-by-privilege', requireAuth, (req: Request, res: Response) => {
+apiRouter.get('/catalog/role-privileges/roles-by-privilege', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), (req: Request, res: Response) => {
   try {
     const privilege = (req.query.privilege as string) || '';
     if (!privilege) {
@@ -1015,7 +1232,7 @@ apiRouter.get('/catalog/role-privileges/roles-by-privilege', requireAuth, (req: 
 });
 
 // Dedicated Privilege -> Roles API
-apiRouter.get('/privilege-roles', requireAuth, (req: Request, res: Response) => {
+apiRouter.get('/privilege-roles', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), (req: Request, res: Response) => {
   try {
     const query = (req.query.query as string) || (req.query.privilege as string) || '';
     if (!query) {
@@ -1028,7 +1245,7 @@ apiRouter.get('/privilege-roles', requireAuth, (req: Request, res: Response) => 
   }
 });
 
-apiRouter.get('/privilege-roles/metadata', requireAuth, (_req: Request, res: Response) => {
+apiRouter.get('/privilege-roles/metadata', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), (_req: Request, res: Response) => {
   try {
     res.json(privilegeRoleCatalogService.getMetadata());
   } catch (err) {
@@ -1036,7 +1253,7 @@ apiRouter.get('/privilege-roles/metadata', requireAuth, (_req: Request, res: Res
   }
 });
 
-apiRouter.post('/privilege-roles/sync', requireAuth, async (_req: Request, res: Response) => {
+apiRouter.post('/privilege-roles/sync', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const syncResult = await privilegeRoleCatalogService.syncFromOtbi();
     res.json(syncResult);
@@ -1046,7 +1263,7 @@ apiRouter.post('/privilege-roles/sync', requireAuth, async (_req: Request, res: 
 });
 
 // Forward Lookup: Role -> Privileges
-apiRouter.get('/catalog/role-privileges/privileges-by-role', requireAuth, (req: Request, res: Response) => {
+apiRouter.get('/catalog/role-privileges/privileges-by-role', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), (req: Request, res: Response) => {
   try {
     const role = (req.query.role as string) || '';
     if (!role) {
@@ -1060,11 +1277,11 @@ apiRouter.get('/catalog/role-privileges/privileges-by-role', requireAuth, (req: 
 });
 
 // =========================================================
-// 8. Oracle Fusion API Operations & Diagnostics Command Center
+// AC6: Oracle Fusion API Operations & Diagnostics Command Center (Site Admin only)
 // =========================================================
 
 // POST /command-center/request - Execute an API request against Oracle Fusion safely
-apiRouter.post('/command-center/request', requireAuth, async (req: Request, res: Response) => {
+apiRouter.post('/command-center/request', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { method, url, params, headers, body, authMode, timeoutMs } = req.body;
     if (!url) {
@@ -1103,7 +1320,7 @@ apiRouter.post('/command-center/request', requireAuth, async (req: Request, res:
 });
 
 // POST /command-center/test-connection - Real connection health probe
-apiRouter.post('/command-center/test-connection', requireAuth, async (_req: Request, res: Response) => {
+apiRouter.post('/command-center/test-connection', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const result = await commandCenterService.testConnection();
     res.json(result);
@@ -1120,7 +1337,7 @@ apiRouter.post('/command-center/test-connection', requireAuth, async (_req: Requ
 });
 
 // GET /command-center/catalog - Pre-defined categorized catalog of Oracle Fusion APIs
-apiRouter.get('/command-center/catalog', requireAuth, (_req: Request, res: Response) => {
+apiRouter.get('/command-center/catalog', requireAdmin, (_req: Request, res: Response) => {
   try {
     const catalog = commandCenterService.getCatalog();
     res.json({ success: true, catalog, baseUrl: config.oracle.baseUrl });
@@ -1130,7 +1347,7 @@ apiRouter.get('/command-center/catalog', requireAuth, (_req: Request, res: Respo
 });
 
 // GET /command-center/history - Execution history
-apiRouter.get('/command-center/history', requireAuth, (_req: Request, res: Response) => {
+apiRouter.get('/command-center/history', requireAdmin, (_req: Request, res: Response) => {
   try {
     const history = commandCenterService.getHistory();
     res.json({ success: true, history });
@@ -1140,7 +1357,7 @@ apiRouter.get('/command-center/history', requireAuth, (_req: Request, res: Respo
 });
 
 // DELETE /command-center/history - Clear execution history
-apiRouter.delete('/command-center/history', requireAuth, (_req: Request, res: Response) => {
+apiRouter.delete('/command-center/history', requireAdmin, (_req: Request, res: Response) => {
   try {
     commandCenterService.clearHistory();
     res.json({ success: true, message: 'Oracle API Console history cleared.' });
@@ -1150,7 +1367,7 @@ apiRouter.delete('/command-center/history', requireAuth, (_req: Request, res: Re
 });
 
 // GET /command-center/saved-requests - List saved requests / collections
-apiRouter.get('/command-center/saved-requests', requireAuth, (_req: Request, res: Response) => {
+apiRouter.get('/command-center/saved-requests', requireAdmin, (_req: Request, res: Response) => {
   try {
     const saved = commandCenterService.getSavedRequests();
     res.json({ success: true, items: saved });
@@ -1160,7 +1377,7 @@ apiRouter.get('/command-center/saved-requests', requireAuth, (_req: Request, res
 });
 
 // POST /command-center/saved-requests - Save a request template
-apiRouter.post('/command-center/saved-requests', requireAuth, (req: Request, res: Response) => {
+apiRouter.post('/command-center/saved-requests', requireAdmin, (req: Request, res: Response) => {
   try {
     const { name, category, description, method, url, params, headers, body, id } = req.body;
     if (!name || !url) {
@@ -1178,13 +1395,13 @@ apiRouter.post('/command-center/saved-requests', requireAuth, (req: Request, res
       body
     });
     res.json({ success: true, item: saved });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 
 // DELETE /command-center/saved-requests/:id - Delete a saved request template
-apiRouter.delete('/command-center/saved-requests/:id', requireAuth, (req: Request, res: Response) => {
+apiRouter.delete('/command-center/saved-requests/:id', requireAdmin, (req: Request, res: Response) => {
   try {
     const success = commandCenterService.deleteSavedRequest(req.params.id);
     res.json({ success, message: success ? 'Saved request deleted.' : 'Item not found.' });
