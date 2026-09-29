@@ -34,20 +34,24 @@ async function runTests() {
   // Test 3: Authenticate with lowercase email
   const resSetup = await authService.login('karthika.gundreddi@claaps.com', knownPassword);
   assert(resSetup.success === true, 'Authenticate with lowercase email succeeds');
+  if (resSetup.token) await authService.logout(resSetup.token);
 
   // Test 4: Authenticate with MixedCase email
   const resMixed = await authService.login('Karthika.Gundreddi@claaps.com', knownPassword);
   assert(resMixed.success === true, 'Authenticate with mixed-case email succeeds');
   assert(resMixed.normalizedEmail === 'karthika.gundreddi@claaps.com', 'Login returns normalized email identity');
+  if (resMixed.token) await authService.logout(resMixed.token);
 
   // Test 5: Authenticate with ALL-CAPS email
   const resUpper = await authService.login('KARTHIKA.GUNDREDDI@CLAAPS.COM', knownPassword);
   assert(resUpper.success === true, 'Authenticate with ALL-CAPS email succeeds');
   assert(resUpper.normalizedEmail === 'karthika.gundreddi@claaps.com', 'ALL-CAPS login returns normalized email identity');
+  if (resUpper.token) await authService.logout(resUpper.token);
 
   // Test 6: Authenticate with capitalized domain
   const resDomain = await authService.login('Karthika.Gundreddi@Claaps.Com', knownPassword);
   assert(resDomain.success === true, 'Authenticate with capitalized domain succeeds');
+  if (resDomain.token) await authService.logout(resDomain.token);
 
   // Test 7: Authenticate with leading/trailing spaces
   const resSpaces = await authService.login('   Karthika.Gundreddi@claaps.com   ', knownPassword);
@@ -69,7 +73,7 @@ async function runTests() {
 
   // Test 10: Session logout works properly
   if (resSpaces.token) {
-    authService.logout(resSpaces.token);
+    await authService.logout(resSpaces.token);
     const sessionAfterLogout = authService.verifySession(resSpaces.token);
     assert(sessionAfterLogout === null, 'Session is invalidated on logout');
   }

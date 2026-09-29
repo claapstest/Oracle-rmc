@@ -39,6 +39,7 @@ async function runTests() {
     // Test AC2: Email Normalization (Casing and Whitespace)
     // -------------------------------------------------------------
     console.log('\n[Testing AC2: Email Normalization]');
+    await authService.logout(adminLogin.token);
     const normLogin = await authService.login('   Admin@Admin.COM   ', 'Admin@123');
     assert(normLogin.success === true, 'Normalized email with mixed case & spaces logs in successfully');
     assert(normLogin.normalizedEmail === 'admin@admin.com', 'Email normalized to lowercase and trimmed');
@@ -79,7 +80,7 @@ async function runTests() {
     // Test AC7: Session Validation & Verification
     // -------------------------------------------------------------
     console.log('\n[Testing AC7: Session Validation]');
-    const session = authService.verifySession(adminLogin.token);
+    const session = authService.verifySession(normLogin.token);
     assert(session !== null, 'Session token is verified in active session store');
     assert(session.email === 'admin@admin.com', 'Session matches user email');
     assert(session.role === 'SITE_ADMIN', 'Session contains user role');

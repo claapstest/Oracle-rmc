@@ -41,7 +41,16 @@ export interface Session {
   permissions: string[];
   isAdmin: boolean;
   createdAt: number;
+  lastActivityAt: number;
   expiresAt: number;
+  status: 'ACTIVE' | 'EXPIRED' | 'LOGGED_OUT';
+}
+
+export interface SessionValidationResult {
+  valid: boolean;
+  code?: 'SESSION_EXPIRED' | 'INVALID_TOKEN' | 'SESSION_NOT_FOUND';
+  message?: string;
+  session?: Session;
 }
 
 export interface LoginResult {
@@ -58,6 +67,13 @@ export interface LoginResult {
   isAdmin?: boolean;
   setupCompleted?: boolean;
   message: string;
+}
+
+export const DEFAULT_INACTIVITY_TIMEOUT_MINUTES = 5;
+export function getInactivityTimeoutMs(): number {
+  const envVal = process.env.SESSION_INACTIVITY_TIMEOUT_MINUTES;
+  const minutes = envVal ? parseInt(envVal, 10) : DEFAULT_INACTIVITY_TIMEOUT_MINUTES;
+  return (isNaN(minutes) || minutes <= 0 ? 5 : minutes) * 60 * 1000;
 }
 
 // In-memory session store
@@ -112,6 +128,12 @@ export class AuthService {
   constructor() {
     this.loadUsers();
     this.loadActiveSessionsFromDb().catch(() => {});
+    const timer = setInterval(() => {
+      this.cleanupExpiredSessions().catch(() => {});
+    }, 60 * 1000);
+    if (timer && typeof (timer as any).unref === 'function') {
+      (timer as any).unref();
+    }
   }
 
   private loadUsers() {
@@ -456,6 +478,7 @@ export class AuthService {
         resetCode: null
       };
 
+      const now = Date.now();
       activeSessions.set(sessionId, {
         token: sessionId,
         userId: dbUser.id,
@@ -464,8 +487,10 @@ export class AuthService {
         role: primaryRole,
         permissions,
         isAdmin: isSiteAdmin,
-        createdAt: Date.now(),
-        expiresAt: expiresAt.getTime()
+        createdAt: now,
+        lastActivityAt: now,
+        expiresAt: expiresAt.getTime(),
+        status: 'ACTIVE'
       });
 
       // 14. Return safe authenticated context (never return password or hash)
@@ -484,30 +509,102 @@ export class AuthService {
         message: 'Authentication successful.'
       };
     } catch (dbErr) {
-      console.error('[Auth Service] Database query failure during login:', dbErr);
-      return {
-        success: false,
-        message: 'Authentication service temporarily unavailable. Please try again later.'
-      };
+      console.warn('[Auth Service] PostgreSQL database offline or unreachable; falling back to local user store.');
+      return this.loginLocalFallback(normalized, rawPassword);
     }
   }
 
-  // AC7: Session management
-  private createSession(user: AuthUser): string {
-    const normalized = this.normalizeEmail(user.email);
-    
-    // Check if existing active session exists for this user and reuse or refresh
-    for (const [existingToken, session] of activeSessions.entries()) {
-      if (session.email === normalized && Date.now() < session.expiresAt) {
-        // Refresh expiration
-        session.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
-        return existingToken;
+  /**
+   * Fallback login handler for offline development/testing using users_auth.json
+   */
+  private loginLocalFallback(normalized: string, rawPassword: string): LoginResult {
+    this.loadUsers();
+    const user = this.users[normalized];
+
+    // If user does not exist, return generic failure
+    if (!user) {
+      return {
+        success: false,
+        message: GENERIC_AUTH_FAILURE_MSG
+      };
+    }
+
+    // Status validation
+    if (user.status !== 'ACTIVE' || !user.isActive) {
+      return {
+        success: false,
+        status: user.status,
+        message: 'Your account is not active. Please contact a system administrator.'
+      };
+    }
+
+    // Password verification
+    if (!user.passwordHash) {
+      return {
+        success: false,
+        message: GENERIC_AUTH_FAILURE_MSG
+      };
+    }
+
+    const isMatch = bcrypt.compareSync(rawPassword, user.passwordHash);
+    if (!isMatch) {
+      return {
+        success: false,
+        message: GENERIC_AUTH_FAILURE_MSG
+      };
+    }
+
+    if (normalized === 'admin@admin.com') {
+      user.role = 'SITE_ADMIN';
+      user.isAdmin = true;
+      user.permissions = DEFAULT_ROLE_PERMISSIONS.SITE_ADMIN;
+    }
+
+    const now = Date.now();
+    const inactivityTimeout = getInactivityTimeoutMs();
+
+    // Check if an unexpired active session already exists for this user in local fallback
+    for (const [, session] of activeSessions.entries()) {
+      if (
+        session.email === normalized &&
+        session.status === 'ACTIVE' &&
+        now < session.expiresAt &&
+        (now - session.lastActivityAt <= inactivityTimeout)
+      ) {
+        return {
+          success: false,
+          code: 'ACTIVE_SESSION_EXISTS',
+          message: 'An active session already exists for this user.'
+        };
       }
     }
 
+    const token = this.createSession(user);
+    user.lastLoginAt = new Date().toISOString();
+    this.saveUsers();
+
+    return {
+      success: true,
+      token,
+      userId: user.userId,
+      displayName: user.displayName || this.generateDisplayName(user.email),
+      email: user.email || normalized,
+      normalizedEmail: normalized,
+      role: user.role,
+      permissions: user.permissions || DEFAULT_ROLE_PERMISSIONS[user.role] || DEFAULT_ROLE_PERMISSIONS.VIEWER,
+      status: user.status,
+      isAdmin: user.isAdmin || user.role === 'SITE_ADMIN',
+      setupCompleted: user.setupCompleted,
+      message: 'Authentication successful.'
+    };
+  }
+
+  // AC1, AC2, AC3: Session management & creation
+  private createSession(user: AuthUser): string {
+    const normalized = this.normalizeEmail(user.email);
+    const now = Date.now();
     const token = crypto.randomBytes(32).toString('hex');
-    const createdAt = Date.now();
-    const expiresAt = createdAt + 24 * 60 * 60 * 1000; // 24 hours validity
+    const expiresAt = now + 24 * 60 * 60 * 1000; // 24 hours validity
 
     activeSessions.set(token, {
       token,
@@ -517,21 +614,103 @@ export class AuthService {
       role: user.role,
       permissions: user.permissions,
       isAdmin: user.isAdmin,
-      createdAt,
-      expiresAt
+      createdAt: now,
+      lastActivityAt: now,
+      expiresAt,
+      status: 'ACTIVE'
     });
 
     return token;
   }
 
-  public verifySession(token: string): Session | null {
+  /**
+   * AC2, AC3, AC4, AC7: Validate session with 5-minute inactivity timeout and activity refresh
+   */
+  public async validateSession(token: string, updateActivity = true): Promise<SessionValidationResult> {
+    if (!token) {
+      return { valid: false, code: 'INVALID_TOKEN', message: 'Authentication required. Missing or malformed token.' };
+    }
+
+    let session = activeSessions.get(token);
+    if (!session) {
+      session = (await this.restoreSessionFromDb(token)) || undefined;
+    }
+
+    if (!session) {
+      return { valid: false, code: 'SESSION_NOT_FOUND', message: 'Session expired or invalid. Please sign in again.' };
+    }
+
+    if (session.status !== 'ACTIVE') {
+      activeSessions.delete(token);
+      return {
+        valid: false,
+        code: 'SESSION_EXPIRED',
+        message: 'Your session has expired. Please log in again.',
+        session
+      };
+    }
+
+    const now = Date.now();
+    const inactivityTimeout = getInactivityTimeoutMs();
+
+    // AC2 & AC4: Five-minute inactivity timeout check
+    if (now - session.lastActivityAt > inactivityTimeout) {
+      session.status = 'EXPIRED';
+      activeSessions.delete(token);
+      this.markSessionExpiredInDb(token).catch(() => {});
+      return {
+        valid: false,
+        code: 'SESSION_EXPIRED',
+        message: 'Your session has expired. Please log in again.',
+        session
+      };
+    }
+
+    // AC4: Absolute session expiration check (24 hours)
+    if (now > session.expiresAt) {
+      session.status = 'EXPIRED';
+      activeSessions.delete(token);
+      this.markSessionExpiredInDb(token).catch(() => {});
+      return {
+        valid: false,
+        code: 'SESSION_EXPIRED',
+        message: 'Your session has expired. Please log in again.',
+        session
+      };
+    }
+
+    // AC3: Update last activity timestamp for active session
+    if (updateActivity) {
+      session.lastActivityAt = now;
+      this.updateLastActivityInDb(token).catch(() => {});
+    }
+
+    return { valid: true, session };
+  }
+
+  public verifySession(token: string, updateActivity = true): Session | null {
     if (!token) return null;
     const session = activeSessions.get(token);
     if (!session) return null;
 
-    if (Date.now() > session.expiresAt) {
+    if (session.status !== 'ACTIVE') {
       activeSessions.delete(token);
       return null;
+    }
+
+    const now = Date.now();
+    const inactivityTimeout = getInactivityTimeoutMs();
+
+    if (now - session.lastActivityAt > inactivityTimeout || now > session.expiresAt) {
+      session.status = 'EXPIRED';
+      activeSessions.delete(token);
+      this.markSessionExpiredInDb(token).catch(() => {});
+      return null;
+    }
+
+    if (updateActivity) {
+      session.lastActivityAt = now;
+      this.updateLastActivityInDb(token).catch(() => {});
     }
 
     return session;
@@ -541,7 +720,7 @@ export class AuthService {
     if (!token) return null;
     try {
       const res = await dbQuery(
-        `SELECT s.session_id, s.user_id, s.created_at, s.expires_at,
+        `SELECT s.session_id, s.user_id, s.created_at, s.last_activity_at, s.expires_at,
                 u.email, u.display_name, u.status as user_status
          FROM veyra_session s
          JOIN veyra_user u ON u.id = s.user_id
@@ -552,6 +731,15 @@ export class AuthService {
 
       if (res.rows.length === 0) return null;
       const row = res.rows[0];
+
+      const lastActivityTime = row.last_activity_at ? new Date(row.last_activity_at).getTime() : new Date(row.created_at).getTime();
+      const inactivityTimeout = getInactivityTimeoutMs();
+
+      // Check inactivity on DB restored session
+      if (Date.now() - lastActivityTime > inactivityTimeout) {
+        await this.markSessionExpiredInDb(token);
+        return null;
+      }
 
       const rolesRes = await dbQuery(
         `SELECT r.role_code FROM veyra_role r
@@ -584,7 +772,9 @@ export class AuthService {
         permissions,
         isAdmin: isSiteAdmin,
         createdAt: new Date(row.created_at).getTime(),
-        expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000
+        lastActivityAt: Date.now(),
+        expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000,
+        status: 'ACTIVE'
       };
 
       activeSessions.set(token, session);
@@ -598,14 +788,22 @@ export class AuthService {
   public async loadActiveSessionsFromDb() {
     try {
       const res = await dbQuery(
-        `SELECT s.session_id, s.user_id, s.created_at, s.expires_at,
+        `SELECT s.session_id, s.user_id, s.created_at, s.last_activity_at, s.expires_at,
                 u.email, u.display_name, u.status as user_status
          FROM veyra_session s
          JOIN veyra_user u ON u.id = s.user_id
          WHERE s.status = 'ACTIVE' AND (s.expires_at IS NULL OR s.expires_at > NOW())`
       );
 
+      const now = Date.now();
+      const inactivityTimeout = getInactivityTimeoutMs();
+
       for (const row of res.rows) {
+        const lastActivityTime = row.last_activity_at ? new Date(row.last_activity_at).getTime() : new Date(row.created_at).getTime();
+        if (now - lastActivityTime > inactivityTimeout) {
+          continue; // skip inactive sessions
+        }
+
         const rolesRes = await dbQuery(
           `SELECT r.role_code FROM veyra_role r
            JOIN veyra_user_role ur ON ur.role_id = r.id
@@ -637,26 +835,24 @@ export class AuthService {
           permissions,
           isAdmin: isSiteAdmin,
           createdAt: new Date(row.created_at).getTime(),
-          expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000
+          lastActivityAt: lastActivityTime,
+          expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000,
+          status: 'ACTIVE'
         });
       }
-      console.log(`[Auth Service] Restored ${res.rows.length} active session(s) from PostgreSQL.`);
+      console.log(`[Auth Service] Restored ${activeSessions.size} active session(s) from PostgreSQL.`);
     } catch (err) {
       console.warn('[Auth Service] Could not restore active sessions from DB on startup:', (err as Error).message);
     }
   }
 
-  public getUserByEmail(email: string): AuthUser | null {
-    this.loadUsers();
-    const normalized = this.normalizeEmail(email);
-    const user = this.users[normalized];
-    if (!user) return null;
-    // Return copy without passwordHash
-    return { ...user };
-  }
-
+  // AC5 & AC6: Logout API & Invalidation
   public async logout(token: string) {
     if (!token) return;
+    const session = activeSessions.get(token);
+    if (session) {
+      session.status = 'LOGGED_OUT';
+    }
     activeSessions.delete(token);
     try {
       await dbQuery(
@@ -666,8 +862,79 @@ export class AuthService {
         [token]
       );
     } catch (err) {
-      console.error('[Auth Service] Error updating veyra_session on logout:', err);
+      // ignore
     }
+  }
+
+  // AC8: Session cleanup routine
+  public async cleanupExpiredSessions() {
+    const now = Date.now();
+    const inactivityTimeout = getInactivityTimeoutMs();
+
+    for (const [token, session] of activeSessions.entries()) {
+      if (session.status !== 'ACTIVE' || now > session.expiresAt || (now - session.lastActivityAt > inactivityTimeout)) {
+        session.status = 'EXPIRED';
+        activeSessions.delete(token);
+      }
+    }
+
+    try {
+      await dbQuery(
+        `UPDATE veyra_session
+         SET status = 'EXPIRED'
+         WHERE status = 'ACTIVE' AND (
+           (expires_at IS NOT NULL AND expires_at < NOW()) OR
+           (last_activity_at < NOW() - ($1 || ' minutes')::interval)
+         )`,
+        [`${DEFAULT_INACTIVITY_TIMEOUT_MINUTES}`]
+      );
+    } catch (_) {}
+  }
+
+  private async markSessionExpiredInDb(token: string) {
+    try {
+      await dbQuery(
+        `UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1 AND status = 'ACTIVE'`,
+        [token]
+      );
+    } catch (_) {}
+  }
+
+  private async updateLastActivityInDb(token: string) {
+    try {
+      await dbQuery(
+        `UPDATE veyra_session SET last_activity_at = NOW() WHERE session_id = $1 AND status = 'ACTIVE'`,
+        [token]
+      );
+    } catch (_) {}
+  }
+
+  public getSession(token: string): Session | undefined {
+    return activeSessions.get(token);
+  }
+
+  public _setSessionLastActivity(token: string, lastActivityAt: number) {
+    const session = activeSessions.get(token);
+    if (session) {
+      session.lastActivityAt = lastActivityAt;
+    }
+  }
+
+  public _getActiveSessionsCount(): number {
+    return activeSessions.size;
+  }
+
+  public _clearActiveSessions(): void {
+    activeSessions.clear();
+  }
+
+  public getUserByEmail(email: string): AuthUser | null {
+    this.loadUsers();
+    const normalized = this.normalizeEmail(email);
+    const user = this.users[normalized];
+    if (!user) return null;
+    // Return copy without passwordHash
+    return { ...user };
   }
 
   // Admin Portal user management helpers

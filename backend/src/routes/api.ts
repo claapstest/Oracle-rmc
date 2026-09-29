@@ -44,7 +44,7 @@ function logAudit(username: string, action: string, details: string) {
   }
 }
 
-// Authentication middleware to verify session tokens
+// Authentication middleware to verify session tokens (AC2, AC3, AC4, AC7)
 export async function requireAuth(req: Request, res: Response, next: () => void) {
   const authHeader = req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -52,14 +52,24 @@ export async function requireAuth(req: Request, res: Response, next: () => void)
   }
 
   const token = authHeader.substring(7);
-  let session = authService.verifySession(token);
-  if (!session) {
-    session = await authService.restoreSessionFromDb(token);
-  }
-  if (!session) {
-    return res.status(401).json({ success: false, message: 'Session expired or invalid. Please sign in again.' });
+  const validation = await authService.validateSession(token, true);
+  if (!validation.valid) {
+    if (validation.code === 'SESSION_EXPIRED') {
+      const email = validation.session?.email || 'Unknown User';
+      logAudit(email, 'SESSION_EXPIRED', 'Session expired due to inactivity or expiry period');
+      return res.status(401).json({
+        code: 'SESSION_EXPIRED',
+        message: 'Your session has expired. Please log in again.'
+      });
+    }
+    return res.status(401).json({
+      success: false,
+      code: validation.code || 'INVALID_TOKEN',
+      message: validation.message || 'Session expired or invalid. Please sign in again.'
+    });
   }
 
+  const session = validation.session!;
   res.locals.userId = session.userId;
   res.locals.email = session.email;
   res.locals.displayName = session.displayName;
@@ -86,6 +96,7 @@ export function requireAdmin(req: Request, res: Response, next: () => void) {
 apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   const { email: rawEmail, password } = req.body;
   if (!rawEmail || !password) {
+    logAudit(rawEmail || 'unknown', 'LOGIN_REJECTED', 'Missing email or password (400 Bad Request)');
     return res.status(400).json({ success: false, message: 'Please provide email and password.' });
   }
 
@@ -96,14 +107,17 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
 
     if (!result.success) {
       if (result.code === 'ACTIVE_SESSION_EXISTS') {
+        logAudit(rawEmail, 'LOGIN_REJECTED', 'Active session already exists for this user (409 Conflict)');
         return res.status(409).json({
           code: 'ACTIVE_SESSION_EXISTS',
           message: 'An active session already exists for this user.'
         });
       }
       if (result.status && result.status !== 'ACTIVE') {
+        logAudit(rawEmail, 'LOGIN_REJECTED', `Account is not active: ${result.status} (403 Forbidden)`);
         return res.status(403).json({ success: false, code: 'USER_DISABLED', message: result.message });
       }
+      logAudit(rawEmail, 'LOGIN_REJECTED', 'Invalid credentials (401 Unauthorized)');
       return res.status(401).json({ success: false, message: result.message });
     }
     
@@ -125,6 +139,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('[Login API Error]:', err);
+    logAudit(rawEmail, 'LOGIN_REJECTED', 'Internal error during login attempt (500)');
     return res.status(500).json({ success: false, message: 'An internal login error occurred.' });
   }
 });
@@ -144,11 +159,26 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
   });
 });
 
-// POST /auth/logout - Sign Out User
-apiRouter.post('/auth/logout', requireAuth, async (req: Request, res: Response) => {
-  await authService.logout(res.locals.token);
-  logAudit(res.locals.email, 'USER_LOGOUT', 'Logged out successfully');
+// POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9)
+apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
+  const authHeader = req.header('Authorization');
+  let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (req.body?.token || req.body?.sessionId);
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Missing token for logout.' });
+  }
+
+  const validation = await authService.validateSession(token, false);
+  const email = validation.session?.email || 'Unknown User';
+  await authService.logout(token);
+  logAudit(email, 'USER_LOGOUT', 'Logged out successfully; session invalidated');
   res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+// POST /admin/sessions/cleanup - Trigger Session Cleanup (AC8)
+apiRouter.post('/admin/sessions/cleanup', requireAdmin, async (req: Request, res: Response) => {
+  await authService.cleanupExpiredSessions();
+  logAudit(res.locals.email, 'SESSION_CLEANUP', 'Admin triggered expired session cleanup');
+  res.json({ success: true, message: 'Expired sessions cleaned up successfully.' });
 });
 
 // POST /auth/reset-password - Perform Password Reset

@@ -22,14 +22,14 @@
       "setupCompleted": true,
       "isAdmin": true,
       "isActive": true,
-      "lastLoginAt": "2026-09-21T12:08:06.843Z",
+      "lastLoginAt": "2026-09-29T07:30:22.981Z",
       "resetCode": null
     },
     "karthika.gundreddi@claaps.com": {
       "userId": "usr_0001",
       "email": "Karthika.Gundreddi@claaps.com",
       "displayName": "Karthika Gundreddi",
-      "passwordHash": "$2b$10$Uo0O32J.x8L8D.6i1RcMHu10BoAAezj7DoE7dC9/Crq9zGyFm42Fa",
+      "passwordHash": "$2b$10$cEe9eS7SFxsbBy.dCCWwEuRyfLBw.IWLlkxLqYhSCpsxzntrYHyUq",
       "status": "ACTIVE",
       "role": "SITE_ADMIN",
       "permissions": [
@@ -47,7 +47,7 @@
       "setupCompleted": true,
       "isAdmin": true,
       "isActive": true,
-      "lastLoginAt": null,
+      "lastLoginAt": "2026-09-29T07:30:25.852Z",
       "resetCode": null
     },
     "akash.meesarapu@claaps.com": {
@@ -68,7 +68,7 @@
       "setupCompleted": true,
       "isAdmin": false,
       "isActive": true,
-      "lastLoginAt": "2026-09-21T12:08:06.971Z",
+      "lastLoginAt": "2026-09-29T07:30:23.153Z",
       "resetCode": null
     },
     "demo.user@claaps.com": {
