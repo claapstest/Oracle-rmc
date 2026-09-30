@@ -4,7 +4,12 @@ import { api } from '../services/api';
 import { normalizeEmail, validateLoginInputs, mapLoginError, isActiveSessionError, type LoginFieldErrors } from '../utils/loginValidation';
 
 interface LoginProps {
-  onLoginSuccess: (username: string, token: string, envMode?: 'DEMO' | 'ORACLE_FUSION') => void;
+  onLoginSuccess: (
+    username: string,
+    token: string,
+    envMode?: 'DEMO' | 'ORACLE_FUSION',
+    auth?: { role?: string; permissions?: string[]; isAdmin?: boolean }
+  ) => void;
   sessionExpiredNotice?: string;
 }
 
@@ -65,7 +70,11 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
       // AC5 — local VEYRA auth only; frontend never touches the database directly.
       const res = await api.login({ email: cleanEmail, password });
       if (res.success && res.token) {
-        onLoginSuccess(res.email, res.token, res.environmentMode);
+        onLoginSuccess(res.email, res.token, res.environmentMode, {
+          role: res.role,
+          permissions: res.permissions,
+          isAdmin: res.isAdmin
+        });
       } else if (isActiveSessionError(res)) {
         // Backend returned active session conflict in 200 payload wrapper
         setView('ACTIVE_SESSION');

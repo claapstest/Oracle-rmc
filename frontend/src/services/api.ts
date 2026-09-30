@@ -42,6 +42,20 @@ export function getActiveUserEmail(): string {
   return sessionStorage.getItem('currentUser') || '';
 }
 
+export function getActiveUserRole(): string {
+  return sessionStorage.getItem('userRole') || '';
+}
+
+export function getActiveUserPermissions(): string[] {
+  try {
+    const raw = sessionStorage.getItem('userPermissions');
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 export function prepareInvestigationTabBridge(investigationId: string) {
   const token = sessionStorage.getItem('authToken');
   const user = sessionStorage.getItem('currentUser');
@@ -56,9 +70,11 @@ export function prepareInvestigationTabBridge(investigationId: string) {
   } catch (_) {}
 }
 
-export function setActiveAuthSession(token: string, email: string) {
+export function setActiveAuthSession(token: string, email: string, role?: string, permissions?: string[]) {
   sessionStorage.setItem('authToken', token);
   sessionStorage.setItem('currentUser', email);
+  if (role !== undefined) sessionStorage.setItem('userRole', role);
+  if (permissions !== undefined) sessionStorage.setItem('userPermissions', JSON.stringify(permissions));
   // Clean any legacy persistent keys
   localStorage.removeItem('authToken');
   localStorage.removeItem('currentUser');
@@ -69,6 +85,8 @@ export function setActiveAuthSession(token: string, email: string) {
 export function clearActiveAuthSession() {
   sessionStorage.removeItem('authToken');
   sessionStorage.removeItem('currentUser');
+  sessionStorage.removeItem('userRole');
+  sessionStorage.removeItem('userPermissions');
   sessionStorage.removeItem('activePage');
   sessionStorage.removeItem('tab_transfer_token');
   localStorage.removeItem('tab_transfer_token');

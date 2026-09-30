@@ -37,7 +37,8 @@ import CommandCenter from './pages/CommandCenter';
 import InvestigationWorkspace from './pages/InvestigationWorkspace';
 import FullInvestigationView from './pages/FullInvestigationView';
 
-import { api, getActiveAuthToken, getActiveUserEmail, setActiveAuthSession, clearActiveAuthSession, clearClientApiCache } from './services/api';
+import { api, getActiveAuthToken, getActiveUserEmail, getActiveUserRole, getActiveUserPermissions, setActiveAuthSession, clearActiveAuthSession, clearClientApiCache } from './services/api';
+import { canAccessPage, type AuthContext } from './utils/authorization';
 import { clearSecuritySession } from './services/securitySessionService';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
@@ -103,6 +104,8 @@ export default function App() {
     return (localStorage.getItem('environmentMode') as 'DEMO' | 'ORACLE_FUSION') || 'ORACLE_FUSION';
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState(() => getActiveUserRole());
+  const [userPermissions, setUserPermissions] = useState<string[]>(() => getActiveUserPermissions());
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     return sessionStorage.getItem('activePage') !== 'assistant';
   });
@@ -140,6 +143,9 @@ export default function App() {
       clearActiveAuthSession();
       setIsLoggedIn(false);
       setCurrentUser('');
+      setIsAdmin(false);
+      setUserRole('');
+      setUserPermissions([]);
       setAuthChecked(true);
       return;
     }
@@ -151,6 +157,9 @@ export default function App() {
           setIsLoggedIn(true);
           setCurrentUser(res.email);
           setIsAdmin(!!res.isAdmin);
+          setUserRole(res.role || '');
+          setUserPermissions(Array.isArray(res.permissions) ? res.permissions : []);
+          setActiveAuthSession(token, res.email, res.role || '', Array.isArray(res.permissions) ? res.permissions : []);
           if (res.environmentMode) {
             setEnvironmentMode(res.environmentMode);
             localStorage.setItem('environmentMode', res.environmentMode);
@@ -159,12 +168,18 @@ export default function App() {
           clearActiveAuthSession();
           setIsLoggedIn(false);
           setCurrentUser('');
+          setIsAdmin(false);
+          setUserRole('');
+          setUserPermissions([]);
         }
       } catch (err) {
         console.warn('Session verification failed, redirecting to login:', err);
         clearActiveAuthSession();
         setIsLoggedIn(false);
         setCurrentUser('');
+        setIsAdmin(false);
+        setUserRole('');
+        setUserPermissions([]);
       } finally {
         setAuthChecked(true);
       }
@@ -406,9 +421,19 @@ export default function App() {
     fetchServerSettings();
   }, [isLoggedIn, currentUser]);
 
-  const handleLoginSuccess = (username: string, token: string, envMode?: 'DEMO' | 'ORACLE_FUSION') => {
-    setActiveAuthSession(token, username);
+  const handleLoginSuccess = (
+    username: string,
+    token: string,
+    envMode?: 'DEMO' | 'ORACLE_FUSION',
+    auth?: { role?: string; permissions?: string[]; isAdmin?: boolean }
+  ) => {
+    const role = auth?.role || '';
+    const permissions = Array.isArray(auth?.permissions) ? auth!.permissions! : [];
+    setActiveAuthSession(token, username, role, permissions);
     setCurrentUser(username);
+    setIsAdmin(auth?.isAdmin === true);
+    setUserRole(role);
+    setUserPermissions(permissions);
     setSessionExpiredNotice('');
     setIsLoggedIn(true);
     setAuthChecked(true);
@@ -430,6 +455,8 @@ export default function App() {
     setIsLoggedIn(false);
     setCurrentUser('');
     setIsAdmin(false);
+    setUserRole('');
+    setUserPermissions([]);
     setCurrentPage('dashboard');
     setIsSidebarOpen(true);
     handleClose();
@@ -467,6 +494,8 @@ export default function App() {
         setIsLoggedIn(false);
         setCurrentUser('');
         setIsAdmin(false);
+        setUserRole('');
+        setUserPermissions([]);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -551,6 +580,12 @@ export default function App() {
   allNavItems.forEach(n => pageLabelMap.set(n.id, n.label));
   RISK_CHILDREN.forEach(c => pageLabelMap.set(c.id, c.label));
 
+  const authCtx: AuthContext = { isAdmin, role: userRole, permissions: userPermissions };
+  // Risk group shows when any of its children is authorized (AC3).
+  const riskVisible = RISK_CHILDREN.some((c) => canAccessPage(c.id, authCtx));
+  // AC6 — denied manual/URL navigation renders access-denied, never protected data.
+  const isDeniedPage = isLoggedIn && authChecked && !canAccessPage(currentPage, authCtx);
+
   return (
     <div className="app-container">
 
@@ -579,7 +614,7 @@ export default function App() {
         <nav className="nav-links" aria-label="Primary">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {allNavItems
-              .filter(item => !item.adminOnly || isAdmin)
+              .filter(item => item.isGroup ? riskVisible : canAccessPage(item.id, authCtx))
               .map(item => {
                 // Risk Management parent group: expands/collapses, never navigates
                 if (item.isGroup && item.id === 'risk') {
@@ -603,7 +638,7 @@ export default function App() {
                       </a>
                       {isRiskGroupExpanded && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.15rem', marginLeft: '1.35rem', paddingLeft: '0.6rem', borderLeft: '1px solid rgba(255, 255, 255, 0.12)' }} role="group" aria-label="Risk Management pages">
-                          {RISK_CHILDREN.map(child => {
+                          {RISK_CHILDREN.filter(child => canAccessPage(child.id, authCtx)).map(child => {
                             const ChildIcon = child.icon;
                             const isChildActive = currentPage === child.id && !activeInvestigation;
                             return (
@@ -909,6 +944,23 @@ export default function App() {
           height: '100%',
           overflowY: 'auto'
         }}>
+          {isDeniedPage ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2rem' }}>
+              <div className="glass-panel" role="alert" style={{ maxWidth: '460px', width: '100%', padding: '2.5rem', textAlign: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', marginBottom: '1.25rem' }}>
+                  <Lock size={26} style={{ color: 'var(--accent-red)' }} />
+                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.5rem 0' }}>Access Denied</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 1.5rem 0' }}>
+                  You don&apos;t have permission to view {pageLabelMap.get(currentPage) || 'this page'}. Contact your administrator if you need access.
+                </p>
+                <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.5rem' }} onClick={() => handlePageSelect('dashboard')}>
+                  Back to Dashboard
+                </button>
+              </div>
+            </div>
+          ) : (
+          <>
           {visitedPages.has('dashboard') && (
             <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
               <Dashboard
@@ -916,6 +968,7 @@ export default function App() {
                 onFAQSelect={handleFAQSelect}
                 environmentMode={environmentMode}
                 onInvestigate={handleInvestigate}
+                hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
                 onNavigatePage={(pageId, filter) => {
                   handlePageSelect(pageId);
                   if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
@@ -1002,6 +1055,8 @@ export default function App() {
             <div style={{ display: currentPage === 'command-center' ? 'block' : 'none', height: '100%' }}>
               <CommandCenter onNavigatePage={handlePageSelect} />
             </div>
+          )}
+          </>
           )}
         </div>
 

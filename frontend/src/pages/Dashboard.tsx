@@ -27,6 +27,7 @@ interface DashboardProps {
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
   onInvestigate?: (type: 'role' | 'user', id: string, name: string) => void;
   onNavigatePage?: (pageId: string, filter?: string) => void;
+  hasAccess?: (pageId: string) => boolean;
 }
 
 function getFirstName(str?: string): string {
@@ -72,36 +73,19 @@ export default function Dashboard({
   onFAQSelect, 
   environmentMode,
   onInvestigate,
-  onNavigatePage 
+  onNavigatePage,
+  hasAccess
 }: DashboardProps) {
-  const [stats, setStats] = useState<any>({
-    totalUsers: 8544,
-    activeUsers: 8461,
-    inactiveUsers: 83,
-    totalRoles: 6989,
-    jobRolesCount: 6014,
-    dutyRolesCount: 55,
-    dataRolesCount: 336,
-    abstractRolesCount: 521,
-    grcRolesCount: 12,
-    otherRolesCount: 51,
-    rolesWithoutUsersCount: 4918,
-    rolesWithUsersCount: 2071,
-    highRiskRolesCount: 12,
-    auditEventsCount: 219,
-    riskIncidentsCount: 0,
-    multipleRoleUsersCount: 47,
-    usersWithoutRolesCount: 3,
-    securityAdminsCount: 45,
-    highRiskUsersCount: 45,
-    businessObjects: [],
-    activityTrend: []
-  });
+  // AC4 — metrics come only from backend APIs; null until loaded (never hardcoded).
+  const [stats, setStats] = useState<any | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   
   const [recentAudits, setRecentAudits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [auditUnavailable, setAuditUnavailable] = useState(false);
+  // AC3 — cards linking to restricted modules hide without the privilege.
+  const can = (pageId: string) => (hasAccess ? hasAccess(pageId) : true);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,6 +102,8 @@ export default function Dashboard({
 
         if (statResult.status === 'fulfilled' && statResult.value?.data) {
           setStats(statResult.value.data);
+        } else {
+          setError('Dashboard metrics are unavailable. The backend could not retrieve live statistics.');
         }
 
         if (auditResult.status === 'fulfilled') {
@@ -140,7 +126,7 @@ export default function Dashboard({
 
     loadDashboardData();
     return () => { isMounted = false; };
-  }, [environmentMode]);
+  }, [environmentMode, reloadKey]);
 
   if (loading) {
     return (
@@ -154,6 +140,25 @@ export default function Dashboard({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <div style={{ height: '320px', borderRadius: '12px' }} className="skeleton" />
           <div style={{ height: '320px', borderRadius: '12px' }} className="skeleton" />
+        </div>
+      </div>
+    );
+  }
+
+  // AC7 — metrics failed: friendly error with retry, no invented numbers.
+  if (!stats) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '720px', margin: '2rem auto' }}>
+        <div className="glass-panel" role="alert" style={{ padding: '2.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
+          <p style={{ color: 'var(--accent-red)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+            Couldn&apos;t load dashboard metrics.
+          </p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>
+            {error || 'The backend service is unreachable. Check your connection and try again.'}
+          </p>
+          <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.75rem' }} onClick={() => setReloadKey((k) => k + 1)}>
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -195,6 +200,7 @@ export default function Dashboard({
       <div className="overview-kpi-grid">
         
         {/* KPI 1: Security Changes (Real Audit Data) */}
+        {can('audit') && (
         <div 
           className="glass-panel stat-card"
           onClick={() => onNavigatePage?.('audit')}
@@ -204,7 +210,7 @@ export default function Dashboard({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div className="stat-title">Security Changes</div>
-              <div className="stat-value">{stats.auditEventsCount.toLocaleString()}</div>
+              <div className="stat-value">{stats?.auditEventsCount?.toLocaleString() ?? '—'}</div>
               <div className="stat-subtitle">Audit trail events captured</div>
             </div>
             <div style={{ 
@@ -222,8 +228,10 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+        )}
 
         {/* KPI 2: High-Risk Users / Elevated Privileges */}
+        {can('users') && (
         <div 
           className="glass-panel stat-card"
           onClick={() => onNavigatePage?.('users', 'ADMIN_ROLES')}
@@ -233,7 +241,7 @@ export default function Dashboard({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div className="stat-title">High-Risk Users</div>
-              <div className="stat-value">{(stats.highRiskUsersCount || stats.securityAdminsCount || 45).toLocaleString()}</div>
+              <div className="stat-value">{stats?.highRiskUsersCount?.toLocaleString() ?? stats?.securityAdminsCount?.toLocaleString() ?? '—'}</div>
               <div className="stat-subtitle">Privileged accounts with elevated access</div>
             </div>
             <div style={{ 
@@ -251,8 +259,10 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+        )}
 
         {/* KPI 3: Users Without Roles (Calculated Orphaned Accounts) */}
+        {can('users') && (
         <div 
           className="glass-panel stat-card"
           onClick={() => onNavigatePage?.('users', 'NO_ROLES')}
@@ -262,7 +272,7 @@ export default function Dashboard({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div className="stat-title">Users Without Roles</div>
-              <div className="stat-value">{(stats.usersWithoutRolesCount ?? 3).toLocaleString()}</div>
+              <div className="stat-value">{stats?.usersWithoutRolesCount?.toLocaleString() ?? '—'}</div>
               <div className="stat-subtitle">Accounts without any assigned role</div>
             </div>
             <div style={{ 
@@ -280,6 +290,7 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+        )}
 
       </div>
 
@@ -295,7 +306,7 @@ export default function Dashboard({
           4. FULL-WIDTH ANALYTICS: Risk Trend (Line)
           ========================================================== */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.35rem' }}>
-        <RiskTrend activityTrend={stats.activityTrend} onNavigatePage={onNavigatePage} />
+        <RiskTrend activityTrend={stats?.activityTrend ?? []} onNavigatePage={onNavigatePage} />
       </div>
 
       {/* ==========================================================
@@ -328,12 +339,14 @@ export default function Dashboard({
                   ]}
                 />
               )}
-              <span 
+              {can('audit') && (
+              <span
                 onClick={() => onNavigatePage?.('audit')}
                 style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
               >
                 View Full Audit Trail &rarr;
               </span>
+              )}
             </div>
           </div>
 
@@ -363,10 +376,10 @@ export default function Dashboard({
                     const isInsert = eventName.includes('INSERT') || eventName.includes('CREATE') || eventName.includes('ADD');
                     const isDelete = eventName.includes('DELETE') || eventName.includes('REMOVE') || eventName.includes('REVOKE');
                     const badgeClass = isInsert ? 'badge-insert' : isDelete ? 'badge-delete' : 'badge-update';
-                    const badgeLabel = isInsert ? 'Object Data Insert' : isDelete ? 'Object Data Delete' : 'Object Data Update';
+                  const badgeLabel = isInsert ? 'Object Data Insert' : isDelete ? 'Object Data Delete' : 'Object Data Update';
 
-                    return (
-                      <tr key={log.id}>
+                  return (
+                    <tr key={log.id}>
                         <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                           {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
                         </td>
@@ -397,7 +410,7 @@ export default function Dashboard({
 
         {/* RIGHT: Top At-Risk Business Objects */}
         <TopAtRiskBusinessObjects 
-          businessObjects={stats.businessObjects} 
+          businessObjects={stats?.businessObjects ?? []} 
           onNavigatePage={onNavigatePage} 
         />
 
