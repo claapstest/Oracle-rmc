@@ -243,9 +243,12 @@ apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: 'Missing token for logout.' });
   }
 
+  const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+  const userAgent = req.get('user-agent') || 'Unknown Client';
+
   const validation = await authService.validateSession(token, false);
   const email = validation.session?.email || 'Unknown User';
-  await authService.logout(token);
+  await authService.logout(token, { ipAddress: rawIp, userAgent });
   logAudit(email, 'USER_LOGOUT', 'Logged out successfully; session invalidated');
   res.json({ success: true, message: 'Logged out successfully.' });
 });

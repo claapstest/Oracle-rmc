@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { query as dbQuery } from '../db.js';
+import { auditService } from './auditService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -577,6 +578,14 @@ export class AuthService {
       };
     }
 
+    // Sanitize client metadata early for audit logging
+    let rawIp = clientMeta?.ipAddress || '127.0.0.1';
+    if (rawIp.startsWith('::ffff:')) {
+      rawIp = rawIp.replace('::ffff:', '');
+    }
+    const ipAddress = (rawIp === '::1' || /^[\d.]+$/.test(rawIp) || /^[a-fA-F0-9:]+$/.test(rawIp)) ? rawIp : '127.0.0.1';
+    const userAgent = (clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
+
     try {
       // 2. Query veyra_user from PostgreSQL by normalized email
       const userRes = await dbQuery(
@@ -588,6 +597,15 @@ export class AuthService {
 
       // 3. If user does not exist in database, return generic failure (no account enumeration)
       if (userRes.rows.length === 0) {
+        await auditService.recordAuditEvent({
+          userId: null,
+          eventType: 'LOGIN_FAILED',
+          ipAddress,
+          userAgent,
+          targetType: 'USER',
+          targetId: null,
+          details: { reason: 'INVALID_CREDENTIALS' }
+        }).catch(() => {});
         return {
           success: false,
           message: GENERIC_AUTH_FAILURE_MSG
@@ -598,6 +616,15 @@ export class AuthService {
 
       // 4. Validate user status: only ACTIVE accounts may authenticate (AC7)
       if (dbUser.status !== 'ACTIVE') {
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_FAILED',
+          ipAddress,
+          userAgent,
+          targetType: 'USER',
+          targetId: dbUser.id,
+          details: { reason: 'ACCOUNT_INACTIVE', status: dbUser.status }
+        }).catch(() => {});
         return {
           success: false,
           status: dbUser.status as UserStatus,
@@ -607,6 +634,15 @@ export class AuthService {
 
       // 5. Password verification against veyra_user.password_hash using bcrypt
       if (!dbUser.password_hash) {
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_FAILED',
+          ipAddress,
+          userAgent,
+          targetType: 'USER',
+          targetId: dbUser.id,
+          details: { reason: 'INVALID_CREDENTIALS' }
+        }).catch(() => {});
         return {
           success: false,
           message: GENERIC_AUTH_FAILURE_MSG
@@ -615,6 +651,15 @@ export class AuthService {
 
       const isMatch = bcrypt.compareSync(rawPassword, dbUser.password_hash);
       if (!isMatch) {
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_FAILED',
+          ipAddress,
+          userAgent,
+          targetType: 'USER',
+          targetId: dbUser.id,
+          details: { reason: 'INVALID_CREDENTIALS' }
+        }).catch(() => {});
         return {
           success: false,
           message: GENERIC_AUTH_FAILURE_MSG
@@ -645,6 +690,15 @@ export class AuthService {
       if (existingActiveRes.rows.length > 0) {
         // Active session already exists: reject second login with 409 conflict
         // AC4: Existing session remains completely valid and untouched
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
+          ipAddress,
+          userAgent,
+          targetType: 'SESSION',
+          targetId: existingActiveRes.rows[0].session_id,
+          details: { reason: 'ACTIVE_SESSION_EXISTS' }
+        }).catch(() => {});
         return {
           success: false,
           code: 'ACTIVE_SESSION_EXISTS',
@@ -697,14 +751,6 @@ export class AuthService {
       const inactivityTimeoutMs = getInactivityTimeoutMs();
       const expiresAt = new Date(Date.now() + inactivityTimeoutMs);
 
-      // Sanitize IP address for PostgreSQL INET (handle IPv4/IPv6 cleanly)
-      let rawIp = clientMeta?.ipAddress || '127.0.0.1';
-      if (rawIp.startsWith('::ffff:')) {
-        rawIp = rawIp.replace('::ffff:', '');
-      }
-      const ipAddress = (rawIp === '::1' || /^[\d.]+$/.test(rawIp) || /^[a-fA-F0-9:]+$/.test(rawIp)) ? rawIp : '127.0.0.1';
-      const userAgent = (clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
-
       // 11. AC1 & AC5: Create veyra_session row with PostgreSQL partial unique constraint protection
       try {
         await dbQuery(
@@ -722,6 +768,15 @@ export class AuthService {
            insertErr.detail?.includes('user_id'))
         ) {
           console.warn(`[Auth Service] Caught concurrent active session race condition for user ${dbUser.id}`);
+          await auditService.recordAuditEvent({
+            userId: dbUser.id,
+            eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
+            ipAddress,
+            userAgent,
+            targetType: 'SESSION',
+            targetId: null,
+            details: { reason: 'ACTIVE_SESSION_EXISTS', concurrency: true }
+          }).catch(() => {});
           return {
             success: false,
             code: 'ACTIVE_SESSION_EXISTS',
@@ -741,6 +796,23 @@ export class AuthService {
       } catch (auditErr) {
         console.error('[Auth Service] Failed to update last_login_at in veyra_user:', auditErr);
       }
+
+      // Record LOGIN_SUCCESS audit event
+      await auditService.recordAuditEvent({
+        userId: dbUser.id,
+        eventType: 'LOGIN_SUCCESS',
+        ipAddress,
+        userAgent,
+        targetType: 'SESSION',
+        targetId: sessionId,
+        details: {
+          role: primaryRole,
+          email: normalized,
+          isAdmin: isSiteAdmin
+        }
+      }).catch((auditLogErr) => {
+        console.error('[Auth Service] Failed to record LOGIN_SUCCESS audit event:', auditLogErr);
+      });
 
       // 13. Populate in-memory session cache for fast auth verification
       const authUser: AuthUser = {
@@ -1157,7 +1229,7 @@ export class AuthService {
   }
 
   // AC5 & AC6: Logout API & Invalidation
-  public async logout(token: string) {
+  public async logout(token: string, clientMeta?: { ipAddress?: string; userAgent?: string }) {
     if (!token) return;
     this.sessionDbLastWritten.delete(token);
     const session = activeSessions.get(token);
@@ -1166,12 +1238,26 @@ export class AuthService {
     }
     activeSessions.delete(token);
     try {
-      await dbQuery(
+      const updateRes = await dbQuery(
         `UPDATE veyra_session 
          SET status = 'LOGGED_OUT', logged_out_at = NOW() 
-         WHERE session_id = $1 AND status = 'ACTIVE'`,
+         WHERE session_id = $1 AND status = 'ACTIVE'
+         RETURNING user_id, ip_address, user_agent`,
         [token]
       );
+      const row = updateRes.rows[0];
+      const userId = row?.user_id || session?.userId;
+      if (userId) {
+        await auditService.recordAuditEvent({
+          userId,
+          eventType: 'LOGOUT',
+          ipAddress: clientMeta?.ipAddress || row?.ip_address,
+          userAgent: clientMeta?.userAgent || row?.user_agent,
+          targetType: 'SESSION',
+          targetId: token,
+          details: { reason: 'USER_LOGOUT' }
+        }).catch(() => {});
+      }
     } catch (err) {
       // ignore
     }
@@ -1191,25 +1277,52 @@ export class AuthService {
 
     try {
       const minutes = Math.ceil(inactivityTimeout / (60 * 1000));
-      await dbQuery(
+      const expRes = await dbQuery(
         `UPDATE veyra_session
          SET status = 'EXPIRED'
          WHERE status = 'ACTIVE' AND (
            (expires_at IS NOT NULL AND expires_at <= NOW()) OR
            (last_activity_at <= NOW() - ($1 || ' minutes')::interval)
-         )`,
+         )
+         RETURNING session_id, user_id, ip_address, user_agent`,
         [`${minutes}`]
       );
+      for (const row of expRes.rows) {
+        await auditService.recordAuditEvent({
+          userId: row.user_id,
+          eventType: 'SESSION_EXPIRED',
+          ipAddress: row.ip_address,
+          userAgent: row.user_agent,
+          targetType: 'SESSION',
+          targetId: row.session_id,
+          details: { reason: 'INACTIVITY_TIMEOUT' }
+        }).catch(() => {});
+      }
     } catch (_) {}
   }
 
   private async markSessionExpiredInDb(token: string) {
     try {
       this.sessionDbLastWritten.delete(token);
-      await dbQuery(
-        `UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1 AND status = 'ACTIVE'`,
+      const res = await dbQuery(
+        `UPDATE veyra_session 
+         SET status = 'EXPIRED' 
+         WHERE session_id = $1 AND status = 'ACTIVE'
+         RETURNING session_id, user_id, ip_address, user_agent`,
         [token]
       );
+      if (res.rows.length > 0) {
+        const row = res.rows[0];
+        await auditService.recordAuditEvent({
+          userId: row.user_id,
+          eventType: 'SESSION_EXPIRED',
+          ipAddress: row.ip_address,
+          userAgent: row.user_agent,
+          targetType: 'SESSION',
+          targetId: row.session_id,
+          details: { reason: 'INACTIVITY_TIMEOUT' }
+        }).catch(() => {});
+      }
     } catch (_) {}
   }
 
@@ -1434,6 +1547,8 @@ export class AuthService {
     this.saveUsers();
 
     // Persist to PostgreSQL if available
+    let dbUserId: string | null = null;
+    let roleId: string | null = null;
     try {
       const userRes = await dbQuery(
         `INSERT INTO veyra_user (email, password_hash, display_name, status, is_local_user, created_by)
@@ -1443,16 +1558,53 @@ export class AuthService {
         [normalized, passwordHash, displayName, status, data.createdBy || 'AUTH_SERVICE']
       );
       if (userRes.rows.length > 0) {
-        const dbUserId = userRes.rows[0].id;
+        dbUserId = userRes.rows[0].id;
         const roleRes = await dbQuery(`SELECT id FROM veyra_role WHERE role_code = $1`, [role]);
         if (roleRes.rows.length > 0) {
+          roleId = roleRes.rows[0].id;
           await dbQuery(
             `INSERT INTO veyra_user_role (user_id, role_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-            [dbUserId, roleRes.rows[0].id, data.createdBy || 'AUTH_SERVICE']
+            [dbUserId, roleId, data.createdBy || 'AUTH_SERVICE']
           );
         }
       }
     } catch (_) {}
+
+    // Record audit events: USER_CREATED and ROLE_ASSIGNED
+    try {
+      let actorUserId: string | null = null;
+      if (data.createdBy) {
+        const actRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [this.normalizeEmail(data.createdBy)]);
+        actorUserId = actRes.rows[0]?.id || null;
+      }
+      await auditService.recordAuditEvent({
+        userId: actorUserId,
+        eventType: 'USER_CREATED',
+        targetType: 'USER',
+        targetId: dbUserId || userId,
+        details: {
+          targetEmail: normalized,
+          displayName,
+          role,
+          status
+        }
+      });
+      if (role) {
+        await auditService.recordAuditEvent({
+          userId: actorUserId,
+          eventType: 'ROLE_ASSIGNED',
+          targetType: 'USER_ROLE',
+          targetId: roleId || role,
+          details: {
+            targetUserId: dbUserId || userId,
+            targetEmail: normalized,
+            roleCode: role
+          }
+        });
+      }
+    } catch (auditErr) {
+      console.error('[Auth Service] Failed to record USER_CREATED audit event:', auditErr);
+    }
 
     const safeUser = this.getUserByIdOrEmail(normalized);
     return { success: true, user: safeUser, message: 'User created successfully.' };
@@ -1486,6 +1638,8 @@ export class AuthService {
     if (!user) {
       return { success: false, message: 'User not found.' };
     }
+
+    const oldRole = user.role;
 
     if (data.displayName !== undefined) {
       user.displayName = data.displayName.trim();
@@ -1541,6 +1695,57 @@ export class AuthService {
       }
     } catch (_) {}
 
+    // Record audit events: USER_UPDATED and ROLE_REMOVED / ROLE_ASSIGNED
+    try {
+      let actorUserId: string | null = null;
+      if (data.updatedBy) {
+        const actRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [this.normalizeEmail(data.updatedBy)]);
+        actorUserId = actRes.rows[0]?.id || null;
+      }
+      const targetUserDbRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [userKey]);
+      const dbTargetUserId = targetUserDbRes.rows[0]?.id || user.userId;
+
+      if (data.role && oldRole && oldRole !== user.role) {
+        await auditService.recordAuditEvent({
+          userId: actorUserId,
+          eventType: 'ROLE_REMOVED',
+          targetType: 'USER_ROLE',
+          targetId: oldRole,
+          details: {
+            targetUserId: dbTargetUserId,
+            targetEmail: userKey,
+            previousRoleCode: oldRole
+          }
+        });
+        await auditService.recordAuditEvent({
+          userId: actorUserId,
+          eventType: 'ROLE_ASSIGNED',
+          targetType: 'USER_ROLE',
+          targetId: user.role,
+          details: {
+            targetUserId: dbTargetUserId,
+            targetEmail: userKey,
+            newRoleCode: user.role
+          }
+        });
+      }
+
+      await auditService.recordAuditEvent({
+        userId: actorUserId,
+        eventType: 'USER_UPDATED',
+        targetType: 'USER',
+        targetId: dbTargetUserId,
+        details: {
+          targetEmail: userKey,
+          updatedFields: Object.keys(data).filter(k => k !== 'password' && k !== 'updatedBy'),
+          role: user.role,
+          status: user.status
+        }
+      });
+    } catch (auditErr) {
+      console.error('[Auth Service] Failed to record USER_UPDATED audit event:', auditErr);
+    }
+
     const safeUser = this.getUserByIdOrEmail(userKey);
     return { success: true, user: safeUser, message: 'User updated successfully.' };
   }
@@ -1568,6 +1773,15 @@ export class AuthService {
       return { success: false, code: 'CANNOT_DELETE_SELF', message: 'Administrators cannot delete their own accounts.' };
     }
 
+    // Capture target user database id before deletion
+    let dbTargetUserId = user.userId;
+    try {
+      const targetUserDbRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [targetKey]);
+      if (targetUserDbRes.rows.length > 0) {
+        dbTargetUserId = targetUserDbRes.rows[0].id;
+      }
+    } catch (_) {}
+
     // Invalidate active sessions
     for (const [token, session] of activeSessions.entries()) {
       if (this.normalizeEmail(session.email) === targetKey) {
@@ -1582,6 +1796,26 @@ export class AuthService {
     try {
       await dbQuery(`DELETE FROM veyra_user WHERE email = $1`, [targetKey]);
     } catch (_) {}
+
+    // Record audit event: USER_DELETED
+    try {
+      let actorUserId: string | null = null;
+      if (adminEmail) {
+        const actRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [normalizedAdmin]);
+        actorUserId = actRes.rows[0]?.id || null;
+      }
+      await auditService.recordAuditEvent({
+        userId: actorUserId,
+        eventType: 'USER_DELETED',
+        targetType: 'USER',
+        targetId: dbTargetUserId,
+        details: {
+          targetEmail: targetKey
+        }
+      });
+    } catch (auditErr) {
+      console.error('[Auth Service] Failed to record USER_DELETED audit event:', auditErr);
+    }
 
     return { success: true, message: `User ${user.email} has been permanently deleted.` };
   }

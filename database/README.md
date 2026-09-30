@@ -2,79 +2,135 @@
 
 This directory contains the database migration tooling, seed scripts, and verification tests for the **VEYRA** project.
 
-Implemented under **VY-STRY-008**: *DB: Create VEYRA User, Role and Privilege Database Tables*.
+Implemented under:
+- **VY-STRY-008**: *DB: Create VEYRA User, Role and Privilege Database Tables*
+- **VY-STRY-009**: *DB: Create VEYRA Session Tracking and Session Audit Tables*
+- **VY-STRY-010**: *DB: Create VEYRA Authentication and Administrative Audit Trail*
 
 ---
 
 ## 🏗️ Architecture & Entities
 
-The schema establishes the foundational Role-Based Access Control (RBAC) data model:
+The schema establishes the foundational Role-Based Access Control (RBAC), Session Enforcement, and Security Audit Trail:
 
 ```text
 VEYRA_USER
     │
-    └── VEYRA_USER_ROLE ─── VEYRA_ROLE
-                                │
-                                └── VEYRA_ROLE_PRIVILEGE ─── VEYRA_PRIVILEGE
+    ├── VEYRA_USER_ROLE ─── VEYRA_ROLE
+    │                           │
+    │                           └── VEYRA_ROLE_PRIVILEGE ─── VEYRA_PRIVILEGE
+    │
+    ├── VEYRA_SESSION (Single Active Session Enforcement)
+    │
+    └── VEYRA_AUDIT_EVENT (Authentication & Administrative Audit Trail)
 ```
 
-### Tables Created:
+### Tables:
 1. **`veyra_user`**: Users table with canonical normalized email (`email = LOWER(TRIM(email))`), status check constraint (`INVITED`, `ACTIVE`, `SUSPENDED`, `DISABLED`, `EXPIRED`), timestamps, audit tracking, and optional password hash. Plaintext passwords are never stored.
 2. **`veyra_role`**: System roles with unique `role_code` and status.
 3. **`veyra_privilege`**: System privileges with unique `privilege_code`, module categorization, and status.
 4. **`veyra_user_role`**: Association table linking users to roles with database-level uniqueness constraint `(user_id, role_id)`.
 5. **`veyra_role_privilege`**: Association table linking roles to privileges with database-level uniqueness constraint `(role_id, privilege_id)`.
+6. **`veyra_session`**: Session tracking table enforcing **Single Active Session per user** via PostgreSQL partial unique index `uq_veyra_session_user_active WHERE status = 'ACTIVE'`.
+7. **`veyra_audit_event`**: Security and administrative audit trail table capturing security-sensitive events.
 
 ---
 
-## 🚀 Quick Start for Developers (After Git Pull)
+## 🛡️ VEYRA Audit Trail (`veyra_audit_event`) — VY-STRY-010
 
-### 1. Install Dependencies
-From the repository root:
-```bash
-npm install --prefix database
-```
-*(Or `npm run install:all` to install across root, frontend, backend, and database concurrently)*
+The `veyra_audit_event` table provides tamper-resistant, immutable persistence for security-critical authentication and administrative activities.
 
-### 2. Configure Environment Variables
-Copy `.env.example` to `.env` or verify your database connection settings:
-```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5433
-POSTGRES_DB=veyra_db
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/veyra_db
-```
+### Table Schema:
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `event_id` | UUID | PRIMARY KEY, `DEFAULT gen_random_uuid()` | Cryptographically secure unique event identifier |
+| `user_id` | UUID | NULLABLE, `REFERENCES veyra_user(id) ON DELETE SET NULL` | Identifier of the **actor** who performed the action (NULL for non-existent users on failed login) |
+| `event_type` | VARCHAR(100) | NOT NULL, `ck_veyra_audit_event_type` | Supported audit event type |
+| `event_time` | TIMESTAMPTZ | NOT NULL, `DEFAULT now()` | Database timestamp with timezone when event occurred |
+| `ip_address` | VARCHAR(100) | NULLABLE | Request/client IP address |
+| `user_agent` | TEXT | NULLABLE | Request User-Agent header |
+| `target_type` | VARCHAR(100) | NULLABLE | Type of affected entity (`USER`, `ROLE`, `PRIVILEGE`, `SESSION`, etc.) |
+| `target_id` | VARCHAR(255) | NULLABLE | Identifier of the affected entity |
+| `details` | JSONB | NULLABLE | Sanitized, non-sensitive metadata object |
 
-### 3. Run Database Migrations
-From repository root:
-```bash
-npm run db:migrate
-```
-*(Or from `database/`: `npm run migrate`)*
-
-To rollback the migration:
-```bash
-npm run db:migrate:down
-```
-
-### 4. Run Seed Data Initialization (Idempotent)
-To seed the 4 roles, 9 privileges, role-privilege mappings, and bootstrap admin:
-```bash
-npm run db:seed
-```
-
-### 5. Run Database Verification Suite
-Run the automated verification suite covering all 17 Story 8 requirements:
-```bash
-npm run db:test
-```
+### Indexes:
+- `ix_veyra_audit_event_time` on `(event_time DESC)`
+- `ix_veyra_audit_event_user_id` on `(user_id)`
+- `ix_veyra_audit_event_event_type` on `(event_type)`
+- `ix_veyra_audit_event_target` on `(target_type, target_id)`
 
 ---
 
-## 🔒 Security & Admin Provisioning Note
+## 📋 Supported Event Types
 
-- **Bootstrap Admin**: `admin@admin.com` is seeded and assigned the `SITE_ADMIN` role.
-- **Initial Password Provisioning**: Per Story 8 specifications, **no hardcoded or invented initial admin password has been set** (`password_hash` is initialized as `NULL`).
-- **Next Steps for Backend Team**: Implement the administrative invitation or secure first-time password setup workflow as part of the authentication API stories.
+Enforced via PostgreSQL CHECK constraint `ck_veyra_audit_event_type`:
+
+| Event Type | Category | Trigger Condition |
+|---|---|---|
+| `LOGIN_SUCCESS` | Authentication | User authenticates with valid credentials, session created |
+| `LOGIN_FAILED` | Authentication | Authentication fails (invalid password, unknown email, inactive account) |
+| `LOGIN_REJECTED_ACTIVE_SESSION` | Authentication | Login rejected because an active session already exists (HTTP 409) |
+| `LOGOUT` | Authentication | User explicitly signs out and session is invalidated |
+| `SESSION_EXPIRED` | Authentication | Session transitions from ACTIVE to EXPIRED due to inactivity timeout |
+| `USER_CREATED` | Administrative | Administrator creates a new user account |
+| `USER_UPDATED` | Administrative | Administrator modifies user metadata, status, or role |
+| `USER_DELETED` | Administrative | Administrator permanently deletes a user account |
+| `ROLE_ASSIGNED` | Administrative | Role is assigned to a user |
+| `ROLE_REMOVED` | Administrative | Role is removed from a user |
+| `PRIVILEGE_CHANGED` | Administrative | Privileges associated with a role or user are modified |
+
+---
+
+## 🎯 Actor vs Target Semantics
+
+A strict distinction is maintained between the entity performing the action and the entity being affected:
+
+- **`user_id` (Actor)**: The administrator or user who performed the action.
+- **`target_type` & `target_id` (Target)**: The entity being created, modified, or affected.
+
+**Example 1**: Administrator creates a new user:
+- `user_id`: Admin's user ID
+- `event_type`: `USER_CREATED`
+- `target_type`: `'USER'`
+- `target_id`: New user's ID
+- `details`: `{"targetEmail": "john@example.com", "role": "AUDIT_USER"}`
+
+**Example 2**: Failed login with non-existent user:
+- `user_id`: `NULL` (no authenticated actor exists)
+- `event_type`: `LOGIN_FAILED`
+- `target_type`: `'USER'`
+- `target_id`: `NULL`
+- `details`: `{"reason": "INVALID_CREDENTIALS"}`
+
+---
+
+## 🔒 Security Rules & Defense-in-Depth Sanitization
+
+1. **Zero Secret Persistence**: Passwords, password hashes, reset tokens, session secrets, JWTs, Authorization headers, cookies, Oracle credentials, Groq API keys, and private keys must **NEVER** be persisted in the audit trail.
+2. **Automated Sanitization**: The Node.js `AuditService` recursively inspects and strips all sensitive keys from details JSON before database insertion.
+3. **No Account Enumeration**: Failed login responses and public messages remain generic ("Invalid email or password.") regardless of whether the email exists.
+4. **Preservation on Deletion**: `user_id` has `ON DELETE SET NULL`, ensuring historical audit events remain permanently preserved even if a user account is deleted.
+
+---
+
+## 🚀 Quick Start for Developers
+
+### 1. Run Migrations
+```bash
+npm run migrate         # Apply all UP migrations (Story 8, 9, and 10)
+npm run migrate:down    # Roll back latest migration
+```
+
+### 2. Run Verification Suites
+```bash
+npm run test:story8     # Story 8: RBAC schema & constraints (17 tests)
+npm run test:story9     # Story 9: Session tracking & single active session (16 tests)
+npm run test:story10    # Story 10: Audit trail schema, constraints & sanitization (31 tests)
+npm test                # Run all verification suites concurrently
+```
+
+### 3. Backend End-to-End Integration Suite
+From `backend/`:
+```bash
+npx tsx test_story_010_integration.ts
+```

@@ -12,7 +12,8 @@
     "provision:admin": "tsx src/scripts/provision_admin.ts",
     "test:story8": "tsx src/tests/verify_story_008_rbac.ts",
     "test:story9": "tsx src/tests/verify_story_009_session.ts",
-    "test": "tsx src/tests/verify_story_008_rbac.ts && tsx src/tests/verify_story_009_session.ts"
+    "test:story10": "tsx src/tests/verify_story_010_audit.ts",
+    "test": "tsx src/tests/verify_story_008_rbac.ts && tsx src/tests/verify_story_009_session.ts && tsx src/tests/verify_story_010_audit.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

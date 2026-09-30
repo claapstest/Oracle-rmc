@@ -345,7 +345,13 @@ async function runVerification() {
     // -------------------------------------------------------------
     // TEST 14: Migration rollback (DOWN) succeeds cleanly
     // -------------------------------------------------------------
-    execSync('npm run migrate:down', { cwd: path.resolve(__dirname, '../..'), stdio: 'pipe' });
+    while (true) {
+      const checkTable = await client.query(
+        `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'veyra_session';`
+      );
+      if (checkTable.rows.length === 0) break;
+      execSync('npm run migrate:down', { cwd: path.resolve(__dirname, '../..'), stdio: 'pipe' });
+    }
     const tableAfterDown = await client.query(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'veyra_session';`
     );
