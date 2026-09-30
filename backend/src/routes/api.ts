@@ -10,6 +10,7 @@ import { tools } from '../tools/index.js';
 import { auditProductCatalogService } from '../services/auditProductCatalogService.js';
 import { commandCenterService } from '../services/commandCenterService.js';
 import { userAccessReportService } from '../services/userAccessReportService.js';
+import { auditDashboardService } from '../services/auditDashboardService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -149,6 +150,54 @@ export function requireAskVeyra(req: Request, res: Response, next: () => void) {
       success: false,
       code: 'FORBIDDEN',
       message: 'Access denied. Ask Veyra privileges required.'
+    });
+  });
+}
+
+// Middleware to enforce Audit Manager Dashboard authorization (AC2, AC4)
+export function requireAuditManagerDashboard(req: Request, res: Response, next: () => void) {
+  requireAuth(req, res, () => {
+    const userRole = (res.locals.role || '').toUpperCase();
+    const userPermissions: string[] = res.locals.permissions || [];
+    const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
+
+    // Site Admin, Audit Manager, Security Analyst, Compliance Officer, and authorized administrative roles
+    if (isAdmin || userRole === 'AUDIT_MANAGER' || userRole === 'SECURITY_ANALYST' || userRole === 'COMPLIANCE_OFFICER') {
+      return next();
+    }
+
+    // Role-based exclusion: AUDIT_USER is strictly limited to reports and cannot access Audit Manager dashboard (AC2)
+    if (userRole === 'AUDIT_USER') {
+      return res.status(403).json({
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Access denied. Audit User role does not have privilege to access Audit Manager dashboard.'
+      });
+    }
+
+    // Check specific required privileges
+    const allowedPrivileges = [
+      'AUDIT_READ',
+      'AUDIT_TRAIL',
+      'SECURITY_READ',
+      'RISK_READ',
+      'RISK_MANAGEMENT',
+      'ROLES_CATALOG',
+      'USERS_LIST'
+    ];
+
+    const hasPrivilege = allowedPrivileges.some(p =>
+      userPermissions.map(x => x.toUpperCase()).includes(p.toUpperCase())
+    );
+
+    if (hasPrivilege) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. Audit Manager dashboard privileges required.'
     });
   });
 }
@@ -617,19 +666,72 @@ apiRouter.get('/capabilities', requireAuth, (req: Request, res: Response) => {
   });
 });
 
-// 1.8 Overview Statistics API with in-memory caching
-let cachedStatsResult: { data: any; expiresAt: number } | null = null;
+// =========================================================================
+// VY-STRY-012: Audit Manager Dashboard APIs (AC1 — AC6)
+// =========================================================================
 
-apiRouter.get('/overview/stats', requireAuth, async (req: Request, res: Response) => {
+async function handleAuditManagerDashboard(req: Request, res: Response) {
   try {
-    if (cachedStatsResult && Date.now() < cachedStatsResult.expiresAt) {
-      return res.json(cachedStatsResult.data);
-    }
-    const statsResult = await tools.SECURITY_STATISTICS({});
-    cachedStatsResult = { data: statsResult, expiresAt: Date.now() + 60 * 1000 };
-    res.json(statsResult);
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await auditDashboardService.getDashboardDataForUser(userContext, forceRefresh);
+
+    // AC5: Record dashboard access event according to VEYRA audit logging policy
+    logAudit(res.locals.email || 'UNKNOWN', 'DASHBOARD_ACCESS', `Accessed Audit Manager dashboard (role: ${res.locals.role || 'Unknown'})`);
+
+    return res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    console.error('[Audit Manager Dashboard Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: (err as Error).message || 'Failed to retrieve Audit Manager dashboard metrics.'
+    });
+  }
+}
+
+// GET /api/dashboard/audit-manager - Primary Audit Manager Dashboard Endpoint (AC1-AC6)
+apiRouter.get('/dashboard/audit-manager', requireAuditManagerDashboard, handleAuditManagerDashboard);
+
+// GET /api/dashboard/metrics - Dedicated Metrics Summary Endpoint (AC3)
+apiRouter.get('/dashboard/metrics', requireAuditManagerDashboard, handleAuditManagerDashboard);
+
+// GET /api/audit-manager/dashboard - Standard Audit Manager Alias Endpoint
+apiRouter.get('/audit-manager/dashboard', requireAuditManagerDashboard, handleAuditManagerDashboard);
+
+// GET /api/overview/stats - Overview / Dashboard Statistics API for Frontend Integration
+apiRouter.get('/overview/stats', requireAuditManagerDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await auditDashboardService.getDashboardDataForUser(userContext, forceRefresh);
+
+    logAudit(res.locals.email || 'UNKNOWN', 'DASHBOARD_ACCESS', `Accessed Overview Stats dashboard (role: ${res.locals.role || 'Unknown'})`);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[Overview Stats API Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: (err as Error).message || 'Failed to retrieve overview statistics.'
+    });
   }
 });
 
