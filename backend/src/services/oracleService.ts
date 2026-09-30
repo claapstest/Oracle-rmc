@@ -1368,8 +1368,8 @@ class OracleService {
     const mockLogs = mockAuditTrail.map((a, idx) => ({
       id: a.id || `demo_aud_${idx}`,
       timestamp: a.timestamp,
-      username: a.username,
-      userInternalName: a.username.toUpperCase(),
+      username: a.username || 'SYSTEM',
+      userInternalName: (a.username || 'SYSTEM').toUpperCase(),
       action: a.action || 'UPDATE',
       event: a.action === 'ROLE_ASSIGN' ? 'Role Membership Add' : a.action === 'ROLE_REVOKE' ? 'Role Membership Revoke' : `Object Data ${a.action ? (a.action.charAt(0) + a.action.slice(1).toLowerCase()) : 'Update'}`,
       businessObject: a.businessObject || 'Security Administration',
@@ -1380,7 +1380,7 @@ class OracleService {
       details: a.details,
       attributeDetails: [
         { attribute: 'Status', oldValue: 'PENDING', newValue: 'ACTIVE' },
-        { attribute: 'AssignedRole', oldValue: '', newValue: a.details.split(' ').pop() || 'SECURITY_ROLE' }
+        { attribute: 'AssignedRole', oldValue: '', newValue: (a.details || '').split(' ').pop() || 'SECURITY_ROLE' }
       ]
     }));
 
@@ -1397,13 +1397,13 @@ class OracleService {
     if (username) {
       const term = username.toUpperCase();
       results = results.filter(a =>
-        a.username.toUpperCase().includes(term) ||
-        (a.details && a.details.toUpperCase().includes(term))
+        ((a.username || '').toUpperCase().includes(term)) ||
+        ((a.details || '').toUpperCase().includes(term))
       );
     }
     if (action && action !== 'ALL') {
       const act = action.toUpperCase();
-      results = results.filter(a => a.event.toUpperCase().includes(act) || (a.action && a.action.toUpperCase().includes(act)));
+      results = results.filter(a => ((a.event || '').toUpperCase().includes(act)) || ((a.action || '').toUpperCase().includes(act)));
     }
 
     return results;
@@ -2647,6 +2647,22 @@ class OracleService {
 
   async scanSingleControlIncidentCount(controlId: string) {
     return this.controlSummaryService.scanSingleControlCount(controlId);
+  }
+
+  async getControlIncidentsPage(controlId: string, options?: { page?: number; limit?: number; forceRefresh?: boolean }) {
+    return this.controlCatalogService.getControlIncidentsPage(controlId, options);
+  }
+
+  getIncidentCounts() {
+    return this.controlCatalogService.getIncidentCountCacheService().getAllCounts();
+  }
+
+  async getControlIncidentCount(controlId: string, forceRefresh?: boolean) {
+    return this.controlCatalogService.getIncidentCountCacheService().fetchCount(controlId, forceRefresh);
+  }
+
+  getControlCatalogService(): ControlCatalogService {
+    return this.controlCatalogService;
   }
 }
 

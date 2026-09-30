@@ -692,8 +692,10 @@ export class AuthService {
       }
 
       // 10. Generate cryptographically secure session identifier & expiry
+      // Inactivity timeout sliding model: initial expiry is NOW() + inactivity timeout
       const sessionId = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours validity
+      const inactivityTimeoutMs = getInactivityTimeoutMs();
+      const expiresAt = new Date(Date.now() + inactivityTimeoutMs);
 
       // Sanitize IP address for PostgreSQL INET (handle IPv4/IPv6 cleanly)
       let rawIp = clientMeta?.ipAddress || '127.0.0.1';
@@ -877,12 +879,13 @@ export class AuthService {
     };
   }
 
-  // AC1, AC2, AC3: Session management & creation
+  // Session management & creation
   private createSession(user: AuthUser): string {
     const normalized = this.normalizeEmail(user.email);
     const now = Date.now();
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = now + 24 * 60 * 60 * 1000; // 24 hours validity
+    const inactivityTimeout = getInactivityTimeoutMs();
+    const expiresAt = now + inactivityTimeout;
 
     activeSessions.set(token, {
       token,
@@ -902,11 +905,51 @@ export class AuthService {
   }
 
   /**
-   * AC2, AC3, AC4, AC7: Validate session with 5-minute inactivity timeout and activity refresh
+   * Validate session with 5-minute continuous inactivity timeout and activity refresh.
+   * As long as user activity is detected, expires_at slides forward (last_activity_at + timeout).
    */
   public async validateSession(token: string, updateActivity = true): Promise<SessionValidationResult> {
     if (!token) {
       return { valid: false, code: 'INVALID_TOKEN', message: 'Authentication required. Missing or malformed token.' };
+    }
+
+    const now = Date.now();
+    const inactivityTimeout = getInactivityTimeoutMs();
+
+    // Check database authoritative source of truth for session status & expiry
+    try {
+      const dbRes = await dbQuery(
+        `SELECT s.session_id, s.user_id, s.status, s.last_activity_at, s.expires_at
+         FROM veyra_session s
+         WHERE s.session_id = $1 LIMIT 1`,
+        [token]
+      );
+      if (dbRes.rows.length > 0) {
+        const dbRow = dbRes.rows[0];
+        if (dbRow.status !== 'ACTIVE') {
+          activeSessions.delete(token);
+          return {
+            valid: false,
+            code: 'SESSION_EXPIRED',
+            message: 'Your session has expired. Please log in again.'
+          };
+        }
+
+        const dbLastAct = dbRow.last_activity_at ? new Date(dbRow.last_activity_at).getTime() : 0;
+        const dbExpiresAt = dbRow.expires_at ? new Date(dbRow.expires_at).getTime() : (dbLastAct + inactivityTimeout);
+
+        if (now >= dbExpiresAt || (now - dbLastAct >= inactivityTimeout)) {
+          activeSessions.delete(token);
+          await this.markSessionExpiredInDb(token);
+          return {
+            valid: false,
+            code: 'SESSION_EXPIRED',
+            message: 'Your session has expired. Please log in again.'
+          };
+        }
+      }
+    } catch (_) {
+      // In case DB is temporarily offline, fallback to in-memory validation
     }
 
     let session = activeSessions.get(token);
@@ -928,11 +971,9 @@ export class AuthService {
       };
     }
 
-    const now = Date.now();
-    const inactivityTimeout = getInactivityTimeoutMs();
-
-    // AC2 & AC4: Five-minute inactivity timeout check
-    if (now - session.lastActivityAt > inactivityTimeout) {
+    // 5-minute continuous inactivity timeout check:
+    // If now >= session.expiresAt OR now - session.lastActivityAt >= inactivityTimeout
+    if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
       activeSessions.delete(token);
       this.markSessionExpiredInDb(token).catch(() => {});
@@ -944,23 +985,11 @@ export class AuthService {
       };
     }
 
-    // AC4: Absolute session expiration check (24 hours)
-    if (now > session.expiresAt) {
-      session.status = 'EXPIRED';
-      activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => {});
-      return {
-        valid: false,
-        code: 'SESSION_EXPIRED',
-        message: 'Your session has expired. Please log in again.',
-        session
-      };
-    }
-
-    // AC3: Update last activity timestamp for active session
+    // User activity detected: reset inactivity timer and slide expires_at forward
     if (updateActivity) {
       session.lastActivityAt = now;
-      this.updateLastActivityInDb(token).catch(() => {});
+      session.expiresAt = now + inactivityTimeout;
+      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => {});
     }
 
     return { valid: true, session };
@@ -979,7 +1008,7 @@ export class AuthService {
     const now = Date.now();
     const inactivityTimeout = getInactivityTimeoutMs();
 
-    if (now - session.lastActivityAt > inactivityTimeout || now > session.expiresAt) {
+    if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
       activeSessions.delete(token);
       this.markSessionExpiredInDb(token).catch(() => {});
@@ -988,7 +1017,8 @@ export class AuthService {
 
     if (updateActivity) {
       session.lastActivityAt = now;
-      this.updateLastActivityInDb(token).catch(() => {});
+      session.expiresAt = now + inactivityTimeout;
+      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => {});
     }
 
     return session;
@@ -1012,9 +1042,10 @@ export class AuthService {
 
       const lastActivityTime = row.last_activity_at ? new Date(row.last_activity_at).getTime() : new Date(row.created_at).getTime();
       const inactivityTimeout = getInactivityTimeoutMs();
+      const rowExpiresAt = row.expires_at ? new Date(row.expires_at).getTime() : (lastActivityTime + inactivityTimeout);
 
       // Check inactivity on DB restored session
-      if (Date.now() - lastActivityTime > inactivityTimeout) {
+      if (Date.now() >= rowExpiresAt || (Date.now() - lastActivityTime >= inactivityTimeout)) {
         await this.markSessionExpiredInDb(token);
         return null;
       }
@@ -1050,8 +1081,8 @@ export class AuthService {
         permissions,
         isAdmin: isSiteAdmin,
         createdAt: new Date(row.created_at).getTime(),
-        lastActivityAt: Date.now(),
-        expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000,
+        lastActivityAt: lastActivityTime,
+        expiresAt: rowExpiresAt,
         status: 'ACTIVE'
       };
 
@@ -1078,7 +1109,8 @@ export class AuthService {
 
       for (const row of res.rows) {
         const lastActivityTime = row.last_activity_at ? new Date(row.last_activity_at).getTime() : new Date(row.created_at).getTime();
-        if (now - lastActivityTime > inactivityTimeout) {
+        const rowExpiresAt = row.expires_at ? new Date(row.expires_at).getTime() : (lastActivityTime + inactivityTimeout);
+        if (now >= rowExpiresAt || (now - lastActivityTime >= inactivityTimeout)) {
           continue; // skip inactive sessions
         }
 
@@ -1114,7 +1146,7 @@ export class AuthService {
           isAdmin: isSiteAdmin,
           createdAt: new Date(row.created_at).getTime(),
           lastActivityAt: lastActivityTime,
-          expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now() + 24 * 3600 * 1000,
+          expiresAt: rowExpiresAt,
           status: 'ACTIVE'
         });
       }
@@ -1127,6 +1159,7 @@ export class AuthService {
   // AC5 & AC6: Logout API & Invalidation
   public async logout(token: string) {
     if (!token) return;
+    this.sessionDbLastWritten.delete(token);
     const session = activeSessions.get(token);
     if (session) {
       session.status = 'LOGGED_OUT';
@@ -1150,27 +1183,29 @@ export class AuthService {
     const inactivityTimeout = getInactivityTimeoutMs();
 
     for (const [token, session] of activeSessions.entries()) {
-      if (session.status !== 'ACTIVE' || now > session.expiresAt || (now - session.lastActivityAt > inactivityTimeout)) {
+      if (session.status !== 'ACTIVE' || now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
         session.status = 'EXPIRED';
         activeSessions.delete(token);
       }
     }
 
     try {
+      const minutes = Math.ceil(inactivityTimeout / (60 * 1000));
       await dbQuery(
         `UPDATE veyra_session
          SET status = 'EXPIRED'
          WHERE status = 'ACTIVE' AND (
-           (expires_at IS NOT NULL AND expires_at < NOW()) OR
-           (last_activity_at < NOW() - ($1 || ' minutes')::interval)
+           (expires_at IS NOT NULL AND expires_at <= NOW()) OR
+           (last_activity_at <= NOW() - ($1 || ' minutes')::interval)
          )`,
-        [`${DEFAULT_INACTIVITY_TIMEOUT_MINUTES}`]
+        [`${minutes}`]
       );
     } catch (_) {}
   }
 
   private async markSessionExpiredInDb(token: string) {
     try {
+      this.sessionDbLastWritten.delete(token);
       await dbQuery(
         `UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1 AND status = 'ACTIVE'`,
         [token]
@@ -1178,13 +1213,60 @@ export class AuthService {
     } catch (_) {}
   }
 
-  private async updateLastActivityInDb(token: string) {
+  private sessionDbLastWritten = new Map<string, number>();
+
+  private async updateLastActivityInDb(token: string, lastActivityAt?: number, expiresAt?: number, forceImmediate = false) {
+    const now = Date.now();
+    const lastWritten = this.sessionDbLastWritten.get(token) || 0;
+    // Throttle database writes to at most once per 10 seconds unless forceImmediate is requested
+    if (!forceImmediate && now - lastWritten < 10000) {
+      return;
+    }
+    this.sessionDbLastWritten.set(token, now);
+
     try {
+      const actDate = lastActivityAt ? new Date(lastActivityAt) : new Date(now);
+      const expDate = expiresAt ? new Date(expiresAt) : new Date(now + getInactivityTimeoutMs());
       await dbQuery(
-        `UPDATE veyra_session SET last_activity_at = NOW() WHERE session_id = $1 AND status = 'ACTIVE'`,
-        [token]
+        `UPDATE veyra_session 
+         SET last_activity_at = $1, expires_at = $2 
+         WHERE session_id = $3 AND status = 'ACTIVE'`,
+        [actDate, expDate, token]
       );
     } catch (_) {}
+  }
+
+  public async refreshSessionActivity(token: string): Promise<{ success: boolean; lastActivityAt?: number; expiresAt?: number }> {
+    let session = activeSessions.get(token);
+    if (!session) {
+      session = (await this.restoreSessionFromDb(token)) || undefined;
+    }
+
+    if (!session || session.status !== 'ACTIVE') {
+      return { success: false };
+    }
+
+    const now = Date.now();
+    const inactivityTimeout = getInactivityTimeoutMs();
+
+    // Check if session has expired
+    if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
+      session.status = 'EXPIRED';
+      activeSessions.delete(token);
+      this.markSessionExpiredInDb(token).catch(() => {});
+      return { success: false };
+    }
+
+    // Refresh activity & slide expires_at forward
+    session.lastActivityAt = now;
+    session.expiresAt = now + inactivityTimeout;
+    await this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt, true);
+
+    return {
+      success: true,
+      lastActivityAt: session.lastActivityAt,
+      expiresAt: session.expiresAt
+    };
   }
 
   public getSession(token: string): Session | undefined {

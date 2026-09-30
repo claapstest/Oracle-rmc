@@ -20,8 +20,9 @@ export interface UseSessionTimeoutReturn {
   resetActivityTimer: () => void;
 }
 
-const DEFAULT_TIMEOUT_SECONDS = 5 * 60; // 5 minutes = 300 seconds (AC1)
-const DEFAULT_WARNING_SECONDS = 30;    // 30 seconds warning (AC2)
+const DEFAULT_TIMEOUT_SECONDS = 5 * 60; // 5 minutes = 300 seconds
+const DEFAULT_WARNING_SECONDS = 30;    // 30 seconds warning
+const BACKEND_SYNC_INTERVAL_MS = 30 * 1000; // Synchronize with backend at most once every 30 seconds of activity
 
 export function useSessionTimeout({
   timeoutSeconds = DEFAULT_TIMEOUT_SECONDS,
@@ -34,7 +35,7 @@ export function useSessionTimeout({
 
   // Store timestamps & state in refs to avoid closure stale state in event listeners
   const lastActivityRef = useRef<number>(Date.now());
-  const lastThrottleRef = useRef<number>(0);
+  const lastBackendSyncRef = useRef<number>(Date.now());
   const isWarningOpenRef = useRef<boolean>(false);
   const isLoggedInRef = useRef<boolean>(isLoggedIn);
 
@@ -42,32 +43,43 @@ export function useSessionTimeout({
   isWarningOpenRef.current = isWarningOpen;
   isLoggedInRef.current = isLoggedIn;
 
-  // Manual timer reset helper
-  const resetActivityTimer = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    setIsWarningOpen(false);
-  }, []);
-
-  // AC3: Stay Logged In - refresh backend session & reset activity timer
-  const handleStayLoggedIn = useCallback(async () => {
+  // Helper to send backend keep-alive
+  const syncBackendActivity = useCallback(async () => {
     try {
-      // Send backend activity keep-alive refresh
       await api.refreshSession();
+      lastBackendSyncRef.current = Date.now();
     } catch (err) {
       console.warn('[SessionTimeout] Failed to refresh backend session:', err);
-    } finally {
-      lastActivityRef.current = Date.now();
-      setIsWarningOpen(false);
     }
   }, []);
 
-  // AC4: Logout Now - explicit logout action
+  // Manual timer reset helper
+  const resetActivityTimer = useCallback(() => {
+    const now = Date.now();
+    lastActivityRef.current = now;
+    if (isWarningOpenRef.current) {
+      setIsWarningOpen(false);
+      setSecondsRemaining(warningSeconds);
+    }
+    syncBackendActivity();
+  }, [warningSeconds, syncBackendActivity]);
+
+  // Stay Logged In - explicit button click in warning modal
+  const handleStayLoggedIn = useCallback(async () => {
+    const now = Date.now();
+    lastActivityRef.current = now;
+    setIsWarningOpen(false);
+    setSecondsRemaining(warningSeconds);
+    await syncBackendActivity();
+  }, [warningSeconds, syncBackendActivity]);
+
+  // Logout Now - explicit logout action
   const handleLogoutNow = useCallback(async () => {
     setIsWarningOpen(false);
     onLogout('MANUAL');
   }, [onLogout]);
 
-  // Activity Event Listener Setup: AC1 & AC2
+  // Activity Event Listener Setup
   useEffect(() => {
     if (!isLoggedIn) {
       setIsWarningOpen(false);
@@ -75,34 +87,61 @@ export function useSessionTimeout({
     }
 
     // Reset baseline activity timestamp on login
-    lastActivityRef.current = Date.now();
+    const initialNow = Date.now();
+    lastActivityRef.current = initialNow;
+    lastBackendSyncRef.current = initialNow;
 
     const handleUserActivity = () => {
-      // If warning modal is actively displayed, do NOT update activity timer.
-      // User must explicitly click "Stay Logged In".
-      if (isWarningOpenRef.current) return;
-
       const now = Date.now();
-      // Throttle activity recording to at most once per second
-      if (now - lastThrottleRef.current > 1000) {
-        lastThrottleRef.current = now;
-        lastActivityRef.current = now;
+      lastActivityRef.current = now;
+
+      // CRITICAL REQUIREMENT:
+      // If the warning modal is currently visible, ANY activity (mousemove, click, keydown, touch)
+      // immediately dismisses the warning modal, resets the timer, and keeps the session active!
+      if (isWarningOpenRef.current) {
+        setIsWarningOpen(false);
+        setSecondsRemaining(warningSeconds);
+        // Immediately sync with backend so backend expires_at is refreshed without waiting
+        syncBackendActivity();
+        return;
+      }
+
+      // Performance requirement for mousemove and other frequent events:
+      // Throttle backend synchronization (send keep-alive at most once every 30s)
+      if (now - lastBackendSyncRef.current >= BACKEND_SYNC_INTERVAL_MS) {
+        lastBackendSyncRef.current = now;
+        syncBackendActivity();
       }
     };
 
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    // Listen to ALL genuine user activity events including cursor movement
+    const activityEvents = [
+      'mousemove',
+      'mousedown',
+      'mouseup',
+      'click',
+      'keydown',
+      'keyup',
+      'scroll',
+      'wheel',
+      'touchstart',
+      'touchend',
+      'pointermove',
+      'pointerdown'
+    ];
+
     activityEvents.forEach(evt => {
-      window.addEventListener(evt, handleUserActivity, { passive: true });
+      window.addEventListener(evt, handleUserActivity, { passive: true, capture: true });
     });
 
     return () => {
       activityEvents.forEach(evt => {
-        window.removeEventListener(evt, handleUserActivity);
+        window.removeEventListener(evt, handleUserActivity, true);
       });
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, warningSeconds, syncBackendActivity]);
 
-  // 1-Second Tick & Tab Visibility Monitoring: AC1, AC2, AC5
+  // 1-Second Tick & Tab Visibility Monitoring
   useEffect(() => {
     if (!isLoggedIn) return;
 
@@ -114,18 +153,18 @@ export function useSessionTimeout({
       const remaining = Math.max(0, timeoutSeconds - elapsedSeconds);
 
       if (remaining <= 0) {
-        // AC5: Countdown expired without response — auto logout
-        console.warn('[SessionTimeout] Inactivity timeout reached (5 minutes). Logging out automatically.');
+        // Continuous inactivity timeout reached (e.g. 5 minutes of NO interaction)
+        console.warn('[SessionTimeout] 5 minutes of continuous inactivity reached. Logging out automatically.');
         setIsWarningOpen(false);
         onLogout('EXPIRED');
       } else if (remaining <= warningSeconds) {
-        // AC2: Within warning window — show countdown warning modal
+        // Within warning window (e.g. 4m 30s to 5m) — show countdown warning modal
         setSecondsRemaining(remaining);
         if (!isWarningOpenRef.current) {
           setIsWarningOpen(true);
         }
       } else {
-        // Outside warning window — ensure modal is hidden
+        // Outside warning window (user was active or timer reset) — ensure modal is hidden
         if (isWarningOpenRef.current) {
           setIsWarningOpen(false);
         }

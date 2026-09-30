@@ -431,6 +431,8 @@ export class OracleFusionClient {
       limit?: number;
       totalResults?: boolean;
       timeout?: number;
+      fields?: string;
+      onlyData?: boolean;
     } = {}
   ) {
     try {
@@ -441,6 +443,12 @@ export class OracleFusionClient {
       };
       if (options.totalResults !== undefined) {
         params.totalResults = options.totalResults;
+      }
+      if (options.fields) {
+        params.fields = options.fields;
+      }
+      if (options.onlyData !== undefined) {
+        params.onlyData = options.onlyData;
       }
 
       const timeout = options.timeout || 120000; // 2-minute timeout for heavy count/page queries

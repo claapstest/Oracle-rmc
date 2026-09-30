@@ -18,7 +18,11 @@ import {
   ArrowDown,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  User,
+  Key,
+  FileText,
+  Clock
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl, type EnterpriseExportColumn } from './EnterpriseExportControl';
@@ -134,6 +138,24 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const [selectedControlDetail, setSelectedControlDetail] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+
+  // Lightweight incident counts cache state for the catalog
+  const [incidentCounts, setIncidentCounts] = useState<Record<string, { count: number; updatedAt?: string; status?: string }>>({});
+  const [countsLoading, setCountsLoading] = useState(false);
+
+  // Paginated incidents state for the Control Details view
+  const [incidentPage, setIncidentPage] = useState<number>(1);
+  const [incidentPageSize, setIncidentPageSize] = useState<number>(25);
+  const [incidentsList, setIncidentsList] = useState<any[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState<boolean>(false);
+  const [incidentsHasMore, setIncidentsHasMore] = useState<boolean>(false);
+  const [incidentsTotalCount, setIncidentsTotalCount] = useState<number | undefined>(undefined);
+  const [incidentsCountLoading, setIncidentsCountLoading] = useState<boolean>(false);
+  const [incidentsError, setIncidentsError] = useState<string>('');
+
+  // Incident Details modal state
+  const [viewingIncident, setViewingIncident] = useState<any | null>(null);
+
   const [incidentSyncState, setIncidentSyncState] = useState<{
     cacheStatus: 'NOT_CACHED' | 'SYNCING' | 'READY' | 'PARTIAL' | 'ERROR';
     fetchedCount?: number;
@@ -152,6 +174,44 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       }
     };
   }, []);
+
+  // Fetch incident counts from lightweight cache on mount or when controls change
+  const loadIncidentCounts = async (triggerSync = true) => {
+    try {
+      setCountsLoading(true);
+      const res = await api.getControlIncidentCounts(triggerSync);
+      if (res && res.counts) {
+        setIncidentCounts(res.counts);
+      }
+    } catch (err) {
+      console.error('Failed to load incident counts:', err);
+    } finally {
+      setCountsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadIncidentCounts(true);
+  }, [controls]);
+
+  // Periodic poll if any control count is currently CALCULATING
+  useEffect(() => {
+    const hasCalculating = Object.values(incidentCounts).some(item => item?.status === 'CALCULATING');
+    if (!hasCalculating) return;
+
+    const timer = setInterval(async () => {
+      try {
+        const res = await api.getControlIncidentCounts(false);
+        if (res && res.counts) {
+          setIncidentCounts(res.counts);
+        }
+      } catch (e) {
+        // ignore background poll errors
+      }
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [incidentCounts]);
 
   // Close columns dropdown on outside click
   useEffect(() => {
@@ -182,10 +242,19 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     return controls.filter(c => isTransactionControl(c.type));
   }, [controls]);
 
-  // Active domain dataset
+  // Active domain dataset with cached counts merged in
   const activeSubsectionControls = useMemo(() => {
-    return activeSubSection === 'ACCESS' ? accessControls : transactionControls;
-  }, [activeSubSection, accessControls, transactionControls]);
+    const base = activeSubSection === 'ACCESS' ? accessControls : transactionControls;
+    return base.map(c => {
+      const cached = incidentCounts[c.id];
+      const count = (cached?.count !== undefined && cached?.count !== null) ? cached.count : c.incidentCount;
+      return {
+        ...c,
+        incidentCount: count,
+        incidentCountStatus: cached?.status
+      };
+    });
+  }, [activeSubSection, accessControls, transactionControls, incidentCounts]);
 
   // Extract unique filter options present in backend data for current subsection
   const availableStatuses = useMemo(() => {
@@ -210,10 +279,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const kpiActive = activeSubsectionControls.filter(c => (c.status || '').toUpperCase() === 'ACTIVE').length;
   const kpiInactive = activeSubsectionControls.filter(c => (c.status || '').toUpperCase() === 'INACTIVE').length;
   
-  // Incident statistics for selected subsection
+  // Incident statistics for selected subsection (with honest update status)
   const controlsWithKnownIncidents = activeSubsectionControls.filter(c => typeof c.incidentCount === 'number');
-  const hasIncidentData = controlsWithKnownIncidents.length > 0;
+  const knownCountTotal = controlsWithKnownIncidents.length;
+  const hasIncidentData = knownCountTotal > 0;
   const kpiTotalIncidentsCount = controlsWithKnownIncidents.reduce((sum, c) => sum + (c.incidentCount ?? 0), 0);
+  const allControlsUpdated = activeSubsectionControls.length > 0 && knownCountTotal === activeSubsectionControls.length;
 
   // Filter & Search application strictly within selected subsection
   const filteredControls = useMemo(() => {
@@ -235,7 +306,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
       // Incident filter: ALL | WITH_INCIDENTS | ZERO_INCIDENTS | NOT_SCANNED
       if (incidentFilter === 'WITH_INCIDENTS') {
-        if (ctrl.incidentCount === undefined || ctrl.incidentCount <= 0) return false;
+        if (ctrl.incidentCount === undefined || ctrl.incidentCount === null || ctrl.incidentCount <= 0) return false;
       } else if (incidentFilter === 'ZERO_INCIDENTS') {
         if (ctrl.incidentCount !== 0) return false;
       } else if (incidentFilter === 'NOT_SCANNED') {
@@ -324,7 +395,53 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     return String(val);
   };
 
-  // Control detail inspection handler
+  // Load a specific page of incidents for the active control
+  const loadIncidentsPage = async (ctrlId: string, page: number, size: number) => {
+    setIncidentsLoading(true);
+    setIncidentsError('');
+    try {
+      const res = await api.getControlIncidents(ctrlId, page, size);
+      if (res && res.success) {
+        setIncidentsList(res.items || []);
+        setIncidentsHasMore(Boolean(res.hasMore));
+        if (typeof res.totalResults === 'number') {
+          setIncidentsTotalCount(res.totalResults);
+        }
+      } else {
+        setIncidentsError(res?.message || 'Failed to retrieve continuous monitoring incidents from Oracle Fusion');
+      }
+    } catch (err: any) {
+      console.error('Error fetching control incidents page:', err);
+      setIncidentsError('Failed to fetch incidents from Oracle Fusion FSCM REST API.');
+    } finally {
+      setIncidentsLoading(false);
+    }
+  };
+
+  // Authoritative incident count request (REQUEST B) executed in background
+  const loadIncidentCountSeparately = async (ctrlId: string, refresh = false) => {
+    setIncidentsCountLoading(true);
+    try {
+      const res = await api.getControlIncidentCount(ctrlId, refresh);
+      if (res && typeof res.count === 'number') {
+        setIncidentsTotalCount(res.count);
+        setIncidentCounts(prev => ({
+          ...prev,
+          [ctrlId]: {
+            count: res.count,
+            updatedAt: res.updatedAt || new Date().toISOString(),
+            status: 'READY'
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading authoritative incident count:', err);
+    } finally {
+      setIncidentsCountLoading(false);
+    }
+  };
+
+  // Control detail inspection handler: fast header + independent incident page & count
   const handleOpenDetail = async (ctrlId: string, forceRefresh = false) => {
     if (detailPollingRef.current) {
       clearInterval(detailPollingRef.current);
@@ -334,50 +451,33 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     setSelectedControlId(ctrlId);
     setDetailLoading(true);
     setDetailError('');
-    setDetailIncidentPage(1);
+    setIncidentPage(1);
+    setIncidentsList([]);
+    setIncidentsError('');
+    setViewingIncident(null);
 
+    // Pre-seed known count from incident counts cache immediately
+    const cachedCountObj = incidentCounts[ctrlId];
+    if (cachedCountObj && typeof cachedCountObj.count === 'number') {
+      setIncidentsTotalCount(cachedCountObj.count);
+    } else {
+      setIncidentsTotalCount(undefined);
+    }
+
+    // 1. Fetch Control Header (<500ms)
     try {
       const res = await api.getAdvancedControlDetail(ctrlId, forceRefresh);
       if (res && res.success && res.control) {
         setSelectedControlDetail(res.control);
+        if (typeof res.incidentCount === 'number') {
+          setIncidentsTotalCount(res.incidentCount);
+        }
         setIncidentSyncState({
           cacheStatus: res.cacheStatus || 'READY',
           fetchedCount: res.fetchedCount,
           totalCount: res.totalCount || res.incidentCount,
           lastSyncedAt: res.lastSyncedAt
         });
-
-        if (res.cacheStatus === 'SYNCING') {
-          detailPollingRef.current = setInterval(async () => {
-            try {
-              const pollRes = await api.getAdvancedControlDetail(ctrlId);
-              if (pollRes && pollRes.success) {
-                setIncidentSyncState({
-                  cacheStatus: pollRes.cacheStatus || 'READY',
-                  fetchedCount: pollRes.fetchedCount,
-                  totalCount: pollRes.totalCount || pollRes.incidentCount,
-                  lastSyncedAt: pollRes.lastSyncedAt
-                });
-                if (pollRes.control) {
-                  setSelectedControlDetail((prev: any) => ({
-                    ...prev,
-                    ...pollRes.control,
-                    incidentCount: pollRes.incidentCount || pollRes.totalCount,
-                    incidents: pollRes.incidents || prev?.incidents || []
-                  }));
-                }
-                if (pollRes.cacheStatus === 'READY' || pollRes.cacheStatus === 'ERROR') {
-                  if (detailPollingRef.current) {
-                    clearInterval(detailPollingRef.current);
-                    detailPollingRef.current = null;
-                  }
-                }
-              }
-            } catch (pollErr) {
-              console.error('Polling error for control detail:', pollErr);
-            }
-          }, 2500);
-        }
       } else {
         setDetailError(res?.message || 'Unable to retrieve control details from Oracle Fusion.');
       }
@@ -387,6 +487,31 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     } finally {
       setDetailLoading(false);
     }
+
+    // 2. Launch REQUEST A: First 25 Incidents immediately
+    loadIncidentsPage(ctrlId, 1, incidentPageSize);
+
+    // 3. Launch REQUEST B: Total authoritative count in background
+    loadIncidentCountSeparately(ctrlId, forceRefresh);
+  };
+
+  const handleIncidentPageChange = (newPage: number) => {
+    if (!selectedControlId || newPage < 1) return;
+    setIncidentPage(newPage);
+    loadIncidentsPage(selectedControlId, newPage, incidentPageSize);
+  };
+
+  const handleIncidentPageSizeChange = (newSize: number) => {
+    if (!selectedControlId) return;
+    setIncidentPageSize(newSize);
+    setIncidentPage(1);
+    loadIncidentsPage(selectedControlId, 1, newSize);
+  };
+
+  const handleRefreshIncidents = () => {
+    if (!selectedControlId) return;
+    loadIncidentsPage(selectedControlId, incidentPage, incidentPageSize);
+    loadIncidentCountSeparately(selectedControlId, true);
   };
 
   // Columns toggle functions
@@ -425,7 +550,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'type', label: 'Type', defaultSelected: true, getValue: c => formatControlTypeName(c.type) },
       { key: 'status', label: 'Status', defaultSelected: true, getValue: c => c.status || 'ACTIVE' },
       { key: 'state', label: 'State', defaultSelected: true, getValue: c => c.state || c.stateCode || 'APPROVED' },
-      { key: 'incidentCount', label: 'Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined ? c.incidentCount : 'Not available') },
+      { key: 'incidentCount', label: 'Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined && c.incidentCount !== null ? c.incidentCount : 'Not available') },
       { key: 'lastRunDate', label: 'Last Run', defaultSelected: true, getValue: c => c.lastRunDate || '' },
       { key: 'lastUpdateDate', label: 'Last Updated', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
       { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
@@ -849,10 +974,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     <span style={{ 
                       fontSize: '1.6rem', 
                       fontWeight: 800, 
-                      color: ((selectedControlDetail.incidentCount !== undefined ? selectedControlDetail.incidentCount : (selectedControlDetail.incidents?.length || 0)) > 0) ? 'var(--accent-red)' : 'var(--accent-green)' 
+                      color: (incidentsTotalCount !== undefined && incidentsTotalCount !== null ? incidentsTotalCount : (selectedControlDetail.incidentCount ?? 0)) > 0 ? 'var(--accent-red)' : 'var(--accent-green)' 
                     }}>
-                      {(selectedControlDetail.incidentCount !== undefined ? selectedControlDetail.incidentCount : (selectedControlDetail.incidents?.length || 0)).toLocaleString()}
+                      {incidentsTotalCount !== undefined && incidentsTotalCount !== null
+                        ? Number(incidentsTotalCount).toLocaleString() 
+                        : (incidentsCountLoading 
+                            ? 'Calculating...' 
+                            : (selectedControlDetail.incidentCount !== undefined && selectedControlDetail.incidentCount !== null
+                                ? Number(selectedControlDetail.incidentCount).toLocaleString() 
+                                : 'Calculating...'))}
                     </span>
+                    {incidentsCountLoading && (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem', marginTop: '0.2rem' }}>
+                        <RefreshCw size={11} className="animate-spin" /> Fetching total...
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -862,19 +998,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </p>
                 )}
               </div>
-
-              {/* Incident sync progress (CALCULATING state) */}
-              {incidentSyncState.cacheStatus === 'SYNCING' && (
-                <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderLeft: '4px solid var(--accent-blue)' }} role="status">
-                  <RefreshCw size={18} className="animate-spin" style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Calculating incident metrics... {(incidentSyncState.fetchedCount || 0).toLocaleString()}
-                    {(incidentSyncState.totalCount || 0) > 0 && (
-                      <> of {(incidentSyncState.totalCount || 0).toLocaleString()}</>
-                    )} fetched from Oracle Fusion.
-                  </div>
-                </div>
-              )}
 
               {/* Control Full Metadata Grid */}
               <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
@@ -956,58 +1079,480 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                 </div>
               </div>
 
-              {/* No-incidents empty state (NO DATA) */}
-              {(!Array.isArray(selectedControlDetail.incidents) || selectedControlDetail.incidents.length === 0) && incidentSyncState.cacheStatus !== 'SYNCING' && (
-                <div className="glass-panel" style={{ padding: '1.75rem', textAlign: 'center' }}>
-                  <CheckCircle2 size={28} style={{ color: 'var(--accent-green)', marginBottom: '0.5rem' }} />
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    No continuous monitoring incidents found for this control.
+              {/* Incidents Table Panel with True Pagination */}
+              <div className="glass-panel" style={{ padding: '1.75rem', position: 'relative' }}>
+                {/* Header Row with Title, Badge, and Action */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, fontFamily: 'var(--font-header)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <AlertCircle size={18} style={{ color: 'var(--accent-red)' }} />
+                      Continuous Monitoring Incidents
+                    </h3>
+                    <span 
+                      className="badge" 
+                      style={{ 
+                        fontSize: '0.75rem', 
+                        backgroundColor: 'var(--bg-secondary)', 
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-secondary)'
+                      }}
+                    >
+                      {incidentsList.length > 0 ? (
+                        <>
+                          Showing {(incidentPage - 1) * incidentPageSize + 1}–{(incidentPage - 1) * incidentPageSize + incidentsList.length}
+                          {incidentsTotalCount !== undefined ? ` of ${incidentsTotalCount.toLocaleString()}` : (incidentsHasMore ? ' of many' : '')}
+                        </>
+                      ) : (
+                        '0 incidents'
+                      )}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Oracle Fusion returned zero incidents for control {selectedControlDetail.id}.
-                  </div>
+
+                  <button
+                    onClick={handleRefreshIncidents}
+                    disabled={incidentsLoading || incidentsCountLoading}
+                    className="btn btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+                    title="Refresh current page and count from Oracle Fusion"
+                  >
+                    <RefreshCw size={13} className={incidentsLoading || incidentsCountLoading ? 'animate-spin' : ''} />
+                    Refresh Incidents
+                  </button>
                 </div>
-              )}
 
-              {/* Incidents Table if loaded */}
-              {Array.isArray(selectedControlDetail.incidents) && selectedControlDetail.incidents.length > 0 && (
-                <div className="glass-panel" style={{ padding: '1.75rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, fontFamily: 'var(--font-header)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <AlertCircle size={18} style={{ color: 'var(--accent-red)' }} />
-                    Detected Continuous Monitoring Incidents ({selectedControlDetail.incidents.length})
-                  </h3>
+                {/* Initial Loading State */}
+                {incidentsLoading && incidentsList.length === 0 && (
+                  <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
+                    <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }} />
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                      Retrieving first {incidentPageSize} incidents from Oracle Fusion...
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Querying endpoint with offset={(incidentPage - 1) * incidentPageSize}&limit={incidentPageSize}
+                    </div>
+                  </div>
+                )}
 
-                  <div className="table-container" style={{ margin: 0, overflowX: 'auto' }}>
-                    <table className="enterprise-table">
-                      <thead>
-                        <tr>
-                          <th>Incident ID</th>
-                          <th>Status</th>
-                          <th>State</th>
-                          <th>User Name</th>
-                          <th>Role / Point</th>
-                          <th>Created Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedControlDetail.incidents.map((inc: any, idx: number) => (
-                          <tr key={inc.id || idx}>
-                            <td>
-                              <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{inc.id}</span>
-                            </td>
-                            <td>
-                              <span className="badge" style={{ fontSize: '0.72rem' }}>{inc.status || 'ASSIGNED'}</span>
-                            </td>
-                            <td>
-                              <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>{inc.state || 'APPROVED'}</span>
-                            </td>
-                            <td style={{ fontSize: '0.85rem' }}>{inc.globalUserName || inc.globalUserId || 'N/A'}</td>
-                            <td style={{ fontSize: '0.85rem' }}>{inc.role || inc.accessPointName || 'N/A'}</td>
-                            <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatOracleDate(inc.creationDate)}</td>
+                {/* Error State */}
+                {incidentsError && incidentsList.length === 0 && (
+                  <div style={{ padding: '2rem 1.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
+                    <AlertCircle size={28} style={{ color: 'var(--accent-red)', marginBottom: '0.5rem' }} />
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-red)', marginBottom: '0.25rem' }}>
+                      {incidentsError}
+                    </div>
+                    <button
+                      onClick={() => loadIncidentsPage(selectedControlId, incidentPage, incidentPageSize)}
+                      className="btn btn-primary"
+                      style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
+                    >
+                      <RefreshCw size={13} /> Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {!incidentsLoading && !incidentsError && incidentsList.length === 0 && (
+                  <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+                    <CheckCircle2 size={32} style={{ color: 'var(--accent-green)', marginBottom: '0.5rem' }} />
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                      No continuous monitoring incidents found for this control.
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Oracle Fusion returned zero incident records for control {selectedControlDetail.id}.
+                    </div>
+                  </div>
+                )}
+
+                {/* Incident Records Table */}
+                {incidentsList.length > 0 && (
+                  <div>
+                    <div className="table-container" style={{ margin: 0, overflowX: 'auto', position: 'relative' }}>
+                      {/* Dimming overlay when changing page */}
+                      {incidentsLoading && (
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundColor: 'rgba(10, 15, 29, 0.65)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                            backdropFilter: 'blur(2px)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.9rem' }}>
+                            <RefreshCw size={18} className="animate-spin" /> Loading page {incidentPage}...
+                          </div>
+                        </div>
+                      )}
+
+                      <table className="enterprise-table">
+                        <thead>
+                          <tr>
+                            <th>Incident ID</th>
+                            <th>User Name</th>
+                            <th>Role</th>
+                            <th>Access Point</th>
+                            <th>Status</th>
+                            <th>State</th>
+                            <th>Created Date</th>
+                            <th style={{ textAlign: 'center' }}>Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {incidentsList.map((inc: any, idx: number) => {
+                            const userName = inc.globalUserName || inc.globalUserId || (inc.userFirstName ? `${inc.userFirstName} ${inc.userLastName || ''}`.trim() : 'N/A');
+                            const roleVal = inc.role || 'N/A';
+                            const accessPointVal = inc.accessPointName || inc.accessPointType || 'N/A';
+                            return (
+                              <tr key={inc.id || idx}>
+                                <td>
+                                  <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{inc.id}</span>
+                                </td>
+                                <td style={{ fontSize: '0.85rem' }}>{userName}</td>
+                                <td style={{ fontSize: '0.85rem' }}>{roleVal}</td>
+                                <td style={{ fontSize: '0.85rem' }}>{accessPointVal}</td>
+                                <td>
+                                  <span className="badge" style={{ fontSize: '0.72rem' }}>
+                                    {inc.status || 'ASSIGNED'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
+                                    {inc.state || 'APPROVED'}
+                                  </span>
+                                </td>
+                                <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                  {formatOracleDate(inc.creationDate)}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button
+                                    onClick={() => setViewingIncident(inc)}
+                                    className="btn btn-secondary"
+                                    style={{ 
+                                      display: 'inline-flex', 
+                                      alignItems: 'center', 
+                                      gap: '0.35rem', 
+                                      fontSize: '0.75rem', 
+                                      padding: '0.3rem 0.65rem' 
+                                    }}
+                                    title="View complete Oracle incident record"
+                                  >
+                                    <Eye size={13} /> View
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination Bar */}
+                    <div 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        flexWrap: 'wrap', 
+                        gap: '1rem', 
+                        marginTop: '1.25rem', 
+                        paddingTop: '1rem', 
+                        borderTop: '1px solid var(--border-color)' 
+                      }}
+                    >
+                      {/* Page Size Selector */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        <span>Rows per page:</span>
+                        <select
+                          value={incidentPageSize}
+                          onChange={e => handleIncidentPageSizeChange(Number(e.target.value))}
+                          disabled={incidentsLoading}
+                          style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value={25}>25</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                      </div>
+
+                      {/* Page indicator */}
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        Page <strong style={{ color: 'var(--text-primary)' }}>{incidentPage}</strong>
+                        {incidentsTotalCount ? (
+                          <> of <strong style={{ color: 'var(--text-primary)' }}>{Math.ceil(incidentsTotalCount / incidentPageSize) || 1}</strong></>
+                        ) : null}
+                      </div>
+
+                      {/* Navigation buttons */}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => handleIncidentPageChange(incidentPage - 1)}
+                          disabled={incidentPage <= 1 || incidentsLoading}
+                          className="btn btn-secondary"
+                          style={{ 
+                            padding: '0.4rem 0.75rem', 
+                            fontSize: '0.82rem', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '0.35rem',
+                            cursor: incidentPage <= 1 || incidentsLoading ? 'not-allowed' : 'pointer',
+                            opacity: incidentPage <= 1 || incidentsLoading ? 0.5 : 1
+                          }}
+                        >
+                          <ChevronLeft size={15} /> Previous
+                        </button>
+                        <button
+                          onClick={() => handleIncidentPageChange(incidentPage + 1)}
+                          disabled={
+                            incidentsLoading || 
+                            (!incidentsHasMore && !(incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount))
+                          }
+                          className="btn btn-secondary"
+                          style={{ 
+                            padding: '0.4rem 0.75rem', 
+                            fontSize: '0.82rem', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '0.35rem',
+                            cursor: incidentsLoading || (!incidentsHasMore && !(incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount)) ? 'not-allowed' : 'pointer',
+                            opacity: incidentsLoading || (!incidentsHasMore && !(incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount)) ? 0.5 : 1
+                          }}
+                        >
+                          Next <ChevronRight size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Incident Details Modal (Drawer/Modal View) */}
+              {viewingIncident && (
+                <div 
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1.5rem',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                  onClick={() => setViewingIncident(null)}
+                >
+                  <div 
+                    className="glass-panel"
+                    style={{
+                      maxWidth: '780px',
+                      width: '100%',
+                      maxHeight: '90vh',
+                      overflowY: 'auto',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      padding: '1.75rem',
+                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {/* Modal Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+                          <span className="badge badge-gold" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                            Incident #{viewingIncident.id}
+                          </span>
+                          <span className="badge" style={{ fontSize: '0.72rem' }}>
+                            {viewingIncident.status || 'ASSIGNED'}
+                          </span>
+                          <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
+                            {viewingIncident.state || 'APPROVED'}
+                          </span>
+                        </div>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                          Oracle Fusion Incident Details
+                        </h3>
+                      </div>
+                      <button 
+                        onClick={() => setViewingIncident(null)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.35rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Close modal"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Section 1: User Information */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                        <User size={15} /> User Information
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User Name</span>
+                          <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                            {renderFieldVal(viewingIncident.globalUserName || viewingIncident.globalUserId)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>First Name</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.userFirstName)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Name</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.userLastName)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Access Information */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                        <Key size={15} /> Access & Privilege Details
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Role</span>
+                          <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                            {renderFieldVal(viewingIncident.role)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.accessPointName)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.accessPointType)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Entitlement</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.entitlement)}
+                          </span>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            {renderFieldVal(viewingIncident.incidentInformation)}
+                          </span>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.conflictingRoles)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Incident Metadata */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                        <FileText size={15} /> Incident Metadata
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident ID</span>
+                          <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)' }}>{renderFieldVal(viewingIncident.id)}</code>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control ID</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.controlId || selectedControlId)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.controlName || selectedControlDetail?.name)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Priority</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.priority)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Version</span>
+                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.incidentVersion)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 4: Audit Information */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                        <Clock size={15} /> Audit & Timeline
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            {formatOracleDate(viewingIncident.creationDate)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.createdBy)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated Date</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            {formatOracleDate(viewingIncident.lastUpdateDate)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            {renderFieldVal(viewingIncident.lastUpdatedBy)}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            {formatOracleDate(viewingIncident.closedDate)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Modal Footer */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                      <button 
+                        onClick={() => setViewingIncident(null)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem' }}
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1100,10 +1645,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                 Total Incidents
               </div>
               <div style={{ fontSize: hasIncidentData ? '1.75rem' : '1.05rem', fontWeight: 800, color: kpiTotalIncidentsCount > 0 ? 'var(--accent-red)' : 'var(--text-primary)', lineHeight: hasIncidentData ? '1.2' : '1.8' }}>
-                {hasIncidentData ? kpiTotalIncidentsCount.toLocaleString() : (controlsRefreshing ? 'Calculating...' : 'Not available')}
+                {hasIncidentData ? kpiTotalIncidentsCount.toLocaleString() : (countsLoading || controlsRefreshing ? 'Calculating...' : 'Not available')}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                {hasIncidentData ? 'Continuous monitoring incidents detected' : 'Run incident scan to calculate'}
+                {hasIncidentData 
+                  ? (allControlsUpdated ? 'All controls updated' : `${knownCountTotal} of ${activeSubsectionControls.length} controls updated`) 
+                  : (countsLoading ? 'Checking incident count cache...' : 'Run incident scan to calculate')}
               </div>
             </div>
           </div>
@@ -1670,7 +2217,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                         {visibleColumnKeys.has('incidentCount') && (
                           <td>
-                            {ctrl.incidentCount !== undefined ? (
+                            {ctrl.incidentCount !== undefined && ctrl.incidentCount !== null ? (
                               <span 
                                 style={{ 
                                   fontWeight: 700, 
@@ -1678,7 +2225,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   color: ctrl.incidentCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)' 
                                 }}
                               >
-                                {ctrl.incidentCount.toLocaleString()}
+                                {Number(ctrl.incidentCount).toLocaleString()}
+                              </span>
+                            ) : (ctrl as any).incidentCountStatus === 'CALCULATING' ? (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <RefreshCw size={11} className="animate-spin" /> Calculating...
                               </span>
                             ) : (
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>

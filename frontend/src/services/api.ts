@@ -317,6 +317,29 @@ export const api = {
     return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}${refresh ? '?refresh=true' : ''}`);
   },
 
+  async getControlIncidents(controlId: string, pageOrOptions?: number | { page?: number; limit?: number; refresh?: boolean }, limit?: number, refresh?: boolean) {
+    const params = new URLSearchParams();
+    if (typeof pageOrOptions === 'number') {
+      params.append('page', String(pageOrOptions));
+      if (limit) params.append('limit', String(limit));
+      if (refresh) params.append('refresh', 'true');
+    } else if (pageOrOptions) {
+      if (pageOrOptions.page) params.append('page', String(pageOrOptions.page));
+      if (pageOrOptions.limit) params.append('limit', String(pageOrOptions.limit));
+      if (pageOrOptions.refresh) params.append('refresh', 'true');
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}/incidents${query}`);
+  },
+
+  async getControlIncidentCounts(sync?: boolean) {
+    return apiRequest(`/risk/controls/counts${sync ? '?sync=true' : ''}`);
+  },
+
+  async getControlIncidentCount(controlId: string, refresh?: boolean) {
+    return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}/count${refresh ? '?refresh=true' : ''}`);
+  },
+
   async refreshAdvancedControls() {
     return apiRequest('/risk/controls/refresh', {
       method: 'POST',

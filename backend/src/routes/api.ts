@@ -23,7 +23,8 @@ export const apiRouter = Router();
 // Write Audit Logs securely without exposing secrets
 function logAudit(username: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] User: ${username} | Action: ${action} | Details: ${details}\n`;
+  const safeUsername = username || 'SYSTEM';
+  const logMessage = `[${timestamp}] User: ${safeUsername} | Action: ${action} | Details: ${details}\n`;
   console.log(`[AUDIT] ${logMessage.trim()}`);
   try {
     fs.appendFileSync(AUDIT_LOG_PATH, logMessage, { encoding: 'utf8', mode: 0o600 });
@@ -34,8 +35,8 @@ function logAudit(username: string, action: string, details: string) {
     mockAuditTrail.unshift({
       id: `aud_adm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       timestamp,
-      username,
-      businessObject: action.includes('USER') || action.includes('ACCOUNT') ? `User: ${details.split(' ').pop() || username}` : 'Security Administration',
+      username: safeUsername,
+      businessObject: action.includes('USER') || action.includes('ACCOUNT') ? `User: ${details.split(' ').pop() || safeUsername}` : 'Security Administration',
       action: action.includes('DELETE') ? 'DELETE' : action.includes('REVOKE') ? 'ROLE_REVOKE' : action.includes('ASSIGN') ? 'ROLE_ASSIGN' : 'UPDATE',
       details
     });
@@ -222,12 +223,15 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
 });
 
 // POST /auth/refresh - Refresh Active Session Inactivity Timer (AC3)
-apiRouter.post('/auth/refresh', requireAuth, (req: Request, res: Response) => {
+apiRouter.post('/auth/refresh', requireAuth, async (req: Request, res: Response) => {
+  const token = res.locals.token;
+  const result = await authService.refreshSessionActivity(token);
   logAudit(res.locals.email, 'SESSION_REFRESH', 'User requested session keep-alive refresh');
   res.json({
     success: true,
     message: 'Session activity refreshed successfully.',
-    lastActivityAt: Date.now()
+    lastActivityAt: result.lastActivityAt || Date.now(),
+    expiresAt: result.expiresAt
   });
 });
 
@@ -1045,6 +1049,16 @@ apiRouter.post('/risk/controls/refresh', requirePrivilege(['RISK_MANAGEMENT', 'R
   }
 });
 
+// GET /risk/controls/counts - Retrieve all cached incident counts and sync stale in background
+apiRouter.get('/risk/controls/counts', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const counts = oracleService.getIncidentCounts();
+    res.json({ success: true, counts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
 apiRouter.get('/risk/controls/:id', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const controlId = req.params.id;
@@ -1065,6 +1079,51 @@ apiRouter.get('/risk/controls/:id', requirePrivilege(['RISK_MANAGEMENT', 'RISK_R
   }
 });
 
+// GET /risk/controls/:id/incidents - Fast paginated incident retrieval (default 25 rows)
+apiRouter.get('/risk/controls/:id/incidents', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const controlId = req.params.id;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 25;
+    const forceRefresh = req.query.refresh === 'true';
+
+    const result = await oracleService.getControlIncidentsPage(controlId, {
+      page,
+      limit,
+      forceRefresh
+    });
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: (err as Error).message || 'Unable to retrieve incidents from Oracle Fusion.'
+    });
+  }
+});
+
+// GET /risk/controls/:id/count - Authoritative incident count from lightweight cache or live Oracle
+apiRouter.get('/risk/controls/:id/count', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const controlId = req.params.id;
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await oracleService.getControlIncidentCount(controlId, forceRefresh);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: (err as Error).message || 'Unable to retrieve incident count from Oracle Fusion.'
+    });
+  }
+});
+
+// GET /risk/reports/control-summary - Fast, scalable Control Summary reporting endpoint
 apiRouter.get('/risk/reports/control-summary', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const forceRefresh = req.query.refresh === 'true';
