@@ -198,6 +198,13 @@ export const api = {
     return apiRequest('/overview/stats');
   },
 
+  // Audit Supervisor Dashboard Metrics (Mock Screen 5: Active Risks, Open Issues, Reports Generated)
+  // Backend scopes rows to the caller's permissions; 401/403 surfaces here for AC6/AC7 handling.
+  async getAuditSupervisorMetrics(options?: { refresh?: boolean }) {
+    const query = options?.refresh ? '?refresh=true' : '';
+    return apiRequest(`/dashboard/metrics${query}`);
+  },
+
   // Assistant Chat
   async sendMessage(message: string, context?: any) {
     return apiRequest('/chat', {

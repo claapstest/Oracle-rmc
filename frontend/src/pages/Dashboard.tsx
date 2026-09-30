@@ -23,6 +23,7 @@ import {
 
 interface DashboardProps {
   currentUser?: string;
+  userRole?: string;
   onFAQSelect?: (question: string) => void;
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
   onInvestigate?: (type: 'role' | 'user', id: string, name: string) => void;
@@ -70,12 +71,19 @@ function getSubtitleText(username?: string): string {
 
 export default function Dashboard({ 
   currentUser,
+  userRole,
   onFAQSelect, 
   environmentMode,
   onInvestigate,
   onNavigatePage,
   hasAccess
 }: DashboardProps) {
+  // Mock Screen 5 — Audit Supervisor sees a dedicated dashboard (no Ask Veyra anywhere).
+  const isSupervisor = (userRole || '').trim().toUpperCase() === 'AUDIT_SUPERVISOR';
+  // AC4/AC5 — supervisor KPIs come only from backend /dashboard/metrics; null until loaded (never hardcoded).
+  const [supMetrics, setSupMetrics] = useState<any | null>(null);
+  const [supLoading, setSupLoading] = useState(false);
+  const [supError, setSupError] = useState('');
   // AC4 — metrics come only from backend APIs; null until loaded (never hardcoded).
   const [stats, setStats] = useState<any | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -88,6 +96,7 @@ export default function Dashboard({
   const can = (pageId: string) => (hasAccess ? hasAccess(pageId) : true);
 
   useEffect(() => {
+    if (isSupervisor) return; // Supervisor uses the dedicated metrics loader below.
     let isMounted = true;
     async function loadDashboardData() {
       setLoading(true);
@@ -126,7 +135,190 @@ export default function Dashboard({
 
     loadDashboardData();
     return () => { isMounted = false; };
-  }, [environmentMode, reloadKey]);
+  }, [environmentMode, reloadKey, isSupervisor]);
+
+  // Mock Screen 5 data loader: backend only, with loading + error states (AC5/AC6/AC7).
+  useEffect(() => {
+    if (!isSupervisor) return;
+    let isMounted = true;
+    async function loadSupervisorMetrics() {
+      setSupLoading(true);
+      setSupError('');
+      try {
+        const res = await api.getAuditSupervisorMetrics();
+        if (!isMounted) return;
+        if (res && res.success) {
+          setSupMetrics(res);
+        } else {
+          setSupMetrics(null);
+          setSupError((res && res.message) || 'Dashboard metrics are unavailable. The backend could not retrieve live statistics.');
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        setSupMetrics(null);
+        if (err && (err.status === 403 || err.code === 'FORBIDDEN')) {
+          setSupError('You are not authorized to view dashboard metrics. Contact your administrator if you need access.');
+        } else {
+          setSupError((err && err.message) || 'Could not establish connection to the backend service.');
+        }
+      } finally {
+        if (isMounted) setSupLoading(false);
+      }
+    }
+    loadSupervisorMetrics();
+    return () => { isMounted = false; };
+  }, [isSupervisor, environmentMode, reloadKey]);
+
+  // Mock Screen 5 — Audit Supervisor dashboard (AC1-AC7). No Ask Veyra entry point anywhere in this branch.
+  if (isSupervisor) {
+    const riskTarget = ['risk-access-requests', 'risk-controls', 'risk-certificates'].find((p) => can(p));
+    const metricValue = (v: unknown) => (typeof v === 'number' ? v.toLocaleString() : '—');
+    if (supLoading && !supMetrics) {
+      return (
+        <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', margin: '0 auto' }}>
+          <div style={{ height: '44px', width: '320px', marginBottom: '0.6rem' }} className="skeleton" />
+          <div style={{ height: '20px', width: '260px', marginBottom: '1.5rem' }} className="skeleton" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ height: '100px', borderRadius: '12px' }} className="skeleton" />
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ height: '120px', borderRadius: '12px' }} className="skeleton" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (!supMetrics) {
+      return (
+        <div style={{ padding: '2rem', maxWidth: '720px', margin: '2rem auto' }}>
+          <div className="glass-panel" role="alert" style={{ padding: '2.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
+            <p style={{ color: 'var(--accent-red)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+              Couldn&apos;t load dashboard metrics.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>
+              {supError || 'The backend service is unreachable. Check your connection and try again.'}
+            </p>
+            <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.75rem' }} onClick={() => setReloadKey((k) => k + 1)}>
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    const navCards = [
+      ...(riskTarget ? [{
+        key: 'risk',
+        title: 'Risk Management',
+        subtitle: 'View and analyze risk insights',
+        icon: <ShieldAlert size={22} />,
+        tileBg: '#EFF6FF',
+        tileColor: '#2563EB',
+        target: riskTarget,
+      }] : []),
+      ...(can('reports') ? [{
+        key: 'reports',
+        title: 'Reports',
+        subtitle: 'Generate and view audit reports',
+        icon: <FileText size={22} />,
+        tileBg: '#F0FDF4',
+        tileColor: '#059669',
+        target: 'reports',
+      }] : []),
+      ...(can('audit') ? [{
+        key: 'audit',
+        title: 'Audit Trail',
+        subtitle: 'Track user activities and system events',
+        icon: <Eye size={22} />,
+        tileBg: '#EFF6FF',
+        tileColor: '#2563EB',
+        target: 'audit',
+      }] : []),
+    ];
+    return (
+      <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+        <div style={{ marginBottom: '0.2rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', fontFamily: "'Outfit', 'Inter', sans-serif", margin: 0, letterSpacing: '-0.025em' }}>
+            Welcome back, {getFirstName(currentUser)}!
+          </h1>
+          <p style={{ color: '#64748B', fontSize: '0.95rem', margin: '0.35rem 0 0 0', fontWeight: 500 }}>
+            Monitor audit activities and risks.
+          </p>
+        </div>
+
+        {supError && (
+          <div className="glass-panel" style={{ padding: '1rem 1.5rem', borderLeft: '4px solid var(--accent-red)' }}>
+            <p style={{ color: 'var(--accent-red)', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{supError}</p>
+          </div>
+        )}
+
+        <div className="overview-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="glass-panel stat-card" onClick={() => riskTarget && onNavigatePage?.(riskTarget)} style={{ cursor: riskTarget ? 'pointer' : 'default', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View risk insights">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stat-title">Active Risks</div>
+                <div className="stat-value">{metricValue(supMetrics.activeRisks)}</div>
+              </div>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ShieldAlert size={22} />
+              </div>
+            </div>
+          </div>
+          <div className="glass-panel stat-card" onClick={() => riskTarget && onNavigatePage?.(riskTarget)} style={{ cursor: riskTarget ? 'pointer' : 'default', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View open issues">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stat-title">Open Issues</div>
+                <div className="stat-value">{metricValue(supMetrics.openIssues)}</div>
+              </div>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#FFFBEB', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertTriangle size={22} />
+              </div>
+            </div>
+          </div>
+          {can('reports') && (
+          <div className="glass-panel stat-card" onClick={() => onNavigatePage?.('reports')} style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View reports">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stat-title">Reports Generated</div>
+                <div className="stat-value">{metricValue(supMetrics.reportsGenerated)}</div>
+              </div>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FileText size={22} />
+              </div>
+            </div>
+          </div>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+          {navCards.map((card) => (
+            <div
+              key={card.key}
+              className="glass-panel stat-card"
+              onClick={() => onNavigatePage?.(card.target)}
+              style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }}
+              title={card.subtitle}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="stat-title" style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{card.title}</div>
+                  <div className="stat-subtitle">{card.subtitle}</div>
+                </div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: card.tileBg, color: card.tileColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {card.icon}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                <ArrowRight size={16} style={{ color: 'var(--accent-blue)' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

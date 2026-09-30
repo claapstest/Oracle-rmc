@@ -98,7 +98,15 @@ export default function App() {
   });
   const [visitedPages, setVisitedPages] = useState<Set<string>>(() => {
     const initial = resolveStoredPage();
-    return new Set([initial, 'assistant']);
+    const pages = new Set([initial]);
+    // AC4 — never pre-mount Ask Veyra for sessions that may not access it.
+    // Re-verified against live backend session on mount; navigation re-adds it when allowed.
+    const storedRole = getActiveUserRole();
+    const storedPerms = getActiveUserPermissions();
+    if (canAccessPage('assistant', { isAdmin: false, role: storedRole, permissions: storedPerms })) {
+      pages.add('assistant');
+    }
+    return pages;
   });
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>(() => {
     return (localStorage.getItem('environmentMode') as 'DEMO' | 'ORACLE_FUSION') || 'ORACLE_FUSION';
@@ -549,6 +557,21 @@ export default function App() {
     return namePart.charAt(0).toUpperCase() + namePart.slice(1);
   };
 
+  // Role label derived from the live session role (never hardcoded to one role).
+  const getRoleLabel = (role?: string, upper = false) => {
+    const norm = (role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    const labels: Record<string, string> = {
+      SITE_ADMIN: 'Site Admin',
+      AUDIT_MANAGER: 'Audit Manager',
+      AUDIT_SUPERVISOR: 'Audit Supervisor',
+      AUDIT_USER: 'Audit User',
+      SECURITY_ANALYST: 'Security Analyst',
+      COMPLIANCE_OFFICER: 'Compliance Officer',
+    };
+    const label = labels[norm] || (norm ? norm.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ') : 'Audit Manager');
+    return upper ? label.toUpperCase() : label;
+  };
+
   // Structured Navigation Hierarchy
   interface NavItem {
     id: string;
@@ -822,7 +845,7 @@ export default function App() {
                   {getUserDisplayName(currentUser)}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500, fontStyle: 'italic' }}>
-                  {isAdmin ? 'Site Admin' : 'Audit Manager'}
+                  {getRoleLabel(userRole)}
                 </span>
               </div>
 
@@ -897,7 +920,7 @@ export default function App() {
                       borderRadius: '9999px',
                       display: 'inline-block'
                     }}>
-                      {isAdmin ? 'SITE ADMIN' : 'AUDIT MANAGER'}
+                      {getRoleLabel(userRole, true)}
                     </span>
                   </div>
                 </div>
@@ -965,6 +988,7 @@ export default function App() {
             <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
               <Dashboard
                 currentUser={currentUser}
+                userRole={userRole}
                 onFAQSelect={handleFAQSelect}
                 environmentMode={environmentMode}
                 onInvestigate={handleInvestigate}
