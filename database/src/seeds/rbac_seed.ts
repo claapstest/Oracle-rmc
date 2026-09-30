@@ -138,6 +138,33 @@ export const BOOTSTRAP_USER = {
   created_by: 'SYSTEM_SEED',
 };
 
+export const SEED_PERSONAS = [
+  {
+    email: 'akash.meesarapu@claaps.com',
+    display_name: 'Akash Meesarapu',
+    status: 'ACTIVE',
+    role_code: 'AUDIT_MANAGER',
+    password_hash: '$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC', // Password@123
+    created_by: 'SYSTEM_SEED',
+  },
+  {
+    email: 'supervisor.user@claaps.com',
+    display_name: 'Audit Supervisor User',
+    status: 'ACTIVE',
+    role_code: 'AUDIT_SUPERVISOR',
+    password_hash: '$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC', // Password@123
+    created_by: 'SYSTEM_SEED',
+  },
+  {
+    email: 'audit.user@claaps.com',
+    display_name: 'Standard Audit User',
+    status: 'ACTIVE',
+    role_code: 'AUDIT_USER',
+    password_hash: '$2b$10$3R8moi2HVvpi8RusvkJ9D.hd9vDXo2Nauygzxv4QP4ppIknZsDTCC', // Password@123
+    created_by: 'SYSTEM_SEED',
+  },
+];
+
 export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
   let localClient: pg.Client | null = null;
   const db: pg.ClientBase = client || (localClient = new pg.Client({ connectionString }));
@@ -225,6 +252,31 @@ export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
          ON CONFLICT (user_id, role_id) DO NOTHING`,
         [adminUserId, adminRoleId]
       );
+    }
+
+    // 6. Seed Additional Personas (Audit Manager, Supervisor, User)
+    for (const persona of SEED_PERSONAS) {
+      const pEmail = persona.email.trim().toLowerCase();
+      const pRes = await db.query(
+        `INSERT INTO veyra_user (email, display_name, status, is_local_user, password_hash, created_by)
+         VALUES ($1, $2, $3, true, $4, $5)
+         ON CONFLICT (email) DO UPDATE SET
+           display_name = EXCLUDED.display_name,
+           status = EXCLUDED.status,
+           password_hash = COALESCE(veyra_user.password_hash, EXCLUDED.password_hash)
+         RETURNING id`,
+        [pEmail, persona.display_name, persona.status, persona.password_hash, persona.created_by]
+      );
+      const pUserId = pRes.rows[0].id;
+      const pRoleId = roleIdMap.get(persona.role_code);
+      if (pRoleId) {
+        await db.query(
+          `INSERT INTO veyra_user_role (user_id, role_id, created_by)
+           VALUES ($1, $2, 'SYSTEM_SEED')
+           ON CONFLICT (user_id, role_id) DO NOTHING`,
+          [pUserId, pRoleId]
+        );
+      }
     }
 
     await db.query('COMMIT');

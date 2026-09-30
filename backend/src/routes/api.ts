@@ -735,6 +735,32 @@ apiRouter.get('/overview/stats', requireAuditManagerDashboard, async (req: Reque
   }
 });
 
+// GET /api/dashboard/history - Retrieve historical metric snapshots (VY-STRY-013)
+apiRouter.get('/dashboard/history', requireAuditManagerDashboard, async (req: Request, res: Response) => {
+  try {
+    const metricKey = (req.query.metricKey as string) || 'ACTIVE_RISKS';
+    const scopeType = (req.query.scopeType as string) || 'GLOBAL';
+    const limit = parseInt((req.query.limit as string) || '20', 10);
+    const isMock = req.query.isMock === 'true';
+
+    const history = await auditDashboardService.getHistoricalMetrics(metricKey, limit, scopeType, isMock);
+
+    return res.status(200).json({
+      success: true,
+      metricKey,
+      scopeType,
+      history
+    });
+  } catch (err) {
+    console.error('[Dashboard History API Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: (err as Error).message || 'Failed to retrieve dashboard metric history.'
+    });
+  }
+});
+
 // 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
 apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {
   try {

@@ -15,6 +15,7 @@ backend/cache/
 backend/oracle_user_access_report_cache.json
 role_privilege_catalog.json
 backend/role_privilege_catalog.json
+oracle_roles_cache.json
 
 # Log Files
 *.log

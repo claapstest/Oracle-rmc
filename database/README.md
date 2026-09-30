@@ -126,11 +126,44 @@ npm run migrate:down    # Roll back latest migration
 npm run test:story8     # Story 8: RBAC schema & constraints (17 tests)
 npm run test:story9     # Story 9: Session tracking & single active session (16 tests)
 npm run test:story10    # Story 10: Audit trail schema, constraints & sanitization (31 tests)
+npm run test:story13    # Story 13: Dashboard metrics persistence & scope filtering (20 tests)
 npm test                # Run all verification suites concurrently
 ```
 
-### 3. Backend End-to-End Integration Suite
-From `backend/`:
-```bash
-npx tsx test_story_010_integration.ts
-```
+---
+
+## 📊 Story 13: Dashboard Metrics Architecture & Schema
+
+### Migration: `1711000000003_create_veyra_dashboard_metric_table.cjs`
+
+Table: `veyra_dashboard_metric`
+
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `metric_id` | UUID | PRIMARY KEY, DEFAULT `gen_random_uuid()` | Unique metric measurement ID |
+| `metric_key` | VARCHAR(100) | NOT NULL | Canonical identifier (e.g. `ACTIVE_RISKS`, `TOTAL_USERS`, `ROLE_DISTRIBUTION`) |
+| `metric_value` | NUMERIC(14, 4) | NULL | Numeric KPI value (for gauges and counters) |
+| `metric_type` | VARCHAR(30) | NOT NULL, DEFAULT `'GAUGE'`, CHECK `IN ('COUNTER', 'GAUGE', 'AGGREGATE', 'SUMMARY_SNAPSHOT')` | Metric classification |
+| `scope_type` | VARCHAR(30) | NOT NULL, DEFAULT `'GLOBAL'`, CHECK `IN ('GLOBAL', 'USER', 'APPLICATION', 'TENANT')` | Scope boundary |
+| `scope_id` | VARCHAR(100) | NULL | Scope identifier (e.g. user ID, application code) |
+| `user_id` | UUID | NULL, FOREIGN KEY REFERENCES `veyra_user(id) ON DELETE SET NULL` | Reference to user for user-scoped metrics |
+| `application_scope` | VARCHAR(100) | NOT NULL, DEFAULT `'ORACLE_FUSION'` | Application partition boundary |
+| `metric_payload` | JSONB | NULL | Structured metric breakdown (no UI coordinates or colors) |
+| `source` | VARCHAR(50) | NOT NULL, DEFAULT `'VEYRA_CALCULATED'`, CHECK `IN ('VEYRA_POSTGRES', 'ORACLE_FUSION', 'VEYRA_CALCULATED', 'MANUAL', 'DEMO_SEED')` | Authoritative source of data |
+| `is_mock` | BOOLEAN | NOT NULL, DEFAULT `false` | Explicit separation of mock/sample vs production data |
+| `captured_at` | TIMESTAMPTZ | NOT NULL, DEFAULT `now()` | Measurement timestamp |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT `now()` | Record creation timestamp |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT `now()` | Record update timestamp |
+
+### Indexes:
+- `ix_veyra_dashboard_metric_key_scope_time`: `(metric_key, scope_type, is_mock, captured_at DESC)`
+- `ix_veyra_dashboard_metric_user_time`: `(user_id, captured_at DESC) WHERE user_id IS NOT NULL`
+- `ix_veyra_dashboard_metric_app_time`: `(application_scope, captured_at DESC)`
+- `ix_veyra_dashboard_metric_scope_captured`: `(scope_type, captured_at DESC)`
+- `ix_veyra_dashboard_metric_captured_at`: `(captured_at DESC)`
+
+### Backend Integration:
+- Extended `auditDashboardService.ts` to persist snapshots during dashboard computation.
+- Added API: `GET /api/dashboard/history?metricKey=...&scopeType=...` (guarded by `requireAuditManagerDashboard`).
+- Zero data duplication: Base user, role, session, and audit counts calculated from existing PostgreSQL tables or Oracle services.
+

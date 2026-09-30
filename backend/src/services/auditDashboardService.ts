@@ -1,6 +1,24 @@
 import { oracleService } from './oracleService.js';
 import { tools } from '../tools/index.js';
 import { config } from '../config.js';
+import { query as dbQuery } from '../db.js';
+
+export interface DashboardMetricRecord {
+  metricId?: string;
+  metricKey: string;
+  metricValue?: number | null;
+  metricType?: 'COUNTER' | 'GAUGE' | 'AGGREGATE' | 'SUMMARY_SNAPSHOT';
+  scopeType?: 'GLOBAL' | 'USER' | 'APPLICATION' | 'TENANT';
+  scopeId?: string | null;
+  userId?: string | null;
+  applicationScope?: string;
+  metricPayload?: any;
+  source?: 'VEYRA_POSTGRES' | 'ORACLE_FUSION' | 'VEYRA_CALCULATED' | 'MANUAL' | 'DEMO_SEED';
+  isMock?: boolean;
+  capturedAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 export interface AuditDashboardMetrics {
   // AC3 Core Metrics
@@ -293,7 +311,165 @@ class AuditDashboardService {
     };
 
     this.cache = { data: metrics, timestamp: Date.now() };
+
+    // Persist core KPI metric snapshots to PostgreSQL (VY-STRY-013)
+    await this.persistDashboardSnapshots(metrics).catch((err) => {
+      console.warn('[AuditDashboardService] Non-blocking snapshot persistence note:', err.message);
+    });
+
     return metrics;
+  }
+
+  /**
+   * Persists a single metric record into veyra_dashboard_metric (VY-STRY-013).
+   */
+  public async recordMetricSnapshot(record: DashboardMetricRecord): Promise<void> {
+    try {
+      await dbQuery(
+        `INSERT INTO veyra_dashboard_metric (
+          metric_key, metric_value, metric_type, scope_type, scope_id, user_id,
+          application_scope, metric_payload, source, is_mock, captured_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, now()))`,
+        [
+          record.metricKey,
+          record.metricValue !== undefined ? record.metricValue : null,
+          record.metricType || 'GAUGE',
+          record.scopeType || 'GLOBAL',
+          record.scopeId || null,
+          record.userId || null,
+          record.applicationScope || 'ORACLE_FUSION',
+          record.metricPayload ? JSON.stringify(record.metricPayload) : null,
+          record.source || 'VEYRA_CALCULATED',
+          record.isMock ?? false,
+          record.capturedAt || new Date()
+        ]
+      );
+    } catch (err: any) {
+      console.error('[AuditDashboardService] Failed to record metric snapshot:', err.message);
+      throw err;
+    }
+  }
+
+  /**
+   * Retrieves the most recent snapshot for a given metric key and scope (VY-STRY-013).
+   */
+  public async getLatestMetricSnapshot(
+    metricKey: string,
+    scopeType = 'GLOBAL',
+    scopeId?: string | null,
+    isMock = false
+  ): Promise<DashboardMetricRecord | null> {
+    try {
+      const res = await dbQuery(
+        `SELECT metric_id AS "metricId", metric_key AS "metricKey", metric_value AS "metricValue",
+                metric_type AS "metricType", scope_type AS "scopeType", scope_id AS "scopeId",
+                user_id AS "userId", application_scope AS "applicationScope", metric_payload AS "metricPayload",
+                source, is_mock AS "isMock", captured_at AS "capturedAt",
+                created_at AS "createdAt", updated_at AS "updatedAt"
+         FROM veyra_dashboard_metric
+         WHERE metric_key = $1 AND scope_type = $2 AND is_mock = $3
+           AND ($4::varchar IS NULL OR scope_id = $4)
+         ORDER BY captured_at DESC
+         LIMIT 1`,
+        [metricKey, scopeType, isMock, scopeId || null]
+      );
+      if (res.rows.length === 0) return null;
+      const row = res.rows[0];
+      return {
+        ...row,
+        metricValue: row.metricValue !== null ? Number(row.metricValue) : null
+      };
+    } catch (err: any) {
+      console.error('[AuditDashboardService] Failed to get latest metric snapshot:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Retrieves metric history for time-series trend analysis (VY-STRY-013).
+   */
+  public async getHistoricalMetrics(
+    metricKey: string,
+    limit = 20,
+    scopeType = 'GLOBAL',
+    isMock = false
+  ): Promise<DashboardMetricRecord[]> {
+    try {
+      const res = await dbQuery(
+        `SELECT metric_id AS "metricId", metric_key AS "metricKey", metric_value AS "metricValue",
+                metric_type AS "metricType", scope_type AS "scopeType", scope_id AS "scopeId",
+                user_id AS "userId", application_scope AS "applicationScope", metric_payload AS "metricPayload",
+                source, is_mock AS "isMock", captured_at AS "capturedAt"
+         FROM veyra_dashboard_metric
+         WHERE metric_key = $1 AND scope_type = $2 AND is_mock = $3
+         ORDER BY captured_at DESC
+         LIMIT $4`,
+        [metricKey, scopeType, isMock, limit]
+      );
+      return res.rows.map(r => ({
+        ...r,
+        metricValue: r.metricValue !== null ? Number(r.metricValue) : null
+      }));
+    } catch (err: any) {
+      console.error('[AuditDashboardService] Failed to get historical metrics:', err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Retrieves all latest metrics within a given scope (VY-STRY-013).
+   */
+  public async getMetricsByScope(
+    scopeType: string,
+    scopeId?: string | null,
+    isMock = false
+  ): Promise<DashboardMetricRecord[]> {
+    try {
+      const res = await dbQuery(
+        `SELECT DISTINCT ON (metric_key)
+                metric_id AS "metricId", metric_key AS "metricKey", metric_value AS "metricValue",
+                metric_type AS "metricType", scope_type AS "scopeType", scope_id AS "scopeId",
+                user_id AS "userId", application_scope AS "applicationScope", metric_payload AS "metricPayload",
+                source, is_mock AS "isMock", captured_at AS "capturedAt"
+         FROM veyra_dashboard_metric
+         WHERE scope_type = $1 AND is_mock = $2
+           AND ($3::varchar IS NULL OR scope_id = $3)
+         ORDER BY metric_key, captured_at DESC`,
+        [scopeType, isMock, scopeId || null]
+      );
+      return res.rows.map(r => ({
+        ...r,
+        metricValue: r.metricValue !== null ? Number(r.metricValue) : null
+      }));
+    } catch (err: any) {
+      console.error('[AuditDashboardService] Failed to get metrics by scope:', err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Asynchronously persists key dashboard KPI snapshots to PostgreSQL (VY-STRY-013).
+   */
+  private async persistDashboardSnapshots(metrics: AuditDashboardMetrics): Promise<void> {
+    const isMock = oracleService.isDemoMode() || config.environmentMode === 'DEMO';
+    const now = new Date();
+
+    const snapshotRecords: DashboardMetricRecord[] = [
+      { metricKey: 'ACTIVE_RISKS', metricValue: metrics.activeRisks, metricType: 'GAUGE', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'OPEN_ISSUES', metricValue: metrics.openIssues, metricType: 'GAUGE', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'REPORTS_GENERATED', metricValue: metrics.reportsGenerated, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'VEYRA_CALCULATED', isMock, capturedAt: now },
+      { metricKey: 'PENDING_REVIEWS', metricValue: metrics.pendingReviews, metricType: 'GAUGE', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'AUDIT_EVENTS_COUNT', metricValue: metrics.auditEventsCount, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'VEYRA_POSTGRES', isMock, capturedAt: now },
+      { metricKey: 'TOTAL_USERS', metricValue: metrics.totalUsers, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'TOTAL_ROLES', metricValue: metrics.totalRoles, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'ROLE_DISTRIBUTION', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.roleDistribution, source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'USER_ACCOUNT_HEALTH', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.userAccountHealth, source: 'VEYRA_CALCULATED', isMock, capturedAt: now },
+      { metricKey: 'CONTROLS_SUMMARY', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.controlsSummary, source: 'ORACLE_FUSION', isMock, capturedAt: now }
+    ];
+
+    for (const record of snapshotRecords) {
+      await this.recordMetricSnapshot(record).catch(() => {});
+    }
   }
 
   /**
