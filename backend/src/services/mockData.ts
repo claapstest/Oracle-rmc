@@ -8,6 +8,7 @@ export interface User {
   email: string;
   active: boolean;
   assignedRoles: any[]; // Role objects or names
+  phone?: string | null;
   personId?: string | null;
   personNumber?: string | null;
   department?: string | null;

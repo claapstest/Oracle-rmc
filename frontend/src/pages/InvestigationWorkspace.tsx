@@ -615,6 +615,12 @@ export default function InvestigationWorkspace({
                   <>
                     <span>•</span>
                     <span>Email: {data?.email || 'N/A'}</span>
+                    {data?.userCategory && (
+                      <>
+                        <span>•</span>
+                        <span>Category: {data.userCategory}</span>
+                      </>
+                    )}
                     <span>•</span>
                     <span>Status: 
                       <span className={`badge ${data?.active ? 'badge-active' : 'badge-inactive'}`} style={{ marginLeft: '0.3rem', fontSize: '0.65rem' }}>
@@ -780,33 +786,112 @@ export default function InvestigationWorkspace({
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-                  <div 
-                    className="glass-panel" 
-                    onClick={() => setActiveTab('ROLES')}
-                    style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s' }}
-                  >
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Assigned Roles</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.25rem 0', color: 'var(--accent-blue)' }}>
-                      {data?.assignedRoles?.length || 0}
+                /* User Account Details — Oracle console layout, VEYRA blue theme, live instance data only */
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    {/* User Information */}
+                    <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
+                        User Information
+                      </h4>
+                      {[
+                        ['User Category', data?.userCategory || '—'],
+                        ['User Name', data?.userName || entity.id],
+                        ['First Name', data?.firstName || '—'],
+                        ['Last Name', data?.lastName || '—'],
+                        ['Email', data?.email || 'N/A'],
+                        ['Phone', (data as any)?.phone || '—'],
+                      ].map(([label, value]) => (
+                        <div key={label} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
+                          <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{label}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, wordBreak: 'break-word' }}>{value}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Direct Roles Mapped (Click to view)</span>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {/* Account Information */}
+                      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
+                          Account Information
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
+                          <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>Password Expiration Date</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>—</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: data?.active ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600 }}>
+                            <input type="checkbox" checked={!!data?.active} readOnly style={{ accentColor: '#2563EB' }} /> Active
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)' }} title="Locked status is not exposed by Oracle REST APIs">
+                            <input type="checkbox" checked={false} readOnly style={{ accentColor: '#2563EB' }} /> Locked
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Associated Worker Information */}
+                      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
+                          Associated Worker Information
+                        </h4>
+                        {[
+                          ['Worker Name', data?.displayName || '—'],
+                          ['Person Number', data?.personNumber || '—'],
+                          ['Manager', data?.manager || '—'],
+                          ['Job', data?.job || '—'],
+                          ['Business Unit', data?.businessUnit || '—'],
+                          ['Department', data?.department || '—'],
+                        ].map(([label, value]) => (
+                          <div key={label} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
+                            <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{label}</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 500, wordBreak: 'break-word' }}>{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Inherited Privileges</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.25rem 0' }}>
-                      {environmentMode === 'DEMO' ? '42' : 'N/A'}
-                    </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>From child duty trees</span>
-                  </div>
-
-                  <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Security Incidents</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.25rem 0', color: 'var(--accent-red)' }}>
-                      {environmentMode === 'DEMO' && entity.id === 'JSMITH' ? '2' : '0'}
-                    </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Active Risk Events</span>
+                  {/* Roles — live SCIM + BIP merge */}
+                  <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
+                      Roles ({data?.assignedRoles?.length || 0})
+                    </h4>
+                    {(!data?.assignedRoles || data.assignedRoles.length === 0) ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                        No roles directly assigned to this account.
+                      </div>
+                    ) : (
+                      <div className="table-container" style={{ margin: 0 }}>
+                        <table className="enterprise-table">
+                          <thead>
+                            <tr>
+                              <th>Role</th>
+                              <th>Role Code</th>
+                              <th>Auto-Provisioned</th>
+                              <th title="Assignable is not exposed by Oracle REST/BIP role APIs">Assignable</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.assignedRoles.map((role: any, idx: number) => {
+                              const rName = typeof role === 'string' ? role : (role.roleName || role.displayName || role.roleCode || '');
+                              const rCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
+                              const rAuto = typeof role === 'object' ? (role.autoProvisioned ?? '—') : '—';
+                              return (
+                                <tr key={idx}>
+                                  <td style={{ fontWeight: 600 }}>{rName}</td>
+                                  <td><code style={{ fontSize: '0.75rem' }}>{rCode}</code></td>
+                                  <td>{rAuto}</td>
+                                  <td title="Assignable is not exposed by Oracle REST/BIP role APIs">—</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.75rem 0 0 0' }}>
+                      Live Oracle Fusion data (SCIM + HCM assignments + BIP auto-provisioning, merged on USERNAME + ROLE_CODE). Auto-Provisioned fills in once a runnable BIP Report exists on the CLAAPS_User_Role_AutoProvisioning data model (BI catalog → New Report → save as /Custom/CLAAPS_User_Role_AutoProvisioning_Report.xdo) — it is auto-discovered. Phone, password expiration, locked and assignable show — when Oracle does not expose them via REST/BIP.
+                    </p>
                   </div>
                 </div>
               )}
@@ -839,7 +924,7 @@ export default function InvestigationWorkspace({
                 )}
               </div>
 
-              {!isRole && data?.assignedRoles && data.assignedRoles.length > 0 && (
+              {isRole && data?.assignedRoles && data.assignedRoles.length > 0 && (
                 <div style={{ marginTop: '1.5rem' }}>
                   <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
                     Assigned Roles Preview ({data.assignedRoles.length})

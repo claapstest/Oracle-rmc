@@ -390,7 +390,6 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                 <th>Active</th>
                 <th>Role Name</th>
                 <th>Role Code</th>
-                <th>Auto-Provisioned</th>
                 <th>Person ID</th>
                 <th>Person Number</th>
                 <th>Department</th>
@@ -405,7 +404,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={18} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={17} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No security users match the filter criteria.
                   </td>
                 </tr>
@@ -430,8 +429,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
                     </td>
                     <td>{primary?.roleName || '—'}</td>
                     <td><code style={{ fontSize: '0.7rem' }}>{primary?.roleCode || '—'}</code></td>
-                    <td>{primary?.autoProvisioned ?? '—'}</td>
-                    <td>{user.personId || '—'}</td>
+                  <td>{user.personId || '—'}</td>
                     <td>{user.personNumber || '—'}</td>
                     <td>{user.department || '—'}</td>
                     <td>{user.job || '—'}</td>

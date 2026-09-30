@@ -125,6 +125,15 @@ export class UserAccessReportService {
   }
 
   // Helper to extract primary email from SCIM user emails array
+  // Live SCIM userCategory lives in the FA extension block, not top-level (verified live).
+  private getUserCategory(user: any): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const faExt = (user as any)['urn:scim:schemas:extension:fa:2.0:faUser'];
+    if (faExt && typeof faExt === 'object' && (faExt as any).userCategory) return String((faExt as any).userCategory);
+    if ((user as any).userCategory) return String((user as any).userCategory);
+    if ((user as any).userType) return String((user as any).userType);
+    return null;
+  }
   private getPrimaryEmail(user: any): string | null {
     if (!user.emails || !Array.isArray(user.emails) || user.emails.length === 0) return null;
     const primary = user.emails.find((e: any) => e.primary === true);
@@ -288,7 +297,7 @@ export class UserAccessReportService {
         usersWithoutRoles++;
         report.push({
           username,
-          userCategory: user.userCategory || null,
+          userCategory: this.getUserCategory(user),
           firstName: user.name?.givenName || null,
           lastName: user.name?.familyName || null,
           displayName: user.displayName || null,
@@ -319,7 +328,7 @@ export class UserAccessReportService {
         const bip = bipMap.get(bipKey);
         report.push({
           username,
-          userCategory: user.userCategory || null,
+          userCategory: this.getUserCategory(user),
           firstName: user.name?.givenName || null,
           lastName: user.name?.familyName || null,
           displayName: user.displayName || null,
@@ -395,3 +404,4 @@ export class UserAccessReportService {
 }
 
 export const userAccessReportService = new UserAccessReportService();
+

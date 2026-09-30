@@ -1,9 +1,9 @@
 {
   "metadata": {
     "instance": "fa-euth-dev42-saasfademo1",
-    "lastUpdated": "2026-09-29T17:36:21.652Z",
+    "lastUpdated": "2026-09-30T11:17:49.311Z",
     "source": "Oracle Fusion",
-    "roleCount": 6801,
+    "roleCount": 6805,
     "privilegeCount": 149,
     "mappingCount": 182,
     "status": "READY"
@@ -40894,6 +40894,30 @@
       "name": "XX HR Rep Custom Criteria",
       "code": "XX_HR_REP_CUSTOM_CRITERIA_DATA",
       "type": "DATA",
+      "privileges": []
+    },
+    "human resourse manager NSV": {
+      "name": "human resourse manager NSV",
+      "code": "HUMAN_RESOURSE_MANAGER_NSV_DATA",
+      "type": "DATA",
+      "privileges": []
+    },
+    "HUMAN RESOURCE MANAGER": {
+      "name": "HUMAN RESOURCE MANAGER",
+      "code": "HUMAN_RESOUCE_MANAGER",
+      "type": "JOB",
+      "privileges": []
+    },
+    "Human Resource SpecialistCustom_Role": {
+      "name": "Human Resource SpecialistCustom_Role",
+      "code": "PER_HUMAN_RESOURCE_SPECIALIST_JOBCustom_Role",
+      "type": "JOB",
+      "privileges": []
+    },
+    "TATAHuman Resource ManagerCustom_Role _NSV": {
+      "name": "TATAHuman Resource ManagerCustom_Role _NSV",
+      "code": "PER_HUMAN_RESOURCE_MANAGER_JOBCustom_Role_NSV",
+      "type": "JOB",
       "privileges": []
     },
     "Purchasing Duty": {

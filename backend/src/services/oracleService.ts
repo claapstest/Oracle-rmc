@@ -66,8 +66,7 @@ function normalizeAssignedRoles(rolesList: any[] | undefined, isDemo: boolean): 
   return normalized;
 }
 
-export function normalizeCategoryFilter(cat?: string): string | null {
-  if (!cat || cat.toUpperCase() === 'ALL') return null;
+export function normalizeCategoryFilter(cat?: string): string | null {  if (!cat || cat.toUpperCase() === 'ALL') return null;
   const upper = cat.trim().toUpperCase();
   if (upper.includes('UNASSIGNED') || upper.includes('WITHOUT_USERS') || upper.includes('NO_USERS')) return 'UNASSIGNED';
   if (upper.includes('DUTY')) return 'Duty';
@@ -77,6 +76,22 @@ export function normalizeCategoryFilter(cat?: string): string | null {
   if (upper.includes('JOB')) return 'Job';
   if (upper.includes('OTHER')) return 'Other';
   return cat;
+}
+
+/**
+ * Live SCIM userCategory lives in the FA extension block, not top-level:
+ * resource['urn:scim:schemas:extension:fa:2.0:faUser'].userCategory
+ * Verified against live instance (e.g. "DEMOSERVICES"). No fallback data.
+ */
+export function extractUserCategory(res: any): string | null {
+  if (!res || typeof res !== 'object') return null;
+  const faExt = res['urn:scim:schemas:extension:fa:2.0:faUser'];
+  if (faExt && typeof faExt === 'object' && faExt.userCategory) return String(faExt.userCategory);
+  const idcsExt = res['urn:ietf:params:scim:schemas:oracle:idcs:extension:user:User'];
+  if (idcsExt && typeof idcsExt === 'object' && (idcsExt as any).userCategory) return String((idcsExt as any).userCategory);
+  if (res.userCategory) return String(res.userCategory);
+  if (res.userType) return String(res.userType);
+  return null;
 }
 
 class OracleService {
@@ -679,11 +694,12 @@ class OracleService {
     const baseMapped = resources.map((res: any) => ({
       id: res.id,
       userName: res.userName || '',
-      userCategory: res.userCategory || null,
+      userCategory: extractUserCategory(res),
       displayName: res.name?.formatted || res.displayName || `${res.name?.givenName || ''} ${res.name?.familyName || ''}`.trim(),
       firstName: res.name?.givenName || '',
       lastName: res.name?.familyName || '',
       email: res.emails?.find?.((e: any) => e.primary)?.value || res.emails?.[0]?.value || '',
+      phone: res.phoneNumbers?.find?.((p: any) => p.primary)?.value || res.phoneNumbers?.[0]?.value || null,
       active: typeof res.active === 'boolean' ? res.active : true,
       assignedRoles: normalizeAssignedRoles(res.roles || res.assignedRoles, false)
     }));
@@ -931,11 +947,12 @@ class OracleService {
         return {
           id: matchedUserResource.id,
           userName: username,
-          userCategory: matchedUserResource.userCategory || null,
+          userCategory: extractUserCategory(matchedUserResource),
           displayName: matchedUserResource.name?.formatted || matchedUserResource.displayName || `${matchedUserResource.name?.givenName || ''} ${matchedUserResource.name?.familyName || ''}`.trim(),
           firstName: matchedUserResource.name?.givenName || '',
           lastName: matchedUserResource.name?.familyName || '',
           email: matchedUserResource.emails?.find?.((e: any) => e.primary)?.value || matchedUserResource.emails?.[0]?.value || '',
+          phone: matchedUserResource.phoneNumbers?.find?.((p: any) => p.primary)?.value || matchedUserResource.phoneNumbers?.[0]?.value || null,
           active: typeof matchedUserResource.active === 'boolean' ? matchedUserResource.active : true,
           assignedRoles: enrichedRoles,
           personId: worker?.PersonId ? String(worker.PersonId) : null,
@@ -952,11 +969,12 @@ class OracleService {
       return {
         id: matchedUserResource.id,
         userName: matchedUserResource.userName || '',
-        userCategory: matchedUserResource.userCategory || null,
+        userCategory: extractUserCategory(matchedUserResource),
         displayName: matchedUserResource.name?.formatted || matchedUserResource.displayName || `${matchedUserResource.name?.givenName || ''} ${matchedUserResource.name?.familyName || ''}`.trim(),
         firstName: matchedUserResource.name?.givenName || '',
         lastName: matchedUserResource.name?.familyName || '',
         email: matchedUserResource.emails?.[0]?.value || '',
+        phone: matchedUserResource.phoneNumbers?.[0]?.value || null,
         active: typeof matchedUserResource.active === 'boolean' ? matchedUserResource.active : true,
         assignedRoles: baseRoles
       };
@@ -2667,4 +2685,5 @@ class OracleService {
 }
 
 export const oracleService = new OracleService();
+
 

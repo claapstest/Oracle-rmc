@@ -124,12 +124,21 @@ export class BipClient {
   private axiosInstance: AxiosInstance;
   public readonly reportPath = '/Custom/Claaps Access Certification.xdo';
   public readonly reviewReportPath = '/Custom/Claaps Access Certification review.xdo';
+  /**
+   * Priority candidates for the runnable Auto-Provisioning report built on the
+   * CLAAPS_User_Role_AutoProvisioning data model. NOTE: a BIP data model (.xdm)
+   * cannot be executed via runReport — only a Report (.xdo) can. If none of these
+   * exists, the catalog is scanned for any matching report (see findAutoProvReportPath).
+   */
   public readonly userRoleAutoProvReportPaths = [
+    '/Custom/CLAAPS_User_Role_AutoProvisioning_Report.xdo',
+    '/Custom/CLAAPS_User_Role_AutoProvisioning Report.xdo',
     '/Custom/CLAAPS_User_Role_AutoProvisioning.xdo',
     '/Custom/CLAAPS_User_Role_AutoProvisioning',
-    'CLAAPS_User_Role_AutoProvisioning.xdo',
-    'CLAAPS_User_Role_AutoProvisioning',
   ];
+  private autoProvResolvedPath: string | null = null;
+  private autoProvResolvedAt = 0;
+  private autoProvGuidanceLogged = false;
   private readonly defaultTimeoutMs = 60000; // 60 seconds for BI Publisher report generation
 
   constructor() {
@@ -687,35 +696,133 @@ export class BipClient {
   }
 
   /**
-   * Runs the CLAAPS_User_Role_AutoProvisioning BIP report (live instance only).
-   * Returns USERNAME, ROLE_NAME, ROLE_CODE, AUTO_PROVISIONED rows.
-   * On any failure returns empty array (never mock) so callers leave autoProvisioned=null.
+   * Runs the Auto-Provisioning BIP report (live instance only).
+   * Flow per extraction guide: SCIM is master; BIP supplies USERNAME, ROLE_NAME,
+   * ROLE_CODE, AUTO_PROVISIONED merged on USERNAME + ROLE_CODE.
+   * Returns [] (never mock) when no runnable report exists yet — callers leave
+   * autoProvisioned=null so the UI shows — instead of invented data.
    */
   public async runUserRoleAutoProvisioningReport(): Promise<UserRoleAutoProvisionRow[]> {
     if (!this.isConfigured()) {
       console.warn('[BIP Client] Auto-Provisioning report skipped: Oracle instance link not configured.');
       return [];
     }
+    const reportPath = await this.findAutoProvReportPath();
+    if (!reportPath) {
+      this.logAutoProvSetupGuidance();
+      return [];
+    }
     const { baseUrl } = this.getCredentials();
     const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
-    for (const reportPath of this.userRoleAutoProvReportPaths) {
+    try {
+      console.log(`[BIP Client] Executing Auto-Provisioning BIP report: "${reportPath}"`);
+      const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
+      const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
+        headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
+        responseType: 'text',
+      });
+      const rows = await this.parseUserRoleAutoProvSoapResponse(response.data);
+      if (rows.length > 0) {
+        console.log(`[BIP Client] Auto-Provisioning report "${reportPath}" returned ${rows.length} rows.`);
+        return rows;
+      }
+      console.warn(`[BIP Client] Auto-Provisioning report "${reportPath}" returned 0 data rows.`);
+      return [];
+    } catch (err: any) {
+      console.warn(`[BIP Client] Auto-Provisioning report "${reportPath}" failed:`, err.message);
+      // Invalidate cached path so next call re-discovers (report may have been moved/deleted)
+      this.autoProvResolvedPath = null;
+      this.autoProvResolvedAt = 0;
+      return [];
+    }
+  }
+
+  /**
+   * Resolves the runnable Auto-Provisioning report path: priority candidates first
+   * (via isReportExist), then a /Custom catalog scan for any report whose name
+   * suggests the auto-provisioning data model. Cached 1h (positive) / 10min (negative).
+   */
+  public async findAutoProvReportPath(): Promise<string | null> {
+    const now = Date.now();
+    if (this.autoProvResolvedPath && now - this.autoProvResolvedAt < 60 * 60 * 1000) {
+      return this.autoProvResolvedPath;
+    }
+    if (this.autoProvResolvedPath === null && (this as any)._autoProvMissAt && now - (this as any)._autoProvMissAt < 10 * 60 * 1000) {
+      return null;
+    }
+    for (const candidate of this.userRoleAutoProvReportPaths) {
       try {
-        console.log(`[BIP Client] Executing Auto-Provisioning BIP report: "${reportPath}"`);
-        const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
-        const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
-          headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
-          responseType: 'text',
-        });
-        const rows = await this.parseUserRoleAutoProvSoapResponse(response.data);
-        if (rows.length > 0) {
-          console.log(`[BIP Client] Auto-Provisioning report "${reportPath}" returned ${rows.length} rows.`);
-          return rows;
+        if (await this.isReportExist(candidate)) {
+          this.autoProvResolvedPath = candidate;
+          this.autoProvResolvedAt = now;
+          console.log(`[BIP Client] Resolved Auto-Provisioning report: "${candidate}"`);
+          return candidate;
         }
-      } catch (err: any) {
-        console.warn(`[BIP Client] Auto-Provisioning report "${reportPath}" failed:`, err.message);
+      } catch { /* try next */ }
+    }
+    try {
+      const scanned = await this.scanCustomReportsForAutoProv();
+      if (scanned) {
+        this.autoProvResolvedPath = scanned;
+        this.autoProvResolvedAt = now;
+        console.log(`[BIP Client] Discovered Auto-Provisioning report via catalog scan: "${scanned}"`);
+        return scanned;
+      }
+    } catch (err: any) {
+      console.warn('[BIP Client] Catalog scan for Auto-Provisioning report failed:', err.message);
+    }
+    (this as any)._autoProvMissAt = now;
+    return null;
+  }
+
+  private async soapCall(action: string, bodyInner: string): Promise<string> {
+    const { baseUrl } = this.getCredentials();
+    const { username, password } = this.getCredentials();
+    const { created, expires } = this.generateWsSecurityTimestamp(300);
+    const nonce = crypto.randomBytes(16).toString('base64');
+    const escapeXml = (unsafe: string): string => (unsafe || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    const envelope = `<?xml version="1.0" encoding="UTF-8"?>\n<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:pub="http://xmlns.oracle.com/oxp/service/PublicReportService">\n  <soap:Header>\n    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">\n      <wsu:Timestamp><wsu:Created>${created}</wsu:Created><wsu:Expires>${expires}</wsu:Expires></wsu:Timestamp>\n      <wsse:UsernameToken><wsse:Username>${escapeXml(username)}</wsse:Username><wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${escapeXml(password)}</wsse:Password><wsse:Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">${nonce}</wsse:Nonce><wsu:Created>${created}</wsu:Created></wsse:UsernameToken>\n    </wsse:Security>\n  </soap:Header>\n  <soap:Body>\n${bodyInner}\n  </soap:Body>\n</soap:Envelope>`;
+    const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
+    const response = await this.axiosInstance.post(endpoint, envelope, {
+      headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: action },
+      responseType: 'text',
+    });
+    return response.data;
+  }
+
+  private async isReportExist(reportPath: string): Promise<boolean> {
+    const xml = await this.soapCall('isReportExist', `    <pub:isReportExist>\n      <pub:reportAbsolutePath>${reportPath.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pub:reportAbsolutePath>\n    </pub:isReportExist>`);
+    const parsed: any = await xml2js.parseStringPromise(xml, { explicitArray: false, ignoreAttrs: true, tagNameProcessors: [xml2js.processors.stripPrefix] });
+    const val = this.findFieldRecursively(parsed, 'isReportExistReturn');
+    return String(val).toLowerCase() === 'true';
+  }
+
+  private async scanCustomReportsForAutoProv(): Promise<string | null> {
+    const xml = await this.soapCall('getFolderContents', '    <pub:getFolderContents>\n      <pub:folderAbsolutePath>/Custom</pub:folderAbsolutePath>\n    </pub:getFolderContents>');
+    const parsed: any = await xml2js.parseStringPromise(xml, { explicitArray: false, ignoreAttrs: true, tagNameProcessors: [xml2js.processors.stripPrefix] });
+    const contents = this.findFieldRecursively(parsed, 'catalogContents');
+    const items = contents?.item ? (Array.isArray(contents.item) ? contents.item : [contents.item]) : [];
+    for (const item of items) {
+      const type = String(item?.type || '');
+      const absPath = String(item?.absolutePath || '');
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(auto|provision|claaps.*role|role.*auto)/i.test(absPath)) {
+        if (await this.isReportExist(absPath)) return absPath;
       }
     }
-    return [];
+    return null;
+  }
+
+  private logAutoProvSetupGuidance(): void {
+    if (this.autoProvGuidanceLogged) return;
+    this.autoProvGuidanceLogged = true;
+    console.warn(
+      '[BIP Client] Auto-Provisioned values unavailable: no runnable BIP Report found. ' +
+      'The data model /Custom/CLAAPS_User_Role_AutoProvisioning.xdm exists but a data model cannot be executed via runReport — ' +
+      'create a Report from it in BI Publisher (New > Report > Use Data Model > add USERNAME/ROLE_NAME/ROLE_CODE/AUTO_PROVISIONED table > ' +
+      'Save as /Custom/CLAAPS_User_Role_AutoProvisioning_Report.xdo). The app auto-discovers it on the next sync; no code change needed.'
+    );
   }
 
   public async parseUserRoleAutoProvSoapResponse(xmlContent: string): Promise<UserRoleAutoProvisionRow[]> {
@@ -758,8 +865,13 @@ export class BipClient {
       }
       const headers = (rawRows[headerIdx] as any[]).map(h => String(h || '').trim().toUpperCase());
       const idxUser = headers.findIndex(h => h.includes('USERNAME'));
-      const idxRoleName = headers.findIndex(h => h === 'ROLE_NAME' || (h.includes('ROLE') && h.includes('NAME') && !h.includes('COMMON') && !h.includes('CODE')));
+      // Merge key per guide is USERNAME + ROLE_CODE — reject outputs lacking them (wrong report)
       const idxRoleCode = headers.findIndex(h => h.includes('ROLE_CODE') || h.includes('ROLE_COMMON'));
+      if (idxUser < 0 || idxRoleCode < 0) {
+        console.warn('[BIP Client] Auto-Provisioning output missing USERNAME/ROLE_CODE columns; ignoring this report.');
+        return [];
+      }
+      const idxRoleName = headers.findIndex(h => h === 'ROLE_NAME' || (h.includes('ROLE') && h.includes('NAME') && !h.includes('COMMON') && !h.includes('CODE')));
       const idxAuto = headers.findIndex(h => h.includes('AUTO'));
       const out: UserRoleAutoProvisionRow[] = [];
       for (let r = headerIdx + 1; r < rawRows.length; r++) {
