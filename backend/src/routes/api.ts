@@ -202,6 +202,54 @@ export function requireAuditManagerDashboard(req: Request, res: Response, next: 
   });
 }
 
+// Middleware to enforce Audit Supervisor Dashboard authorization (VY-STRY-015: AC1, AC2, AC5, AC6)
+export function requireAuditSupervisorDashboard(req: Request, res: Response, next: () => void) {
+  requireAuth(req, res, () => {
+    const userRole = (res.locals.role || '').toUpperCase();
+    const userPermissions: string[] = res.locals.permissions || [];
+    const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
+
+    // Site Admin, Audit Supervisor, Audit Manager, Security Analyst, Compliance Officer
+    if (isAdmin || userRole === 'AUDIT_SUPERVISOR' || userRole === 'AUDIT_MANAGER' || userRole === 'SECURITY_ANALYST' || userRole === 'COMPLIANCE_OFFICER') {
+      return next();
+    }
+
+    // Role-based exclusion: AUDIT_USER is strictly limited to reports and cannot access Audit Supervisor dashboard (AC2, AC6)
+    if (userRole === 'AUDIT_USER') {
+      return res.status(403).json({
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Access denied. Audit User role does not have privilege to access Audit Supervisor dashboard.'
+      });
+    }
+
+    // Check specific required privileges
+    const allowedPrivileges = [
+      'AUDIT_READ',
+      'AUDIT_TRAIL',
+      'SECURITY_READ',
+      'RISK_READ',
+      'RISK_MANAGEMENT',
+      'ROLES_CATALOG',
+      'USERS_LIST'
+    ];
+
+    const hasPrivilege = allowedPrivileges.some(p =>
+      userPermissions.map(x => x.toUpperCase()).includes(p.toUpperCase())
+    );
+
+    if (hasPrivilege) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. Audit Supervisor dashboard privileges required.'
+    });
+  });
+}
+
 // --- Authentication Endpoints ---
 
 // POST /auth/login - VEYRA User Sign In (AC1-AC8)
@@ -760,6 +808,50 @@ apiRouter.get('/dashboard/history', requireAuditManagerDashboard, async (req: Re
     });
   }
 });
+
+// =========================================================================
+// VY-STRY-015: Audit Supervisor Dashboard APIs (AC1 — AC8)
+// =========================================================================
+
+async function handleAuditSupervisorDashboard(req: Request, res: Response) {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await auditDashboardService.getSupervisorDashboardData(userContext, forceRefresh);
+
+    // AC8: Dashboard access should be auditable
+    logAudit(res.locals.email || 'UNKNOWN', 'DASHBOARD_ACCESS', `Accessed Audit Supervisor dashboard (role: ${res.locals.role || 'Unknown'})`);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[Audit Supervisor Dashboard Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: (err as Error).message || 'Failed to retrieve Audit Supervisor dashboard metrics.'
+    });
+  }
+}
+
+// GET /api/dashboard/audit-supervisor - Primary Audit Supervisor Dashboard Endpoint (AC1-AC8)
+apiRouter.get('/dashboard/audit-supervisor', requireAuditSupervisorDashboard, handleAuditSupervisorDashboard);
+
+// GET /api/audit-supervisor/dashboard - Dedicated Audit Supervisor Alias Endpoint
+apiRouter.get('/audit-supervisor/dashboard', requireAuditSupervisorDashboard, handleAuditSupervisorDashboard);
+
+// GET /api/supervisor/dashboard - Supervisor Alias Endpoint
+apiRouter.get('/supervisor/dashboard', requireAuditSupervisorDashboard, handleAuditSupervisorDashboard);
+
+// GET /api/supervisor/metrics - Supervisor Metrics Summary Endpoint (AC4)
+apiRouter.get('/supervisor/metrics', requireAuditSupervisorDashboard, handleAuditSupervisorDashboard);
 
 // 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
 apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {

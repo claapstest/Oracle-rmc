@@ -97,6 +97,17 @@ export interface UserScopeContext {
   isAdmin?: boolean;
 }
 
+export interface SupervisorFeatures {
+  askVeyra: boolean;
+  userManagement: boolean;
+  rolesCatalog: boolean;
+  auditTrail: boolean;
+  riskManagement: boolean;
+  reports: boolean;
+  oracleIntegration: boolean;
+  apiConsole: boolean;
+}
+
 export interface UserScopeInfo {
   userId: string;
   email: string;
@@ -105,6 +116,8 @@ export interface UserScopeInfo {
   scopeLevel: string;
   authorizedModules: string[];
   hasFullAccess: boolean;
+  hasAskVeyraAccess?: boolean;
+  features?: SupervisorFeatures;
 }
 
 export interface ScopedDashboardResponse {
@@ -499,11 +512,13 @@ class AuditDashboardService {
       ? 'ENTERPRISE_ADMINISTRATOR'
       : userRole === 'AUDIT_MANAGER'
         ? 'EXECUTIVE_AUDIT_MANAGER'
-        : userRole === 'SECURITY_ANALYST'
-          ? 'SECURITY_OPERATIONS'
-          : userRole === 'COMPLIANCE_OFFICER'
-            ? 'COMPLIANCE_GOVERNANCE'
-            : 'AUDIT_STAFF';
+        : userRole === 'AUDIT_SUPERVISOR'
+          ? 'AUDIT_SUPERVISOR'
+          : userRole === 'SECURITY_ANALYST'
+            ? 'SECURITY_OPERATIONS'
+            : userRole === 'COMPLIANCE_OFFICER'
+              ? 'COMPLIANCE_GOVERNANCE'
+              : 'AUDIT_STAFF';
 
     const userScope: UserScopeInfo = {
       userId: user.userId || 'usr_anonymous',
@@ -512,7 +527,18 @@ class AuditDashboardService {
       role: user.role || 'AUDIT_MANAGER',
       scopeLevel,
       authorizedModules,
-      hasFullAccess: isAdmin || userRole === 'AUDIT_MANAGER'
+      hasFullAccess: isAdmin || userRole === 'AUDIT_MANAGER',
+      hasAskVeyraAccess: isAdmin || userRole === 'AUDIT_MANAGER' || permissions.includes('ASK_VEYRA'),
+      features: {
+        askVeyra: isAdmin || userRole === 'AUDIT_MANAGER' || permissions.includes('ASK_VEYRA'),
+        userManagement: isAdmin,
+        rolesCatalog: isAdmin || permissions.includes('ROLES_CATALOG') || permissions.includes('SECURITY_READ'),
+        auditTrail: isAdmin || permissions.includes('AUDIT_TRAIL') || permissions.includes('AUDIT_READ'),
+        riskManagement: isAdmin || permissions.includes('RISK_MANAGEMENT') || permissions.includes('RISK_READ'),
+        reports: isAdmin || permissions.includes('REPORTS') || permissions.includes('REPORTS_READ'),
+        oracleIntegration: isAdmin,
+        apiConsole: isAdmin
+      }
     };
 
     // AC4: Scoped Data Filtering based on user privileges
@@ -541,6 +567,49 @@ class AuditDashboardService {
       pendingReviews: scopedMetrics.pendingReviews,
       data: {
         ...scopedMetrics,
+        userScope
+      },
+      userScope
+    };
+  }
+
+  /**
+   * Generates scoped response specifically for Audit Supervisor dashboard (VY-STRY-015).
+   * Strictly enforces AC3: API must not return Ask Veyra functionality or data.
+   */
+  public async getSupervisorDashboardData(user: UserScopeContext, forceRefresh = false): Promise<ScopedDashboardResponse> {
+    const baseResponse = await this.getDashboardDataForUser(user, forceRefresh);
+    const userRole = (user.role || '').toUpperCase();
+    const isSupervisor = userRole === 'AUDIT_SUPERVISOR';
+
+    // AC3: Strictly strip Ask Veyra / AI assistant from authorized modules
+    const filteredModules = baseResponse.userScope.authorizedModules.filter(
+      m => m !== 'AI_ASSISTANT' && m !== 'ASK_VEYRA'
+    );
+
+    const supervisorFeatures: SupervisorFeatures = {
+      askVeyra: false, // AC3: Explicitly disabled for supervisor
+      userManagement: false, // Supervisor cannot manage/delete users
+      rolesCatalog: true,
+      auditTrail: true,
+      riskManagement: true,
+      reports: true,
+      oracleIntegration: false,
+      apiConsole: false
+    };
+
+    const userScope: UserScopeInfo = {
+      ...baseResponse.userScope,
+      scopeLevel: isSupervisor ? 'AUDIT_SUPERVISOR' : baseResponse.userScope.scopeLevel,
+      authorizedModules: filteredModules,
+      hasAskVeyraAccess: false,
+      features: supervisorFeatures
+    };
+
+    return {
+      ...baseResponse,
+      data: {
+        ...baseResponse.data,
         userScope
       },
       userScope
