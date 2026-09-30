@@ -1371,7 +1371,10 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                           </button>
                           {certId && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              <span
+                              <button
+                                type="button"
+                                onClick={() => openCertificationDrillDown(item)}
+                                title="Open certification drill-down"
                                 style={{
                                   display: 'inline-block',
                                   padding: '0.1rem 0.45rem',
@@ -1380,11 +1383,14 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
                                   backgroundColor: '#EFF6FF',
                                   color: '#2563EB',
                                   borderRadius: '4px',
-                                  border: '1px solid #DBEAFE'
+                                  border: '1px solid #DBEAFE',
+                                  cursor: 'pointer'
                                 }}
+                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
                               >
                                 ID: {certId}
-                              </span>
+                              </button>
                             </div>
                           )}
                         </div>
