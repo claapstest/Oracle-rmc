@@ -1200,6 +1200,197 @@ apiRouter.get('/dashboard/reports-only/db/reports', requireReportsDashboard, asy
   }
 });
 
+// =========================================================================
+// VY-STRY-21: Site Admin Dashboard and Administration APIs (AC1 — AC7)
+// =========================================================================
+
+async function handleAdminDashboard(req: Request, res: Response) {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await auditDashboardService.getAdminDashboardData(userContext, forceRefresh);
+
+    // AC6: All Site Admin administrative operations must be recorded in the VEYRA audit trail
+    logAudit(res.locals.email || 'admin@admin.com', 'DASHBOARD_ACCESS', `Accessed Site Admin dashboard (role: ${res.locals.role || 'SITE_ADMIN'})`);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[Site Admin Dashboard Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: (err as Error).message || 'Failed to retrieve Site Admin dashboard data.'
+    });
+  }
+}
+
+// GET /api/dashboard/admin - Primary Site Admin Dashboard Endpoint (AC1-AC7)
+apiRouter.get('/dashboard/admin', requireAdmin, handleAdminDashboard);
+
+// GET /api/dashboard/site-admin - Site Admin Dashboard Alias
+apiRouter.get('/dashboard/site-admin', requireAdmin, handleAdminDashboard);
+
+// GET /api/admin/dashboard - Dedicated Admin Dashboard Endpoint
+apiRouter.get('/admin/dashboard', requireAdmin, handleAdminDashboard);
+
+// GET /api/admin/summary - Site Admin Summary Endpoint
+apiRouter.get('/admin/summary', requireAdmin, handleAdminDashboard);
+
+// GET /api/admin/oracle/integration - Status & configuration (AC3, AC5: Secrets masked)
+apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'admin@admin.com';
+  logAudit(adminUser, 'READ_SETTINGS', 'Retrieved Oracle integration metadata');
+  res.json({
+    success: true,
+    mode: config.environmentMode,
+    baseUrl: config.oracle.baseUrl,
+    authType: config.oracle.authType,
+    username: config.oracle.username,
+    hasPassword: !!config.oracle.password,
+    hasToken: !!config.oracle.token,
+    hasGeminiKey: !!config.groqApiKey,
+    groqModel: config.groqModel,
+    status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
+  });
+});
+
+// POST /api/admin/oracle/integration - Update Oracle configuration (AC3, AC6)
+apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'admin@admin.com';
+  const { baseUrl, username, password, token, authType, groqModel } = req.body;
+
+  try {
+    const oldUrl = config.oracle.baseUrl;
+    const oldAuth = config.oracle.authType;
+
+    if (baseUrl !== undefined) {
+      config.oracle.baseUrl = validateAndNormalizeUrl(baseUrl);
+    }
+    if (username !== undefined) config.oracle.username = username;
+    if (password !== undefined && password !== '') {
+      config.oracle.password = password;
+    }
+    if (token !== undefined && token !== '') {
+      config.oracle.token = token;
+    }
+    if (authType !== undefined) {
+      config.oracle.authType = authType.toUpperCase() as 'BASIC' | 'BEARER';
+    }
+    if (groqModel !== undefined) config.groqModel = groqModel;
+
+    savePersistedConfig();
+    oracleService.recreateClient();
+
+    logAudit(adminUser, 'CONFIGURATION_SAVED', `Updated Oracle integration configuration. URL: ${oldUrl} -> ${config.oracle.baseUrl}, Auth: ${oldAuth} -> ${config.oracle.authType}`);
+
+    res.json({
+      success: true,
+      message: `Oracle integration configuration updated. Running in ${config.environmentMode} mode.`,
+      settings: {
+        mode: config.environmentMode,
+        baseUrl: config.oracle.baseUrl,
+        authType: config.oracle.authType,
+        username: config.oracle.username,
+        hasPassword: !!config.oracle.password,
+        hasToken: !!config.oracle.token,
+        hasGeminiKey: !!config.groqApiKey,
+        groqModel: config.groqModel,
+        status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
+      }
+    });
+  } catch (err) {
+    logAudit(adminUser, 'CONFIGURATION_SAVE_FAILED', `Error: ${(err as Error).message}`);
+    res.status(400).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// POST /api/admin/oracle/test-connection - Health probe (AC3, AC6)
+apiRouter.post('/admin/oracle/test-connection', requireAdmin, async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'admin@admin.com';
+  try {
+    const { baseUrl, authType, username, password, token } = req.body;
+    if (baseUrl !== undefined) {
+      const normalizedBaseUrl = validateAndNormalizeUrl(baseUrl);
+      let testPassword = password;
+      let testToken = token;
+      if (authType === 'BASIC' && !testPassword && username === config.oracle.username) {
+        testPassword = config.oracle.password;
+      }
+      if (authType === 'BEARER' && !testToken) {
+        testToken = config.oracle.token;
+      }
+      logAudit(adminUser, 'TEST_CONNECTION_ATTEMPTED', `Proposed Base URL: ${normalizedBaseUrl}, Auth Type: ${authType}`);
+      const result = await oracleService.testConnection({
+        baseUrl: normalizedBaseUrl,
+        authType: authType as 'BASIC' | 'BEARER',
+        username,
+        password: testPassword,
+        token: testToken
+      });
+      logAudit(adminUser, 'TEST_CONNECTION_RESULT', `Success: ${result.success}, Status: ${result.status}`);
+      return res.json(result);
+    }
+    logAudit(adminUser, 'TEST_CONNECTION_ATTEMPTED', 'Current configuration test');
+    const result = await oracleService.testConnection();
+    logAudit(adminUser, 'TEST_CONNECTION_RESULT', `Success: ${result.success}, Status: ${result.status}`);
+    res.json(result);
+  } catch (err) {
+    logAudit(adminUser, 'TEST_CONNECTION_FAILED', `Error: ${(err as Error).message}`);
+    res.status(400).json({ success: false, status: 'ERROR', message: (err as Error).message });
+  }
+});
+
+// POST /api/admin/oracle/sync - Refresh live data (AC3, AC6)
+apiRouter.post('/admin/oracle/sync', requireAdmin, async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'admin@admin.com';
+  try {
+    oracleService.clearInstanceCache();
+    oracleService.recreateClient();
+    logAudit(adminUser, 'LIVE_DATA_REFRESHED', `Cleared old cache and initiated live dynamic sync for ${config.oracle.baseUrl}`);
+    res.json({
+      success: true,
+      message: 'Old cache invalidated. Live dynamic data fetch initiated from Oracle instance.',
+      mode: config.environmentMode,
+      baseUrl: config.oracle.baseUrl
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// GET /api/admin/users/summary - Admin users summary (AC2, AC6)
+apiRouter.get('/admin/users/summary', requireAdmin, (_req: Request, res: Response) => {
+  try {
+    const adminUsers = authService.getAdminUsersList();
+    const total = adminUsers.length;
+    const active = adminUsers.filter(u => u.status === 'ACTIVE').length;
+    const suspended = adminUsers.filter(u => u.status === 'SUSPENDED').length;
+    const disabled = adminUsers.filter(u => u.status === 'DISABLED').length;
+    const siteAdmins = adminUsers.filter(u => u.isAdmin || u.role === 'SITE_ADMIN').length;
+
+    logAudit(res.locals.email || 'admin@admin.com', 'READ_USERS_SUMMARY', 'Retrieved administrative user summary');
+    res.json({
+      success: true,
+      total,
+      active,
+      suspended,
+      disabled,
+      siteAdmins,
+      users: adminUsers
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 // 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
 apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {
   try {
