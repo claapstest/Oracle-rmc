@@ -11,6 +11,7 @@ import { auditProductCatalogService } from '../services/auditProductCatalogServi
 import { commandCenterService } from '../services/commandCenterService.js';
 import { userAccessReportService } from '../services/userAccessReportService.js';
 import { auditDashboardService } from '../services/auditDashboardService.js';
+import { supervisorDashboardDbService } from '../services/supervisorDashboardDbService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -784,7 +785,7 @@ apiRouter.get('/overview/stats', requireAuditManagerDashboard, async (req: Reque
 });
 
 // GET /api/dashboard/history - Retrieve historical metric snapshots (VY-STRY-013)
-apiRouter.get('/dashboard/history', requireAuditManagerDashboard, async (req: Request, res: Response) => {
+apiRouter.get('/dashboard/history', requireAuditSupervisorDashboard, async (req: Request, res: Response) => {
   try {
     const metricKey = (req.query.metricKey as string) || 'ACTIVE_RISKS';
     const scopeType = (req.query.scopeType as string) || 'GLOBAL';
@@ -852,6 +853,174 @@ apiRouter.get('/supervisor/dashboard', requireAuditSupervisorDashboard, handleAu
 
 // GET /api/supervisor/metrics - Supervisor Metrics Summary Endpoint (AC4)
 apiRouter.get('/supervisor/metrics', requireAuditSupervisorDashboard, handleAuditSupervisorDashboard);
+
+// =========================================================================
+// DB Story: Support Audit Supervisor Dashboard Data and Authorization Endpoints
+// =========================================================================
+
+// GET /api/dashboard/audit-supervisor/db/summary - Database-backed supervisor summary
+apiRouter.get('/dashboard/audit-supervisor/db/summary', requireAuditSupervisorDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const isMock = req.query.isMock === 'true';
+    const applicationScope = req.query.applicationScope as string | undefined;
+    const summary = await supervisorDashboardDbService.getSupervisorDashboardSummary(userContext, {
+      isMock,
+      applicationScope
+    });
+
+    logAudit(res.locals.email || 'UNKNOWN', 'DASHBOARD_DB_QUERY', `Audit Supervisor queried DB summary for scope: ${summary.applicationScope}`);
+    return res.status(200).json({ success: true, ...summary });
+  } catch (err) {
+    console.error('[Audit Supervisor DB Summary Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query Audit Supervisor dashboard data.'
+    });
+  }
+});
+
+// GET /api/dashboard/audit-supervisor/db/risk - Database-backed risk metrics
+apiRouter.get('/dashboard/audit-supervisor/db/risk', requireAuditSupervisorDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const isMock = req.query.isMock === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const applicationScope = req.query.applicationScope as string | undefined;
+
+    const risks = await supervisorDashboardDbService.queryRiskMetrics(userContext, {
+      isMock,
+      limit,
+      applicationScope
+    });
+
+    return res.status(200).json({ success: true, count: risks.length, data: risks });
+  } catch (err) {
+    console.error('[Audit Supervisor DB Risk Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query risk data.'
+    });
+  }
+});
+
+// GET /api/dashboard/audit-supervisor/db/reports - Database-backed report metrics
+apiRouter.get('/dashboard/audit-supervisor/db/reports', requireAuditSupervisorDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const isMock = req.query.isMock === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const applicationScope = req.query.applicationScope as string | undefined;
+
+    const reports = await supervisorDashboardDbService.queryReportMetrics(userContext, {
+      isMock,
+      limit,
+      applicationScope
+    });
+
+    return res.status(200).json({ success: true, count: reports.length, data: reports });
+  } catch (err) {
+    console.error('[Audit Supervisor DB Reports Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query report data.'
+    });
+  }
+});
+
+// GET /api/dashboard/audit-supervisor/db/audit - Database-backed audit metrics
+apiRouter.get('/dashboard/audit-supervisor/db/audit', requireAuditSupervisorDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const isMock = req.query.isMock === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const applicationScope = req.query.applicationScope as string | undefined;
+
+    const auditMetrics = await supervisorDashboardDbService.queryAuditMetrics(userContext, {
+      isMock,
+      limit,
+      applicationScope
+    });
+
+    return res.status(200).json({ success: true, count: auditMetrics.length, data: auditMetrics });
+  } catch (err) {
+    console.error('[Audit Supervisor DB Audit Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query audit metrics.'
+    });
+  }
+});
+
+// GET /api/dashboard/audit-supervisor/db/audit-events - Database-backed audit event trail
+apiRouter.get('/dashboard/audit-supervisor/db/audit-events', requireAuditSupervisorDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const events = await supervisorDashboardDbService.queryAuditEvents(userContext, {
+      eventType: req.query.eventType as string | undefined,
+      targetType: req.query.targetType as string | undefined,
+      targetId: req.query.targetId as string | undefined,
+      userId: req.query.userId as string | undefined,
+      startDate: req.query.startDate as string | undefined,
+      endDate: req.query.endDate as string | undefined,
+      limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 50,
+      offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0
+    });
+
+    return res.status(200).json({ success: true, count: events.length, data: events });
+  } catch (err) {
+    console.error('[Audit Supervisor DB Audit Events Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query audit events.'
+    });
+  }
+});
 
 // 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
 apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {

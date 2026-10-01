@@ -2471,19 +2471,23 @@ class OracleService {
         '35007': 'CLPS_Access_Certification3'
       };
 
-      const mappedName = canonicalCertNames[cleanCertId] || bipResult.data[0]?.certificationName || bipResult.data[0]?.name;
+      const mappedName = bipResult.data[0]?.certificationName || bipResult.data[0]?.name || canonicalCertNames[cleanCertId] || `Certification ${cleanCertId}`;
       const numId = Number(cleanCertId) || cleanCertId;
 
       const enrichedData = bipResult.data.map((row: any) => {
         const uName = (row.userName || row.ownerName || '').toUpperCase();
-        const directMgr = row.directManager || userManagerMap.get(uName) || null;
+        const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
+        const bu = row.businessUnit || userBuMap.get(uName) || 'Corporate';
+        const dept = row.department || userDeptMap.get(uName) || '';
         return {
           ...row,
           id: numId,
           certificationId: numId,
-          name: mappedName,
-          certificationName: mappedName,
-          directManager: directMgr
+          name: row.certificationName || mappedName,
+          certificationName: row.certificationName || mappedName,
+          directManager: directMgr,
+          businessUnit: bu,
+          department: dept
         };
       });
 

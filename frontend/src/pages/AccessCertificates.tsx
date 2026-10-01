@@ -76,6 +76,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastExecuted, setLastExecuted] = useState<string>('');
+  const [activeReportPath, setActiveReportPath] = useState<string>('/Custom/Claaps Access Certification Review Report.xdo');
 
   // Drill-Down / Certifier Worksheet State
   const [drillDownCertId, setDrillDownCertId] = useState<string | null>(null);
@@ -94,6 +95,9 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
       const res = await api.getAccessCertifications(isManualRefresh);
       if (res && res.success) {
         setCertifications(Array.isArray(res.data) ? res.data : []);
+        if (res.reportPath) {
+          setActiveReportPath(res.reportPath);
+        }
       } else {
         setCertifications([]);
         setError(res?.message || 'Unable to retrieve Access Certification data from Oracle Fusion.');
@@ -1085,7 +1089,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
           <span>
             <strong>On-Demand Report:</strong> Retrieves data directly via BI Publisher (
             <code style={{ background: 'rgba(37, 99, 235, 0.08)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
-              /Custom/Claaps Access Certification.xdo
+              {activeReportPath}
             </code>
             ). Click <strong>View</strong> on any certification row to drill down into the live Certifier Worksheet.
           </span>

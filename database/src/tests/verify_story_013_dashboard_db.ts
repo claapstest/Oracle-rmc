@@ -430,7 +430,13 @@ async function runVerification() {
     // -------------------------------------------------------------------------
     console.log('\n--- Testing Migration Reversibility ---');
     try {
-      execSync('npm run migrate:down', {
+      // Determine how many migrations need to be rolled back to test migration 3 reversibility
+      const currentMigRes = await pool.query('SELECT name FROM pgmigrations ORDER BY id DESC');
+      const migNames = currentMigRes.rows.map(r => r.name);
+      const mig3Index = migNames.indexOf('1711000000003_create_veyra_dashboard_metric_table');
+      const rollbackCount = mig3Index >= 0 ? mig3Index + 1 : 1;
+
+      execSync(`npx node-pg-migrate down ${rollbackCount}`, {
         cwd: path.resolve(__dirname, '../..'),
         stdio: 'pipe'
       });

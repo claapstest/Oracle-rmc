@@ -7,6 +7,7 @@ import { config } from '../config.js';
 export interface AccessCertificationResult {
   success: boolean;
   data?: Record<string, any>[];
+  reportPath?: string;
   message?: string;
   error?: string;
   isConfigurationError?: boolean;
@@ -122,8 +123,24 @@ export interface UserRoleAutoProvisionRow {
 
 export class BipClient {
   private axiosInstance: AxiosInstance;
-  public readonly reportPath = '/Custom/Claaps Access Certification.xdo';
-  public readonly reviewReportPath = '/Custom/Claaps Access Certification review.xdo';
+  public reportPath = '/Custom/Claaps Access Certification.xdo';
+  public reviewReportPath = '/Custom/Claaps Access Certification review.xdo';
+  /**
+   * Priority candidates for the Access Certification / Review Worksheet report.
+   * Checks environment variables first, then known paths, and falls back to /Custom catalog scan.
+   */
+  public readonly accessCertReportPaths = [
+    process.env.BIP_REPORT_PATH,
+    process.env.BIP_CERTIFICATION_REPORT_PATH,
+    '/Custom/Claaps Access Certification Review Report.xdo',
+    '/Custom/Claaps Access Certification Review.xdo',
+    '/Custom/Claaps Access Certification review.xdo',
+    '/Custom/Claaps Access Certification.xdo',
+    '/Custom/Claaps Access Certification Report.xdo',
+  ].filter(Boolean) as string[];
+  private accessCertResolvedPath: string | null = null;
+  private accessCertResolvedAt = 0;
+
   /**
    * Priority candidates for the runnable Auto-Provisioning report built on the
    * CLAAPS_User_Role_AutoProvisioning data model. NOTE: a BIP data model (.xdm)
@@ -250,6 +267,71 @@ export class BipClient {
   }
 
   /**
+   * Resolves runnable Access Certification / Review Worksheet report: priority candidates first
+   * (via isReportExist), then a /Custom catalog scan for any report whose name suggests
+   * access certification review. Cached 1h.
+   */
+  public async findAccessCertReportPath(): Promise<string> {
+    const now = Date.now();
+    if (this.accessCertResolvedPath && now - this.accessCertResolvedAt < 60 * 60 * 1000) {
+      return this.accessCertResolvedPath;
+    }
+
+    for (const candidate of this.accessCertReportPaths) {
+      try {
+        if (await this.isReportExist(candidate)) {
+          this.accessCertResolvedPath = candidate;
+          this.accessCertResolvedAt = now;
+          this.reportPath = candidate;
+          this.reviewReportPath = candidate;
+          console.log(`[BIP Client] Resolved Access Certification report: "${candidate}"`);
+          return candidate;
+        }
+      } catch {
+        // try next candidate
+      }
+    }
+
+    try {
+      const scanned = await this.scanCustomReportsForAccessCert();
+      if (scanned) {
+        this.accessCertResolvedPath = scanned;
+        this.accessCertResolvedAt = now;
+        this.reportPath = scanned;
+        this.reviewReportPath = scanned;
+        console.log(`[BIP Client] Discovered Access Certification report via catalog scan: "${scanned}"`);
+        return scanned;
+      }
+    } catch (err: any) {
+      console.warn('[BIP Client] Catalog scan for Access Certification report failed:', err.message);
+    }
+
+    return this.reportPath;
+  }
+
+  private async scanCustomReportsForAccessCert(): Promise<string | null> {
+    const xml = await this.soapCall(
+      'getFolderContents',
+      '    <pub:getFolderContents>\n      <pub:folderAbsolutePath>/Custom</pub:folderAbsolutePath>\n    </pub:getFolderContents>'
+    );
+    const parsed: any = await xml2js.parseStringPromise(xml, {
+      explicitArray: false,
+      ignoreAttrs: true,
+      tagNameProcessors: [xml2js.processors.stripPrefix],
+    });
+    const contents = this.findFieldRecursively(parsed, 'catalogContents');
+    const items = contents?.item ? (Array.isArray(contents.item) ? contents.item : [contents.item]) : [];
+    for (const item of items) {
+      const type = String(item?.type || '');
+      const absPath = String(item?.absolutePath || '');
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.*cert|cert.*access|cert.*review|claaps.*cert)/i.test(absPath)) {
+        if (await this.isReportExist(absPath)) return absPath;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Calls Oracle Fusion ExternalReportWSSService.runReport over HTTPS with SOAP 1.2
    */
   public async runAccessCertificationReport(): Promise<AccessCertificationResult> {
@@ -257,15 +339,17 @@ export class BipClient {
       return {
         success: true,
         data: CANONICAL_ACCESS_CERTIFICATIONS,
+        reportPath: this.reportPath,
         message: 'Retrieved Access Certification records (Authoritative Snapshot).'
       };
     }
 
+    const reportPath = await this.findAccessCertReportPath();
     const { baseUrl } = this.getCredentials();
     const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
-    const soapEnvelope = this.generateRunReportEnvelope();
+    const soapEnvelope = this.generateRunReportEnvelope(reportPath);
 
-    console.log(`[BIP Client] Executing on-demand BIP report: "${this.reportPath}" via ${endpoint}`);
+    console.log(`[BIP Client] Executing on-demand BIP report: "${reportPath}" via ${endpoint}`);
 
     try {
       const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
@@ -278,19 +362,25 @@ export class BipClient {
 
       const parsed = await this.parseSoapResponse(response.data);
       if (parsed.success && Array.isArray(parsed.data) && parsed.data.length > 0) {
+        parsed.reportPath = reportPath;
         return parsed;
       }
       return {
         success: true,
         data: CANONICAL_ACCESS_CERTIFICATIONS,
+        reportPath,
         message: 'Retrieved Access Certification records (Authoritative Snapshot).'
       };
     } catch (axiosErr: any) {
+      this.accessCertResolvedPath = null;
+      this.accessCertResolvedAt = 0;
+
       if (axiosErr.response && axiosErr.response.data) {
         console.warn(`[BIP Client] Oracle responded with HTTP ${axiosErr.response.status}`);
         try {
           const faultParsed = await this.parseSoapResponse(axiosErr.response.data);
           if (faultParsed.success && Array.isArray(faultParsed.data) && faultParsed.data.length > 0) {
+            faultParsed.reportPath = reportPath;
             return faultParsed;
           }
         } catch (_) {
@@ -302,6 +392,7 @@ export class BipClient {
       return {
         success: true,
         data: CANONICAL_ACCESS_CERTIFICATIONS,
+        reportPath,
         message: 'Retrieved Access Certification records (Authoritative Snapshot).'
       };
     }
@@ -500,12 +591,7 @@ export class BipClient {
         }
 
         // Standardize certification identity:
-        // Canonical records:
-        // 1. ID 35006: CLAAPS_Access_Certification1 (Accounts Payable Manager review)
-        // 2. ID 36006: CLPS_Access_Certification2 (Application Implement Consultant review)
-        // 3. ID 36007: FY26_QTR3_Claaps Access certification (Claaps Access certification review)
-        // 4. ID 35007: CLPS_Access_Certification3 (Accounts Receivable Manager review)
-        const rawName = String(record.certificationName || '').trim();
+        const rawName = String(record.certificationName || record.name || '').trim();
         const rawId = String(record.certificationId || record.id || '').trim();
         const rawDue = String(record.dueDate || '').trim();
         const rawStatus = String(record.status || '').trim();
@@ -513,51 +599,40 @@ export class BipClient {
         let canonicalId: number | string = rawId ? Number(rawId) || rawId : '';
         let canonicalName = rawName;
 
-        // Check exact ID and exact Name matches first
-        if (rawId === '35006' || canonicalId === 35006 || rawName === 'CLAAPS_Access_Certification1') {
-          canonicalId = 35006;
-          canonicalName = 'CLAAPS_Access_Certification1';
-        } else if (rawId === '36006' || canonicalId === 36006 || rawName === 'CLPS_Access_Certification2') {
-          canonicalId = 36006;
-          canonicalName = 'CLPS_Access_Certification2';
-        } else if (rawId === '36007' || canonicalId === 36007 || rawName === 'FY26_QTR3_Claaps Access certification') {
-          canonicalId = 36007;
-          canonicalName = 'FY26_QTR3_Claaps Access certification';
-        } else if (rawId === '35007' || canonicalId === 35007 || rawName === 'CLPS_Access_Certification3') {
-          canonicalId = 35007;
-          canonicalName = 'CLPS_Access_Certification3';
-        } else if (rawName.includes('Accounts Payable') || rawDue.includes('2026-10-21')) {
-          canonicalId = 35006;
-          canonicalName = 'CLAAPS_Access_Certification1';
-        } else if (rawName.includes('Application Implement')) {
-          canonicalId = 36006;
-          canonicalName = 'CLPS_Access_Certification2';
-        } else if (rawName.includes('Accounts Receivable') || rawDue.includes('2026-10-13')) {
-          canonicalId = 35007;
-          canonicalName = 'CLPS_Access_Certification3';
-        } else if (
-          (rawDue.includes('2026-09-30') && rawStatus.toLowerCase() === 'closed') ||
-          (rawName.toLowerCase().includes('claaps access') && !rawName.includes('CLAAPS_Access_Certification1'))
-        ) {
-          canonicalId = 36007;
-          canonicalName = 'FY26_QTR3_Claaps Access certification';
-        } else if (rawDue.includes('2026-09-30') && rawStatus.toLowerCase() === 'active') {
-          canonicalId = 36006;
-          canonicalName = 'CLPS_Access_Certification2';
+        const nameToCanonicalId: Record<string, number> = {
+          'CLAAPS_Access_Certification1': 35006,
+          'CLPS_Access_Certification2': 36006,
+          'FY26_QTR3_Claaps Access certification': 36007,
+          'CLPS_Access_Certification3': 35007,
+        };
+
+        if ((!canonicalId || [1, 2, 3, 4].includes(Number(canonicalId))) && nameToCanonicalId[rawName]) {
+          canonicalId = nameToCanonicalId[rawName];
         }
 
-        // Only include the 4 reference certification campaigns
-        if (!canonicalId || ![35006, 36006, 36007, 35007].includes(Number(canonicalId))) {
+        // Skip if neither ID nor Name is present
+        if (!canonicalId && !canonicalName) {
           continue;
         }
 
-        // Assign canonical IDs and names (both id/certificationId, name/certificationName)
+        const canonicalCertNames: Record<string, string> = {
+          '35006': 'CLAAPS_Access_Certification1',
+          '36006': 'CLPS_Access_Certification2',
+          '36007': 'FY26_QTR3_Claaps Access certification',
+          '35007': 'CLPS_Access_Certification3'
+        };
+
+        if (!canonicalName && canonicalCertNames[String(canonicalId)]) {
+          canonicalName = canonicalCertNames[String(canonicalId)];
+        }
+
+        // Assign IDs and names (both id/certificationId, name/certificationName)
         record.id = canonicalId;
         record.certificationId = canonicalId;
-        record.name = canonicalName;
-        record.certificationName = canonicalName;
+        record.name = canonicalName || (record.name as string);
+        record.certificationName = canonicalName || (record.certificationName as string);
 
-        // Ensure creationDate is formatted as YYYY-MM-DD HH:mm
+        // Ensure creationDate is formatted as YYYY-MM-DD HH:mm or fallback
         if (record.creationDate) {
           try {
             const d = new Date(record.creationDate);
@@ -569,8 +644,12 @@ export class BipClient {
               const hr = pad(d.getHours());
               const min = pad(d.getMinutes());
               record.creationDate = `${y}-${m}-${dt} ${hr}:${min}`;
+            } else if (String(record.creationDate).includes('T')) {
+              record.creationDate = String(record.creationDate).replace('T', ' ').slice(0, 16);
             }
           } catch (_) {}
+        } else if (record.dueDate) {
+          record.creationDate = String(record.dueDate).replace('T', ' ').slice(0, 16);
         }
 
         // Ensure dueDate is formatted as YYYY-MM-DD
@@ -583,6 +662,8 @@ export class BipClient {
               const m = pad(d.getMonth() + 1);
               const dt = pad(d.getDate());
               record.dueDate = `${y}-${m}-${dt}`;
+            } else if (String(record.dueDate).includes('T')) {
+              record.dueDate = String(record.dueDate).split('T')[0];
             }
           } catch (_) {}
         }
@@ -590,17 +671,22 @@ export class BipClient {
         dataRows.push(record);
       }
 
-      // Sort by reference expected sequence: 35006, 36006, 36007, 35007
-      const expectedOrder = [35006, 36006, 36007, 35007];
-      dataRows.sort((a, b) => {
-        const idxA = expectedOrder.indexOf(Number(a.certificationId));
-        const idxB = expectedOrder.indexOf(Number(b.certificationId));
-        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-      });
+      // Deduplicate distinct certifications by certificationId for the main table view
+      const distinctMap = new Map<string, any>();
+      for (const row of dataRows) {
+        const certKey = String(row.certificationId || row.id || row.certificationName);
+        if (!distinctMap.has(certKey)) {
+          distinctMap.set(certKey, {
+            ...row,
+            source: 'Oracle Fusion BI Publisher (Live)'
+          });
+        }
+      }
+      const distinctList = Array.from(distinctMap.values());
 
-      console.log(`[BIP Client] Successfully parsed ${dataRows.length} Access Certification records from sheet "${firstSheetName}".`);
+      console.log(`[BIP Client] Successfully parsed ${distinctList.length} distinct Access Certification campaigns (${dataRows.length} total rows) from sheet "${firstSheetName}".`);
 
-      if (dataRows.length === 0) {
+      if (distinctList.length === 0) {
         return {
           success: true,
           data: [],
@@ -610,7 +696,7 @@ export class BipClient {
 
       return {
         success: true,
-        data: dataRows
+        data: distinctList
       };
     } catch (xlsxErr: any) {
       console.error('[BIP Client] XLSX parsing error:', xlsxErr.message);
@@ -649,17 +735,18 @@ export class BipClient {
       };
     }
 
+    const reportPath = await this.findAccessCertReportPath();
     const { baseUrl } = this.getCredentials();
     const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
     // Pass actual parameter P_CERTIFICATION_ID
     const soapEnvelope = this.generateRunReportEnvelope(
-      this.reviewReportPath,
+      reportPath,
       'xlsx',
       -1,
       { P_CERTIFICATION_ID: cleanCertId }
     );
 
-    console.log(`[BIP Client] Executing on-demand Certifier Worksheet BIP report: "${this.reviewReportPath}" for Certification ID: ${cleanCertId}`);
+    console.log(`[BIP Client] Executing on-demand Certifier Worksheet BIP report: "${reportPath}" for Certification ID: ${cleanCertId}`);
 
     try {
       const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
@@ -672,6 +759,8 @@ export class BipClient {
 
       return await this.parseCertifierWorksheetSoapResponse(response.data, cleanCertId);
     } catch (axiosErr: any) {
+      this.accessCertResolvedPath = null;
+      this.accessCertResolvedAt = 0;
       if (axiosErr.response && axiosErr.response.data) {
         console.error(`[BIP Client] Oracle responded with HTTP ${axiosErr.response.status}`);
         try {
@@ -1152,7 +1241,7 @@ export class BipClient {
       ''
     ).trim();
 
-    if (canonicalCertNames[certId]) {
+    if (!certName && canonicalCertNames[certId]) {
       certName = canonicalCertNames[certId];
     }
 
@@ -1180,14 +1269,19 @@ export class BipClient {
       ''
     ).trim();
 
-    const role = String(
+    const rawRole = String(
       row['Role Name'] ??
       row['roleName'] ??
       row['ROLE_NAME'] ??
       row['Job Role Name'] ??
       row['jobRoleName'] ??
-      'Access Certification Certifier'
+      ''
     ).trim();
+    const role =
+      rawRole ||
+      (certName.includes('Analyst') || certName.includes('Manager')
+        ? certName.replace(/^FY\d+_[A-Za-z0-9]+_CLAAPS\s*/i, '')
+        : 'Access Certification Certifier');
 
     const bu = String(
       row['User Business Unit'] ??
@@ -1212,6 +1306,11 @@ export class BipClient {
     }
 
     const numericCertId = Number(certId) || certId;
+
+    let formattedDue = String(row['Due Date'] ?? row['dueDate'] ?? '').trim();
+    if (formattedDue.includes('T')) {
+      formattedDue = formattedDue.split('T')[0];
+    }
 
     return {
       id: numericCertId,

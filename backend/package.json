@@ -8,7 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "clear-sessions": "node scripts/clear_sessions.cjs"
+    "clear-sessions": "node scripts/clear_sessions.cjs",
+    "test:audit-supervisor-db": "node scripts/test_story_audit_supervisor_db.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
