@@ -582,6 +582,10 @@ export default function App() {
     onClick?: () => void;
   }
 
+  // Mock Screen 7 administration navigation: Dashboard, User Management (users),
+  // Oracle Integration (settings, adminOnly), Oracle API Console (command-center, adminOnly).
+  // AC4/AC5 enforced via canAccessPage + isDeniedPage; direct URLs to adminOnly
+  // pages render Access Denied for non-Site Admin.
   const allNavItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'assistant', label: 'Ask VEYRA', icon: MessageSquareCode },
@@ -591,7 +595,7 @@ export default function App() {
     { id: 'risk', label: 'Risk Management', icon: ShieldAlert, isGroup: true },
     { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
     { id: 'settings', label: 'Oracle Integration', icon: SettingsIcon, adminOnly: true },
-    { id: 'command-center', label: 'Oracle API Console', icon: Terminal }
+    { id: 'command-center', label: 'Oracle API Console', icon: Terminal, adminOnly: true }
   ];
 
   // Risk Management is a parent group: expanded while a child page is active,

@@ -10,7 +10,10 @@ import {
   Lock,
   Compass,
   CheckCircle2,
-  Activity
+  Activity,
+  Users,
+  Settings as SettingsIcon,
+  TerminalSquare
 } from 'lucide-react';
 import { api } from '../services/api';
 import { TableExportControl } from '../components/TableExportControl';
@@ -78,10 +81,17 @@ export default function Dashboard({
   onNavigatePage,
   hasAccess
 }: DashboardProps) {
+  // AC3 — cards linking to restricted modules hide without the privilege.
+  const can = (pageId: string) => (hasAccess ? hasAccess(pageId) : true);
+  // Mock Screen 7 — Site Admin sees a dedicated administration dashboard.
+  // AC1/AC4: role check first; admin-pages grant as fallback for isAdmin sessions
+  // whose role string may vary. Non-Site Admin never matches this branch.
+  const normalizedRole = (userRole || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const isSiteAdmin = normalizedRole === 'SITE_ADMIN' || (can('settings') && can('command-center'));
   // Mock Screen 5 — Audit Supervisor sees a dedicated dashboard (no Ask Veyra anywhere).
-  const isSupervisor = (userRole || '').trim().toUpperCase() === 'AUDIT_SUPERVISOR';
+  const isSupervisor = !isSiteAdmin && normalizedRole === 'AUDIT_SUPERVISOR';
   // Mock Screen 6 — Audit User (reports-only) gets a dedicated dashboard.
-  const isAuditUser = !isSupervisor && (userRole || '').trim().toUpperCase() === 'AUDIT_USER';
+  const isAuditUser = !isSiteAdmin && !isSupervisor && normalizedRole === 'AUDIT_USER';
   // AC5 — tiles come only from backend report feeds; null until loaded (never hardcoded).
   const [auMetrics, setAuMetrics] = useState<{ available: number; records: number; completed: number } | null>(null);
   const [auLoading, setAuLoading] = useState(false);
@@ -90,6 +100,16 @@ export default function Dashboard({
   const [supMetrics, setSupMetrics] = useState<any | null>(null);
   const [supLoading, setSupLoading] = useState(false);
   const [supError, setSupError] = useState('');
+  // Mock Screen 7 AC6 — Site Admin status comes only from backend safe endpoints
+  // (GET /settings, /capabilities, /admin/users, /command-center/catalog).
+  // Only safe fields are stored (mode/baseUrl/authType/hasPassword/hasToken/counts).
+  // Secrets are never requested, stored, or rendered (AC7).
+  const [adminSettings, setAdminSettings] = useState<any | null>(null);
+  const [adminCapabilities, setAdminCapabilities] = useState<any | null>(null);
+  const [adminUserCount, setAdminUserCount] = useState<number | null>(null);
+  const [adminApiCount, setAdminApiCount] = useState<number | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState('');
   // AC4 — metrics come only from backend APIs; null until loaded (never hardcoded).
   const [stats, setStats] = useState<any | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -98,11 +118,9 @@ export default function Dashboard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [auditUnavailable, setAuditUnavailable] = useState(false);
-  // AC3 — cards linking to restricted modules hide without the privilege.
-  const can = (pageId: string) => (hasAccess ? hasAccess(pageId) : true);
 
   useEffect(() => {
-    if (isSupervisor || isAuditUser) return; // Dedicated branches load their own metrics below.
+    if (isSupervisor || isAuditUser || isSiteAdmin) return; // Dedicated branches load their own metrics below.
     let isMounted = true;
     async function loadDashboardData() {
       setLoading(true);
@@ -141,7 +159,7 @@ export default function Dashboard({
 
     loadDashboardData();
     return () => { isMounted = false; };
-  }, [environmentMode, reloadKey, isSupervisor, isAuditUser]);
+  }, [environmentMode, reloadKey, isSupervisor, isAuditUser, isSiteAdmin]);
 
   // Mock Screen 6 data loader: report feeds only (REPORTS privilege), AC5/AC7.
   useEffect(() => {
@@ -220,6 +238,209 @@ export default function Dashboard({
     loadSupervisorMetrics();
     return () => { isMounted = false; };
   }, [isSupervisor, environmentMode, reloadKey]);
+
+  // Mock Screen 7 data loader: safe configuration/status only (AC6/AC7/AC8).
+  // Uses requireAdmin-backed endpoints that never return secrets — only
+  // mode/baseUrl/authType/hasPassword/hasToken booleans and counts.
+  useEffect(() => {
+    if (!isSiteAdmin) return;
+    let isMounted = true;
+    async function loadSiteAdminStatus() {
+      setAdminLoading(true);
+      setAdminError('');
+      try {
+        const results = await Promise.allSettled([
+          api.getSettings(),
+          api.getCapabilities(),
+          api.getAdminUsers(),
+          api.getCommandCenterCatalog(),
+        ]);
+        if (!isMounted) return;
+        const [settingsRes, capsRes, usersRes, catalogRes] = results;
+        // AC8 — if every backend call fails, show retry instead of empty cards.
+        if (results.every((r) => r.status !== 'fulfilled' || !r.value)) {
+          setAdminSettings(null);
+          setAdminCapabilities(null);
+          setAdminUserCount(null);
+          setAdminApiCount(null);
+          setAdminError('Administration status is unavailable. The backend service is unreachable. Check your connection and try again.');
+          return;
+        }
+        if (settingsRes.status === 'fulfilled' && settingsRes.value) {
+          // AC7 — pick only safe fields; never keep password/token even if present.
+          const s: any = settingsRes.value;
+          setAdminSettings({
+            mode: s.mode,
+            baseUrl: s.baseUrl,
+            authType: s.authType,
+            username: s.username,
+            hasPassword: !!s.hasPassword,
+            hasToken: !!s.hasToken,
+            groqModel: s.groqModel,
+          });
+        } else {
+          setAdminSettings(null);
+        }
+        if (capsRes.status === 'fulfilled' && capsRes.value) {
+          setAdminCapabilities((capsRes.value as any).capabilities ?? capsRes.value);
+        } else {
+          setAdminCapabilities(null);
+        }
+        if (usersRes.status === 'fulfilled' && (usersRes.value as any)?.success && Array.isArray((usersRes.value as any).users)) {
+          setAdminUserCount((usersRes.value as any).users.length);
+        } else if (usersRes.status === 'fulfilled' && Array.isArray((usersRes.value as any)?.data)) {
+          setAdminUserCount((usersRes.value as any).data.length);
+        } else {
+          setAdminUserCount(null);
+        }
+        if (catalogRes.status === 'fulfilled' && (catalogRes.value as any)?.success && Array.isArray((catalogRes.value as any).catalog)) {
+          setAdminApiCount((catalogRes.value as any).catalog.length);
+        } else {
+          setAdminApiCount(null);
+        }
+        // Partial failure: surface a non-blocking warning, keep reachable cards.
+        if (results.some((r) => r.status !== 'fulfilled')) {
+          setAdminError('Some administration status could not be refreshed. Showing available information.');
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        setAdminSettings(null);
+        setAdminCapabilities(null);
+        setAdminUserCount(null);
+        setAdminApiCount(null);
+        if (err && (err.status === 403 || err.code === 'FORBIDDEN')) {
+          setAdminError('You are not authorized to view administration status. Contact your administrator if you need access.');
+        } else {
+          setAdminError((err && err.message) || 'Could not establish connection to the backend service.');
+        }
+      } finally {
+        if (isMounted) setAdminLoading(false);
+      }
+    }
+    loadSiteAdminStatus();
+    return () => { isMounted = false; };
+  }, [isSiteAdmin, environmentMode, reloadKey]);
+
+  // Mock Screen 7 — Site Admin dashboard (AC1-AC8). No Ask Veyra entry point in this branch.
+  if (isSiteAdmin) {
+    if (adminLoading && !adminSettings && adminUserCount === null && adminApiCount === null) {
+      return (
+        <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', margin: '0 auto' }}>
+          <div style={{ height: '44px', width: '320px', marginBottom: '0.6rem' }} className="skeleton" />
+          <div style={{ height: '20px', width: '300px', marginBottom: '1.5rem' }} className="skeleton" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ height: '160px', borderRadius: '12px' }} className="skeleton" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (!adminSettings && !adminCapabilities && adminUserCount === null && adminApiCount === null && !adminLoading) {
+      return (
+        <div style={{ padding: '2rem', maxWidth: '720px', margin: '2rem auto' }}>
+          <div className="glass-panel" role="alert" style={{ padding: '2.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
+            <p style={{ color: 'var(--accent-red)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+              Couldn&apos;t load administration status.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>
+              {adminError || 'The backend service is unreachable. Check your connection and try again.'}
+            </p>
+            <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.75rem' }} onClick={() => setReloadKey((k) => k + 1)}>
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    const oracleMode = adminSettings?.mode || environmentMode || 'ORACLE_FUSION';
+    const oracleBaseUrl = adminSettings?.baseUrl || '';
+    const authConfigured = !!(adminSettings?.hasPassword || adminSettings?.hasToken);
+    const adminCards = [
+      ...(can('users') ? [{
+        key: 'user-management',
+        title: 'User Management',
+        subtitle: 'Create, delete and manage users and privileges',
+        status: adminUserCount !== null ? `${adminUserCount.toLocaleString()} app users` : 'User module',
+        icon: <Users size={22} />,
+        tileBg: '#EFF6FF',
+        tileColor: '#2563EB',
+        target: 'users',
+      }] : []),
+      ...(can('settings') ? [{
+        key: 'oracle-integration',
+        title: 'Oracle Integration',
+        subtitle: 'Manage Oracle environments and connections',
+        status: oracleBaseUrl ? `${oracleMode} · ${oracleBaseUrl}` : `${oracleMode} · connection details from backend`,
+        subStatus: authConfigured ? 'Oracle auth configured' : (adminSettings ? 'Oracle auth not configured' : undefined),
+        icon: <SettingsIcon size={22} />,
+        tileBg: '#F0FDF4',
+        tileColor: '#059669',
+        target: 'settings',
+      }] : []),
+      ...(can('command-center') ? [{
+        key: 'oracle-api-console',
+        title: 'Oracle API Console',
+        subtitle: 'Test and explore Oracle APIs',
+        status: adminApiCount !== null ? `${adminApiCount.toLocaleString()} endpoints available` : 'API console',
+        icon: <TerminalSquare size={22} />,
+        tileBg: '#EFF6FF',
+        tileColor: '#7C3AED',
+        target: 'command-center',
+      }] : []),
+    ];
+    return (
+      <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+        <div style={{ marginBottom: '0.2rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', fontFamily: "'Outfit', 'Inter', sans-serif", margin: 0, letterSpacing: '-0.025em' }}>
+            Welcome back, {getFirstName(currentUser)}!
+          </h1>
+          <p style={{ color: '#64748B', fontSize: '0.95rem', margin: '0.35rem 0 0 0', fontWeight: 500 }}>
+            Manage users, integrations and system configuration.
+          </p>
+        </div>
+
+        {adminError && adminSettings && (
+          <div className="glass-panel" style={{ padding: '1rem 1.5rem', borderLeft: '4px solid var(--accent-amber, #F59E0B)' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{adminError}</p>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+          {adminCards.map((card: any) => (
+            <div
+              key={card.key}
+              className="glass-panel stat-card"
+              onClick={() => onNavigatePage?.(card.target)}
+              style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }}
+              title={card.subtitle}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="stat-title" style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{card.title}</div>
+                  <div className="stat-subtitle">{card.subtitle}</div>
+                </div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: card.tileBg, color: card.tileColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {card.icon}
+                </div>
+              </div>
+              <div style={{ marginTop: '0.9rem', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={card.status}>
+                {card.status}
+              </div>
+              {card.subStatus && (
+                <div style={{ marginTop: '0.25rem', fontSize: '0.76rem', color: authConfigured ? '#059669' : 'var(--text-muted)', fontWeight: 600 }}>
+                  {card.subStatus}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                <ArrowRight size={16} style={{ color: 'var(--accent-blue)' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Mock Screen 5 — Audit Supervisor dashboard (AC1-AC7). No Ask Veyra entry point anywhere in this branch.
   if (isSupervisor) {

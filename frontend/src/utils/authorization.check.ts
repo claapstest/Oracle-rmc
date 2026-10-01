@@ -43,6 +43,16 @@ for (const p of ['assistant', 'risk', 'users', 'roles', 'audit', 'settings', 'co
 // Risk group shell needs the group's own privilege (REPORTS-only roles may
 // still open risk-certificates directly, matching backend per-page grants).
 ok(canAccessPage('risk-certificates', AUDIT_USER), 'audit-user certificates page');
+// Mock 7 — Site Admin administration navigation (AC4/AC5): admin-only modules
+// reachable for Site Admin, hidden from all other roles.
+const SITE_ADMIN = { isAdmin: true, role: 'SITE_ADMIN', permissions: ['ALL'] };
+for (const p of ['users', 'settings', 'command-center', 'dashboard']) {
+  ok(canAccessPage(p, SITE_ADMIN), `site-admin ${p}`);
+}
+// Audit Supervisor must not see Site Admin administration functions.
+const AUDIT_SUP = { isAdmin: false, role: 'AUDIT_SUPERVISOR', permissions: ['RISK_MANAGEMENT', 'RISK_READ', 'REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL', 'AUDIT_READ', 'USERS_LIST', 'USER_READ'] };
+no(canAccessPage('settings', AUDIT_SUP), 'supervisor settings');
+no(canAccessPage('command-center', AUDIT_SUP), 'supervisor console');
 // Unknown pages deny (fail-closed)
 no(canAccessPage('nope', ADMIN), 'unknown page');
 
