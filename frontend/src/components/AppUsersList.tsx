@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { api, getActiveUserPermissions, getActiveUserRole } from '../services/api';
+import {
+  normalizeEmail as normalizeUserEmail,
+  validateCreateUser,
+  isCreateUserValid,
+  isSiteAdminEmail,
+  APP_ACCESS_OPTIONS
+} from '../utils/userFormValidation';
 import { canManageUsers } from '../utils/authorization';
 
 interface AppUsersListProps {
@@ -83,6 +90,23 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
   const [formRole, setFormRole] = useState('AUDIT_USER');
   const [formStatus, setFormStatus] = useState('ACTIVE');
   const [formPassword, setFormPassword] = useState('');
+  const [formAccess, setFormAccess] = useState<string[]>(['Fusion - Production']);
+  const [sendInvitation, setSendInvitation] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; role?: string; access?: string }>({});
+  const [touched, setTouched] = useState<{ name?: boolean; email?: boolean }>({});
+  const [createdEmail, setCreatedEmail] = useState('');
+
+  // AC7 — admin@admin.com stays local and keeps the Site Admin role.
+  const adminLocked = isSiteAdminEmail(formEmail);
+  const effectiveRole = adminLocked ? 'SITE_ADMIN' : formRole;
+  const createInput = { name: formName, email: formEmail, role: effectiveRole, access: formAccess };
+  const createValid = isCreateUserValid(createInput, users);
+  // Live errors so blocked submits (AC9) still explain themselves (AC8/AC11).
+  const liveErrors = validateCreateUser(createInput, users);
+  const nameError = showCreate ? (fieldErrors.name || (touched.name ? liveErrors.name : undefined)) : undefined;
+  const emailError = showCreate ? (fieldErrors.email || (touched.email ? liveErrors.email : undefined)) : undefined;
+  const accessError = showCreate ? (fieldErrors.access || (formAccess.length === 0 ? liveErrors.access : undefined)) : undefined;
+  const roleError = showCreate ? fieldErrors.role : undefined;
 
   useEffect(() => {
     const delay = searchTerm ? 350 : 0;
@@ -145,11 +169,16 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
   function openCreate() {
     setModalError('');
     setModalSuccess('');
+    setFieldErrors({});
+    setTouched({});
+    setCreatedEmail('');
     setFormName('');
     setFormEmail('');
     setFormRole('AUDIT_USER');
     setFormStatus('ACTIVE');
     setFormPassword('');
+    setFormAccess(['Fusion - Production']);
+    setSendInvitation(true);
     setShowCreate(true);
   }
 
@@ -166,32 +195,37 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setModalError('');
     setModalSuccess('');
-    const email = formEmail.trim();
+    // AC1-AC5 — client validation first; no API call when invalid.
+    const errs = validateCreateUser(createInput, users);
+    setFieldErrors(errs);
+    if (errs.name || errs.email || errs.role || errs.access) return;
+    const email = normalizeUserEmail(formEmail);
     const displayName = formName.trim();
-    if (!displayName) {
-      setModalError('Full name is required.');
-      return;
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setModalError('Enter a valid email address.');
-      return;
-    }
     setSubmitting(true);
     try {
       await api.createAppUser({
         email,
         displayName,
-        role: formRole,
+        role: effectiveRole,
         status: formStatus,
         ...(formPassword ? { password: formPassword } : {}),
+        applicationAccess: formAccess,
+        sendInvitation
       });
+      // AC10 — stay open with success + way back to the list.
+      setCreatedEmail(email);
       setModalSuccess(`User ${email} created.`);
-      setShowCreate(false);
       setReloadKey((k) => k + 1);
     } catch (err: any) {
-      setModalError(getErrorMessage(err, 'Could not create the user. Try again.'));
+      const msg = getErrorMessage(err, 'Could not create the user. Try again.');
+      // AC8/AC11 — duplicate lands on the email field; rest on the banner.
+      if (err?.status === 409 || err?.code === 'USER_ALREADY_EXISTS') {
+        setFieldErrors({ email: 'A user with this email already exists.' });
+      }
+      setModalError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -501,17 +535,63 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
                 {modalError}
               </div>
             )}
+            {showCreate && createdEmail ? (
+              <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                <div role="status" style={{ padding: '0.9rem 1rem', borderLeft: '4px solid var(--accent-green)', backgroundColor: 'rgba(16, 185, 129, 0.06)', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                  {modalSuccess || `User ${createdEmail} created.`}
+                </div>
+                <button type="button" className="btn btn-primary" style={{ width: '100%', padding: '0.7rem' }} onClick={() => { setShowCreate(false); setCreatedEmail(''); }}>
+                  Back to Users List
+                </button>
+              </div>
+            ) : (
             <form onSubmit={showCreate ? handleCreate : handleEdit}>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>Full Name *</label>
-              <input className="form-input" style={{ width: '100%', marginBottom: '0.9rem' }} placeholder="Enter full name" value={formName} onChange={(e) => setFormName(e.target.value)} />
+              <input className="form-input" style={{ width: '100%', marginBottom: nameError ? '0.3rem' : '0.9rem' }} placeholder="Enter full name" value={formName} onChange={(e) => { setFormName(e.target.value); if (showCreate) setFieldErrors((p) => ({ ...p, name: undefined })); }} onBlur={() => setTouched((t) => ({ ...t, name: true }))} aria-invalid={!!nameError} />
+              {nameError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '0.78rem', marginBottom: '0.9rem' }}>{nameError}</div>}
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>Email (Microsoft ID) *</label>
-              <input className="form-input" style={{ width: '100%', marginBottom: '0.9rem' }} placeholder="user@company.com" value={formEmail} disabled={!showCreate} onChange={(e) => setFormEmail(e.target.value)} />
+              <input className="form-input" style={{ width: '100%', marginBottom: emailError ? '0.3rem' : '0.9rem' }} placeholder="user@company.com" value={formEmail} disabled={!showCreate} onChange={(e) => { setFormEmail(e.target.value); if (showCreate) setFieldErrors((p) => ({ ...p, email: undefined })); }} onBlur={() => setTouched((t) => ({ ...t, email: true }))} aria-invalid={!!emailError} />
+              {emailError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '0.78rem', marginBottom: '0.9rem' }}>{emailError}</div>}
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>Role *</label>
-              <select className="form-select" style={{ width: '100%', marginBottom: '0.9rem' }} value={formRole} onChange={(e) => setFormRole(e.target.value)}>
+              <select className="form-select" style={{ width: '100%', marginBottom: roleError ? '0.3rem' : '0.9rem' }} value={showCreate ? effectiveRole : formRole} disabled={showCreate && adminLocked} onChange={(e) => { setFormRole(e.target.value); if (showCreate) setFieldErrors((p) => ({ ...p, role: undefined })); }} aria-invalid={!!roleError}>
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
+              {roleError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '0.78rem', marginBottom: '0.9rem' }}>{roleError}</div>}
+              {showCreate && adminLocked && (
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.55rem 0.75rem', marginBottom: '0.9rem' }}>
+                  Site Admin uses local VEYRA authentication — it is never redirected to Microsoft Entra ID.
+                </div>
+              )}
+              {showCreate && (
+                <>
+                  <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>Application Access (Oracle) *</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: accessError ? '0.3rem' : '0.9rem' }}>
+                    {APP_ACCESS_OPTIONS.map((a) => (
+                      <label key={a} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={formAccess.includes(a)}
+                          onChange={() => {
+                            setFormAccess((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
+                            setFieldErrors((p) => ({ ...p, access: undefined }));
+                          }}
+                        />
+                        <span>{a}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {accessError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '0.78rem', marginBottom: '0.9rem' }}>{accessError}</div>}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '0.35rem' }}>
+                    <input type="checkbox" checked={sendInvitation} onChange={(e) => setSendInvitation(e.target.checked)} />
+                    <span>Send invitation email to user</span>
+                  </label>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.9rem' }}>
+                    Phase 1 creates the account directly — no Microsoft Entra invitation is sent. Invitation emails arrive with Entra integration.
+                  </div>
+                </>
+              )}
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>Status</label>
               <select className="form-select" style={{ width: '100%', marginBottom: '0.9rem' }} value={formStatus} onChange={(e) => setFormStatus(e.target.value)}>
                 <option value="ACTIVE">Active</option>
@@ -520,14 +600,15 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>{showCreate ? 'Password (optional)' : 'New password (optional)'}</label>
               <input className="form-input" type="password" style={{ width: '100%', marginBottom: '1.25rem' }} placeholder={showCreate ? 'Leave blank to set later' : 'Leave blank to keep current'} value={formPassword} onChange={(e) => setFormPassword(e.target.value)} autoComplete="new-password" />
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowCreate(false); setEditingUser(null); }}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowCreate(false); setEditingUser(null); setCreatedEmail(''); }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting || (showCreate && !createValid)}>
                   {submitting ? 'Saving...' : showCreate ? 'Create User' : 'Save Changes'}
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

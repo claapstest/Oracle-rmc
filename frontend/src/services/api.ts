@@ -516,6 +516,8 @@ export const api = {
     role?: string;
     password?: string;
     status?: string;
+    applicationAccess?: string[];
+    sendInvitation?: boolean;
   }) {
     return apiRequest('/users', {
       method: 'POST',
