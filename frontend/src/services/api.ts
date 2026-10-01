@@ -507,6 +507,43 @@ export const api = {
     });
   },
 
+  // Application Users List management (Mock Screen 8).
+  // List is readable with USERS_LIST privilege; mutations are Site Admin only
+  // (backend requireAdmin) and surface 403/400/404 for AC10 handling.
+  async createAppUser(payload: {
+    email: string;
+    displayName?: string;
+    role?: string;
+    password?: string;
+    status?: string;
+  }) {
+    return apiRequest('/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateAppUser(
+    id: string,
+    payload: {
+      displayName?: string;
+      role?: string;
+      status?: string;
+      password?: string;
+    }
+  ) {
+    return apiRequest(`/users/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteAppUser(id: string) {
+    return apiRequest(`/users/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Investigation Snapshots (24h Retention)
   async saveInvestigation(id: string, payload: any) {
     return apiRequest('/investigations', {

@@ -1032,6 +1032,7 @@ export default function App() {
                 initialFilter={initialUsersFilter}
                 onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
                 onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
               />
             </div>
           )}

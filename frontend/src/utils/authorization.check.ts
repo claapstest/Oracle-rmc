@@ -1,4 +1,4 @@
-import { canAccessPage } from './authorization.js';
+import { canAccessPage, canManageUsers } from './authorization.js';
 
 function ok(actual: unknown, name: string): void {
   if (actual !== true) throw new Error(`${name}: expected true`);
@@ -55,5 +55,15 @@ no(canAccessPage('settings', AUDIT_SUP), 'supervisor settings');
 no(canAccessPage('command-center', AUDIT_SUP), 'supervisor console');
 // Unknown pages deny (fail-closed)
 no(canAccessPage('nope', ADMIN), 'unknown page');
+// Mock 8 (AC7/AC8) — Create/Edit/Delete gated on the management privilege.
+// Site Admin manages; Manager/Supervisor (USERS_LIST read) and Audit User do not.
+ok(canManageUsers(SITE_ADMIN), 'site-admin manages users');
+ok(canManageUsers(ADMIN), 'admin manages users');
+ok(canManageUsers({ isAdmin: false, role: 'X', permissions: ['USER_MANAGEMENT'] }), 'user-management grant manages');
+no(canManageUsers(AUDIT_MGR), 'audit-mgr read-only');
+no(canManageUsers(AUDIT_SUP), 'supervisor read-only');
+no(canManageUsers(AUDIT_USER), 'audit-user read-only');
+no(canManageUsers(BARE), 'bare read-only');
+no(canManageUsers(null), 'anon cannot manage');
 
 console.log('authorization checks passed');

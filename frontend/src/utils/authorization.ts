@@ -31,6 +31,16 @@ export function normalizePrivileges(permissions?: string[]): string[] {
   return (permissions || []).map((p) => String(p || '').trim().toUpperCase()).filter(Boolean);
 }
 
+// Mock Screen 8 (AC7/AC8) — destructive user operations (Create/Edit/Delete)
+// require the management privilege. Site Admin (isAdmin/ALL) always qualifies;
+// Audit Manager / Supervisor hold USERS_LIST (read) but not USER_MANAGEMENT.
+export function canManageUsers(auth: AuthContext | null): boolean {
+  if (!auth) return false;
+  if (auth.isAdmin === true) return true;
+  const perms = normalizePrivileges(auth.permissions);
+  return perms.includes('ALL') || perms.includes('USER_MANAGEMENT');
+}
+
 export function canAccessPage(pageId: string, auth: AuthContext | null): boolean {
   if (!auth) return false;
   const required = PAGE_PRIVILEGES[pageId];

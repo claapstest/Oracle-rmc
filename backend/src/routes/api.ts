@@ -468,8 +468,11 @@ apiRouter.get('/investigations/:id', requireAuth, (req: Request, res: Response) 
 
 // --- Admin Portal User & Reset Code Management Endpoints ---
 
-// GET /admin/users - List users
-apiRouter.get('/admin/users', requireAdmin, (req: Request, res: Response) => {
+// GET /admin/users - List application users (Mock Screen 8).
+// Readable with USERS_LIST privilege (Site Admin / Audit Manager / Supervisor per
+// the privilege matrix); all mutations stay requireAdmin. Response carries safe
+// fields only (see authService.getAdminUsersList — no password hashes).
+apiRouter.get('/admin/users', requirePrivilege(['USER_MANAGEMENT', 'USERS_LIST', 'USER_READ', 'SECURITY_READ']), (req: Request, res: Response) => {
   try {
     const usersList = authService.getAdminUsersList();
     res.json({ success: true, users: usersList });

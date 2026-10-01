@@ -2,14 +2,50 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
+import AppUsersList from '../components/AppUsersList';
 
 interface UsersProps {
   initialFilter?: string;
   onInvestigateUser?: (userId: string, displayName: string) => void;
   onInspectRole?: (roleCode: string, displayName: string) => void;
+  hasAccess?: (pageId: string) => boolean;
 }
 
-export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInspectRole }: UsersProps) {
+export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInspectRole, hasAccess }: UsersProps) {
+  // Mock Screen 8 — Application Users (managed accounts) is the primary tab.
+  // The Oracle Fusion directory browser is preserved as a secondary tab so
+  // dashboard drill-downs (initialFilter) and investigation flows keep working.
+  const [activeTab, setActiveTab] = useState<'APP' | 'ORACLE'>(() => (
+    initialFilter !== 'ALL' ? 'ORACLE' : 'APP'
+  ));
+  const tabBar = (
+    <div role="tablist" aria-label="Users views" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+      {([
+        { id: 'APP', label: 'Application Users' },
+        { id: 'ORACLE', label: 'Oracle Directory' },
+      ] as const).map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === t.id}
+          onClick={() => setActiveTab(t.id)}
+          style={{
+            padding: '0.5rem 1.1rem',
+            fontSize: '0.83rem',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: activeTab === t.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
+            background: activeTab === t.id ? 'var(--accent-blue)' : 'transparent',
+            color: activeTab === t.id ? '#fff' : 'var(--text-secondary)',
+            cursor: 'pointer'
+          }}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
   const [users, setUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -24,6 +60,8 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
   const [totalResults, setTotalResults] = useState(0);
 
   useEffect(() => {
+    // Oracle directory fetch only runs on its own tab (the APP tab has its own loader).
+    if (activeTab !== 'ORACLE') return;
     const delay = searchTerm ? 350 : 0;
     const delayDebounceFn = setTimeout(() => {
       async function loadUsers() {
@@ -48,7 +86,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     }, delay);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentPage, pageSize]);
+  }, [searchTerm, currentPage, pageSize, activeTab]);
 
   // Client-side filtering on current page items for status/insight tags if applicable
   const filteredUsers = useMemo(() => {
@@ -182,9 +220,10 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     );
   };
 
-  if (loading && users.length === 0) {
+  if (activeTab === 'ORACLE' && loading && users.length === 0) {
     return (
       <div style={{ padding: '2rem' }}>
+        {tabBar}
         <div style={{ height: '35px', width: '150px', marginBottom: '1.5rem' }} className="skeleton" />
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <div style={{ height: '40px', width: '250px' }} className="skeleton" />
@@ -195,12 +234,24 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     );
   }
 
+  // Mock Screen 8 — Application Users List (AC1–AC13). The Oracle directory
+  // browser below is preserved under the ORACLE tab.
+  if (activeTab === 'APP') {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
+        {tabBar}
+        <AppUsersList hasAccess={hasAccess} onInvestigateUser={onInvestigateUser} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto', display: 'flex', gap: '2rem' }}>
       
       {/* Left Column: List */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        
+        {tabBar}
+
         <div className="page-header-banner animate-fade-in" style={{
           display: 'flex',
           justifyContent: 'space-between',
