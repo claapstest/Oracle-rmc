@@ -280,6 +280,43 @@ export function requireReportsDashboard(req: Request, res: Response, next: () =>
   });
 }
 
+// Middleware to enforce Users List authorization (VY-STRY-24: AC1, AC2)
+export function requireUsersListAccess(req: Request, res: Response, next: () => void) {
+  requireAuth(req, res, () => {
+    const userRole = (res.locals.role || '').toUpperCase();
+    const userPermissions: string[] = res.locals.permissions || [];
+    const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL') || userPermissions.includes('USER_MANAGEMENT');
+
+    // Site Admin, Audit Manager, Audit Supervisor, Security Analyst, Compliance Officer
+    if (isAdmin || userRole === 'AUDIT_MANAGER' || userRole === 'AUDIT_SUPERVISOR' || userRole === 'SECURITY_ANALYST' || userRole === 'COMPLIANCE_OFFICER') {
+      return next();
+    }
+
+    // Role-based exclusion: AUDIT_USER is strictly limited to reports and cannot access Users List (AC2)
+    if (userRole === 'AUDIT_USER') {
+      return res.status(403).json({
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Access denied. Audit User role does not have privilege to access users list.'
+      });
+    }
+
+    const hasPrivilege = ['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'ADMIN', 'ALL'].some(p =>
+      userPermissions.map(x => x.toUpperCase()).includes(p)
+    );
+
+    if (hasPrivilege) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. Users list privileges required.'
+    });
+  });
+}
+
 // --- Authentication Endpoints ---
 
 // POST /auth/login - VEYRA User Sign In (AC1-AC8)
@@ -1409,40 +1446,83 @@ apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => 
 });
 
 // ==========================================
-// AC1, AC4, AC5, AC6: User Management APIs
+// VY-STRY-24: VEYRA User Management APIs (AC1 — AC10)
 // ==========================================
 
-// GET /users - List users (live Oracle instance only, no fallback)
-apiRouter.get('/users', requirePrivilege(['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
+// GET /api/users - List users with Search, Filter, Pagination, Sorting (AC1-AC6, AC10)
+apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Response) => {
   try {
-    const filter = req.query.filter as string | undefined;
-    // Live-instance-only: ignore source=local, always serve from configured Oracle instance link.
-
-    const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
-    const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-    const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
-    return res.json({ ...result, ...oracleService.getModeInfo() });
-  } catch (err) {
-    res.status(500).json({ success: false, error: (err as Error).message });
-  }
-});
-
-// GET /users/:id - Get single user by ID or Email (live Oracle instance only)
-apiRouter.get('/users/:id', requirePrivilege(['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ']), async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id;
-    const oracleUser = await oracleService.getUser(id);
-    if (oracleUser) {
-      return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
+    const source = (req.query.source as string || '').toLowerCase();
+    // If explicitly requested Oracle SCIM directory source, delegate to oracleService
+    if (source === 'oracle' || source === 'scim') {
+      const filter = (req.query.filter || req.query.search || req.query.q) as string | undefined;
+      const startIndex = req.query.startIndex
+        ? parseInt(req.query.startIndex as string, 10)
+        : (req.query.page && req.query.limit
+          ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1
+          : 1);
+      const count = req.query.count
+        ? parseInt(req.query.count as string, 10)
+        : (req.query.pageSize || req.query.limit ? parseInt((req.query.pageSize || req.query.limit) as string, 10) : 50);
+      const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
+      return res.json({ ...result, ...oracleService.getModeInfo() });
     }
 
-    return res.status(404).json({ success: false, code: 'USER_NOT_FOUND', message: 'User not found.' });
+    const search = (req.query.search || req.query.q || req.query.name || req.query.email || req.query.query || req.query.filter) as string | undefined;
+    const role = req.query.role as string | undefined;
+    const status = req.query.status as string | undefined;
+    const isActive = req.query.isActive as string | undefined;
+    const page = req.query.page as string | undefined;
+    const pageSize = (req.query.pageSize || req.query.limit) as string | undefined;
+    const sortBy = (req.query.sortBy || req.query.sortField) as string | undefined;
+    const sortOrder = (req.query.sortOrder || req.query.order || req.query.sortDir) as string | undefined;
+
+    const result = await authService.getPaginatedUsers({
+      search,
+      role,
+      status,
+      isActive,
+      page,
+      pageSize,
+      sortBy,
+      sortOrder
+    });
+
+    logAudit(res.locals.email || 'UNKNOWN', 'READ_USERS_LIST', `Retrieved users list (page: ${result.page}, pageSize: ${result.pageSize}, total: ${result.total})`);
+    return res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ success: false, error: (err as Error).message });
+    console.error('[Get Users List Error]:', err);
+    return res.status(500).json({ success: false, message: (err as Error).message });
   }
 });
 
-// POST /users - Create a new user (AC1, AC4, AC5, AC6: Site Admin only)
+// GET /api/users/:id - Get single user by ID or Email (AC1, AC2, AC10)
+apiRouter.get('/users/:id', requireUsersListAccess, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    const source = (req.query.source as string || '').toLowerCase();
+    if (source === 'oracle' || source === 'scim') {
+      const oracleUser = await oracleService.getUser(id);
+      if (oracleUser) {
+        return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
+      }
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
+    }
+
+    const user = await authService.getUserByIdOrEmail(id);
+    if (!user) {
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
+    }
+
+    logAudit(res.locals.email || 'UNKNOWN', 'READ_USER_DETAIL', `Viewed user details for ${user.email}`);
+    return res.status(200).json({ success: true, user });
+  } catch (err) {
+    console.error('[Get Single User Error]:', err);
+    return res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// POST /api/users - Create new user (AC1, AC2, AC9, AC10: Site Admin only)
 apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { email, displayName, role, password, status } = req.body;
@@ -1469,11 +1549,11 @@ apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
     logAudit(res.locals.email, 'ADMIN_CREATE_USER', `Created user ${result.user?.email} with role ${result.user?.role}`);
     return res.status(201).json(result);
   } catch (err) {
-    res.status(500).json({ success: false, message: (err as Error).message });
+    return res.status(500).json({ success: false, message: (err as Error).message });
   }
 });
 
-// PUT /users/:id - Update user / role assignment (AC1, AC4, AC5, AC6: Site Admin only)
+// PUT /api/users/:id - Update user / role assignment (AC1, AC2, AC9, AC10: Site Admin only)
 apiRouter.put('/users/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
@@ -1489,17 +1569,20 @@ apiRouter.put('/users/:id', requireAdmin, async (req: Request, res: Response) =>
     });
 
     if (!result.success) {
-      return res.status(404).json(result);
+      if (result.code === 'NOT_FOUND' || result.message === 'User not found.') {
+        return res.status(404).json({ success: false, code: 'NOT_FOUND', message: result.message });
+      }
+      return res.status(400).json({ success: false, code: result.code || 'BAD_REQUEST', message: result.message });
     }
 
     logAudit(res.locals.email, 'ADMIN_UPDATE_USER', `Updated user ${id} (role: ${role || 'unchanged'}, status: ${status || 'unchanged'})`);
-    return res.json(result);
+    return res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ success: false, message: (err as Error).message });
+    return res.status(500).json({ success: false, message: (err as Error).message });
   }
 });
 
-// DELETE /users/:id - Delete user (AC1, AC5, AC6: Site Admin only)
+// DELETE /api/users/:id - Delete user (AC1, AC2, AC7, AC8, AC9: Site Admin only)
 apiRouter.delete('/users/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
@@ -1507,15 +1590,44 @@ apiRouter.delete('/users/:id', requireAdmin, async (req: Request, res: Response)
 
     if (!result.success) {
       if (result.code === 'CANNOT_DELETE_SELF') {
-        return res.status(400).json(result);
+        return res.status(400).json({ success: false, code: 'CANNOT_DELETE_SELF', message: result.message });
       }
-      return res.status(404).json(result);
+      if (result.code === 'NOT_FOUND' || result.message === 'User not found.') {
+        return res.status(404).json({ success: false, code: 'NOT_FOUND', message: result.message });
+      }
+      return res.status(400).json({ success: false, code: result.code || 'BAD_REQUEST', message: result.message });
     }
 
     logAudit(res.locals.email, 'ADMIN_DELETE_USER', `Permanently deleted user account ${id}`);
-    return res.json(result);
+    return res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ success: false, message: (err as Error).message });
+    return res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// GET /api/admin/users - Admin alias for users list (AC2)
+apiRouter.get('/admin/users', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const search = (req.query.search || req.query.q || req.query.name || req.query.email || req.query.filter) as string | undefined;
+    const role = req.query.role as string | undefined;
+    const status = req.query.status as string | undefined;
+    const page = req.query.page as string | undefined;
+    const pageSize = (req.query.pageSize || req.query.limit) as string | undefined;
+    const sortBy = (req.query.sortBy || req.query.sortField) as string | undefined;
+    const sortOrder = (req.query.sortOrder || req.query.order) as string | undefined;
+
+    const result = await authService.getPaginatedUsers({
+      search,
+      role,
+      status,
+      page,
+      pageSize,
+      sortBy,
+      sortOrder
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: (err as Error).message });
   }
 });
 

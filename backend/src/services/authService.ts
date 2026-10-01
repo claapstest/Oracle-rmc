@@ -1431,7 +1431,7 @@ export class AuthService {
     }));
   }
 
-  // Story VY-STRY-007: User, Role, and Privilege Management APIs
+  // Story VY-STRY-007 & VY-STRY-24: User, Role, and Privilege Management APIs
 
   public getUsersList(filterText?: string): any[] {
     this.loadUsers();
@@ -1442,12 +1442,12 @@ export class AuthService {
       displayName: u.displayName,
       role: u.role,
       roles: [u.role],
-      permissions: u.permissions,
+      permissions: u.permissions || DEFAULT_ROLE_PERMISSIONS[u.role] || [],
       status: u.status,
-      isAdmin: u.isAdmin,
+      isAdmin: u.isAdmin || u.role === 'SITE_ADMIN',
       isActive: u.status === 'ACTIVE',
       setupCompleted: u.setupCompleted,
-      lastLoginAt: u.lastLoginAt,
+      lastLoginAt: u.lastLoginAt || null,
       createdAt: new Date().toISOString()
     }));
 
@@ -1462,32 +1462,230 @@ export class AuthService {
     return userList;
   }
 
-  public getUserByIdOrEmail(idOrEmail: string): any | null {
+  public async getPaginatedUsers(options: {
+    search?: string;
+    role?: string;
+    status?: string;
+    isActive?: boolean | string;
+    page?: number | string;
+    pageSize?: number | string;
+    limit?: number | string;
+    offset?: number | string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc' | string;
+  } = {}): Promise<{
+    success: boolean;
+    users: any[];
+    data: any[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasMore: boolean;
+  }> {
+    this.loadUsers();
+
+    // Map all in-memory users to standardized safe user objects (AC10)
+    let userList: any[] = Object.values(this.users).map(u => ({
+      id: u.userId,
+      userId: u.userId,
+      email: u.email,
+      displayName: u.displayName,
+      role: u.role,
+      roles: [u.role],
+      permissions: u.permissions || DEFAULT_ROLE_PERMISSIONS[u.role] || [],
+      status: u.status,
+      isAdmin: u.isAdmin || u.role === 'SITE_ADMIN',
+      isActive: u.status === 'ACTIVE',
+      setupCompleted: u.setupCompleted,
+      lastLoginAt: u.lastLoginAt || null,
+      createdAt: new Date().toISOString()
+    }));
+
+    // If PostgreSQL is available, merge DB records
+    try {
+      const dbRes = await dbQuery(`
+        SELECT u.id, u.email, u.display_name, u.status, u.is_local_user, u.last_login_at, u.created_at, u.updated_at,
+               r.role_code, r.role_name
+        FROM veyra_user u
+        LEFT JOIN veyra_user_role ur ON u.id = ur.user_id
+        LEFT JOIN veyra_role r ON ur.role_id = r.id
+      `);
+      if (dbRes && dbRes.rows && dbRes.rows.length > 0) {
+        for (const row of dbRes.rows) {
+          const normEmail = this.normalizeEmail(row.email);
+          const existing = userList.find(u => this.normalizeEmail(u.email) === normEmail);
+          const roleCode = (row.role_code || 'AUDIT_USER').toUpperCase();
+          if (!existing) {
+            userList.push({
+              id: row.id,
+              userId: row.id,
+              email: row.email,
+              displayName: row.display_name || row.email,
+              role: roleCode,
+              roles: [roleCode],
+              permissions: DEFAULT_ROLE_PERMISSIONS[roleCode] || [],
+              status: row.status || 'ACTIVE',
+              isAdmin: roleCode === 'SITE_ADMIN',
+              isActive: row.status === 'ACTIVE',
+              setupCompleted: true,
+              lastLoginAt: row.last_login_at || null,
+              createdAt: row.created_at || new Date().toISOString()
+            });
+          }
+        }
+      }
+    } catch (_) {}
+
+    // AC3 Search: name / email / id / role
+    const searchTerm = (options.search || '').trim().toLowerCase();
+    if (searchTerm) {
+      userList = userList.filter(u =>
+        (u.displayName && u.displayName.toLowerCase().includes(searchTerm)) ||
+        (u.email && u.email.toLowerCase().includes(searchTerm)) ||
+        (u.id && u.id.toLowerCase().includes(searchTerm)) ||
+        (u.role && u.role.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    // AC4 Filtering: role
+    if (options.role && options.role.toUpperCase() !== 'ALL') {
+      const roleFilter = options.role.trim().toUpperCase().replace(/[\s-]+/g, '_');
+      userList = userList.filter(u => {
+        const uRole = (u.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+        return uRole === roleFilter;
+      });
+    }
+
+    // AC4 Filtering: status
+    if (options.status && options.status.toUpperCase() !== 'ALL') {
+      const statusFilter = options.status.trim().toUpperCase();
+      if (statusFilter === 'ACTIVE') {
+        userList = userList.filter(u => u.status === 'ACTIVE' || u.isActive === true);
+      } else if (statusFilter === 'INACTIVE' || statusFilter === 'DISABLED') {
+        userList = userList.filter(u => u.status !== 'ACTIVE');
+      } else {
+        userList = userList.filter(u => (u.status || '').toUpperCase() === statusFilter);
+      }
+    }
+
+    // AC4 Filtering: isActive flag
+    if (options.isActive !== undefined) {
+      const wantActive = options.isActive === true || options.isActive === 'true' || options.isActive === '1';
+      userList = userList.filter(u => (u.status === 'ACTIVE') === wantActive);
+    }
+
+    // AC6 Sorting: controlled sorting fields
+    const sortBy = (options.sortBy || 'displayName').trim();
+    const sortOrder = (options.sortOrder || 'asc').trim().toLowerCase() === 'desc' ? 'desc' : 'asc';
+    const sortMult = sortOrder === 'desc' ? -1 : 1;
+
+    userList.sort((a, b) => {
+      let valA: any = a[sortBy] ?? a.displayName ?? '';
+      let valB: any = b[sortBy] ?? b.displayName ?? '';
+
+      if (sortBy === 'name' || sortBy === 'displayName') {
+        valA = a.displayName || '';
+        valB = b.displayName || '';
+      } else if (sortBy === 'createdAt' || sortBy === 'lastLoginAt') {
+        const dateA = valA ? new Date(valA).getTime() : 0;
+        const dateB = valB ? new Date(valB).getTime() : 0;
+        return (dateA - dateB) * sortMult;
+      }
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return valA.localeCompare(valB, undefined, { sensitivity: 'base' }) * sortMult;
+      }
+      if (valA < valB) return -1 * sortMult;
+      if (valA > valB) return 1 * sortMult;
+      return 0;
+    });
+
+    // AC5 Pagination: page, pageSize
+    const page = Math.max(1, parseInt(String(options.page || 1), 10) || 1);
+    let pageSize = parseInt(String(options.pageSize || options.limit || 10), 10);
+    if (isNaN(pageSize) || pageSize < 1) pageSize = 10;
+    if (pageSize > 100) pageSize = 100;
+
+    const total = userList.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const startIndex = (page - 1) * pageSize;
+    const paginatedUsers = userList.slice(startIndex, startIndex + pageSize);
+    const hasMore = page < totalPages;
+
+    return {
+      success: true,
+      users: paginatedUsers,
+      data: paginatedUsers,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      hasMore
+    };
+  }
+
+  public async getUserByIdOrEmail(idOrEmail: string): Promise<any | null> {
     this.loadUsers();
     if (!idOrEmail) return null;
     const normalized = this.normalizeEmail(idOrEmail);
-    // Try by email first
+
+    // Try in-memory first
     let user: AuthUser | undefined = this.users[normalized];
     if (!user) {
-      // Try by userId or id
       user = Object.values(this.users).find(u => u.userId === idOrEmail || u.userId === `usr_${idOrEmail}`);
     }
-    if (!user) return null;
 
-    return {
-      id: user.userId,
-      userId: user.userId,
-      email: user.email,
-      displayName: user.displayName,
-      role: user.role,
-      roles: [user.role],
-      permissions: user.permissions,
-      status: user.status,
-      isAdmin: user.isAdmin,
-      isActive: user.status === 'ACTIVE',
-      setupCompleted: user.setupCompleted,
-      lastLoginAt: user.lastLoginAt
-    };
+    if (user) {
+      return {
+        id: user.userId,
+        userId: user.userId,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        roles: [user.role],
+        permissions: user.permissions || DEFAULT_ROLE_PERMISSIONS[user.role] || [],
+        status: user.status,
+        isAdmin: user.isAdmin || user.role === 'SITE_ADMIN',
+        isActive: user.status === 'ACTIVE',
+        setupCompleted: user.setupCompleted,
+        lastLoginAt: user.lastLoginAt || null
+      };
+    }
+
+    // Try database
+    try {
+      const dbRes = await dbQuery(`
+        SELECT u.id, u.email, u.display_name, u.status, u.is_local_user, u.last_login_at, u.created_at, u.updated_at,
+               r.role_code, r.role_name
+        FROM veyra_user u
+        LEFT JOIN veyra_user_role ur ON u.id = ur.user_id
+        LEFT JOIN veyra_role r ON ur.role_id = r.id
+        WHERE u.id::text = $1 OR LOWER(u.email) = LOWER($1)
+        LIMIT 1
+      `, [idOrEmail]);
+
+      if (dbRes.rows.length > 0) {
+        const row = dbRes.rows[0];
+        const roleCode = (row.role_code || 'AUDIT_USER').toUpperCase();
+        return {
+          id: row.id,
+          userId: row.id,
+          email: row.email,
+          displayName: row.display_name || row.email,
+          role: roleCode,
+          roles: [roleCode],
+          permissions: DEFAULT_ROLE_PERMISSIONS[roleCode] || [],
+          status: row.status || 'ACTIVE',
+          isAdmin: roleCode === 'SITE_ADMIN',
+          isActive: row.status === 'ACTIVE',
+          setupCompleted: true,
+          lastLoginAt: row.last_login_at || null
+        };
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   public async createUser(data: {
@@ -1513,7 +1711,7 @@ export class AuthService {
       return { success: false, code: 'USER_ALREADY_EXISTS', message: 'A user with this email already exists.' };
     }
 
-    const role = (data.role || 'VIEWER').toUpperCase();
+    const role = (data.role || 'AUDIT_USER').toUpperCase().replace(/[\s-]+/g, '_');
     const permissions = DEFAULT_ROLE_PERMISSIONS[role] || DEFAULT_ROLE_PERMISSIONS.VIEWER;
     const isSiteAdmin = role === 'SITE_ADMIN';
     const status: UserStatus = data.status ? (data.status.toUpperCase() as UserStatus) : 'ACTIVE';
@@ -1606,7 +1804,7 @@ export class AuthService {
       console.error('[Auth Service] Failed to record USER_CREATED audit event:', auditErr);
     }
 
-    const safeUser = this.getUserByIdOrEmail(normalized);
+    const safeUser = await this.getUserByIdOrEmail(normalized);
     return { success: true, user: safeUser, message: 'User created successfully.' };
   }
 
@@ -1615,12 +1813,12 @@ export class AuthService {
     data: {
       displayName?: string;
       role?: string;
-      status?: UserStatus;
+      status?: UserStatus | string;
       password?: string;
       permissions?: string[];
       updatedBy?: string;
     }
-  ): Promise<{ success: boolean; user?: any; message: string }> {
+  ): Promise<{ success: boolean; user?: any; code?: string; message: string }> {
     this.loadUsers();
     const normalized = this.normalizeEmail(idOrEmail);
     let userKey = normalized;
@@ -1628,15 +1826,42 @@ export class AuthService {
 
     if (!user) {
       // Find key by userId
-      const entry = Object.entries(this.users).find(([_, u]) => u.userId === idOrEmail);
+      const entry = Object.entries(this.users).find(([_, u]) => u.userId === idOrEmail || u.userId === `usr_${idOrEmail}`);
       if (entry) {
         userKey = entry[0];
         user = entry[1];
       }
     }
 
+    // Check database if not found in memory
     if (!user) {
-      return { success: false, message: 'User not found.' };
+      try {
+        const dbRes = await dbQuery(
+          `SELECT id, email, display_name, status FROM veyra_user WHERE id::text = $1 OR LOWER(email) = LOWER($1)`,
+          [idOrEmail]
+        );
+        if (dbRes.rows.length > 0) {
+          userKey = this.normalizeEmail(dbRes.rows[0].email);
+          user = {
+            userId: dbRes.rows[0].id,
+            email: dbRes.rows[0].email,
+            displayName: dbRes.rows[0].display_name,
+            passwordHash: null,
+            status: dbRes.rows[0].status,
+            role: 'AUDIT_USER',
+            permissions: [],
+            setupCompleted: true,
+            isAdmin: false,
+            isActive: dbRes.rows[0].status === 'ACTIVE',
+            resetCode: null
+          };
+          this.users[userKey] = user;
+        }
+      } catch (_) {}
+    }
+
+    if (!user) {
+      return { success: false, code: 'NOT_FOUND', message: 'User not found.' };
     }
 
     const oldRole = user.role;
@@ -1647,7 +1872,7 @@ export class AuthService {
 
     // AC4: Site Admin can assign/modify user roles
     if (data.role !== undefined) {
-      const newRole = data.role.toUpperCase();
+      const newRole = data.role.toUpperCase().replace(/[\s-]+/g, '_');
       user.role = newRole;
       user.isAdmin = (newRole === 'SITE_ADMIN');
       user.permissions = DEFAULT_ROLE_PERMISSIONS[newRole] || data.permissions || DEFAULT_ROLE_PERMISSIONS.VIEWER;
@@ -1661,7 +1886,7 @@ export class AuthService {
       // If user is deactivated or disabled, terminate active sessions immediately
       if (newStatus !== 'ACTIVE') {
         for (const [token, session] of activeSessions.entries()) {
-          if (this.normalizeEmail(session.email) === userKey) {
+          if (this.normalizeEmail(session.email) === userKey || session.userId === user.userId) {
             activeSessions.delete(token);
           }
         }
@@ -1679,8 +1904,8 @@ export class AuthService {
     // Update in PostgreSQL if available
     try {
       await dbQuery(
-        `UPDATE veyra_user SET display_name = $1, status = $2, updated_at = NOW(), updated_by = $3 WHERE email = $4`,
-        [user.displayName, user.status, data.updatedBy || 'AUTH_SERVICE', userKey]
+        `UPDATE veyra_user SET display_name = $1, status = $2, updated_at = NOW(), updated_by = $3 WHERE email = $4 OR id::text = $5`,
+        [user.displayName, user.status, data.updatedBy || 'AUTH_SERVICE', userKey, idOrEmail]
       );
       if (data.role) {
         const uRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [userKey]);
@@ -1746,7 +1971,7 @@ export class AuthService {
       console.error('[Auth Service] Failed to record USER_UPDATED audit event:', auditErr);
     }
 
-    const safeUser = this.getUserByIdOrEmail(userKey);
+    const safeUser = await this.getUserByIdOrEmail(userKey);
     return { success: true, user: safeUser, message: 'User updated successfully.' };
   }
 
@@ -1758,33 +1983,67 @@ export class AuthService {
     let targetKey = normalizedTarget;
     let user = this.users[normalizedTarget];
     if (!user) {
-      const entry = Object.entries(this.users).find(([_, u]) => u.userId === idOrEmail);
+      const entry = Object.entries(this.users).find(([_, u]) => u.userId === idOrEmail || u.userId === `usr_${idOrEmail}`);
       if (entry) {
         targetKey = entry[0];
         user = entry[1];
       }
     }
 
+    // Check database if not found in memory
+    let dbTargetUserId: string | null = null;
+    try {
+      const targetUserDbRes = await dbQuery(
+        `SELECT id, email, display_name, status FROM veyra_user WHERE id::text = $1 OR LOWER(email) = LOWER($1)`,
+        [idOrEmail]
+      );
+      if (targetUserDbRes.rows.length > 0) {
+        dbTargetUserId = targetUserDbRes.rows[0].id;
+        if (!user) {
+          targetKey = this.normalizeEmail(targetUserDbRes.rows[0].email);
+          user = {
+            userId: targetUserDbRes.rows[0].id,
+            email: targetUserDbRes.rows[0].email,
+            displayName: targetUserDbRes.rows[0].display_name,
+            passwordHash: null,
+            status: targetUserDbRes.rows[0].status,
+            role: 'AUDIT_USER',
+            permissions: [],
+            setupCompleted: true,
+            isAdmin: false,
+            isActive: targetUserDbRes.rows[0].status === 'ACTIVE',
+            resetCode: null
+          };
+        }
+      }
+    } catch (_) {}
+
     if (!user) {
-      return { success: false, message: 'User not found.' };
+      return { success: false, code: 'NOT_FOUND', message: 'User not found.' };
     }
 
-    if (targetKey === normalizedAdmin || user.email.toLowerCase() === normalizedAdmin) {
+    // AC8: Self-delete and Root Admin protection
+    if (
+      targetKey === normalizedAdmin ||
+      user.email.toLowerCase() === normalizedAdmin ||
+      (normalizedAdmin === 'admin@admin.com' && targetKey === 'admin@admin.com')
+    ) {
       return { success: false, code: 'CANNOT_DELETE_SELF', message: 'Administrators cannot delete their own accounts.' };
     }
 
     // Capture target user database id before deletion
-    let dbTargetUserId = user.userId;
-    try {
-      const targetUserDbRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [targetKey]);
-      if (targetUserDbRes.rows.length > 0) {
-        dbTargetUserId = targetUserDbRes.rows[0].id;
-      }
-    } catch (_) {}
+    if (!dbTargetUserId) {
+      try {
+        const targetUserDbRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [targetKey]);
+        if (targetUserDbRes.rows.length > 0) {
+          dbTargetUserId = targetUserDbRes.rows[0].id;
+        }
+      } catch (_) {}
+    }
 
     // Invalidate active sessions
     for (const [token, session] of activeSessions.entries()) {
-      if (this.normalizeEmail(session.email) === targetKey) {
+      if (this.normalizeEmail(session.email) === targetKey || session.userId === user.userId) {
         activeSessions.delete(token);
       }
     }
@@ -1794,10 +2053,10 @@ export class AuthService {
 
     // Delete in PostgreSQL if available
     try {
-      await dbQuery(`DELETE FROM veyra_user WHERE email = $1`, [targetKey]);
+      await dbQuery(`DELETE FROM veyra_user WHERE id::text = $1 OR LOWER(email) = LOWER($2)`, [idOrEmail, targetKey]);
     } catch (_) {}
 
-    // Record audit event: USER_DELETED
+    // Record audit event: USER_DELETED (AC9)
     try {
       let actorUserId: string | null = null;
       if (adminEmail) {
@@ -1808,9 +2067,10 @@ export class AuthService {
         userId: actorUserId,
         eventType: 'USER_DELETED',
         targetType: 'USER',
-        targetId: dbTargetUserId,
+        targetId: dbTargetUserId || user.userId,
         details: {
-          targetEmail: targetKey
+          targetEmail: targetKey,
+          deletedBy: adminEmail
         }
       });
     } catch (auditErr) {
