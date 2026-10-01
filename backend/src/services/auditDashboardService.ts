@@ -2,6 +2,7 @@ import { oracleService } from './oracleService.js';
 import { tools } from '../tools/index.js';
 import { config } from '../config.js';
 import { query as dbQuery } from '../db.js';
+import { reportDbService } from './reportDbService.js';
 
 export interface DashboardMetricRecord {
   metricId?: string;
@@ -733,68 +734,91 @@ class AuditDashboardService {
       }
     ];
 
-    const recentReports: RecentReportExecution[] = [
-      {
-        reportId: 'rep_role_hier_001',
-        reportName: 'Role Hierarchy Deep-Dive Report',
-        reportType: 'ROLE_HIERARCHY',
-        category: 'Role Hierarchy & Inheritance',
-        generatedAt: '2026-09-30T10:15:00.000Z',
-        generatedBy: user.email || 'audit.user@claaps.com',
-        status: 'COMPLETED',
-        format: 'PDF',
-        sizeBytes: 2457600,
-        downloadUrl: '/api/reports/role-hierarchy'
-      },
-      {
-        reportId: 'rep_user_acc_002',
-        reportName: 'User Access & Entitlements Audit',
-        reportType: 'USER_ACCESS',
-        category: 'User Access & Entitlements',
-        generatedAt: '2026-09-29T14:30:00.000Z',
-        generatedBy: user.email || 'audit.user@claaps.com',
-        status: 'COMPLETED',
-        format: 'EXCEL',
-        sizeBytes: 1843200,
-        downloadUrl: '/api/reports/user-access'
-      },
-      {
-        reportId: 'rep_sod_conf_003',
-        reportName: 'Segregation of Duties (SoD) Conflict Summary',
-        reportType: 'SOD_CONFLICTS',
-        category: 'Segregation of Duties (SoD)',
-        generatedAt: '2026-09-28T09:00:00.000Z',
-        generatedBy: 'system_scheduler',
-        status: 'READY',
-        format: 'PDF',
-        sizeBytes: 983040,
-        downloadUrl: '/api/reports/role-hierarchy'
-      },
-      {
-        reportId: 'rep_priv_grant_004',
-        reportName: 'Security Privilege Assignment Matrix',
-        reportType: 'PRIVILEGE_GRANTS',
-        category: 'Security & Compliance Governance',
-        generatedAt: '2026-09-27T16:45:00.000Z',
-        generatedBy: user.email || 'audit.user@claaps.com',
-        status: 'COMPLETED',
-        format: 'CSV',
-        sizeBytes: 524288,
-        downloadUrl: '/api/reports/role-hierarchy'
-      },
-      {
-        reportId: 'rep_cert_stat_005',
-        reportName: 'Q3 Access Certification Review Status',
-        reportType: 'COMPLIANCE_CERTIFICATION',
-        category: 'Security & Compliance Governance',
-        generatedAt: '2026-09-26T11:20:00.000Z',
-        generatedBy: user.email || 'audit.user@claaps.com',
-        status: 'COMPLETED',
-        format: 'PDF',
-        sizeBytes: 1258291,
-        downloadUrl: '/api/reports/user-access'
+    let recentReports: RecentReportExecution[] = [];
+    try {
+      const dbReportsRes = await reportDbService.queryReports(user, { limit: 10 });
+      if (dbReportsRes && dbReportsRes.reports && dbReportsRes.reports.length > 0) {
+        recentReports = dbReportsRes.reports.map((r: any) => ({
+          reportId: r.reportId,
+          reportName: r.reportName,
+          reportType: r.reportType,
+          category: r.category,
+          generatedAt: typeof r.generatedAt === 'string' ? r.generatedAt : new Date(r.generatedAt).toISOString(),
+          generatedBy: r.generatedBy,
+          status: r.status,
+          format: r.format,
+          sizeBytes: r.sizeBytes,
+          downloadUrl: r.downloadUrl
+        }));
       }
-    ];
+    } catch (dbErr) {
+      console.warn('[AuditDashboardService] Failed to query reports from database, using fallback:', (dbErr as Error).message);
+    }
+
+    if (recentReports.length === 0) {
+      recentReports = [
+        {
+          reportId: 'rep_role_hier_001',
+          reportName: 'Role Hierarchy Deep-Dive Report',
+          reportType: 'ROLE_HIERARCHY',
+          category: 'Role Hierarchy & Inheritance',
+          generatedAt: '2026-09-30T10:15:00.000Z',
+          generatedBy: user.email || 'audit.user@claaps.com',
+          status: 'COMPLETED',
+          format: 'PDF',
+          sizeBytes: 2457600,
+          downloadUrl: '/api/reports/role-hierarchy'
+        },
+        {
+          reportId: 'rep_user_acc_002',
+          reportName: 'User Access & Entitlements Audit',
+          reportType: 'USER_ACCESS',
+          category: 'User Access & Entitlements',
+          generatedAt: '2026-09-29T14:30:00.000Z',
+          generatedBy: user.email || 'audit.user@claaps.com',
+          status: 'COMPLETED',
+          format: 'EXCEL',
+          sizeBytes: 1843200,
+          downloadUrl: '/api/reports/user-access'
+        },
+        {
+          reportId: 'rep_sod_conf_003',
+          reportName: 'Segregation of Duties (SoD) Conflict Summary',
+          reportType: 'SOD_CONFLICTS',
+          category: 'Segregation of Duties (SoD)',
+          generatedAt: '2026-09-28T09:00:00.000Z',
+          generatedBy: 'system_scheduler',
+          status: 'READY',
+          format: 'PDF',
+          sizeBytes: 983040,
+          downloadUrl: '/api/reports/role-hierarchy'
+        },
+        {
+          reportId: 'rep_priv_grant_004',
+          reportName: 'Security Privilege Assignment Matrix',
+          reportType: 'PRIVILEGE_GRANTS',
+          category: 'Security & Compliance Governance',
+          generatedAt: '2026-09-27T16:45:00.000Z',
+          generatedBy: user.email || 'audit.user@claaps.com',
+          status: 'COMPLETED',
+          format: 'CSV',
+          sizeBytes: 524288,
+          downloadUrl: '/api/reports/role-hierarchy'
+        },
+        {
+          reportId: 'rep_cert_stat_005',
+          reportName: 'Q3 Access Certification Review Status',
+          reportType: 'COMPLIANCE_CERTIFICATION',
+          category: 'Security & Compliance Governance',
+          generatedAt: '2026-09-26T11:20:00.000Z',
+          generatedBy: user.email || 'audit.user@claaps.com',
+          status: 'COMPLETED',
+          format: 'PDF',
+          sizeBytes: 1258291,
+          downloadUrl: '/api/reports/user-access'
+        }
+      ];
+    }
 
     const reportExecutionTrend = [
       { date: '2026-09-24', count: 4, completed: 4, failed: 0 },

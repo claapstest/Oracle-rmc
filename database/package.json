@@ -15,7 +15,8 @@
     "test:story10": "tsx src/tests/verify_story_010_audit.ts",
     "test:story13": "tsx src/tests/verify_story_013_dashboard_db.ts",
     "test:audit-supervisor-db": "tsx src/tests/verify_story_audit_supervisor_db.ts",
-    "test": "tsx src/tests/verify_story_008_rbac.ts && tsx src/tests/verify_story_009_session.ts && tsx src/tests/verify_story_010_audit.ts && tsx src/tests/verify_story_013_dashboard_db.ts && tsx src/tests/verify_story_audit_supervisor_db.ts"
+    "test:story19": "tsx src/tests/verify_story_019_reports_db.ts",
+    "test": "tsx src/tests/verify_story_008_rbac.ts && tsx src/tests/verify_story_009_session.ts && tsx src/tests/verify_story_010_audit.ts && tsx src/tests/verify_story_013_dashboard_db.ts && tsx src/tests/verify_story_audit_supervisor_db.ts && tsx src/tests/verify_story_019_reports_db.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

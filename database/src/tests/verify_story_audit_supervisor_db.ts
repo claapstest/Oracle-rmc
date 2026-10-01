@@ -279,8 +279,13 @@ async function runVerification() {
     // -------------------------------------------------------------------------
     console.log('\n--- Section 7: Migration Reversibility ---');
     try {
-      // Revert migration 4 (down 1)
-      execSync('npx node-pg-migrate down 1', {
+      // Determine how many migrations need to be rolled back to test migration 4 reversibility
+      const currentMigRes = await pool.query('SELECT name FROM pgmigrations ORDER BY id DESC');
+      const migNames = currentMigRes.rows.map(r => r.name);
+      const mig4Index = migNames.indexOf('1711000000004_create_audit_supervisor_dashboard_indexes');
+      const rollbackCount = mig4Index >= 0 ? mig4Index + 1 : 1;
+
+      execSync(`npx node-pg-migrate down ${rollbackCount}`, {
         cwd: path.resolve(__dirname, '../..'),
         stdio: 'pipe'
       });

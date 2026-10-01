@@ -12,6 +12,7 @@ import { commandCenterService } from '../services/commandCenterService.js';
 import { userAccessReportService } from '../services/userAccessReportService.js';
 import { auditDashboardService } from '../services/auditDashboardService.js';
 import { supervisorDashboardDbService } from '../services/supervisorDashboardDbService.js';
+import { reportDbService } from '../services/reportDbService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1096,6 +1097,108 @@ apiRouter.get('/reports/dashboard', requireReportsDashboard, handleReportsDashbo
 
 // GET /api/reports/metrics - Reports Metrics Summary Endpoint (AC3)
 apiRouter.get('/reports/metrics', requireReportsDashboard, handleReportsDashboard);
+
+// =========================================================================
+// VY-STRY-19: DB Report Retrieval APIs for Reports-Only User Access (AC1-AC5)
+// =========================================================================
+
+// GET /api/reports/db - Parameterized database retrieval of reports respecting user scope
+apiRouter.get('/reports/db', requireReportsDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const isMock = req.query.isMock === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+    const category = req.query.category as string | undefined;
+    const reportType = req.query.reportType as string | undefined;
+    const status = req.query.status as any;
+    const applicationScope = req.query.applicationScope as string | undefined;
+
+    const result = await reportDbService.queryReports(userContext, {
+      isMock,
+      limit,
+      offset,
+      category,
+      reportType,
+      status,
+      applicationScope
+    });
+
+    logAudit(res.locals.email || 'UNKNOWN', 'REPORT_DB_QUERY', `Queried reports database (scope: ${result.applicationScope}, count: ${result.count})`);
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[Reports DB Query Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query report records.'
+    });
+  }
+});
+
+// GET /api/reports/db/:reportId - Single report lookup with authorization and scope validation
+apiRouter.get('/reports/db/:reportId', requireReportsDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const report = await reportDbService.getReportById(userContext, req.params.reportId);
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        code: 'NOT_FOUND',
+        message: 'Report not found or not accessible within your authorized scope.'
+      });
+    }
+
+    return res.status(200).json({ success: true, report });
+  } catch (err) {
+    console.error('[Report Detail DB Error]:', err);
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to retrieve report record.'
+    });
+  }
+});
+
+// GET /api/dashboard/reports-only/db/reports - Reports-Only Dashboard DB Reports Alias
+apiRouter.get('/dashboard/reports-only/db/reports', requireReportsDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+    const result = await reportDbService.queryReports(userContext, { limit });
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: (err as Error).message || 'Failed to query reports.'
+    });
+  }
+});
 
 // 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
 apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {

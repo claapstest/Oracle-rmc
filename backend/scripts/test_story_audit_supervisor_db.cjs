@@ -63,6 +63,9 @@ async function runTests() {
 
   const distAuth = path.join(__dirname, '../dist/services/authService.js');
   const { authService } = require(distAuth);
+  const distDb = path.join(__dirname, '../dist/db.js');
+  const { query: dbQuery } = require(distDb);
+  await dbQuery("UPDATE veyra_session SET status = 'EXPIRED' WHERE status = 'ACTIVE'").catch(() => {});
   authService._clearActiveSessions();
 
   const distDbService = path.join(__dirname, '../dist/services/supervisorDashboardDbService.js');
@@ -96,10 +99,16 @@ async function runTests() {
     // Setup Test Sessions
     // -------------------------------------------------------------------------
     console.log('--- Step 0: Authenticating Test Personas ---');
-    const supLogin = await makeRequest('POST', '/api/auth/login', {
+    let supLogin = await makeRequest('POST', '/api/auth/login', {
       email: 'supervisor.user@claaps.com',
-      password: 'Password@123'
+      password: 'Supervisor@123'
     });
+    if (supLogin.status !== 200) {
+      supLogin = await makeRequest('POST', '/api/auth/login', {
+        email: 'supervisor.user@claaps.com',
+        password: 'Password@123'
+      });
+    }
     const supervisorToken = supLogin.data.token;
     assert(supLogin.status === 200 && supervisorToken, 'Audit Supervisor logged in successfully');
 
