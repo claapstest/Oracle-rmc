@@ -385,7 +385,12 @@ async function runVerification() {
     console.log('\n--- Section 9: Migration Reversibility ---');
 
     // Rollback migration
-    execSync('npm run migrate:down', { cwd: path.resolve(__dirname, '../..'), stdio: 'pipe' });
+    const currentMigRes = await pool.query('SELECT name FROM pgmigrations ORDER BY id DESC');
+    const migNames = currentMigRes.rows.map(r => r.name);
+    const migIndex = migNames.indexOf('1711000000006_create_site_admin_oracle_environment_tables');
+    const rollbackCount = migIndex >= 0 ? migIndex + 1 : 1;
+
+    execSync(`npx node-pg-migrate down ${rollbackCount}`, { cwd: path.resolve(__dirname, '../..'), stdio: 'pipe' });
 
     const checkDropped = await pool.query(`
       SELECT table_name FROM information_schema.tables
