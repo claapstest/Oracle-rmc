@@ -32,6 +32,17 @@ for (const p of ['dashboard', 'assistant', 'risk', 'reports', 'users', 'roles', 
 // Bare authenticated user keeps dashboard only
 ok(canAccessPage('dashboard', BARE), 'bare dashboard');
 no(canAccessPage('reports', BARE), 'bare reports');
+// Mock 6 — Audit User (reports-only): Dashboard + Reports, nothing else
+const AUDIT_USER = { isAdmin: false, role: 'AUDIT_USER', permissions: ['REPORTS'] };
+for (const p of ['dashboard', 'reports']) {
+  ok(canAccessPage(p, AUDIT_USER), `audit-user ${p}`);
+}
+for (const p of ['assistant', 'risk', 'users', 'roles', 'audit', 'settings', 'command-center']) {
+  no(canAccessPage(p, AUDIT_USER), `audit-user denied ${p}`);
+}
+// Risk group shell needs the group's own privilege (REPORTS-only roles may
+// still open risk-certificates directly, matching backend per-page grants).
+ok(canAccessPage('risk-certificates', AUDIT_USER), 'audit-user certificates page');
 // Unknown pages deny (fail-closed)
 no(canAccessPage('nope', ADMIN), 'unknown page');
 

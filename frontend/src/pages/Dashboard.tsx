@@ -80,6 +80,12 @@ export default function Dashboard({
 }: DashboardProps) {
   // Mock Screen 5 — Audit Supervisor sees a dedicated dashboard (no Ask Veyra anywhere).
   const isSupervisor = (userRole || '').trim().toUpperCase() === 'AUDIT_SUPERVISOR';
+  // Mock Screen 6 — Audit User (reports-only) gets a dedicated dashboard.
+  const isAuditUser = !isSupervisor && (userRole || '').trim().toUpperCase() === 'AUDIT_USER';
+  // AC5 — tiles come only from backend report feeds; null until loaded (never hardcoded).
+  const [auMetrics, setAuMetrics] = useState<{ available: number; records: number; completed: number } | null>(null);
+  const [auLoading, setAuLoading] = useState(false);
+  const [auError, setAuError] = useState('');
   // AC4/AC5 — supervisor KPIs come only from backend /dashboard/metrics; null until loaded (never hardcoded).
   const [supMetrics, setSupMetrics] = useState<any | null>(null);
   const [supLoading, setSupLoading] = useState(false);
@@ -96,7 +102,7 @@ export default function Dashboard({
   const can = (pageId: string) => (hasAccess ? hasAccess(pageId) : true);
 
   useEffect(() => {
-    if (isSupervisor) return; // Supervisor uses the dedicated metrics loader below.
+    if (isSupervisor || isAuditUser) return; // Dedicated branches load their own metrics below.
     let isMounted = true;
     async function loadDashboardData() {
       setLoading(true);
@@ -135,7 +141,53 @@ export default function Dashboard({
 
     loadDashboardData();
     return () => { isMounted = false; };
-  }, [environmentMode, reloadKey, isSupervisor]);
+  }, [environmentMode, reloadKey, isSupervisor, isAuditUser]);
+
+  // Mock Screen 6 data loader: report feeds only (REPORTS privilege), AC5/AC7.
+  useEffect(() => {
+    if (!isAuditUser) return;
+    let isMounted = true;
+    async function loadAuditUserMetrics() {
+      setAuLoading(true);
+      setAuError('');
+      try {
+        const results = await Promise.allSettled([
+          api.getRoleHierarchyReport(),
+          api.getUserAccessReport(),
+          api.getAccessCertifications()
+        ]);
+        if (!isMounted) return;
+        let feeds = 0;
+        let records = 0;
+        let completed = 0;
+        for (const r of results) {
+          if (r.status !== 'fulfilled' || !r.value) continue;
+          const raw = (r.value as any).data ?? (r.value as any).items ?? (r.value as any).rows;
+          if (!Array.isArray(raw)) continue;
+          feeds += 1;
+          records += raw.length;
+          for (const row of raw) {
+            const s = String((row as any)?.status || '').toLowerCase();
+            if (s.includes('complet') || s.includes('closed')) completed += 1;
+          }
+        }
+        if (feeds === 0) {
+          setAuMetrics(null);
+          setAuError('Report data is unavailable. The backend could not retrieve live reports.');
+        } else {
+          setAuMetrics({ available: feeds, records, completed });
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        setAuMetrics(null);
+        setAuError((err && err.message) || 'Could not establish connection to the backend service.');
+      } finally {
+        if (isMounted) setAuLoading(false);
+      }
+    }
+    loadAuditUserMetrics();
+    return () => { isMounted = false; };
+  }, [isAuditUser, environmentMode, reloadKey]);
 
   // Mock Screen 5 data loader: backend only, with loading + error states (AC5/AC6/AC7).
   useEffect(() => {
@@ -316,6 +368,109 @@ export default function Dashboard({
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // Mock Screen 6 — Audit User reports-only dashboard (AC1-AC7).
+  if (isAuditUser) {
+    const auTile = (v: number) => (typeof v === 'number' ? v.toLocaleString() : '—');
+    if (auLoading && !auMetrics) {
+      return (
+        <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', margin: '0 auto' }}>
+          <div style={{ height: '44px', width: '320px', marginBottom: '0.6rem' }} className="skeleton" />
+          <div style={{ height: '20px', width: '260px', marginBottom: '1.5rem' }} className="skeleton" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ height: '100px', borderRadius: '12px' }} className="skeleton" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (!auMetrics) {
+      return (
+        <div style={{ padding: '2rem', maxWidth: '720px', margin: '2rem auto' }}>
+          <div className="glass-panel" role="alert" style={{ padding: '2.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
+            <p style={{ color: 'var(--accent-red)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+              Couldn&apos;t load report metrics.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>
+              {auError || 'The backend service is unreachable. Check your connection and try again.'}
+            </p>
+            <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.75rem' }} onClick={() => setReloadKey((k) => k + 1)}>
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+        <div style={{ marginBottom: '0.2rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', fontFamily: "'Outfit', 'Inter', sans-serif", margin: 0, letterSpacing: '-0.025em' }}>
+            Welcome back, {getFirstName(currentUser)}!
+          </h1>
+          <p style={{ color: '#64748B', fontSize: '0.95rem', margin: '0.35rem 0 0 0', fontWeight: 500 }}>
+            Access and download audit reports.
+          </p>
+        </div>
+
+        <div className="overview-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="glass-panel stat-card" style={{ padding: '1.35rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stat-title">Available Reports</div>
+                <div className="stat-value">{auTile(auMetrics.available)}</div>
+                <div className="stat-subtitle">Live report feeds reachable</div>
+              </div>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#FFFBEB', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FileText size={22} />
+              </div>
+            </div>
+          </div>
+          <div className="glass-panel stat-card" style={{ padding: '1.35rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stat-title">Report Records</div>
+                <div className="stat-value">{auTile(auMetrics.records)}</div>
+                <div className="stat-subtitle">Rows across report feeds</div>
+              </div>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Activity size={22} />
+              </div>
+            </div>
+          </div>
+          <div className="glass-panel stat-card" style={{ padding: '1.35rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stat-title">Completed Reports</div>
+                <div className="stat-value">{auTile(auMetrics.completed)}</div>
+                <div className="stat-subtitle">Completed or closed items</div>
+              </div>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CheckCircle2 size={22} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {can('reports') && (
+        <div className="glass-panel stat-card" onClick={() => onNavigatePage?.('reports')} style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View reports">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="stat-title" style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Reports</div>
+              <div className="stat-subtitle">View, filter and download audit reports</div>
+            </div>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#F0FDF4', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FileText size={22} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+            <ArrowRight size={16} style={{ color: 'var(--accent-blue)' }} />
+          </div>
+        </div>
+        )}
       </div>
     );
   }

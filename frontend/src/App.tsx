@@ -604,8 +604,10 @@ export default function App() {
   RISK_CHILDREN.forEach(c => pageLabelMap.set(c.id, c.label));
 
   const authCtx: AuthContext = { isAdmin, role: userRole, permissions: userPermissions };
-  // Risk group shows when any of its children is authorized (AC3).
-  const riskVisible = RISK_CHILDREN.some((c) => canAccessPage(c.id, authCtx));
+  // Risk group shows when the group itself is authorized and any child is reachable (AC3).
+  const riskVisible =
+    canAccessPage('risk', authCtx) &&
+    RISK_CHILDREN.some((c) => canAccessPage(c.id, authCtx));
   // AC6 — denied manual/URL navigation renders access-denied, never protected data.
   const isDeniedPage = isLoggedIn && authChecked && !canAccessPage(currentPage, authCtx);
 
