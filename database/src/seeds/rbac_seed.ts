@@ -263,7 +263,7 @@ export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
          ON CONFLICT (email) DO UPDATE SET
            display_name = EXCLUDED.display_name,
            status = EXCLUDED.status,
-           password_hash = COALESCE(veyra_user.password_hash, EXCLUDED.password_hash)
+           password_hash = COALESCE(EXCLUDED.password_hash, veyra_user.password_hash)
          RETURNING id`,
         [pEmail, persona.display_name, persona.status, persona.password_hash, persona.created_by]
       );
