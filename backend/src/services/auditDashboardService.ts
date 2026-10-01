@@ -120,6 +120,65 @@ export interface UserScopeInfo {
   features?: SupervisorFeatures;
 }
 
+export interface ReportCategoryItem {
+  category: string;
+  count: number;
+  description: string;
+  reports: string[];
+}
+
+export interface RecentReportExecution {
+  reportId: string;
+  reportName: string;
+  reportType: string;
+  category: string;
+  generatedAt: string;
+  generatedBy: string;
+  status: 'COMPLETED' | 'PROCESSING' | 'READY' | 'ARCHIVED';
+  format: 'PDF' | 'EXCEL' | 'CSV' | 'JSON';
+  sizeBytes?: number;
+  downloadUrl: string;
+}
+
+export interface ReportsDashboardData {
+  reportsGenerated: number;
+  reportsAvailable: number;
+  reportsScheduled: number;
+  activeReportTypes: number;
+  categories: ReportCategoryItem[];
+  recentReports: RecentReportExecution[];
+  reportExecutionTrend: Array<{
+    date: string;
+    count: number;
+    completed: number;
+    failed: number;
+  }>;
+  availableReportTemplates: Array<{
+    templateId: string;
+    title: string;
+    category: string;
+    description: string;
+    defaultFormat: string;
+    parameters: string[];
+  }>;
+  systemHealth: {
+    status: 'HEALTHY' | 'WARNING' | 'DEGRADED';
+    environmentMode: string;
+    reportingEngine: 'ACTIVE' | 'STANDBY';
+    lastSyncTime: string;
+  };
+  userScope: UserScopeInfo;
+}
+
+export interface ScopedReportsDashboardResponse {
+  success: boolean;
+  reportsGenerated: number;
+  reportsAvailable: number;
+  reportsScheduled: number;
+  data: ReportsDashboardData;
+  userScope: UserScopeInfo;
+}
+
 export interface ScopedDashboardResponse {
   success: boolean;
   activeRisks: number;
@@ -612,6 +671,205 @@ class AuditDashboardService {
         ...baseResponse.data,
         userScope
       },
+      userScope
+    };
+  }
+
+  /**
+   * Generates reports-only dashboard payload specifically for Audit User role (VY-STRY-18).
+   * Enforces AC3 & AC4: Returns ONLY report-related metrics; strictly omits risk, user-management,
+   * audit trail stream, and administrative data.
+   */
+  public async getReportsDashboardData(user: UserScopeContext, forceRefresh = false): Promise<ScopedReportsDashboardResponse> {
+    const rawMetrics = await this.getRawMetrics(forceRefresh);
+    const userRole = (user.role || '').toUpperCase();
+    const isReportsOnly = userRole === 'AUDIT_USER';
+
+    const userScope: UserScopeInfo = {
+      userId: user.userId || 'usr_audit_user',
+      email: user.email || 'audit.user@claaps.com',
+      displayName: user.displayName || 'Audit User',
+      role: user.role || 'AUDIT_USER',
+      scopeLevel: isReportsOnly ? 'REPORTS_USER' : 'REPORTS_OPERATIONS',
+      authorizedModules: ['DASHBOARD', 'REPORTS'], // Strictly Reports and Dashboard only (AC4)
+      hasFullAccess: false,
+      hasAskVeyraAccess: false,
+      features: {
+        askVeyra: false,
+        userManagement: false,
+        rolesCatalog: false,
+        auditTrail: false,
+        riskManagement: false,
+        reports: true, // Only Reports allowed (AC4)
+        oracleIntegration: false,
+        apiConsole: false
+      }
+    };
+
+    const categories: ReportCategoryItem[] = [
+      {
+        category: 'Role Hierarchy & Inheritance',
+        count: 4,
+        description: 'Comprehensive role trees, duty hierarchy, and privilege inheritance reports.',
+        reports: ['Role Hierarchy Report', 'Privilege Inheritance Map', 'Duty Role Entitlements', 'Abstract Role Summary']
+      },
+      {
+        category: 'User Access & Entitlements',
+        count: 3,
+        description: 'User-to-role assignment reviews, superuser access lists, and active entitlement audits.',
+        reports: ['User Access Review (UAR)', 'Privileged User Assignments', 'Orphaned Account Audit']
+      },
+      {
+        category: 'Segregation of Duties (SoD)',
+        count: 2,
+        description: 'Toxic role combination detection and cross-functional access conflict analysis.',
+        reports: ['SoD Conflict Analysis Report', 'High-Risk Role Combinations']
+      },
+      {
+        category: 'Security & Compliance Governance',
+        count: 3,
+        description: 'Periodic access certifications, audit trail extracts, and compliance governance reviews.',
+        reports: ['Periodic Access Certification Summary', 'Role Modifications Audit Extract', 'Compliance Sign-off Report']
+      }
+    ];
+
+    const recentReports: RecentReportExecution[] = [
+      {
+        reportId: 'rep_role_hier_001',
+        reportName: 'Role Hierarchy Deep-Dive Report',
+        reportType: 'ROLE_HIERARCHY',
+        category: 'Role Hierarchy & Inheritance',
+        generatedAt: '2026-09-30T10:15:00.000Z',
+        generatedBy: user.email || 'audit.user@claaps.com',
+        status: 'COMPLETED',
+        format: 'PDF',
+        sizeBytes: 2457600,
+        downloadUrl: '/api/reports/role-hierarchy'
+      },
+      {
+        reportId: 'rep_user_acc_002',
+        reportName: 'User Access & Entitlements Audit',
+        reportType: 'USER_ACCESS',
+        category: 'User Access & Entitlements',
+        generatedAt: '2026-09-29T14:30:00.000Z',
+        generatedBy: user.email || 'audit.user@claaps.com',
+        status: 'COMPLETED',
+        format: 'EXCEL',
+        sizeBytes: 1843200,
+        downloadUrl: '/api/reports/user-access'
+      },
+      {
+        reportId: 'rep_sod_conf_003',
+        reportName: 'Segregation of Duties (SoD) Conflict Summary',
+        reportType: 'SOD_CONFLICTS',
+        category: 'Segregation of Duties (SoD)',
+        generatedAt: '2026-09-28T09:00:00.000Z',
+        generatedBy: 'system_scheduler',
+        status: 'READY',
+        format: 'PDF',
+        sizeBytes: 983040,
+        downloadUrl: '/api/reports/role-hierarchy'
+      },
+      {
+        reportId: 'rep_priv_grant_004',
+        reportName: 'Security Privilege Assignment Matrix',
+        reportType: 'PRIVILEGE_GRANTS',
+        category: 'Security & Compliance Governance',
+        generatedAt: '2026-09-27T16:45:00.000Z',
+        generatedBy: user.email || 'audit.user@claaps.com',
+        status: 'COMPLETED',
+        format: 'CSV',
+        sizeBytes: 524288,
+        downloadUrl: '/api/reports/role-hierarchy'
+      },
+      {
+        reportId: 'rep_cert_stat_005',
+        reportName: 'Q3 Access Certification Review Status',
+        reportType: 'COMPLIANCE_CERTIFICATION',
+        category: 'Security & Compliance Governance',
+        generatedAt: '2026-09-26T11:20:00.000Z',
+        generatedBy: user.email || 'audit.user@claaps.com',
+        status: 'COMPLETED',
+        format: 'PDF',
+        sizeBytes: 1258291,
+        downloadUrl: '/api/reports/user-access'
+      }
+    ];
+
+    const reportExecutionTrend = [
+      { date: '2026-09-24', count: 4, completed: 4, failed: 0 },
+      { date: '2026-09-25', count: 6, completed: 6, failed: 0 },
+      { date: '2026-09-26', count: 5, completed: 5, failed: 0 },
+      { date: '2026-09-27', count: 8, completed: 7, failed: 1 },
+      { date: '2026-09-28', count: 7, completed: 7, failed: 0 },
+      { date: '2026-09-29', count: 9, completed: 9, failed: 0 },
+      { date: '2026-09-30', count: 5, completed: 5, failed: 0 }
+    ];
+
+    const availableReportTemplates = [
+      {
+        templateId: 'tmpl_role_hierarchy',
+        title: 'Enterprise Role Hierarchy',
+        category: 'Role Hierarchy & Inheritance',
+        description: 'Extracts full parent-child hierarchy trees with inherited duty roles and privileges.',
+        defaultFormat: 'PDF',
+        parameters: ['roleName', 'includeInherited', 'depth']
+      },
+      {
+        templateId: 'tmpl_user_access',
+        title: 'User Access & Entitlements',
+        category: 'User Access & Entitlements',
+        description: 'Lists all users with their assigned job roles, duty entitlements, and status.',
+        defaultFormat: 'EXCEL',
+        parameters: ['department', 'status', 'roleCategory']
+      },
+      {
+        templateId: 'tmpl_sod_analysis',
+        title: 'SoD Cross-Role Analysis',
+        category: 'Segregation of Duties (SoD)',
+        description: 'Identifies conflicting business role pairings violating compliance policies.',
+        defaultFormat: 'PDF',
+        parameters: ['severityLevel', 'policyId']
+      },
+      {
+        templateId: 'tmpl_cert_status',
+        title: 'Access Certification Status',
+        category: 'Security & Compliance Governance',
+        description: 'Summary of completed and pending manager access reviews.',
+        defaultFormat: 'PDF',
+        parameters: ['campaignId', 'reviewPeriod']
+      }
+    ];
+
+    const reportsGenerated = rawMetrics.reportsGenerated || 5;
+    const reportsAvailable = 12;
+    const reportsScheduled = 4;
+    const activeReportTypes = 8;
+
+    const data: ReportsDashboardData = {
+      reportsGenerated,
+      reportsAvailable,
+      reportsScheduled,
+      activeReportTypes,
+      categories,
+      recentReports,
+      reportExecutionTrend,
+      availableReportTemplates,
+      systemHealth: {
+        status: 'HEALTHY',
+        environmentMode: config.environmentMode || 'ORACLE_FUSION',
+        reportingEngine: 'ACTIVE',
+        lastSyncTime: new Date().toISOString()
+      },
+      userScope
+    };
+
+    return {
+      success: true,
+      reportsGenerated,
+      reportsAvailable,
+      reportsScheduled,
+      data,
       userScope
     };
   }

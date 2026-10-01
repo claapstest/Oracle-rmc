@@ -251,6 +251,34 @@ export function requireAuditSupervisorDashboard(req: Request, res: Response, nex
   });
 }
 
+// Middleware to enforce Reports-Only Dashboard authorization (VY-STRY-18: AC1, AC2, AC5, AC6)
+export function requireReportsDashboard(req: Request, res: Response, next: () => void) {
+  requireAuth(req, res, () => {
+    const userRole = (res.locals.role || '').toUpperCase();
+    const userPermissions: string[] = res.locals.permissions || [];
+    const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
+
+    // Site Admin, Audit Manager, Audit Supervisor, Audit User, or any role holding REPORTS privilege
+    if (isAdmin || userRole === 'AUDIT_USER' || userRole === 'AUDIT_SUPERVISOR' || userRole === 'AUDIT_MANAGER') {
+      return next();
+    }
+
+    const hasReportsPrivilege = userPermissions.some(p =>
+      ['REPORTS', 'REPORTS_READ', 'REPORTS_MANAGE', 'ALL'].includes(p.toUpperCase())
+    );
+
+    if (hasReportsPrivilege) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. Reports dashboard privileges required.'
+    });
+  });
+}
+
 // --- Authentication Endpoints ---
 
 // POST /auth/login - VEYRA User Sign In (AC1-AC8)
@@ -1021,6 +1049,53 @@ apiRouter.get('/dashboard/audit-supervisor/db/audit-events', requireAuditSupervi
     });
   }
 });
+
+// =========================================================================
+// VY-STRY-18: Reports-Only Dashboard APIs (AC1 — AC7)
+// =========================================================================
+
+async function handleReportsDashboard(req: Request, res: Response) {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await auditDashboardService.getReportsDashboardData(userContext, forceRefresh);
+
+    // AC7: Access should be auditable
+    logAudit(res.locals.email || 'UNKNOWN', 'DASHBOARD_ACCESS', `Accessed Reports-Only dashboard (role: ${res.locals.role || 'Unknown'})`);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[Reports Dashboard Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: (err as Error).message || 'Failed to retrieve Reports dashboard data.'
+    });
+  }
+}
+
+// GET /api/dashboard/reports-only - Primary Reports-Only Dashboard Endpoint (AC1-AC7)
+apiRouter.get('/dashboard/reports-only', requireReportsDashboard, handleReportsDashboard);
+
+// GET /api/dashboard/audit-user - Dedicated Audit User Dashboard Endpoint (AC1-AC7)
+apiRouter.get('/dashboard/audit-user', requireReportsDashboard, handleReportsDashboard);
+
+// GET /api/audit-user/dashboard - Audit User Dashboard Alias
+apiRouter.get('/audit-user/dashboard', requireReportsDashboard, handleReportsDashboard);
+
+// GET /api/reports/dashboard - Reports Dashboard Alias
+apiRouter.get('/reports/dashboard', requireReportsDashboard, handleReportsDashboard);
+
+// GET /api/reports/metrics - Reports Metrics Summary Endpoint (AC3)
+apiRouter.get('/reports/metrics', requireReportsDashboard, handleReportsDashboard);
 
 // 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
 apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {
