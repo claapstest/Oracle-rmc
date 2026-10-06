@@ -292,11 +292,21 @@ async function runTests() {
     assert(newLogin.status === 200 && newLogin.body?.token, 'AC11: New user can log in with established bcrypt-hashed password');
 
     // -------------------------------------------------------------
-    // AC12: Future Entra Compatibility
+    // AC12: Future Entra Compatibility & DB Failure Truthful Response Safety
     // -------------------------------------------------------------
-    console.log('\n--- AC12: Future Entra Compatibility ---');
+    console.log('\n--- AC12: Future Entra Compatibility & Failure Path Truthfulness ---');
     assert(createdUserDetail.body?.user?.userId !== undefined, 'AC12: User ID cleanly separated from email/identity');
     assert(createdUserDetail.body?.user?.roles?.includes('AUDIT_SUPERVISOR'), 'AC12: Role mappings decoupled from auth provider');
+
+    // Bug Fix Verification: Never return success: true with user: null
+    const resultWhenUserNull = await authService.createUser({
+      email: 'invalid.nonpersisted@veyra.local',
+      displayName: 'Non Persisted User',
+      role: 'INVALID_ROLE_TEST'
+    });
+    assert(resultWhenUserNull.success === false, 'Bug Fix: Returns success: false when role or creation is invalid');
+    assert(resultWhenUserNull.user === undefined || resultWhenUserNull.user === null, 'Bug Fix: Does not return populated user on failure');
+    assert(resultWhenUserNull.code !== undefined, 'Bug Fix: Error code is populated on failure');
 
     console.log('\n================================================================');
     console.log(`  Verification Summary: ${testsPassed} passed, ${testsFailed} failed`);

@@ -1068,6 +1068,7 @@ export default function App() {
             <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
               <ReportsPage
                 environmentMode={environmentMode}
+                canGenerate={isAdmin || userPermissions.map((p) => String(p).toUpperCase()).includes('ALL')}
                 onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
                 onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
               />

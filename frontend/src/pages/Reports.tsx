@@ -35,10 +35,12 @@ import {
 import { api } from '../services/api';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { ReportSelectorDropdown } from '../components/ReportSelectorDropdown';
+import ReportsList from '../components/ReportsList';
 import { formatControlTypeName, isAccessControl, isTransactionControl } from '../utils/controlTypeMapping';
 
 interface ReportsProps {
   environmentMode?: string;
+  canGenerate?: boolean;
   onInvestigateUser?: (userId: string, displayName: string) => void;
   onInspectRole?: (roleCode: string, displayName: string) => void;
 }
@@ -140,7 +142,7 @@ const REPORT_SELECTOR_NAMES: Record<ReportId, string> = {
   AUDIT_HISTORY: 'Audit History Report'
 };
 
-export default function Reports({ environmentMode = 'DEMO', onInvestigateUser, onInspectRole }: ReportsProps) {
+export default function Reports({ environmentMode = 'DEMO', canGenerate = false, onInvestigateUser, onInspectRole }: ReportsProps) {
   // Active Report Selection - intentionally null until the user picks a report
   const [activeReportId, setActiveReportId] = useState<ReportId | null>(() => {
     try {
@@ -3057,6 +3059,8 @@ export default function Reports({ environmentMode = 'DEMO', onInvestigateUser, o
 
       </div>
       ) : (
+      <div>
+        <ReportsList canGenerate={canGenerate} />
       <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
         <h2 style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-header)', color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
           Enterprise Reporting
@@ -3064,6 +3068,7 @@ export default function Reports({ environmentMode = 'DEMO', onInvestigateUser, o
         <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
           A unified workspace for reviewing security, access, audit, and risk intelligence across your Oracle Fusion environment.
         </p>
+      </div>
       </div>
       )}
 
