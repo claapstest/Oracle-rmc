@@ -1522,21 +1522,21 @@ apiRouter.get('/users/:id', requireUsersListAccess, async (req: Request, res: Re
   }
 });
 
-// POST /api/users - Create new user (AC1, AC2, AC9, AC10: Site Admin only)
+// POST /api/users - Create new user (AC1 - AC12: Site Admin only)
 apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { email, displayName, role, password, status } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, code: 'INVALID_INPUT', message: 'Email is required.' });
-    }
+    const { email, displayName, name, role, password, status, applicationAccess, access, sendInvitation, permissions } = req.body || {};
 
     const result = await authService.createUser({
       email,
-      displayName,
+      displayName: displayName || name,
       role,
       password,
       status,
-      createdBy: res.locals.email
+      applicationAccess: applicationAccess || access,
+      createdBy: res.locals.email,
+      sendInvitation,
+      permissions
     });
 
     if (!result.success) {
