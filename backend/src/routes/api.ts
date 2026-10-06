@@ -1139,10 +1139,143 @@ apiRouter.get('/reports/dashboard', requireReportsDashboard, handleReportsDashbo
 apiRouter.get('/reports/metrics', requireReportsDashboard, handleReportsDashboard);
 
 // =========================================================================
-// VY-STRY-19: DB Report Retrieval APIs for Reports-Only User Access (AC1-AC5)
+// VY-STRY-19 & VY-STRY-30: VEYRA Reports Management, Retrieval, Generation & Download APIs (AC1 — AC11)
 // =========================================================================
 
-// GET /api/reports/db - Parameterized database retrieval of reports respecting user scope
+// GET /api/reports - Retrieve, Search, Filter & Paginate Reports (AC1-AC7, AC11)
+apiRouter.get('/reports', requireReportsDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt((req.query.pageSize || req.query.limit) as string, 10) || 20, 1), 100);
+    const offset = req.query.offset !== undefined ? Math.max(parseInt(req.query.offset as string, 10) || 0, 0) : undefined;
+    const category = (req.query.category as string)?.trim();
+    const search = ((req.query.search || req.query.q || req.query.searchTerm || req.query.query || req.query.term) as string)?.trim();
+    const startDate = (req.query.startDate || req.query.from || req.query.createdAfter) as string;
+    const endDate = (req.query.endDate || req.query.to || req.query.createdBefore) as string;
+    const rangeDays = req.query.rangeDays ? parseInt(req.query.rangeDays as string, 10) : undefined;
+    const reportType = (req.query.reportType || req.query.type) as string;
+    const status = req.query.status as any;
+    const applicationScope = req.query.applicationScope as string;
+    const isMock = req.query.isMock === 'true';
+
+    const result = await reportDbService.queryReports(userContext, {
+      page,
+      pageSize,
+      limit: pageSize,
+      offset,
+      category,
+      search,
+      startDate,
+      endDate,
+      rangeDays,
+      reportType,
+      status,
+      applicationScope,
+      isMock
+    });
+
+    logAudit(
+      res.locals.email || 'UNKNOWN',
+      'REPORT_QUERY',
+      `Queried reports (scope: ${result.applicationScope}, count: ${result.count}, total: ${result.total}, search: "${search || ''}")`
+    );
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    console.error('[Reports Query Error]:', err);
+    const statusCode = err.code === 'FORBIDDEN' || err.message?.includes('denied') ? 403 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      code: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'Failed to query reports.'
+    });
+  }
+});
+
+// POST /api/reports - Generate a new Report (AC1, AC2, AC3, AC8, AC10, AC11)
+apiRouter.post('/reports', requireReportsDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const { reportType, type, reportName, category, format, parameters, params, filters, applicationScope, scopeType } = req.body || {};
+    const targetType = reportType || type;
+
+    // Validation (AC8, AC11)
+    if (!targetType || typeof targetType !== 'string' || !targetType.trim()) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_PARAMETERS',
+        message: 'Report type is required.'
+      });
+    }
+
+    const targetParams = parameters !== undefined ? parameters : params !== undefined ? params : filters;
+    if (targetParams !== undefined && (typeof targetParams !== 'object' || Array.isArray(targetParams) || targetParams === null)) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_PARAMETERS',
+        message: 'Parameters must be a valid key-value object.'
+      });
+    }
+
+    if (format && !['PDF', 'EXCEL', 'CSV', 'JSON'].includes(format.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_PARAMETERS',
+        message: `Invalid report format '${format}'. Supported formats: PDF, EXCEL, CSV, JSON.`
+      });
+    }
+
+    const report = await reportDbService.generateReport(userContext, {
+      reportType: targetType.trim(),
+      reportName: reportName?.trim(),
+      category: category?.trim(),
+      format: format?.toUpperCase(),
+      parameters: targetParams,
+      applicationScope: applicationScope?.trim(),
+      scopeType
+    });
+
+    // AC10: Audit Log Report Generation
+    logAudit(
+      res.locals.email || 'UNKNOWN',
+      'REPORT_GENERATION',
+      `Generated report ${report.reportId} of type ${report.reportType} (scope: ${report.applicationScope})`
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Report generated successfully.',
+      report
+    });
+  } catch (err: any) {
+    console.error('[Report Generation Error]:', err);
+    const status = err.code === 'INVALID_PARAMETERS' ? 400 : err.code === 'FORBIDDEN' ? 403 : 500;
+    return res.status(status).json({
+      success: false,
+      code: err.code || 'GENERATION_FAILED',
+      message: err.message || 'Failed to generate report.'
+    });
+  }
+});
+
+// GET /api/reports/db - Parameterized database retrieval of reports respecting user scope (STRY-19 alias)
 apiRouter.get('/reports/db', requireReportsDashboard, async (req: Request, res: Response) => {
   try {
     const userContext = {
@@ -1174,17 +1307,17 @@ apiRouter.get('/reports/db', requireReportsDashboard, async (req: Request, res: 
 
     logAudit(res.locals.email || 'UNKNOWN', 'REPORT_DB_QUERY', `Queried reports database (scope: ${result.applicationScope}, count: ${result.count})`);
     return res.status(200).json(result);
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Reports DB Query Error]:', err);
-    return res.status(403).json({
+    return res.status(err.code === 'FORBIDDEN' ? 403 : 500).json({
       success: false,
-      code: 'FORBIDDEN',
-      message: (err as Error).message || 'Failed to query report records.'
+      code: err.code || 'FORBIDDEN',
+      message: err.message || 'Failed to query report records.'
     });
   }
 });
 
-// GET /api/reports/db/:reportId - Single report lookup with authorization and scope validation
+// GET /api/reports/db/:reportId - Single report lookup with authorization and scope validation (STRY-19 alias)
 apiRouter.get('/reports/db/:reportId', requireReportsDashboard, async (req: Request, res: Response) => {
   try {
     const userContext = {
@@ -1206,12 +1339,12 @@ apiRouter.get('/reports/db/:reportId', requireReportsDashboard, async (req: Requ
     }
 
     return res.status(200).json({ success: true, report });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Report Detail DB Error]:', err);
-    return res.status(403).json({
+    return res.status(err.code === 'FORBIDDEN' ? 403 : 500).json({
       success: false,
-      code: 'FORBIDDEN',
-      message: (err as Error).message || 'Failed to retrieve report record.'
+      code: err.code || 'FORBIDDEN',
+      message: err.message || 'Failed to retrieve report record.'
     });
   }
 });
@@ -1231,11 +1364,105 @@ apiRouter.get('/dashboard/reports-only/db/reports', requireReportsDashboard, asy
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
     const result = await reportDbService.queryReports(userContext, { limit });
     return res.status(200).json(result);
-  } catch (err) {
-    return res.status(403).json({
+  } catch (err: any) {
+    return res.status(err.code === 'FORBIDDEN' ? 403 : 500).json({
       success: false,
-      code: 'FORBIDDEN',
-      message: (err as Error).message || 'Failed to query reports.'
+      code: err.code || 'FORBIDDEN',
+      message: err.message || 'Failed to query reports.'
+    });
+  }
+});
+
+// GET /api/reports/:id/download - Download Report Content (AC1, AC2, AC3, AC9, AC10, AC11)
+apiRouter.get('/reports/:id/download', requireReportsDashboard, async (req: Request, res: Response) => {
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const reportId = req.params.id;
+    const requestedFormat = (req.query.format as string)?.toUpperCase();
+    const asJson = req.query.json === 'true' || req.query.asJson === 'true';
+
+    const download = await reportDbService.getReportDownload(userContext, reportId, requestedFormat);
+
+    // AC10: Audit Log Report Download
+    logAudit(
+      res.locals.email || 'UNKNOWN',
+      'REPORT_DOWNLOAD',
+      `Downloaded report ${download.report.reportId} (${download.format})`
+    );
+
+    if (asJson) {
+      return res.status(200).json({
+        success: true,
+        reportId: download.report.reportId,
+        reportName: download.report.reportName,
+        format: download.format,
+        filename: download.filename,
+        sizeBytes: download.sizeBytes,
+        contentType: download.contentType,
+        downloadUrl: download.report.downloadUrl,
+        content: download.content
+      });
+    }
+
+    res.setHeader('Content-Type', download.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${download.filename}"`);
+    res.setHeader('Content-Length', download.sizeBytes);
+    return res.status(200).send(download.content);
+  } catch (err: any) {
+    console.error('[Report Download Error]:', err);
+    const statusCode = err.code === 'NOT_FOUND' ? 404 : err.code === 'FORBIDDEN' ? 403 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      code: err.code || 'DOWNLOAD_FAILED',
+      message: err.message || 'Failed to download report.'
+    });
+  }
+});
+
+// GET /api/reports/:id - Retrieve a Single Report Record (AC1, AC2, AC3, AC11)
+apiRouter.get('/reports/:id', requireReportsDashboard, async (req: Request, res: Response, next: () => void) => {
+  const reportId = req.params.id;
+  // If id is a reserved keyword for other routes, pass through
+  if (['dashboard', 'metrics', 'db', 'user-access', 'role-hierarchy'].includes(reportId)) {
+    return next();
+  }
+
+  try {
+    const userContext = {
+      userId: res.locals.userId,
+      email: res.locals.email,
+      displayName: res.locals.displayName,
+      role: res.locals.role,
+      permissions: res.locals.permissions,
+      isAdmin: res.locals.isAdmin
+    };
+
+    const report = await reportDbService.getReportById(userContext, reportId);
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        code: 'NOT_FOUND',
+        message: 'Report not found or not accessible within your authorized scope.'
+      });
+    }
+
+    logAudit(res.locals.email || 'UNKNOWN', 'REPORT_VIEW', `Viewed report details for ${report.reportId}`);
+    return res.status(200).json({ success: true, report });
+  } catch (err: any) {
+    console.error('[Report Detail Error]:', err);
+    const statusCode = err.code === 'NOT_FOUND' ? 404 : err.code === 'FORBIDDEN' ? 403 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      code: err.code || 'RETRIEVAL_FAILED',
+      message: err.message || 'Failed to retrieve report.'
     });
   }
 });
@@ -1558,7 +1785,15 @@ apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
       if (result.code === 'USER_ALREADY_EXISTS') {
         return res.status(409).json({ success: false, code: result.code, message: result.message });
       }
-      return res.status(400).json({ success: false, code: result.code || 'INVALID_INPUT', message: result.message });
+      const isClientValidationError = [
+        'INVALID_INPUT',
+        'INVALID_EMAIL',
+        'INVALID_EMAIL_FORMAT',
+        'INVALID_ROLE',
+        'INVALID_STATUS'
+      ].includes(result.code || '');
+      const statusCode = isClientValidationError ? 400 : 500;
+      return res.status(statusCode).json({ success: false, code: result.code || 'USER_CREATION_FAILED', message: result.message });
     }
 
     logAudit(res.locals.email, 'ADMIN_CREATE_USER', `Created user ${result.user?.email} with role ${result.user?.role}`);

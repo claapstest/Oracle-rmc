@@ -1824,40 +1824,59 @@ export class AuthService {
         // AC8: Application / Data Scope Association (user -> user_application_scope -> application)
         const appScopes = data.applicationAccess || (data as any).applicationScopes || (data as any).access || [];
         if (Array.isArray(appScopes) && appScopes.length > 0) {
-          for (const item of appScopes) {
-            const appCode = typeof item === 'string' ? item : (item.applicationCode || item.appCode || item.code);
-            if (!appCode) continue;
-            const scopeType = typeof item === 'object' && item.scopeType ? item.scopeType : 'GLOBAL';
-            const scopeValue = typeof item === 'object' && item.scopeValue ? item.scopeValue : 'ALL';
-            const accessLevel = typeof item === 'object' && item.accessLevel ? item.accessLevel : 'READ';
+          try {
+            const tableCheck = await client.query(`
+              SELECT to_regclass('public.veyra_application') as has_app,
+                     to_regclass('public.veyra_user_application_scope') as has_scope
+            `);
+            const hasAppTable = !!tableCheck.rows[0]?.has_app;
+            const hasScopeTable = !!tableCheck.rows[0]?.has_scope;
 
-            const appRes = await client.query(`SELECT id FROM veyra_application WHERE app_code = $1`, [appCode.toUpperCase()]);
-            if (appRes.rows.length > 0) {
-              const appId = appRes.rows[0].id;
-              await client.query(
-                `INSERT INTO veyra_user_application_scope (user_id, application_id, scope_type, scope_value, access_level, granted_by)
-                 VALUES ($1, $2, $3, $4, $5, $6)
-                 ON CONFLICT (user_id, application_id, scope_type, scope_value) DO UPDATE SET
-                   access_level = EXCLUDED.access_level,
-                   status = 'ACTIVE',
-                   updated_at = NOW()`,
-                [dbUserId, appId, scopeType, scopeValue, accessLevel, data.createdBy || 'AUTH_SERVICE']
-              );
+            if (hasAppTable && hasScopeTable) {
+              for (const item of appScopes) {
+                const appCode = typeof item === 'string' ? item : (item.applicationCode || item.appCode || item.code);
+                if (!appCode) continue;
+                const scopeType = typeof item === 'object' && item.scopeType ? item.scopeType : 'GLOBAL';
+                const scopeValue = typeof item === 'object' && item.scopeValue ? item.scopeValue : 'ALL';
+                const accessLevel = typeof item === 'object' && item.accessLevel ? item.accessLevel : 'READ';
+
+                const appRes = await client.query(`SELECT id FROM veyra_application WHERE app_code = $1`, [appCode.toUpperCase()]);
+                if (appRes.rows.length > 0) {
+                  const appId = appRes.rows[0].id;
+                  await client.query(
+                    `INSERT INTO veyra_user_application_scope (user_id, application_id, scope_type, scope_value, access_level, granted_by)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     ON CONFLICT (user_id, application_id, scope_type, scope_value) DO UPDATE SET
+                       access_level = EXCLUDED.access_level,
+                       status = 'ACTIVE',
+                       updated_at = NOW()`,
+                    [dbUserId, appId, scopeType, scopeValue, accessLevel, data.createdBy || 'AUTH_SERVICE']
+                  );
+                }
+              }
             }
+          } catch (scopeCheckErr: any) {
+            console.warn('[Auth Service] Application scope table check skipped:', scopeCheckErr.message || scopeCheckErr);
           }
         }
 
         await client.query('COMMIT');
-      } catch (txErr) {
+      } catch (txErr: any) {
         await client.query('ROLLBACK');
         delete this.users[normalized];
         this.saveUsers();
-        throw txErr;
+        console.error('[Auth Service] User creation database transaction failed:', txErr.message || txErr);
+        return {
+          success: false,
+          code: 'USER_CREATION_FAILED',
+          message: txErr.message || 'Failed to create user in database.'
+        };
       } finally {
         client.release();
       }
     } catch (dbErr: any) {
       // In standalone or test environments without active PostgreSQL, in-memory store acts as authoritative
+      console.warn('[Auth Service] PostgreSQL connection notice:', dbErr.message || dbErr);
     }
 
     // AC10: Record audit events for User Creation and Role Assignment
@@ -1899,12 +1918,19 @@ export class AuthService {
 
     // AC11: Sanitize response: passwords/hashes/tokens/secrets are never returned
     const safeUser = await this.getUserByIdOrEmail(normalized);
-    if (safeUser) {
-      delete (safeUser as any).password;
-      delete (safeUser as any).passwordHash;
-      delete (safeUser as any).resetCode;
-      delete (safeUser as any).token;
+    if (!safeUser) {
+      console.error('[Auth Service] User creation failed: safeUser is null after creation attempt for', normalized);
+      return {
+        success: false,
+        code: 'USER_CREATION_FAILED',
+        message: 'Failed to create user. User record could not be found or persisted.'
+      };
     }
+
+    delete (safeUser as any).password;
+    delete (safeUser as any).passwordHash;
+    delete (safeUser as any).resetCode;
+    delete (safeUser as any).token;
 
     return { success: true, user: safeUser, message: 'User created successfully.' };
   }
