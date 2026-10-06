@@ -270,6 +270,16 @@ export const api = {
     return apiRequest('/reports/role-hierarchy');
   },
 
+  // Mock 10 reports list: scope-enforced server-side (AC11).
+  async getDbReports(options?: { limit?: number; category?: string; status?: string }) {
+    const params = new URLSearchParams();
+    if (options?.limit) params.append('limit', String(options.limit));
+    if (options?.category && options.category !== 'ALL') params.append('category', options.category);
+    if (options?.status && options.status !== 'ALL') params.append('status', options.status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/reports/db${query}`);
+  },
+
   async getUserAccessReport(options?: { refresh?: boolean }) {
     const query = options?.refresh ? '?refresh=true' : '';
     return apiRequest(`/reports/user-access${query}`);
