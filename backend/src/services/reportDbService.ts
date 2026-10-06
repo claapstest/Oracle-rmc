@@ -6,7 +6,8 @@ export interface ReportQueryOptions {
   scopeType?: 'GLOBAL' | 'APPLICATION' | 'USER' | 'TENANT';
   category?: string;
   reportType?: string;
-  status?: 'COMPLETED' | 'PENDING' | 'FAILED' | 'READY';
+  status?: string;
+  generatedBy?: string;
   isMock?: boolean;
   limit?: number;
   offset?: number;
@@ -24,10 +25,11 @@ export interface ReportRecord {
   reportName: string;
   reportType: string;
   category: string;
-  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'READY';
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'READY' | 'RUNNING' | 'CANCELLED';
   format: 'PDF' | 'EXCEL' | 'CSV' | 'JSON';
   sizeBytes?: number;
   downloadUrl?: string;
+  fileLocation?: string;
   generatedBy: string;
   userId?: string | null;
   scopeType: 'GLOBAL' | 'APPLICATION' | 'USER' | 'TENANT';
@@ -37,6 +39,21 @@ export interface ReportRecord {
   generatedAt: string | Date;
   parameters?: Record<string, any>;
   data?: any[];
+}
+
+export interface ReportExecutionRecord {
+  id: string;
+  reportId: string;
+  requestedBy: string;
+  userId?: string | null;
+  startedAt: string | Date;
+  completedAt?: string | Date | null;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  errorMessage?: string | null;
+  parameters?: Record<string, any>;
+  executionDurationMs?: number | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface ReportDbQueryResult {
@@ -403,6 +420,12 @@ export class ReportDbService {
         paramIdx += 1;
       }
 
+      if (options?.generatedBy) {
+        conditions.push(`generated_by ILIKE $${paramIdx}`);
+        params.push(`%${options.generatedBy.trim()}%`);
+        paramIdx += 1;
+      }
+
       if (search) {
         conditions.push(`(report_name ILIKE $${paramIdx} OR report_id ILIKE $${paramIdx} OR category ILIKE $${paramIdx} OR report_type ILIKE $${paramIdx} OR generated_by ILIKE $${paramIdx})`);
         params.push(`%${search}%`);
@@ -436,6 +459,7 @@ export class ReportDbService {
         `SELECT id, report_id AS "reportId", report_name AS "reportName",
                 report_type AS "reportType", category, status, format,
                 size_bytes AS "sizeBytes", download_url AS "downloadUrl",
+                file_location AS "fileLocation",
                 generated_by AS "generatedBy", user_id AS "userId",
                 scope_type AS "scopeType", scope_id AS "scopeId",
                 application_scope AS "applicationScope", is_mock AS "isMock",
@@ -457,6 +481,7 @@ export class ReportDbService {
         format: row.format,
         sizeBytes: Number(row.sizeBytes || 0),
         downloadUrl: row.downloadUrl || `/api/reports/${row.reportId}/download`,
+        fileLocation: row.fileLocation || row.downloadUrl || `/reports/exports/${row.reportId}.${(row.format || 'pdf').toLowerCase()}`,
         generatedBy: row.generatedBy,
         userId: row.userId,
         scopeType: row.scopeType,
@@ -596,6 +621,7 @@ export class ReportDbService {
         `SELECT id, report_id AS "reportId", report_name AS "reportName",
                 report_type AS "reportType", category, status, format,
                 size_bytes AS "sizeBytes", download_url AS "downloadUrl",
+                file_location AS "fileLocation",
                 generated_by AS "generatedBy", user_id AS "userId",
                 scope_type AS "scopeType", scope_id AS "scopeId",
                 application_scope AS "applicationScope", is_mock AS "isMock",
@@ -622,6 +648,7 @@ export class ReportDbService {
         format: row.format,
         sizeBytes: Number(row.sizeBytes || 0),
         downloadUrl: row.downloadUrl || `/api/reports/${row.reportId}/download`,
+        fileLocation: row.fileLocation || row.downloadUrl || `/reports/exports/${row.reportId}.${(row.format || 'pdf').toLowerCase()}`,
         generatedBy: row.generatedBy,
         userId: row.userId,
         scopeType: row.scopeType,
@@ -725,6 +752,8 @@ export class ReportDbService {
     const downloadUrl = `/api/reports/${reportId}/download`;
     const generatedBy = userContext.email || 'system_scheduler';
 
+    const fileLocation = `/reports/exports/${reportId}.${format.toLowerCase()}`;
+
     const record: ReportRecord = {
       reportId,
       reportName,
@@ -734,6 +763,7 @@ export class ReportDbService {
       format,
       sizeBytes,
       downloadUrl,
+      fileLocation,
       generatedBy,
       userId: userId || null,
       scopeType,
@@ -748,6 +778,18 @@ export class ReportDbService {
     try {
       const created = await this.createReportRecord(record);
       this.inMemoryReports.unshift(created);
+
+      // Record successful execution telemetry in veyra_report_execution (AC7)
+      try {
+        await this.createReportExecution({
+          reportId: created.id || created.reportId,
+          requestedBy: generatedBy,
+          userId: userId || null,
+          status: 'COMPLETED',
+          parameters: request.parameters || {}
+        });
+      } catch (_) {}
+
       return created;
     } catch (dbErr) {
       console.warn('[ReportDbService] Database insert failed, storing in in-memory list:', (dbErr as Error).message);
@@ -898,18 +940,24 @@ export class ReportDbService {
   }
 
   /**
-   * Inserts a report record into PostgreSQL veyra_report using parameterized SQL.
+   * Inserts a report record into PostgreSQL veyra_report using parameterized SQL (AC1-AC6).
    */
   public async createReportRecord(record: Partial<ReportRecord>): Promise<ReportRecord> {
+    const fileLocation =
+      record.fileLocation ||
+      record.downloadUrl ||
+      `/reports/exports/${record.reportId || 'rep_export'}.${(record.format || 'pdf').toLowerCase()}`;
+
     const res = await dbQuery(
       `INSERT INTO veyra_report (
          report_id, report_name, report_type, category, status, format,
-         size_bytes, download_url, generated_by, user_id, scope_type,
+         size_bytes, download_url, file_location, generated_by, user_id, scope_type,
          scope_id, application_scope, is_mock, generated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING id, report_id AS "reportId", report_name AS "reportName",
                  report_type AS "reportType", category, status, format,
                  size_bytes AS "sizeBytes", download_url AS "downloadUrl",
+                 file_location AS "fileLocation",
                  generated_by AS "generatedBy", user_id AS "userId",
                  scope_type AS "scopeType", scope_id AS "scopeId",
                  application_scope AS "applicationScope", is_mock AS "isMock",
@@ -923,6 +971,7 @@ export class ReportDbService {
         record.format || 'PDF',
         record.sizeBytes || 0,
         record.downloadUrl || null,
+        fileLocation,
         record.generatedBy || 'system_scheduler',
         record.userId || null,
         record.scopeType || 'GLOBAL',
@@ -944,6 +993,7 @@ export class ReportDbService {
       format: row.format,
       sizeBytes: Number(row.sizeBytes || 0),
       downloadUrl: row.downloadUrl,
+      fileLocation: row.fileLocation,
       generatedBy: row.generatedBy,
       userId: row.userId,
       scopeType: row.scopeType,
@@ -952,6 +1002,207 @@ export class ReportDbService {
       isMock: row.isMock,
       generatedAt: row.generatedAt
     };
+  }
+
+  /**
+   * Records initiation of report execution in veyra_report_execution (AC7).
+   */
+  public async createReportExecution(execution: {
+    reportId: string;
+    requestedBy: string;
+    userId?: string | null;
+    status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+    parameters?: Record<string, any>;
+    errorMessage?: string | null;
+  }): Promise<ReportExecutionRecord> {
+    let reportUuid = execution.reportId;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(execution.reportId)) {
+      const repRes = await dbQuery(`SELECT id FROM veyra_report WHERE report_id = $1 LIMIT 1`, [execution.reportId]);
+      if (repRes.rows.length > 0) {
+        reportUuid = repRes.rows[0].id;
+      }
+    }
+
+    const res = await dbQuery(
+      `INSERT INTO veyra_report_execution (
+         report_id, requested_by, user_id, status, error_message, parameters, started_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, now())
+       RETURNING id, report_id AS "reportId", requested_by AS "requestedBy",
+                 user_id AS "userId", started_at AS "startedAt", completed_at AS "completedAt",
+                 status, error_message AS "errorMessage", parameters,
+                 execution_duration_ms AS "executionDurationMs",
+                 created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [
+        reportUuid,
+        execution.requestedBy,
+        execution.userId || null,
+        execution.status || 'PENDING',
+        execution.errorMessage || null,
+        execution.parameters ? JSON.stringify(execution.parameters) : '{}'
+      ]
+    );
+
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      reportId: row.reportId,
+      requestedBy: row.requestedBy,
+      userId: row.userId,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      status: row.status,
+      errorMessage: row.errorMessage,
+      parameters: row.parameters,
+      executionDurationMs: row.executionDurationMs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    };
+  }
+
+  /**
+   * Records execution completion or failure in veyra_report_execution (AC7).
+   */
+  public async updateReportExecution(
+    executionId: string,
+    update: {
+      status: 'COMPLETED' | 'FAILED' | 'CANCELLED';
+      errorMessage?: string | null;
+      executionDurationMs?: number;
+      completedAt?: Date | string;
+    }
+  ): Promise<ReportExecutionRecord | null> {
+    const completedAt = update.completedAt ? new Date(update.completedAt) : new Date();
+    const res = await dbQuery(
+      `UPDATE veyra_report_execution
+       SET status = $1,
+           error_message = $2,
+           completed_at = $3,
+           execution_duration_ms = $4,
+           updated_at = now()
+       WHERE id = $5
+       RETURNING id, report_id AS "reportId", requested_by AS "requestedBy",
+                 user_id AS "userId", started_at AS "startedAt", completed_at AS "completedAt",
+                 status, error_message AS "errorMessage", parameters,
+                 execution_duration_ms AS "executionDurationMs",
+                 created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [
+        update.status,
+        update.errorMessage || null,
+        completedAt,
+        update.executionDurationMs || null,
+        executionId
+      ]
+    );
+
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      reportId: row.reportId,
+      requestedBy: row.requestedBy,
+      userId: row.userId,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      status: row.status,
+      errorMessage: row.errorMessage,
+      parameters: row.parameters,
+      executionDurationMs: row.executionDurationMs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    };
+  }
+
+  /**
+   * Queries report execution metadata and audit history (AC7, AC8).
+   */
+  public async queryReportExecutions(options?: {
+    reportId?: string;
+    requestedBy?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<ReportExecutionRecord[]> {
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIdx = 1;
+
+    if (options?.reportId) {
+      conditions.push(`(re.report_id = $${paramIdx}::uuid OR r.report_id = $${paramIdx})`);
+      params.push(options.reportId);
+      paramIdx++;
+    }
+
+    if (options?.requestedBy) {
+      conditions.push(`re.requested_by ILIKE $${paramIdx}`);
+      params.push(`%${options.requestedBy.trim()}%`);
+      paramIdx++;
+    }
+
+    if (options?.status) {
+      conditions.push(`re.status = $${paramIdx}`);
+      params.push(options.status);
+      paramIdx++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const limit = Math.min(options?.limit || 50, 100);
+    params.push(limit);
+
+    const res = await dbQuery(
+      `SELECT re.id, re.report_id AS "reportId", re.requested_by AS "requestedBy",
+              re.user_id AS "userId", re.started_at AS "startedAt", re.completed_at AS "completedAt",
+              re.status, re.error_message AS "errorMessage", re.parameters,
+              re.execution_duration_ms AS "executionDurationMs",
+              re.created_at AS "createdAt", re.updated_at AS "updatedAt"
+       FROM veyra_report_execution re
+       LEFT JOIN veyra_report r ON re.report_id = r.id
+       ${whereClause}
+       ORDER BY re.started_at DESC
+       LIMIT $${paramIdx}`,
+      params
+    );
+
+    return res.rows.map((row: any) => ({
+      id: row.id,
+      reportId: row.reportId,
+      requestedBy: row.requestedBy,
+      userId: row.userId,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      status: row.status,
+      errorMessage: row.errorMessage,
+      parameters: row.parameters,
+      executionDurationMs: row.executionDurationMs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    }));
+  }
+
+  /**
+   * Records execution failure on report generation failure (AC7).
+   */
+  public async recordReportExecutionFailure(params: {
+    reportId: string;
+    requestedBy: string;
+    userId?: string | null;
+    errorMessage: string;
+    parameters?: Record<string, any>;
+  }): Promise<ReportExecutionRecord> {
+    const exec = await this.createReportExecution({
+      reportId: params.reportId,
+      requestedBy: params.requestedBy,
+      userId: params.userId,
+      status: 'FAILED',
+      errorMessage: params.errorMessage,
+      parameters: params.parameters
+    });
+
+    await this.updateReportExecution(exec.id, {
+      status: 'FAILED',
+      errorMessage: params.errorMessage,
+      completedAt: new Date()
+    });
+
+    return exec;
   }
 
   /**
