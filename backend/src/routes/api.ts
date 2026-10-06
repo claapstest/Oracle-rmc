@@ -1514,10 +1514,25 @@ apiRouter.get('/users/:id', requireUsersListAccess, async (req: Request, res: Re
       return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
     }
 
+    try {
+      const scopes = await authService.getUserApplicationScopes(user.id || user.email);
+      (user as any).applicationScopes = scopes;
+    } catch (_) {}
+
     logAudit(res.locals.email || 'UNKNOWN', 'READ_USER_DETAIL', `Viewed user details for ${user.email}`);
     return res.status(200).json({ success: true, user });
   } catch (err) {
     console.error('[Get Single User Error]:', err);
+    return res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// GET /api/users/:id/scopes - Get user application scopes (AC8)
+apiRouter.get('/users/:id/scopes', requireUsersListAccess, async (req: Request, res: Response) => {
+  try {
+    const scopes = await authService.getUserApplicationScopes(req.params.id);
+    return res.json({ success: true, scopes });
+  } catch (err) {
     return res.status(500).json({ success: false, message: (err as Error).message });
   }
 });

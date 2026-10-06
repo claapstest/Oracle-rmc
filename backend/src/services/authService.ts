@@ -1808,17 +1808,50 @@ export class AuthService {
         dbUserId = userRes.rows[0].id;
 
         const roleRes = await client.query(`SELECT id FROM veyra_role WHERE role_code = $1`, [role]);
-        if (roleRes.rows.length > 0) {
-          roleId = roleRes.rows[0].id;
-          await client.query(
-            `INSERT INTO veyra_user_role (user_id, role_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-            [dbUserId, roleId, data.createdBy || 'AUTH_SERVICE']
-          );
+        if (roleRes.rows.length === 0) {
+          await client.query('ROLLBACK');
+          delete this.users[normalized];
+          this.saveUsers();
+          return { success: false, code: 'INVALID_ROLE', message: `Specified role "${role}" does not exist in database.` };
+        }
+
+        roleId = roleRes.rows[0].id;
+        await client.query(
+          `INSERT INTO veyra_user_role (user_id, role_id, created_by) VALUES ($1, $2, $3)`,
+          [dbUserId, roleId, data.createdBy || 'AUTH_SERVICE']
+        );
+
+        // AC8: Application / Data Scope Association (user -> user_application_scope -> application)
+        const appScopes = data.applicationAccess || (data as any).applicationScopes || (data as any).access || [];
+        if (Array.isArray(appScopes) && appScopes.length > 0) {
+          for (const item of appScopes) {
+            const appCode = typeof item === 'string' ? item : (item.applicationCode || item.appCode || item.code);
+            if (!appCode) continue;
+            const scopeType = typeof item === 'object' && item.scopeType ? item.scopeType : 'GLOBAL';
+            const scopeValue = typeof item === 'object' && item.scopeValue ? item.scopeValue : 'ALL';
+            const accessLevel = typeof item === 'object' && item.accessLevel ? item.accessLevel : 'READ';
+
+            const appRes = await client.query(`SELECT id FROM veyra_application WHERE app_code = $1`, [appCode.toUpperCase()]);
+            if (appRes.rows.length > 0) {
+              const appId = appRes.rows[0].id;
+              await client.query(
+                `INSERT INTO veyra_user_application_scope (user_id, application_id, scope_type, scope_value, access_level, granted_by)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 ON CONFLICT (user_id, application_id, scope_type, scope_value) DO UPDATE SET
+                   access_level = EXCLUDED.access_level,
+                   status = 'ACTIVE',
+                   updated_at = NOW()`,
+                [dbUserId, appId, scopeType, scopeValue, accessLevel, data.createdBy || 'AUTH_SERVICE']
+              );
+            }
+          }
         }
 
         await client.query('COMMIT');
       } catch (txErr) {
         await client.query('ROLLBACK');
+        delete this.users[normalized];
+        this.saveUsers();
         throw txErr;
       } finally {
         client.release();
@@ -2285,6 +2318,73 @@ export class AuthService {
 
     this.saveUsers();
     return { success: true, message: 'Password has been reset successfully. You can now log in.' };
+  }
+
+  /**
+   * Retrieves all assigned application scopes for a user (AC8)
+   */
+  public async getUserApplicationScopes(userIdOrEmail: string): Promise<any[]> {
+    try {
+      const res = await dbQuery(`
+        SELECT uas.id, uas.scope_type AS "scopeType", uas.scope_value AS "scopeValue",
+               uas.access_level AS "accessLevel", uas.status, uas.granted_at AS "grantedAt",
+               a.app_code AS "appCode", a.app_name AS "appName", a.category
+        FROM veyra_user_application_scope uas
+        JOIN veyra_application a ON uas.application_id = a.id
+        JOIN veyra_user u ON uas.user_id = u.id
+        WHERE u.id::text = $1 OR LOWER(u.email) = LOWER($1)
+        ORDER BY a.app_code, uas.scope_type
+      `, [userIdOrEmail]);
+      return res.rows;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /**
+   * Assigns or updates an application scope for a user (AC8)
+   */
+  public async assignUserApplicationScope(params: {
+    userIdOrEmail: string;
+    appCode: string;
+    scopeType?: string;
+    scopeValue?: string;
+    accessLevel?: string;
+    grantedBy?: string;
+  }): Promise<{ success: boolean; code?: string; message?: string }> {
+    try {
+      const uRes = await dbQuery(`SELECT id FROM veyra_user WHERE id::text = $1 OR LOWER(email) = LOWER($1)`, [params.userIdOrEmail]);
+      if (uRes.rows.length === 0) {
+        return { success: false, code: 'USER_NOT_FOUND', message: 'User not found in database.' };
+      }
+      const userId = uRes.rows[0].id;
+
+      const appRes = await dbQuery(`SELECT id FROM veyra_application WHERE app_code = $1`, [params.appCode.toUpperCase()]);
+      if (appRes.rows.length === 0) {
+        return { success: false, code: 'APPLICATION_NOT_FOUND', message: `Application "${params.appCode}" not found.` };
+      }
+      const appId = appRes.rows[0].id;
+
+      await dbQuery(`
+        INSERT INTO veyra_user_application_scope (user_id, application_id, scope_type, scope_value, access_level, granted_by)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (user_id, application_id, scope_type, scope_value) DO UPDATE SET
+          access_level = EXCLUDED.access_level,
+          status = 'ACTIVE',
+          updated_at = NOW()
+      `, [
+        userId,
+        appId,
+        params.scopeType || 'GLOBAL',
+        params.scopeValue || 'ALL',
+        params.accessLevel || 'READ',
+        params.grantedBy || 'SYSTEM'
+      ]);
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   }
 }
 
