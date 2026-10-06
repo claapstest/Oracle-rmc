@@ -17,6 +17,8 @@ import { TableExportControl } from '../components/TableExportControl';
 interface AuditProductBO {
   id: string;
   displayName: string;
+  isSupported?: boolean;
+  status?: string;
 }
 
 interface AuditProduct {
@@ -43,6 +45,7 @@ interface AuditLogItem {
   username: string;
   userInternalName?: string;
   event: string;
+  action?: string;
   eventCategory?: string;
   businessObject: string;
   qualifiedBusinessObject?: string;
@@ -78,6 +81,7 @@ export default function Audit() {
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [configNotice, setConfigNotice] = useState<string>('');
   const [dateWarning, setDateWarning] = useState<string>('');
 
   // Summary State of last successful search
@@ -106,14 +110,23 @@ export default function Audit() {
         if (res?.success && Array.isArray(res.products)) {
           setProducts(res.products);
           // Default to confirmed hcm if available
-          const hcm = res.products.find((p: AuditProduct) => p.id === 'hcm');
+          const hcm = res.products.find((p: AuditProduct) => p.id === 'hcm' || p.sno === 32);
           if (hcm) {
-            setSelectedProductId('hcm');
-            if (hcm.businessObjects && hcm.businessObjects.length > 0) {
+            setSelectedProductId(hcm.id);
+            const firstSupported = (hcm.businessObjects || []).find(b => b.isSupported !== false);
+            if (firstSupported) {
+              setSelectedBOId(firstSupported.id);
+            } else if (hcm.businessObjects && hcm.businessObjects.length > 0) {
               setSelectedBOId(hcm.businessObjects[0].id);
             }
           } else if (res.products.length > 0) {
             setSelectedProductId(res.products[0].id);
+            const firstSupported = (res.products[0].businessObjects || []).find(b => b.isSupported !== false);
+            if (firstSupported) {
+              setSelectedBOId(firstSupported.id);
+            } else if (res.products[0].businessObjects && res.products[0].businessObjects.length > 0) {
+              setSelectedBOId(res.products[0].businessObjects[0].id);
+            }
           }
         }
       } catch (err) {
@@ -131,10 +144,11 @@ export default function Audit() {
     const prod = products.find(p => p.id === selectedProductId);
     if (!prod) return;
 
-    if (!prod.requiresBusinessObjectType || prod.businessObjects.length === 0) {
+    if (!prod.requiresBusinessObjectType || !prod.businessObjects || prod.businessObjects.length === 0) {
       setSelectedBOId('');
     } else {
-      setSelectedBOId(prod.businessObjects[0]?.id || '');
+      const firstSupported = prod.businessObjects.find(b => b.isSupported !== false);
+      setSelectedBOId(firstSupported ? firstSupported.id : (prod.businessObjects[0]?.id || ''));
     }
   }, [selectedProductId, products]);
 
@@ -172,9 +186,24 @@ export default function Audit() {
 
     setIsSearching(true);
     setError('');
+    setConfigNotice('');
 
     const prod = products.find(p => p.id === selectedProductId);
     const selectedBO = prod?.businessObjects.find(b => b.id === selectedBOId);
+
+    // If user selected an additional business object that is not yet configured, provide a clear controlled message
+    if (selectedBO && selectedBO.isSupported === false) {
+      const firstSupported = (prod?.businessObjects || []).find(b => b.isSupported !== false);
+      setConfigNotice(
+        `Business Object Type "${selectedBO.displayName}" is available in the Oracle instance, but its payload template is not yet configured. Currently supported for ${prod?.displayName}: "${firstSupported?.displayName || 'None'}".`
+      );
+      setError('');
+      setLogs([]);
+      setTotalRecords(0);
+      setHasSearched(true);
+      setIsSearching(false);
+      return;
+    }
 
     try {
       const res = await api.getAuditLogs({
@@ -191,12 +220,19 @@ export default function Audit() {
       setHasSearched(true);
       setCurrentPage(targetPage);
 
-      if (res?.auditUnavailable) {
+      if (res?.notConfigured) {
+        setConfigNotice(res.message || 'Business Object Type is not yet configured.');
+        setError('');
+        setLogs([]);
+        setTotalRecords(0);
+      } else if (res?.auditUnavailable) {
         setError(res.message || 'Unable to retrieve audit history from Oracle Fusion.');
+        setConfigNotice('');
         setLogs([]);
         setTotalRecords(0);
       } else if (res?.logs) {
         setError('');
+        setConfigNotice('');
         console.log(`[Audit UI DEBUG]\nAPI records: ${res.logs.length}\nNormalized records: ${res.logs.length}\nDisplayed records: ${Math.min(res.logs.length, pageSize)}`);
         setLogs(res.logs);
         setTotalRecords(res.totalRecords !== undefined ? res.totalRecords : res.logs.length);
@@ -210,6 +246,7 @@ export default function Audit() {
         });
       } else {
         setError('');
+        setConfigNotice('');
         setLogs([]);
         setTotalRecords(0);
       }
@@ -217,6 +254,7 @@ export default function Audit() {
       console.error('Audit search failed:', err);
       const msg = err.response?.data?.message || err.message || 'Unable to retrieve audit history from Oracle Fusion.';
       setError(msg);
+      setConfigNotice('');
       setHasSearched(true);
       setLogs([]);
       setTotalRecords(0);
@@ -230,7 +268,8 @@ export default function Audit() {
     const hcm = products.find(p => p.id === 'hcm');
     if (hcm) {
       setSelectedProductId('hcm');
-      setSelectedBOId(hcm.businessObjects[0]?.id || 'person');
+      const firstSupported = (hcm.businessObjects || []).find(b => b.isSupported !== false);
+      setSelectedBOId(firstSupported ? firstSupported.id : (hcm.businessObjects[0]?.id || 'person'));
     }
     const d = new Date();
     d.setDate(d.getDate() - 9);
@@ -239,6 +278,7 @@ export default function Audit() {
     setUserQuery('');
     setActionFilter('ALL');
     setError('');
+    setConfigNotice('');
     setDateWarning('');
     setHasSearched(false);
     setLogs([]);
@@ -271,8 +311,8 @@ export default function Audit() {
   const endIndex = Math.min(startIndex + pageSize, totalRecords);
 
   // Badge class helper based on event type
-  const getEventBadgeClass = (event: string) => {
-    const e = event.toUpperCase();
+  const getEventBadgeClass = (event?: string) => {
+    const e = (event || '').toString().trim().toUpperCase();
     if (e.includes('DELETE') || e.includes('REVOKE')) return 'badge-inactive';
     if (e.includes('INSERT') || e.includes('CREATE') || e.includes('ASSIGN') || e.includes('ADD')) return 'badge-active';
     if (e.includes('UPDATE') || e.includes('MODIFY')) return 'badge-gold';
@@ -346,6 +386,19 @@ export default function Audit() {
         </div>
       )}
 
+      {/* Configuration Notice (Amber/Notice banner for unsupported business objects) */}
+      {configNotice && (
+        <div className="glass-panel animate-fade-in" style={{ padding: '0.9rem 1.25rem', borderLeft: '4px solid var(--accent-gold)', marginBottom: '1.25rem', background: 'rgba(245, 158, 11, 0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <AlertCircle size={18} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--accent-gold)' }}>Configuration Notice</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', marginTop: '0.15rem' }}>{configNotice}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Date Span Warning */}
       {dateWarning && (
         <div className="glass-panel animate-fade-in" style={{ padding: '0.75rem 1.25rem', borderLeft: '4px solid var(--accent-gold)', marginBottom: '1.25rem', background: 'rgba(245, 158, 11, 0.05)' }}>
@@ -377,11 +430,13 @@ export default function Audit() {
               onChange={(e) => {
                 const nextId = e.target.value;
                 setSelectedProductId(nextId);
+                setConfigNotice('');
                 const nextProd = products.find(p => p.id === nextId);
                 if (!nextProd || !nextProd.requiresBusinessObjectType || nextProd.businessObjects.length === 0) {
                   setSelectedBOId('');
                 } else {
-                  setSelectedBOId(nextProd.businessObjects[0]?.id || '');
+                  const firstSupported = nextProd.businessObjects.find(b => b.isSupported !== false);
+                  setSelectedBOId(firstSupported ? firstSupported.id : (nextProd.businessObjects[0]?.id || ''));
                 }
               }}
               disabled={isSearching}
@@ -403,7 +458,19 @@ export default function Audit() {
               className="form-select"
               style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem', opacity: !requiresBO ? 0.7 : 1 }}
               value={selectedBOId}
-              onChange={(e) => setSelectedBOId(e.target.value)}
+              onChange={(e) => {
+                const nextBOId = e.target.value;
+                setSelectedBOId(nextBOId);
+                const bo = currentProduct?.businessObjects.find(b => b.id === nextBOId);
+                if (bo && bo.isSupported === false) {
+                  const firstSupported = currentProduct?.businessObjects.find(b => b.isSupported !== false);
+                  setConfigNotice(
+                    `Business Object Type "${bo.displayName}" is available in the Oracle instance, but its payload template is not yet configured. Currently supported: "${firstSupported?.displayName || 'None'}".`
+                  );
+                } else {
+                  setConfigNotice('');
+                }
+              }}
               disabled={isSearching || !requiresBO}
             >
               {!requiresBO ? (
@@ -411,7 +478,7 @@ export default function Audit() {
               ) : currentProduct && currentProduct.businessObjects.length > 0 ? (
                 currentProduct.businessObjects.map(bo => (
                   <option key={bo.id} value={bo.id}>
-                    {bo.displayName}
+                    {bo.displayName}{bo.isSupported === false ? ' (Not Yet Configured)' : ''}
                   </option>
                 ))
               ) : (
@@ -733,8 +800,8 @@ export default function Audit() {
 
                       {/* Event Badge */}
                       <td>
-                        <span className={`badge ${getEventBadgeClass(log.event)}`} style={{ fontSize: '0.72rem', letterSpacing: '0.02em' }}>
-                          {log.event}
+                        <span className={`badge ${getEventBadgeClass(log.event || log.action)}`} style={{ fontSize: '0.72rem', letterSpacing: '0.02em' }}>
+                          {log.event || log.action || 'Audit Event'}
                         </span>
                       </td>
 
@@ -794,7 +861,7 @@ export default function Audit() {
                               <div>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Event</span>
                                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
-                                  {log.event}
+                                  {log.event || log.action || 'Audit Event'}
                                 </div>
                               </div>
 

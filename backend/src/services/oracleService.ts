@@ -1413,15 +1413,17 @@ class OracleService {
     }
 
     if (username) {
-      const term = username.toUpperCase();
-      results = results.filter(a =>
-        ((a.username || '').toUpperCase().includes(term)) ||
-        ((a.details || '').toUpperCase().includes(term))
-      );
+      const term = (username || '').toString().trim().toUpperCase();
+      if (term) {
+        results = results.filter(a =>
+          ((a.username || '').toString().toUpperCase().includes(term)) ||
+          ((a.details || '').toString().toUpperCase().includes(term))
+        );
+      }
     }
-    if (action && action !== 'ALL') {
-      const act = action.toUpperCase();
-      results = results.filter(a => ((a.event || '').toUpperCase().includes(act)) || ((a.action || '').toUpperCase().includes(act)));
+    if (action && (action || '').toString().toUpperCase() !== 'ALL') {
+      const act = (action || '').toString().trim().toUpperCase();
+      results = results.filter(a => ((a.event || '').toString().toUpperCase().includes(act)) || ((a.action || '').toString().toUpperCase().includes(act)));
     }
 
     return results;
@@ -1438,6 +1440,7 @@ class OracleService {
     pageSize?: number;
   } = {}): Promise<{
     success: boolean;
+    notConfigured?: boolean;
     dataSource: string;
     logs: any[];
     totalRecords: number;
@@ -1452,6 +1455,10 @@ class OracleService {
   }> {
     const pageNumber = params.pageNumber && params.pageNumber > 0 ? params.pageNumber : 1;
     const pageSize = params.pageSize && params.pageSize > 0 ? params.pageSize : 50;
+
+    // Helper functions for defensive string operations
+    const safeUpper = (val: unknown): string => (val !== undefined && val !== null ? String(val).trim().toUpperCase() : '');
+    const safeLower = (val: unknown): string => (val !== undefined && val !== null ? String(val).trim().toLowerCase() : '');
 
     // 1. Date calculation & 30-day enforcement (Oracle limits audit queries to <= 30 days)
     const formatDate = (d: Date) => {
@@ -1499,7 +1506,7 @@ class OracleService {
     }
 
     // 2. Resolve Product & Business Object via authoritative Catalog
-    const productQuery = params.product || 'Global Human Resources';
+    const productQuery = (params.product || 'Global Human Resources').trim();
     const resolution = auditProductCatalogService.resolveAuditRequest(productQuery, params.businessObjectType);
 
     if (resolution.status === 'NOT_FOUND') {
@@ -1510,28 +1517,40 @@ class OracleService {
       throw new Error(resolution.message || 'Oracle Fusion requires a Business Object Type for this audit query.');
     }
 
+    const productDisplayName = resolution.product?.displayName || productQuery;
+    const boDisplayName = resolution.businessObject?.displayName || (resolution.product?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events');
+
+    // Handle gracefully when user selects an additional business object from the instance that does not yet have a supplied payload
+    if (resolution.status === 'NOT_CONFIGURED') {
+      return {
+        success: false,
+        notConfigured: true,
+        dataSource: this.getModeInfo().dataSource,
+        logs: [],
+        totalRecords: 0,
+        pageNumber,
+        pageSize,
+        product: resolution.product?.id,
+        productDisplayName,
+        businessObject: resolution.businessObject?.id,
+        businessObjectDisplayName: boDisplayName,
+        message: resolution.message || `Business Object Type "${boDisplayName}" is not yet configured for ${productDisplayName}.`,
+        dateRange: { fromDate: fromDateStr, toDate: toDateStr }
+      };
+    }
+
     const restProduct = resolution.product?.restProduct || resolution.product?.shortCodes?.[0] || productQuery;
     const isOpss = restProduct === 'OPSS' || resolution.product?.id === 'opss';
     const isHcm = restProduct === 'hcmCore' || resolution.product?.id === 'hcm' || resolution.product?.productName === 'Global Human Resources';
 
     let restBusinessObjectType: string | undefined = undefined;
-    // Explicit confirmed mapping for Global Human Resources (reference implementation)
-    if (isHcm) {
-      restBusinessObjectType = 'oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO';
-    } else if (resolution.product?.requiresBusinessObjectType) {
-      if (resolution.businessObject?.restBusinessObjectType) {
-        restBusinessObjectType = resolution.businessObject.restBusinessObjectType;
-      } else if (resolution.businessObject?.restValue) {
-        restBusinessObjectType = resolution.businessObject.restValue;
-      } else if (resolution.businessObject?.displayName) {
-        restBusinessObjectType = resolution.businessObject.displayName;
-      } else if (resolution.businessObject?.id) {
-        restBusinessObjectType = resolution.businessObject.id;
-      }
+    if (resolution.businessObject?.restBusinessObjectType) {
+      restBusinessObjectType = resolution.businessObject.restBusinessObjectType;
+    } else if (resolution.businessObject?.restValue) {
+      restBusinessObjectType = resolution.businessObject.restValue;
+    } else if (isHcm) {
+      restBusinessObjectType = 'oracle.apps.hcm.documentsOfRecord.core.protectedUiModel.view.DocumentsOfRecordVO';
     }
-
-    const productDisplayName = resolution.product?.displayName || productQuery;
-    const boDisplayName = resolution.businessObject?.displayName || (resolution.product?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events');
 
     // Handle Demo Mode
     if (this.isDemoMode()) {
@@ -1557,38 +1576,56 @@ class OracleService {
       };
     }
 
-    // 3. Query Live Oracle Fusion Audit REST endpoint
+    // 3. Query Live Oracle Fusion Audit REST endpoint with tested product-specific payload
     this.assertLiveInstance('Audit history');
     try {
+      const template = resolution.businessObject?.payloadTemplate || resolution.product?.defaultPayloadTemplate;
       const payload: any = {
         fromDate: fromDateStr,
         toDate: toDateStr,
-        product: restProduct,
-        eventType: params.action && params.action !== 'ALL' ? params.action : 'ALL',
-        includeChildObjects: 'true',
-        includeImpersonator: 'true',
-        includeAttributes: 'true',
-        attributeDetailMode: 'true',
-        includeExtendedObjectIdentifierColumns: 'true'
+        eventType: params.action && safeUpper(params.action) !== 'ALL' ? params.action : 'ALL'
       };
 
-      if (isHcm) {
-        payload.businessObjectType = restBusinessObjectType;
-      } else if (isOpss) {
-        // Reference OPSS payload does not include businessObjectType or timeZone
-      } else {
-        // Other products require timeZone and businessObjectType
-        payload.timeZone = 'UTC';
-        if (restBusinessObjectType) {
-          payload.businessObjectType = restBusinessObjectType;
-        }
+      // Determine productId vs product based on authoritative reference payload
+      if (template?.productId) {
+        payload.productId = template.productId;
+      } else if (resolution.product?.productId) {
+        payload.productId = resolution.product.productId;
       }
+
+      if (template?.product) {
+        payload.product = template.product;
+      } else if (restProduct) {
+        payload.product = restProduct;
+      }
+
+      // Business Object Type
+      if (template?.businessObjectType) {
+        payload.businessObjectType = template.businessObjectType;
+      } else if (restBusinessObjectType) {
+        payload.businessObjectType = restBusinessObjectType;
+      }
+
+      // Timezone
+      if (template?.timeZone) {
+        payload.timeZone = template.timeZone;
+      } else if (!isOpss) {
+        payload.timeZone = 'UTC';
+      }
+
+      // Specific Oracle audit query options preserving exact tested parameters
+      payload.includeChildObjects = template?.includeChildObjects ?? (isOpss ? 'false' : 'true');
+      payload.includeImpersonator = template?.includeImpersonator ?? 'false';
+      payload.includeAttributes = template?.includeAttributes ?? (isOpss ? 'false' : 'true');
+      payload.attributeDetailMode = template?.attributeDetailMode ?? (isOpss ? 'false' : 'true');
+      payload.includeExtendedObjectIdentiferColumns = template?.includeExtendedObjectIdentiferColumns ?? (isOpss ? 'false' : 'true');
 
       // Safe Debug Logging (no tokens, passwords, cookies, or secrets)
       console.log(`[AUDIT DEBUG] Requested product:\n${productQuery}`);
-      console.log(`[AUDIT DEBUG] Resolved REST product:\n${restProduct}`);
+      console.log(`[AUDIT DEBUG] Resolved REST product:\n${payload.product || '(using productId)'}`);
+      if (payload.productId) console.log(`[AUDIT DEBUG] Resolved productId:\n${payload.productId}`);
       console.log(`[AUDIT DEBUG] Requested business object:\n${params.businessObjectType || '(none)'}`);
-      console.log(`[AUDIT DEBUG] Resolved businessObjectType:\n${restBusinessObjectType || '(none)'}`);
+      console.log(`[AUDIT DEBUG] Resolved businessObjectType:\n${payload.businessObjectType || '(none)'}`);
       console.log(`[AUDIT DEBUG] fromDate:\n${fromDateStr}`);
       console.log(`[AUDIT DEBUG] toDate:\n${toDateStr}`);
 
@@ -1627,14 +1664,14 @@ class OracleService {
         let identifier = a.identifier || a.objectIdentifier || '';
         const rawAttrDetails = Array.isArray(a.attributeDetails) ? a.attributeDetails : [];
         if (!identifier && a.description) {
-          const descMatch = a.description.match(/(?:Person ID|Person Number|ID|Number):\s*([0-9A-Za-z_-]+)/i);
+          const descMatch = String(a.description).match(/(?:Person ID|Person Number|ID|Number):\s*([0-9A-Za-z_-]+)/i);
           if (descMatch) {
             identifier = descMatch[0];
           }
         }
         if (!identifier && rawAttrDetails.length > 0) {
           const idAttr = rawAttrDetails.find((d: any) =>
-            d.attribute && (d.attribute.toLowerCase().includes('id') || d.attribute.toLowerCase().includes('name') || d.attribute.toLowerCase().includes('number'))
+            d.attribute && (safeLower(d.attribute).includes('id') || safeLower(d.attribute).includes('name') || safeLower(d.attribute).includes('number'))
           );
           if (idAttr) {
             identifier = `${idAttr.attribute}: ${idAttr.newValue || idAttr.oldValue || ''}`;
@@ -1677,18 +1714,21 @@ class OracleService {
 
       // Filter in memory if username or action filter specified
       if (params.username) {
-        const term = params.username.toLowerCase();
-        mappedLogs = mappedLogs.filter((a: any) =>
-          a.username.toLowerCase().includes(term) ||
-          (a.userInternalName && a.userInternalName.toLowerCase().includes(term)) ||
-          (a.details && a.details.toLowerCase().includes(term))
-        );
+        const term = safeLower(params.username);
+        if (term) {
+          mappedLogs = mappedLogs.filter((a: any) =>
+            safeLower(a.username).includes(term) ||
+            (a.userInternalName && safeLower(a.userInternalName).includes(term)) ||
+            (a.details && safeLower(a.details).includes(term))
+          );
+        }
       }
-      if (params.action && params.action !== 'ALL') {
-        const act = params.action.toLowerCase();
+      if (params.action && safeUpper(params.action) !== 'ALL') {
+        const act = safeLower(params.action);
         mappedLogs = mappedLogs.filter((a: any) =>
-          a.event.toLowerCase().includes(act) ||
-          (a.eventCategory && a.eventCategory.toLowerCase().includes(act))
+          safeLower(a.event).includes(act) ||
+          safeLower(a.action).includes(act) ||
+          (a.eventCategory && safeLower(a.eventCategory).includes(act))
         );
       }
 
@@ -1709,9 +1749,9 @@ class OracleService {
       console.warn('[Oracle Service] Live getAuditHistory failed (live-only, no fallback):', err.message);
       const errMsg = String(err.message || '');
       if (
-        errMsg.toLowerCase().includes('businessobject') ||
-        errMsg.toLowerCase().includes('business object') ||
-        errMsg.toLowerCase().includes('requires a business object')
+        safeLower(errMsg).includes('businessobject') ||
+        safeLower(errMsg).includes('business object') ||
+        safeLower(errMsg).includes('requires a business object')
       ) {
         throw new Error('Oracle Fusion requires a Business Object Type for this audit query.');
       }

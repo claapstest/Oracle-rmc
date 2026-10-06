@@ -111,8 +111,11 @@ export function requirePrivilege(requiredPrivileges: string | string[]) {
         return next();
       }
 
+      const userPermSet = new Set(
+        userPermissions.filter(Boolean).map(x => String(x).trim().toUpperCase())
+      );
       const hasPrivilege = reqPrivList.some(p => 
-        userPermissions.map(x => x.toUpperCase()).includes(p.toUpperCase())
+        p && userPermSet.has(String(p).trim().toUpperCase())
       );
 
       if (!hasPrivilege) {
@@ -188,9 +191,8 @@ export function requireAuditManagerDashboard(req: Request, res: Response, next: 
       'USERS_LIST'
     ];
 
-    const hasPrivilege = allowedPrivileges.some(p =>
-      userPermissions.map(x => x.toUpperCase()).includes(p.toUpperCase())
-    );
+    const permSet = new Set(userPermissions.filter(Boolean).map(x => String(x).trim().toUpperCase()));
+    const hasPrivilege = allowedPrivileges.some(p => permSet.has(p.toUpperCase()));
 
     if (hasPrivilege) {
       return next();
@@ -236,9 +238,8 @@ export function requireAuditSupervisorDashboard(req: Request, res: Response, nex
       'USERS_LIST'
     ];
 
-    const hasPrivilege = allowedPrivileges.some(p =>
-      userPermissions.map(x => x.toUpperCase()).includes(p.toUpperCase())
-    );
+    const supervisorPermSet = new Set(userPermissions.filter(Boolean).map(x => String(x).trim().toUpperCase()));
+    const hasPrivilege = allowedPrivileges.some(p => supervisorPermSet.has(p.toUpperCase()));
 
     if (hasPrivilege) {
       return next();
@@ -264,9 +265,8 @@ export function requireReportsDashboard(req: Request, res: Response, next: () =>
       return next();
     }
 
-    const hasReportsPrivilege = userPermissions.some(p =>
-      ['REPORTS', 'REPORTS_READ', 'REPORTS_MANAGE', 'ALL'].includes(p.toUpperCase())
-    );
+    const reportsPermSet = new Set(userPermissions.filter(Boolean).map(x => String(x).trim().toUpperCase()));
+    const hasReportsPrivilege = ['REPORTS', 'REPORTS_READ', 'REPORTS_MANAGE', 'ALL'].some(p => reportsPermSet.has(p));
 
     if (hasReportsPrivilege) {
       return next();

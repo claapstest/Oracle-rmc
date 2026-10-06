@@ -2,7 +2,7 @@
   {
     "sno": 1,
     "id": "pages_and_business_objects_extensibility_adf",
-    "displayName": "Pages and Business Objects Extensibility (ADF)",
+    "displayName": "Pages and Business Objects Extensibility (ADF) (ADF)",
     "productName": "Pages and Business Objects Extensibility (ADF)",
     "shortCodes": [
       "ADF"
@@ -10,21 +10,47 @@
     "aliases": [
       "Pages and Business Objects Extensibility (ADF)",
       "ADF",
-      "pages and business objects extensibility adf"
+      "pages_and_business_objects_extensibility_adf"
     ],
+    "instanceProductName": "ADF",
     "restProduct": "ADF",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "custom_metadata_operations",
-        "displayName": "Custom Metadata Operations",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "ADF",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Custom Metadata Operations",
-          "custom metadata operations"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "ADF",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 2,
@@ -36,23 +62,48 @@
     ],
     "aliases": [
       "Oracle Enterprise Scheduler Service",
-      "Oracle Enterprise Scheduler Service (ESS)",
       "ESS",
-      "oracle enterprise scheduler service"
+      "oracle_enterprise_scheduler_service"
     ],
+    "instanceProductName": "ESS",
     "restProduct": "ESS",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "job_request",
-        "displayName": "Job Request",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "ESS",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Job Request",
-          "job request"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "ESS",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 3,
@@ -64,22 +115,30 @@
     ],
     "aliases": [
       "Oracle Platform Security Services",
-      "Oracle Platform Security Services (OPSS)",
       "OPSS",
-      "opss",
-      "Platform Security Services",
-      "Platform Security",
-      "Security Services"
+      "opss"
     ],
+    "instanceProductName": "OPSS",
     "restProduct": "OPSS",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": false,
-    "businessObjects": []
+    "businessObjects": [],
+    "defaultPayloadTemplate": {
+      "product": "OPSS",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 4,
     "id": "oracle_soa_suite_soa",
-    "displayName": "Oracle SOA Suite (SOA)",
+    "displayName": "Oracle SOA Suite (SOA) (SOA)",
     "productName": "Oracle SOA Suite (SOA)",
     "shortCodes": [
       "SOA"
@@ -87,26 +146,52 @@
     "aliases": [
       "Oracle SOA Suite (SOA)",
       "SOA",
-      "oracle soa suite soa"
+      "oracle_soa_suite_soa"
     ],
+    "instanceProductName": "SOA",
     "restProduct": "SOA",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "soa_dt_rt_change",
-        "displayName": "SOA DT@RT Change",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "SOA",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "SOA DT@RT Change",
-          "soa dt rt change"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "SOA",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 5,
     "id": "oracle_data_integrator_odi",
-    "displayName": "Oracle Data Integrator (ODI)",
+    "displayName": "Oracle Data Integrator (ODI) (ODI)",
     "productName": "Oracle Data Integrator (ODI)",
     "shortCodes": [
       "ODI"
@@ -114,26 +199,52 @@
     "aliases": [
       "Oracle Data Integrator (ODI)",
       "ODI",
-      "oracle data integrator odi"
+      "oracle_data_integrator_odi"
     ],
+    "instanceProductName": "ODI",
     "restProduct": "ODI",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "firstclassobject",
-        "displayName": "FirstClassObject",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "ODI",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "FirstClassObject",
-          "firstclassobject"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "ODI",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 6,
     "id": "oracle_metadata_services_mds",
-    "displayName": "Oracle Metadata Services (MDS)",
+    "displayName": "Oracle Metadata Services (MDS) (MDS)",
     "productName": "Oracle Metadata Services (MDS)",
     "shortCodes": [
       "MDS"
@@ -141,81 +252,190 @@
     "aliases": [
       "Oracle Metadata Services (MDS)",
       "MDS",
-      "oracle metadata services mds"
+      "oracle_metadata_services_mds"
     ],
+    "instanceProductName": "MDS",
     "restProduct": "MDS",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "metadata_objects",
-        "displayName": "Metadata Objects",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "MDS",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Metadata Objects",
-          "metadata objects"
-        ]
-      },
-      {
-        "id": "metadata_operations",
-        "displayName": "Metadata Operations",
-        "aliases": [
-          "Metadata Operations",
-          "metadata operations"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "MDS",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 7,
     "id": "oracle_business_intelligence_enterprise_edition",
-    "displayName": "Oracle Business Intelligence Enterprise Edition (BI EE)",
+    "displayName": "Oracle Business Intelligence Enterprise Edition (OBIEE)",
     "productName": "Oracle Business Intelligence Enterprise Edition",
     "shortCodes": [
-      "BI EE"
+      "OBIEE"
     ],
     "aliases": [
       "Oracle Business Intelligence Enterprise Edition",
-      "Oracle Business Intelligence Enterprise Edition (BI EE)",
-      "BI EE",
-      "oracle business intelligence enterprise edition"
+      "OBIEE",
+      "oracle_business_intelligence_enterprise_edition"
     ],
-    "restProduct": "BI EE",
+    "instanceProductName": "OBIEE",
+    "restProduct": "OBIEE",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "reportaccess",
-        "displayName": "ReportAccess",
-        "aliases": [
-          "ReportAccess",
-          "reportaccess"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": [],
+    "defaultPayloadTemplate": {
+      "product": "OBIEE",
+      "businessObjectType": "",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 8,
     "id": "audit_policies",
-    "displayName": "Audit Policies",
+    "displayName": "Audit Policies (ORA_FND_AUDIT_POLICY)",
     "productName": "Audit Policies",
-    "shortCodes": [],
+    "shortCodes": [
+      "ORA_FND_AUDIT_POLICY"
+    ],
     "aliases": [
       "Audit Policies",
-      "audit policies"
+      "ORA_FND_AUDIT_POLICY",
+      "audit_policies"
     ],
-    "restProduct": "Audit Policies",
+    "instanceProductName": "ORA_FND_AUDIT_POLICY",
+    "restProduct": "ORA_FND_AUDIT_POLICY",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "oracle_fusion_business_objects_and_attributes",
-        "displayName": "Oracle Fusion Business Objects and Attributes",
+        "displayName": "Oracle Fusion business objects and attributes",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Oracle Fusion Business Objects and Attributes",
-          "oracle fusion business objects and attributes"
+          "Oracle Fusion business objects and attributes",
+          "oracle_fusion_business_objects_and_attributes"
+        ],
+        "restBusinessObjectType": "ORA_FND_FA_BO",
+        "restValue": "ORA_FND_FA_BO",
+        "payloadTemplate": {
+          "product": "ORA_FND_AUDIT_POLICY",
+          "businessObjectType": "ORA_FND_FA_BO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        }
+      },
+      {
+        "id": "pages_and_business_object_modifications",
+        "displayName": "Pages and business object modifications",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Pages and business object modifications",
+          "pages_and_business_object_modifications"
+        ]
+      },
+      {
+        "id": "oracle_enterprise_scheduling_service",
+        "displayName": "Oracle Enterprise Scheduling Service",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Oracle Enterprise Scheduling Service",
+          "oracle_enterprise_scheduling_service"
+        ]
+      },
+      {
+        "id": "oracle_metadata_services",
+        "displayName": "Oracle Metadata Services",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Oracle Metadata Services",
+          "oracle_metadata_services"
+        ]
+      },
+      {
+        "id": "oracle_data_integrator",
+        "displayName": "Oracle Data Integrator",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Oracle Data Integrator",
+          "oracle_data_integrator"
+        ]
+      },
+      {
+        "id": "oracle_platform_security_services",
+        "displayName": "Oracle Platform Security Services",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Oracle Platform Security Services",
+          "oracle_platform_security_services"
+        ]
+      },
+      {
+        "id": "oracle_soa_suite",
+        "displayName": "Oracle SOA Suite",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Oracle SOA Suite",
+          "oracle_soa_suite"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "ORA_FND_AUDIT_POLICY",
+      "businessObjectType": "ORA_FND_FA_BO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 9,
@@ -227,54 +447,47 @@
     ],
     "aliases": [
       "AI",
-      "AI (AI)",
       "ai"
     ],
+    "instanceProductName": "AI",
     "restProduct": "AI",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "ai_agent",
-        "displayName": "AI Agent",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "AI",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "AI Agent",
-          "ai agent"
-        ]
-      },
-      {
-        "id": "ai_agent_business_object",
-        "displayName": "AI Agent Business Object",
-        "aliases": [
-          "AI Agent Business Object",
-          "ai agent business object"
-        ]
-      },
-      {
-        "id": "ai_agent_deep_link",
-        "displayName": "AI Agent Deep Link",
-        "aliases": [
-          "AI Agent Deep Link",
-          "ai agent deep link"
-        ]
-      },
-      {
-        "id": "ai_agent_tool",
-        "displayName": "AI Agent Tool",
-        "aliases": [
-          "AI Agent Tool",
-          "ai agent tool"
-        ]
-      },
-      {
-        "id": "ai_agent_workflow",
-        "displayName": "AI Agent Workflow",
-        "aliases": [
-          "AI Agent Workflow",
-          "ai agent workflow"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "AI",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 10,
@@ -286,23 +499,15 @@
     ],
     "aliases": [
       "Absence Management",
-      "Absence Management (ANC)",
       "ANC",
-      "absence management"
+      "absence_management"
     ],
+    "instanceProductName": "ANC",
     "restProduct": "ANC",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "absence_records",
-        "displayName": "Absence Records",
-        "aliases": [
-          "Absence Records",
-          "absence records"
-        ]
-      }
-    ]
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 11,
@@ -314,47 +519,48 @@
     ],
     "aliases": [
       "Advanced Collections",
-      "Advanced Collections (IEX)",
       "IEX",
-      "advanced collections"
+      "advanced_collections"
     ],
+    "instanceProductName": "IEX",
     "restProduct": "IEX",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "collections_preferences",
-        "displayName": "Collections Preferences",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "IEX",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Collections Preferences",
-          "collections preferences"
-        ]
-      },
-      {
-        "id": "collections_strategies",
-        "displayName": "Collections Strategies",
-        "aliases": [
-          "Collections Strategies",
-          "collections strategies"
-        ]
-      },
-      {
-        "id": "customer_case_folders",
-        "displayName": "Customer Case Folders",
-        "aliases": [
-          "Customer Case Folders",
-          "customer case folders"
-        ]
-      },
-      {
-        "id": "customer_collections_strategies",
-        "displayName": "Customer Collections Strategies",
-        "aliases": [
-          "Customer Collections Strategies",
-          "customer collections strategies"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "IEX",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 12,
@@ -366,23 +572,59 @@
     ],
     "aliases": [
       "Applications Common Components",
-      "Applications Common Components (ACR)",
+      "customer",
       "ACR",
-      "applications common components"
+      "applications_common_components"
     ],
-    "restProduct": "ACR",
+    "instanceProductName": "customer",
+    "restProduct": "customer",
+    "productId": "47110F64ABFD08E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "activities",
-        "displayName": "Activities",
+        "id": "account",
+        "displayName": "Account",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Activities",
-          "activities"
+          "Account",
+          "account"
+        ],
+        "restBusinessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+        "restValue": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+        "payloadTemplate": {
+          "productId": "47110F64ABFD08E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "contact",
+        "displayName": "Contact",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Contact",
+          "contact"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64ABFD08E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 13,
@@ -395,24 +637,49 @@
     ],
     "aliases": [
       "Assets",
-      "Assets (OFA / FA)",
       "OFA",
       "FA",
       "assets"
     ],
+    "instanceProductName": "OFA",
     "restProduct": "OFA",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "asset",
-        "displayName": "Asset",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "OFA",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Asset",
-          "asset"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "OFA",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 14,
@@ -424,71 +691,101 @@
     ],
     "aliases": [
       "Benefits",
-      "Benefits (BEN)",
       "BEN",
       "benefits"
     ],
+    "instanceProductName": "BEN",
     "restProduct": "BEN",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "program",
-        "displayName": "Program",
+        "id": "flexfieldusage",
+        "displayName": "FlexFieldUsage",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+        "payloadTemplate": {
+          "product": "BEN",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Program",
-          "program"
-        ]
-      },
-      {
-        "id": "plan_type",
-        "displayName": "Plan Type",
-        "aliases": [
-          "Plan Type",
-          "plan type"
-        ]
-      },
-      {
-        "id": "plan",
-        "displayName": "Plan",
-        "aliases": [
-          "Plan",
-          "plan"
-        ]
-      },
-      {
-        "id": "option",
-        "displayName": "Option",
-        "aliases": [
-          "Option",
-          "option"
+          "FlexFieldUsage",
+          "flexfieldusage"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "BEN",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.model.view.FlexFieldUsageVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 15,
     "id": "bill_management",
-    "displayName": "Bill Management",
+    "displayName": "Bill Management (BILL)",
     "productName": "Bill Management",
-    "shortCodes": [],
+    "shortCodes": [
+      "BILL"
+    ],
     "aliases": [
       "Bill Management",
-      "bill management"
+      "BILL",
+      "bill_management"
     ],
-    "restProduct": "Bill Management",
+    "instanceProductName": "BILL",
+    "restProduct": "BILL",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "bill",
         "displayName": "Bill",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "Bill",
+        "restValue": "Bill",
+        "payloadTemplate": {
+          "product": "BILL",
+          "businessObjectType": "Bill",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
           "Bill",
           "bill"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "BILL",
+      "businessObjectType": "Bill",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 16,
@@ -500,23 +797,48 @@
     ],
     "aliases": [
       "Budgetary Control",
-      "Budgetary Control (XCC)",
       "XCC",
-      "budgetary control"
+      "budgetary_control"
     ],
+    "instanceProductName": "XCC",
     "restProduct": "XCC",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "control_budget",
-        "displayName": "Control Budget",
+        "id": "periodstatusaudit",
+        "displayName": "PeriodStatusAudit",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "restValue": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "payloadTemplate": {
+          "product": "XCC",
+          "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Control Budget",
-          "control budget"
+          "PeriodStatusAudit",
+          "periodstatusaudit"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "XCC",
+      "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 17,
@@ -528,47 +850,101 @@
     ],
     "aliases": [
       "CRM Application Composer",
-      "CRM Application Composer (CRM)",
       "CRM",
-      "crm application composer"
+      "crm_application_composer"
     ],
+    "instanceProductName": "CRM",
     "restProduct": "CRM",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "application_composer_metadata",
-        "displayName": "Application Composer Metadata",
+        "id": "periodstatusaudit",
+        "displayName": "PeriodStatusAudit",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "restValue": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "payloadTemplate": {
+          "product": "CRM",
+          "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Application Composer Metadata",
-          "application composer metadata"
+          "PeriodStatusAudit",
+          "periodstatusaudit"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "CRM",
+      "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 18,
     "id": "campus_community",
-    "displayName": "Campus Community",
+    "displayName": "Campus Community (ORA_CAMPUSCOMMUNITY)",
     "productName": "Campus Community",
-    "shortCodes": [],
+    "shortCodes": [
+      "ORA_CAMPUSCOMMUNITY"
+    ],
     "aliases": [
       "Campus Community",
-      "campus community"
+      "ORA_CAMPUSCOMMUNITY",
+      "campus_community"
     ],
-    "restProduct": "Campus Community",
+    "instanceProductName": "ORA_CAMPUSCOMMUNITY",
+    "restProduct": "ORA_CAMPUSCOMMUNITY",
+    "productId": "F72168F6CC3A391AE040F00A17205E86",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "person",
-        "displayName": "Person",
+        "id": "systemcalendar",
+        "displayName": "SystemCalendar",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.hed.campusCommunity.calendar.model.r131805.view.SystemCalendarVO",
+        "restValue": "oracle.apps.hed.campusCommunity.calendar.model.r131805.view.SystemCalendarVO",
+        "payloadTemplate": {
+          "productId": "F72168F6CC3A391AE040F00A17205E86",
+          "businessObjectType": "oracle.apps.hed.campusCommunity.calendar.model.r131805.view.SystemCalendarVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        },
         "aliases": [
-          "Person",
-          "person"
+          "SystemCalendar",
+          "systemcalendar"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "F72168F6CC3A391AE040F00A17205E86",
+      "businessObjectType": "oracle.apps.hed.campusCommunity.calendar.model.r131805.view.SystemCalendarVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 19,
@@ -580,23 +956,48 @@
     ],
     "aliases": [
       "Cash Management",
-      "Cash Management (CE)",
       "CE",
-      "cash management"
+      "cash_management"
     ],
+    "instanceProductName": "CE",
     "restProduct": "CE",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "bank_account",
-        "displayName": "Bank Account",
+        "id": "periodstatusaudit",
+        "displayName": "PeriodStatusAudit",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "restValue": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "payloadTemplate": {
+          "product": "CE",
+          "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Bank Account",
-          "bank account"
+          "PeriodStatusAudit",
+          "periodstatusaudit"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "CE",
+      "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 20,
@@ -608,39 +1009,79 @@
     ],
     "aliases": [
       "Common CRM",
-      "Common CRM (CRM)",
+      "sales",
       "CRM",
-      "common crm"
+      "common_crm"
     ],
-    "restProduct": "CRM",
+    "instanceProductName": "sales",
+    "restProduct": "sales",
+    "productId": "47110F64ABF608E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "customer",
-        "displayName": "Customer",
+        "id": "account",
+        "displayName": "Account",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Customer",
-          "customer"
+          "Account",
+          "account"
+        ],
+        "restBusinessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+        "restValue": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+        "payloadTemplate": {
+          "productId": "47110F64ABF608E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "household",
+        "displayName": "Household",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Household",
+          "household"
         ]
       },
       {
         "id": "contact",
         "displayName": "Contact",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Contact",
           "contact"
         ]
       },
       {
-        "id": "activity",
-        "displayName": "Activity",
+        "id": "account_extension_base",
+        "displayName": "Account Extension Base",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Activity",
-          "activity"
+          "Account Extension Base",
+          "account_extension_base"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64ABF608E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 21,
@@ -650,21 +1091,14 @@
     "shortCodes": [],
     "aliases": [
       "Common Work Execution",
-      "common work execution"
+      "common_work_execution"
     ],
-    "restProduct": "Common Work Execution",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "work_order",
-        "displayName": "Work Order",
-        "aliases": [
-          "Work Order",
-          "work order"
-        ]
-      }
-    ]
+    "instanceProductName": "Common Work Execution",
+    "restProduct": null,
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 22,
@@ -674,29 +1108,14 @@
     "shortCodes": [],
     "aliases": [
       "Common Work Setup",
-      "common work setup"
+      "common_work_setup"
     ],
-    "restProduct": "Common Work Setup",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "work_center",
-        "displayName": "Work Center",
-        "aliases": [
-          "Work Center",
-          "work center"
-        ]
-      },
-      {
-        "id": "work_area",
-        "displayName": "Work Area",
-        "aliases": [
-          "Work Area",
-          "work area"
-        ]
-      }
-    ]
+    "instanceProductName": "Common Work Setup",
+    "restProduct": null,
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 23,
@@ -708,31 +1127,59 @@
     ],
     "aliases": [
       "Compensation",
-      "Compensation (CMP)",
+      "HcmCompensation",
       "CMP",
       "compensation"
     ],
-    "restProduct": "CMP",
+    "instanceProductName": "HcmCompensation",
+    "restProduct": "HcmCompensation",
+    "productId": "47110F64AC1D08E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "compensation_plan",
-        "displayName": "Compensation Plan",
+        "id": "salary",
+        "displayName": "Salary",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Compensation Plan",
-          "compensation plan"
-        ]
+          "Salary",
+          "salary"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.compensation.salary.core.protectedUiModel.view.SalaryAuditVO",
+        "restValue": "oracle.apps.hcm.compensation.salary.core.protectedUiModel.view.SalaryAuditVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC1D08E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.hcm.compensation.salary.core.protectedUiModel.view.SalaryAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       },
       {
-        "id": "individual_compensation",
-        "displayName": "Individual Compensation",
+        "id": "salary_component",
+        "displayName": "Salary Component",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Individual Compensation",
-          "individual compensation"
+          "Salary Component",
+          "salary_component"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC1D08E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.hcm.compensation.salary.core.protectedUiModel.view.SalaryAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 24,
@@ -742,29 +1189,14 @@
     "shortCodes": [],
     "aliases": [
       "E-Signatures and E-Records",
-      "e signatures and e records"
+      "e_signatures_and_e_records"
     ],
-    "restProduct": "E-Signatures and E-Records",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "electronic_signature",
-        "displayName": "Electronic Signature",
-        "aliases": [
-          "Electronic Signature",
-          "electronic signature"
-        ]
-      },
-      {
-        "id": "electronic_record",
-        "displayName": "Electronic Record",
-        "aliases": [
-          "Electronic Record",
-          "electronic record"
-        ]
-      }
-    ]
+    "instanceProductName": "E-Signatures and E-Records",
+    "restProduct": null,
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 25,
@@ -774,29 +1206,14 @@
     "shortCodes": [],
     "aliases": [
       "Employee Wellness",
-      "employee wellness"
+      "employee_wellness"
     ],
-    "restProduct": "Employee Wellness",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "wellness_program",
-        "displayName": "Wellness Program",
-        "aliases": [
-          "Wellness Program",
-          "wellness program"
-        ]
-      },
-      {
-        "id": "wellness_activity",
-        "displayName": "Wellness Activity",
-        "aliases": [
-          "Wellness Activity",
-          "wellness activity"
-        ]
-      }
-    ]
+    "instanceProductName": "Employee Wellness",
+    "restProduct": null,
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 26,
@@ -808,31 +1225,15 @@
     ],
     "aliases": [
       "Enterprise Contracts",
-      "Enterprise Contracts (OKC)",
       "OKC",
-      "enterprise contracts"
+      "enterprise_contracts"
     ],
+    "instanceProductName": "OKC",
     "restProduct": "OKC",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "contract",
-        "displayName": "Contract",
-        "aliases": [
-          "Contract",
-          "contract"
-        ]
-      },
-      {
-        "id": "contract_line",
-        "displayName": "Contract Line",
-        "aliases": [
-          "Contract Line",
-          "contract line"
-        ]
-      }
-    ]
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 27,
@@ -844,31 +1245,15 @@
     ],
     "aliases": [
       "Expenses",
-      "Expenses (EXM)",
       "EXM",
       "expenses"
     ],
+    "instanceProductName": "EXM",
     "restProduct": "EXM",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "expense_report",
-        "displayName": "Expense Report",
-        "aliases": [
-          "Expense Report",
-          "expense report"
-        ]
-      },
-      {
-        "id": "expense_item",
-        "displayName": "Expense Item",
-        "aliases": [
-          "Expense Item",
-          "expense item"
-        ]
-      }
-    ]
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 28,
@@ -880,67 +1265,179 @@
     ],
     "aliases": [
       "Financials Common Module",
-      "Financials Common Module (FUN)",
+      "FinancialCommon / Ledger",
       "FUN",
-      "financials common module"
+      "financials_common_module"
     ],
-    "restProduct": "FUN",
+    "instanceProductName": "FinancialCommon / Ledger",
+    "restProduct": "FinancialCommon / Ledger",
+    "productId": "47110F64AC0808E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "accounting_configuration",
-        "displayName": "Accounting Configuration",
+        "id": "sequences_assignment",
+        "displayName": "Sequences Assignment",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Accounting Configuration",
-          "accounting configuration"
+          "Sequences Assignment",
+          "sequences_assignment"
+        ],
+        "restBusinessObjectType": "oracle.apps.financials.commonModules.accountingSequencing.uiModel.view.SeqAssignmentAuditVO",
+        "restValue": "oracle.apps.financials.commonModules.accountingSequencing.uiModel.view.SeqAssignmentAuditVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC0808E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.financials.commonModules.accountingSequencing.uiModel.view.SeqAssignmentAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "sequences_context",
+        "displayName": "Sequences Context",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Sequences Context",
+          "sequences_context"
         ]
       },
       {
-        "id": "financial_common_objects",
-        "displayName": "Financial Common Objects",
+        "id": "sequences_header",
+        "displayName": "Sequences Header",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Financial Common Objects",
-          "financial common objects"
+          "Sequences Header",
+          "sequences_header"
+        ]
+      },
+      {
+        "id": "sequences_version",
+        "displayName": "Sequences Version",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Sequences Version",
+          "sequences_version"
+        ]
+      },
+      {
+        "id": "intercompany_rule_setup",
+        "displayName": "Intercompany Rule Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Intercompany Rule Setup",
+          "intercompany_rule_setup"
+        ]
+      },
+      {
+        "id": "additional_intercompany_balancing_and_clearing_options_setup",
+        "displayName": "Additional Intercompany Balancing and Clearing Options Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Additional Intercompany Balancing and Clearing Options Setup",
+          "additional_intercompany_balancing_and_clearing_options_setup"
+        ]
+      },
+      {
+        "id": "organization_setup",
+        "displayName": "Organization Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Organization Setup",
+          "organization_setup"
+        ]
+      },
+      {
+        "id": "customer_and_supplier_association_setup",
+        "displayName": "Customer and Supplier Association Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Customer and Supplier Association Setup",
+          "customer_and_supplier_association_setup"
+        ]
+      },
+      {
+        "id": "receivables_assignment_setup",
+        "displayName": "Receivables Assignment Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Receivables Assignment Setup",
+          "receivables_assignment_setup"
+        ]
+      },
+      {
+        "id": "system_option_setup",
+        "displayName": "System Option Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "System Option Setup",
+          "system_option_setup"
+        ]
+      },
+      {
+        "id": "transaction_type_setup",
+        "displayName": "Transaction Type Setup",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Transaction Type Setup",
+          "transaction_type_setup"
+        ]
+      },
+      {
+        "id": "user_role_data_assignments",
+        "displayName": "User Role Data Assignments",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "User Role Data Assignments",
+          "user_role_data_assignments"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC0808E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.financials.commonModules.accountingSequencing.uiModel.view.SeqAssignmentAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 29,
-    "id": "financials_for_regionalizations",
-    "displayName": "Financials for Regionalizations (JG)",
-    "productName": "Financials for Regionalizations",
+    "id": "financials_for_regional_localizations",
+    "displayName": "Financials for Regional Localizations (JG)",
+    "productName": "Financials for Regional Localizations",
     "shortCodes": [
       "JG"
     ],
     "aliases": [
-      "Financials for Regionalizations",
-      "Financials for Regionalizations (JG)",
+      "Financials for Regional Localizations",
       "JG",
-      "financials for regionalizations"
+      "financials_for_regional_localizations"
     ],
+    "instanceProductName": "JG",
     "restProduct": "JG",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "regionalization",
-        "displayName": "Regionalization",
-        "aliases": [
-          "Regionalization",
-          "regionalization"
-        ]
-      },
-      {
-        "id": "localization_objects",
-        "displayName": "Localization Objects",
-        "aliases": [
-          "Localization Objects",
-          "localization objects"
-        ]
-      }
-    ]
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 30,
@@ -952,73 +1449,95 @@
     ],
     "aliases": [
       "Financials for the Americas",
-      "Financials for the Americas (JL)",
       "JL",
-      "financials for the americas"
+      "financials_for_the_americas"
     ],
+    "instanceProductName": "JL",
     "restProduct": "JL",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "americas_financial_objects",
-        "displayName": "Americas Financial Objects",
-        "aliases": [
-          "Americas Financial Objects",
-          "americas financial objects"
-        ]
-      }
-    ]
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 31,
-    "id": "gl",
-    "displayName": "General Ledger (GL)",
+    "id": "general_ledger",
+    "displayName": "General Ledger (Ledger / GL)",
     "productName": "General Ledger",
     "shortCodes": [
+      "Ledger",
       "GL"
     ],
     "aliases": [
       "General Ledger",
-      "General Ledger (GL)",
+      "Ledger",
       "GL",
-      "gl",
-      "Ledger"
+      "general_ledger"
     ],
-    "restProduct": "GL",
+    "instanceProductName": "Ledger",
+    "restProduct": "Ledger",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "journal",
-        "displayName": "Journal",
+        "id": "period_status",
+        "displayName": "Period Status",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Journal",
-          "journal"
+          "Period Status",
+          "period_status"
+        ],
+        "restBusinessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "restValue": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "payloadTemplate": {
+          "product": "Ledger",
+          "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        }
+      },
+      {
+        "id": "combinations",
+        "displayName": "Combinations",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Combinations",
+          "combinations"
         ]
       },
       {
-        "id": "ledger",
-        "displayName": "Ledger",
+        "id": "combination_set",
+        "displayName": "Combination Set",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Ledger",
-          "ledger"
-        ]
-      },
-      {
-        "id": "accounting_period",
-        "displayName": "Accounting Period",
-        "aliases": [
-          "Accounting Period",
-          "accounting period"
+          "Combination Set",
+          "combination_set"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "Ledger",
+      "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 32,
     "id": "hcm",
-    "displayName": "Global Human Resources (HCM)",
+    "displayName": "Global Human Resources (PER / HCM)",
     "productName": "Global Human Resources",
     "shortCodes": [
       "PER",
@@ -1026,31 +1545,361 @@
     ],
     "aliases": [
       "Global Human Resources",
-      "Global Human Resources (HCM)",
+      "hcmCoreSetup / hcmCore",
       "PER",
       "HCM",
-      "hcm",
-      "Human Resources",
-      "HR",
-      "Person"
+      "hcm"
     ],
-    "restProduct": "hcmCore",
+    "instanceProductName": "hcmCoreSetup / hcmCore",
+    "restProduct": "hcmCoreSetup / hcmCore",
+    "productId": "47110F64AC2A08E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
+        "id": "document_records",
+        "displayName": "Document Records",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "aliases": [
+          "Document Records",
+          "document_records"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.documentsOfRecord.core.protectedUiModel.view.DocumentsOfRecordVO",
+        "restValue": "oracle.apps.hcm.documentsOfRecord.core.protectedUiModel.view.DocumentsOfRecordVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC2A08E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.hcm.documentsOfRecord.core.protectedUiModel.view.DocumentsOfRecordVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
         "id": "person",
         "displayName": "Person",
-        "restBusinessObjectType": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
-        "restValue": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
           "Person",
-          "person",
-          "ManagePersonVO",
-          "Manage Person"
+          "person"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
+        "restValue": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
+        "payloadTemplate": {
+          "product": "hcmCore",
+          "businessObjectType": "oracle.apps.hcm.people.core.uiModel.view.ManagePersonVO",
+          "includeChildObjects": "true",
+          "includeImpersonator": "true",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "person_allocated_checklist_tasks",
+        "displayName": "Person Allocated Checklist Tasks",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Allocated Checklist Tasks",
+          "person_allocated_checklist_tasks"
+        ]
+      },
+      {
+        "id": "worker_assignment_grade_step",
+        "displayName": "Worker Assignment Grade Step",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Assignment Grade Step",
+          "worker_assignment_grade_step"
+        ]
+      },
+      {
+        "id": "worker_assignment_supervisor",
+        "displayName": "Worker Assignment Supervisor",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Assignment Supervisor",
+          "worker_assignment_supervisor"
+        ]
+      },
+      {
+        "id": "worker_assignment_work_measure",
+        "displayName": "Worker Assignment Work Measure",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Assignment Work Measure",
+          "worker_assignment_work_measure"
+        ]
+      },
+      {
+        "id": "worker_assignment",
+        "displayName": "Worker Assignment",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Assignment",
+          "worker_assignment"
+        ]
+      },
+      {
+        "id": "worker_work_term",
+        "displayName": "Worker Work Term",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Work Term",
+          "worker_work_term"
+        ]
+      },
+      {
+        "id": "worker_employment_contract",
+        "displayName": "Worker Employment Contract",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Employment Contract",
+          "worker_employment_contract"
+        ]
+      },
+      {
+        "id": "worker_relationship",
+        "displayName": "Worker Relationship",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Worker Relationship",
+          "worker_relationship"
+        ]
+      },
+      {
+        "id": "person_address",
+        "displayName": "Person Address",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Address",
+          "person_address"
+        ]
+      },
+      {
+        "id": "person_citizenship",
+        "displayName": "Person Citizenship",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Citizenship",
+          "person_citizenship"
+        ]
+      },
+      {
+        "id": "person_contact",
+        "displayName": "Person Contact",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Contact",
+          "person_contact"
+        ]
+      },
+      {
+        "id": "person_other_communication_methods",
+        "displayName": "Person Other Communication Methods",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Other Communication Methods",
+          "person_other_communication_methods"
+        ]
+      },
+      {
+        "id": "person_detail",
+        "displayName": "Person Detail",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Detail",
+          "person_detail"
+        ]
+      },
+      {
+        "id": "person_drivers_license",
+        "displayName": "Person Drivers License",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Drivers License",
+          "person_drivers_license"
+        ]
+      },
+      {
+        "id": "person_email",
+        "displayName": "Person Email",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Email",
+          "person_email"
+        ]
+      },
+      {
+        "id": "person_ethnicity",
+        "displayName": "Person Ethnicity",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Ethnicity",
+          "person_ethnicity"
+        ]
+      },
+      {
+        "id": "person_image",
+        "displayName": "Person Image",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Image",
+          "person_image"
+        ]
+      },
+      {
+        "id": "person_legislative_information",
+        "displayName": "Person Legislative Information",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Legislative Information",
+          "person_legislative_information"
+        ]
+      },
+      {
+        "id": "person_name",
+        "displayName": "Person Name",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Name",
+          "person_name"
+        ]
+      },
+      {
+        "id": "person_national_identifier",
+        "displayName": "Person National Identifier",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person National Identifier",
+          "person_national_identifier"
+        ]
+      },
+      {
+        "id": "person_passport",
+        "displayName": "Person Passport",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Passport",
+          "person_passport"
+        ]
+      },
+      {
+        "id": "person_phone",
+        "displayName": "Person Phone",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Phone",
+          "person_phone"
+        ]
+      },
+      {
+        "id": "person_religion",
+        "displayName": "Person Religion",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Religion",
+          "person_religion"
+        ]
+      },
+      {
+        "id": "person_type_usage",
+        "displayName": "Person Type Usage",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Type Usage",
+          "person_type_usage"
+        ]
+      },
+      {
+        "id": "person_visa",
+        "displayName": "Person Visa",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Visa",
+          "person_visa"
+        ]
+      },
+      {
+        "id": "person_disability",
+        "displayName": "Person Disability",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Disability",
+          "person_disability"
+        ]
+      },
+      {
+        "id": "security_profiles",
+        "displayName": "Security Profiles",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Security Profiles",
+          "security_profiles"
+        ]
+      },
+      {
+        "id": "data_role",
+        "displayName": "Data Role",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Data Role",
+          "data_role"
+        ]
+      },
+      {
+        "id": "grade_step_rate_value",
+        "displayName": "Grade Step Rate Value",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Grade Step Rate Value",
+          "grade_step_rate_value"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC2A08E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.hcm.documentsOfRecord.core.protectedUiModel.view.DocumentsOfRecordVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 33,
@@ -1062,39 +1911,69 @@
     ],
     "aliases": [
       "Global Payroll",
-      "Global Payroll (PAY)",
+      "HcmPayroll",
       "PAY",
-      "global payroll"
+      "global_payroll"
     ],
-    "restProduct": "PAY",
+    "instanceProductName": "HcmPayroll",
+    "restProduct": "HcmPayroll",
+    "productId": "47110F64AC2908E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "payroll",
-        "displayName": "Payroll",
+        "id": "element_entry",
+        "displayName": "Element Entry",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Payroll",
-          "payroll"
+          "Element Entry",
+          "element_entry"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.payrolls.core.audit.model.view.ElementEntryDVO",
+        "restValue": "oracle.apps.hcm.payrolls.core.audit.model.view.ElementEntryDVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC2908E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.hcm.payrolls.core.audit.model.view.ElementEntryDVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "element_entry_value",
+        "displayName": "Element Entry Value",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Element Entry Value",
+          "element_entry_value"
         ]
       },
       {
-        "id": "element",
-        "displayName": "Element",
+        "id": "personal_payment_method",
+        "displayName": "Personal Payment Method",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Element",
-          "element"
-        ]
-      },
-      {
-        "id": "payroll_relationship",
-        "displayName": "Payroll Relationship",
-        "aliases": [
-          "Payroll Relationship",
-          "payroll relationship"
+          "Personal Payment Method",
+          "personal_payment_method"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC2908E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.hcm.payrolls.core.audit.model.view.ElementEntryDVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 34,
@@ -1106,23 +1985,15 @@
     ],
     "aliases": [
       "Goal Management",
-      "Goal Management (HRG)",
       "HRG",
-      "goal management"
+      "goal_management"
     ],
+    "instanceProductName": "HRG",
     "restProduct": "HRG",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "goal",
-        "displayName": "Goal",
-        "aliases": [
-          "Goal",
-          "goal"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 35,
@@ -1134,67 +2005,70 @@
     ],
     "aliases": [
       "Grants Management",
-      "Grants Management (PJF)",
       "PJF",
-      "grants management"
+      "grants_management"
     ],
+    "instanceProductName": "PJF",
     "restProduct": "PJF",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "grant",
-        "displayName": "Grant",
-        "aliases": [
-          "Grant",
-          "grant"
-        ]
-      },
-      {
-        "id": "award",
-        "displayName": "Award",
-        "aliases": [
-          "Award",
-          "award"
-        ]
-      },
-      {
-        "id": "project",
-        "displayName": "Project",
-        "aliases": [
-          "Project",
-          "project"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 36,
     "id": "hcm_common_architecture",
-    "displayName": "HCM Common Architecture (HCA)",
+    "displayName": "HCM Common Architecture (HCM / HCA)",
     "productName": "HCM Common Architecture",
     "shortCodes": [
+      "HCM",
       "HCA"
     ],
     "aliases": [
       "HCM Common Architecture",
-      "HCM Common Architecture (HCA)",
+      "HCM",
       "HCA",
-      "hcm common architecture"
+      "hcm_common_architecture"
     ],
-    "restProduct": "HCA",
+    "instanceProductName": "HCM",
+    "restProduct": "HCM",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "configure_hcm_data_loader_parameters",
         "displayName": "Configure HCM Data Loader Parameters",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
           "Configure HCM Data Loader Parameters",
-          "configure hcm data loader parameters"
-        ]
+          "configure_hcm_data_loader_parameters"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.common.core.uiModel.view.HcmDataLoaderParamVO",
+        "restValue": "oracle.apps.hcm.common.core.uiModel.view.HcmDataLoaderParamVO",
+        "payloadTemplate": {
+          "product": "HCM",
+          "businessObjectType": "oracle.apps.hcm.common.core.uiModel.view.HcmDataLoaderParamVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        }
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "HCM",
+      "businessObjectType": "oracle.apps.hcm.common.core.uiModel.view.HcmDataLoaderParamVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 37,
@@ -1206,31 +2080,15 @@
     ],
     "aliases": [
       "Incentive Compensation",
-      "Incentive Compensation (CN)",
       "CN",
-      "incentive compensation"
+      "incentive_compensation"
     ],
+    "instanceProductName": "CN",
     "restProduct": "CN",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "incentive_compensation_plan",
-        "displayName": "Incentive Compensation Plan",
-        "aliases": [
-          "Incentive Compensation Plan",
-          "incentive compensation plan"
-        ]
-      },
-      {
-        "id": "participant",
-        "displayName": "Participant",
-        "aliases": [
-          "Participant",
-          "participant"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 38,
@@ -1242,47 +2100,88 @@
     ],
     "aliases": [
       "Inventory Management",
-      "Inventory Management (INV)",
       "INV",
-      "inventory management"
+      "inventory_management"
     ],
+    "instanceProductName": "INV",
     "restProduct": "INV",
+    "productId": "47110F64AC8A08E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "inventory_organization",
-        "displayName": "Inventory Organization",
+        "id": "invstocklocators",
+        "displayName": "invStockLocators",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Inventory Organization",
-          "inventory organization"
+          "invStockLocators",
+          "invstocklocators"
+        ],
+        "restBusinessObjectType": "oracle.apps.scm.inventory.coreSetup.stockLocators.protectedModel.view.InventoryLocatorAuditVO",
+        "restValue": "oracle.apps.scm.inventory.coreSetup.stockLocators.protectedModel.view.InventoryLocatorAuditVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC8A08E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.scm.inventory.coreSetup.stockLocators.protectedModel.view.InventoryLocatorAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "invlotsandserials",
+        "displayName": "invLotsAndSerials",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "invLotsAndSerials",
+          "invlotsandserials"
         ]
       },
       {
-        "id": "item",
-        "displayName": "Item",
+        "id": "invsubinventories",
+        "displayName": "invSubinventories",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Item",
-          "item"
+          "invSubinventories",
+          "invsubinventories"
         ]
       },
       {
-        "id": "lot",
-        "displayName": "Lot",
+        "id": "invinterorgparameters",
+        "displayName": "invInterOrgParameters",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Lot",
-          "lot"
+          "invInterOrgParameters",
+          "invinterorgparameters"
         ]
       },
       {
-        "id": "serial",
-        "displayName": "Serial",
+        "id": "invintersubparameters",
+        "displayName": "invInterSubParameters",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Serial",
-          "serial"
+          "invInterSubParameters",
+          "invintersubparameters"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC8A08E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.scm.inventory.coreSetup.stockLocators.protectedModel.view.InventoryLocatorAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 39,
@@ -1294,31 +2193,15 @@
     ],
     "aliases": [
       "Joint Venture Management",
-      "Joint Venture Management (JVM)",
       "JVM",
-      "joint venture management"
+      "joint_venture_management"
     ],
+    "instanceProductName": "JVM",
     "restProduct": "JVM",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "joint_venture",
-        "displayName": "Joint Venture",
-        "aliases": [
-          "Joint Venture",
-          "joint venture"
-        ]
-      },
-      {
-        "id": "joint_venture_definition",
-        "displayName": "Joint Venture Definition",
-        "aliases": [
-          "Joint Venture Definition",
-          "joint venture definition"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 40,
@@ -1330,31 +2213,15 @@
     ],
     "aliases": [
       "Lease Accounting",
-      "Lease Accounting (OKL)",
       "OKL",
-      "lease accounting"
+      "lease_accounting"
     ],
+    "instanceProductName": "OKL",
     "restProduct": "OKL",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "lease",
-        "displayName": "Lease",
-        "aliases": [
-          "Lease",
-          "lease"
-        ]
-      },
-      {
-        "id": "lease_contract",
-        "displayName": "Lease Contract",
-        "aliases": [
-          "Lease Contract",
-          "lease contract"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 41,
@@ -1366,31 +2233,15 @@
     ],
     "aliases": [
       "Legal Entity Configurator",
-      "Legal Entity Configurator (XLE)",
       "XLE",
-      "legal entity configurator"
+      "legal_entity_configurator"
     ],
+    "instanceProductName": "XLE",
     "restProduct": "XLE",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "legal_entity",
-        "displayName": "Legal Entity",
-        "aliases": [
-          "Legal Entity",
-          "legal entity"
-        ]
-      },
-      {
-        "id": "legal_entity_registration",
-        "displayName": "Legal Entity Registration",
-        "aliases": [
-          "Legal Entity Registration",
-          "legal entity registration"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 42,
@@ -1402,31 +2253,15 @@
     ],
     "aliases": [
       "Loyalty",
-      "Loyalty (LOY)",
       "LOY",
       "loyalty"
     ],
+    "instanceProductName": "LOY",
     "restProduct": "LOY",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "loyalty_program",
-        "displayName": "Loyalty Program",
-        "aliases": [
-          "Loyalty Program",
-          "loyalty program"
-        ]
-      },
-      {
-        "id": "member",
-        "displayName": "Member",
-        "aliases": [
-          "Member",
-          "member"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 43,
@@ -1438,55 +2273,129 @@
     ],
     "aliases": [
       "Marketing",
-      "Marketing (MKT)",
       "MKT",
       "marketing"
     ],
+    "instanceProductName": "MKT",
     "restProduct": "MKT",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "campaign",
-        "displayName": "Campaign",
-        "aliases": [
-          "Campaign",
-          "campaign"
-        ]
-      },
-      {
-        "id": "marketing_activity",
-        "displayName": "Marketing Activity",
-        "aliases": [
-          "Marketing Activity",
-          "marketing activity"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 44,
     "id": "oracle_middleware_extensions_for_applications",
-    "displayName": "Oracle Middleware Extensions for Applications",
+    "displayName": "Oracle Middleware Extensions for Applications (FND)",
     "productName": "Oracle Middleware Extensions for Applications",
-    "shortCodes": [],
+    "shortCodes": [
+      "FND"
+    ],
     "aliases": [
       "Oracle Middleware Extensions for Applications",
-      "oracle middleware extensions for applications"
+      "fndSetup",
+      "FND",
+      "oracle_middleware_extensions_for_applications"
     ],
-    "restProduct": "Oracle Middleware Extensions for Applications",
+    "instanceProductName": "fndSetup",
+    "restProduct": "fndSetup",
+    "productId": "40B3FA7250D19380E040449823C67A1A",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "middleware_configuration_objects",
-        "displayName": "Middleware Configuration Objects",
+        "id": "key_flexfield",
+        "displayName": "Key Flexfield",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Middleware Configuration Objects",
-          "middleware configuration objects"
+          "Key Flexfield",
+          "key_flexfield"
+        ],
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.kff.keyFlexfieldService.view.KeyFlexfieldVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.kff.keyFlexfieldService.view.KeyFlexfieldVO",
+        "payloadTemplate": {
+          "productId": "40B3FA7250D19380E040449823C67A1A",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.kff.keyFlexfieldService.view.KeyFlexfieldVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "descriptive_flexfield_secondary_usage",
+        "displayName": "Descriptive Flexfield Secondary Usage",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Descriptive Flexfield Secondary Usage",
+          "descriptive_flexfield_secondary_usage"
+        ]
+      },
+      {
+        "id": "descriptive_flexfield",
+        "displayName": "Descriptive Flexfield",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Descriptive Flexfield",
+          "descriptive_flexfield"
+        ]
+      },
+      {
+        "id": "relatedvaluesetvo",
+        "displayName": "RelatedValueSetVO",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "RelatedValueSetVO",
+          "relatedvaluesetvo"
+        ]
+      },
+      {
+        "id": "relatedvaluesetvaluevo",
+        "displayName": "RelatedValueSetValueVO",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "RelatedValueSetValueVO",
+          "relatedvaluesetvaluevo"
+        ]
+      },
+      {
+        "id": "value_set",
+        "displayName": "Value Set",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Value Set",
+          "value_set"
+        ]
+      },
+      {
+        "id": "value_set_value",
+        "displayName": "Value Set Value",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Value Set Value",
+          "value_set_value"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "40B3FA7250D19380E040449823C67A1A",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.kff.keyFlexfieldService.view.KeyFlexfieldVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 45,
@@ -1498,31 +2407,15 @@
     ],
     "aliases": [
       "Partner Management",
-      "Partner Management (ZPM)",
       "ZPM",
-      "partner management"
+      "partner_management"
     ],
+    "instanceProductName": "ZPM",
     "restProduct": "ZPM",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "partner",
-        "displayName": "Partner",
-        "aliases": [
-          "Partner",
-          "partner"
-        ]
-      },
-      {
-        "id": "partner_organization",
-        "displayName": "Partner Organization",
-        "aliases": [
-          "Partner Organization",
-          "partner organization"
-        ]
-      }
-    ]
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 46,
@@ -1535,18 +2428,21 @@
     ],
     "aliases": [
       "Payables",
-      "Payables (AP / SQLAP)",
       "AP",
       "SQLAP",
       "payables"
     ],
+    "instanceProductName": "AP",
     "restProduct": "AP",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "invoice",
         "displayName": "Invoice",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Invoice",
           "invoice"
@@ -1555,6 +2451,8 @@
       {
         "id": "payment",
         "displayName": "Payment",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Payment",
           "payment"
@@ -1563,6 +2461,8 @@
       {
         "id": "supplier",
         "displayName": "Supplier",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Supplier",
           "supplier"
@@ -1580,17 +2480,20 @@
     ],
     "aliases": [
       "Payments",
-      "Payments (IBY)",
       "IBY",
       "payments"
     ],
+    "instanceProductName": "IBY",
     "restProduct": "IBY",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "payment",
         "displayName": "Payment",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Payment",
           "payment"
@@ -1599,9 +2502,11 @@
       {
         "id": "payment_process_request",
         "displayName": "Payment Process Request",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Payment Process Request",
-          "payment process request"
+          "payment_process_request"
         ]
       }
     ]
@@ -1616,31 +2521,59 @@
     ],
     "aliases": [
       "Performance Management",
-      "Performance Management (PER)",
+      "HcmTalent",
       "PER",
-      "performance management"
+      "performance_management"
     ],
-    "restProduct": "PER",
+    "instanceProductName": "HcmTalent",
+    "restProduct": "HcmTalent",
+    "productId": "47110F64AC2108E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "performance_document",
-        "displayName": "Performance Document",
+        "id": "evaluation_item_ratings",
+        "displayName": "Evaluation Item Ratings",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Performance Document",
-          "performance document"
-        ]
+          "Evaluation Item Ratings",
+          "evaluation_item_ratings"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.performance.documents.protectedUiModel.view.EvalItemRatingAuditVO",
+        "restValue": "oracle.apps.hcm.performance.documents.protectedUiModel.view.EvalItemRatingAuditVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC2108E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.hcm.performance.documents.protectedUiModel.view.EvalItemRatingAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       },
       {
-        "id": "performance_goal",
-        "displayName": "Performance Goal",
+        "id": "evaluation_section_ratings",
+        "displayName": "Evaluation Section Ratings",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Performance Goal",
-          "performance goal"
+          "Evaluation Section Ratings",
+          "evaluation_section_ratings"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC2108E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.hcm.performance.documents.protectedUiModel.view.EvalItemRatingAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 49,
@@ -1652,39 +2585,249 @@
     ],
     "aliases": [
       "Product Hub",
-      "Product Hub (EGP)",
+      "egpItemSearch",
       "EGP",
-      "product hub"
+      "product_hub"
     ],
-    "restProduct": "EGP",
+    "instanceProductName": "egpItemSearch",
+    "restProduct": "egpItemSearch",
+    "productId": "47110F64AC8108E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
+        "id": "value_set",
+        "displayName": "Value Set",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "aliases": [
+          "Value Set",
+          "value_set"
+        ],
+        "restBusinessObjectType": "oracle.apps.fnd.applcore.flex.vst.valueSetService.view.ValueSetVO",
+        "restValue": "oracle.apps.fnd.applcore.flex.vst.valueSetService.view.ValueSetVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC8108E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.fnd.applcore.flex.vst.valueSetService.view.ValueSetVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "change_object_attachments",
+        "displayName": "Change Object Attachments",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Change Object Attachments",
+          "change_object_attachments"
+        ]
+      },
+      {
+        "id": "affected_objects",
+        "displayName": "Affected Objects",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Affected Objects",
+          "affected_objects"
+        ]
+      },
+      {
+        "id": "change_object",
+        "displayName": "Change Object",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Change Object",
+          "change_object"
+        ]
+      },
+      {
+        "id": "change_object_tasks",
+        "displayName": "Change Object Tasks",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Change Object Tasks",
+          "change_object_tasks"
+        ]
+      },
+      {
+        "id": "destination_change_object",
+        "displayName": "Destination Change Object",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Destination Change Object",
+          "destination_change_object"
+        ]
+      },
+      {
+        "id": "source_change_object",
+        "displayName": "Source Change Object",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Source Change Object",
+          "source_change_object"
+        ]
+      },
+      {
+        "id": "item_extensible_flexfield",
+        "displayName": "Item Extensible Flexfield",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Item Extensible Flexfield",
+          "item_extensible_flexfield"
+        ]
+      },
+      {
+        "id": "item_revision_extensible_flexfield",
+        "displayName": "Item Revision Extensible Flexfield",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Item Revision Extensible Flexfield",
+          "item_revision_extensible_flexfield"
+        ]
+      },
+      {
+        "id": "manufacturer_item_relationship",
+        "displayName": "Manufacturer Item Relationship",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Manufacturer Item Relationship",
+          "manufacturer_item_relationship"
+        ]
+      },
+      {
+        "id": "linked_mpn_relationships",
+        "displayName": "Linked MPN Relationships",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Linked MPN Relationships",
+          "linked_mpn_relationships"
+        ]
+      },
+      {
+        "id": "item_supplier_extensible_flexfield",
+        "displayName": "Item Supplier Extensible Flexfield",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Item Supplier Extensible Flexfield",
+          "item_supplier_extensible_flexfield"
+        ]
+      },
+      {
+        "id": "linked_supplier_item_relationships",
+        "displayName": "Linked Supplier Item Relationships",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Linked Supplier Item Relationships",
+          "linked_supplier_item_relationships"
+        ]
+      },
+      {
+        "id": "supplier_item_relationship",
+        "displayName": "Supplier Item Relationship",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Supplier Item Relationship",
+          "supplier_item_relationship"
+        ]
+      },
+      {
+        "id": "item_revision_attachments",
+        "displayName": "Item Revision Attachments",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Item Revision Attachments",
+          "item_revision_attachments"
+        ]
+      },
+      {
+        "id": "item_attachments",
+        "displayName": "Item Attachments",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Item Attachments",
+          "item_attachments"
+        ]
+      },
+      {
         "id": "item",
         "displayName": "Item",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Item",
           "item"
         ]
       },
       {
-        "id": "item_class",
-        "displayName": "Item Class",
+        "id": "structure_attachments",
+        "displayName": "Structure Attachments",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Item Class",
-          "item class"
+          "Structure Attachments",
+          "structure_attachments"
         ]
       },
       {
-        "id": "change_order",
-        "displayName": "Change Order",
+        "id": "item_structure_component",
+        "displayName": "Item Structure Component",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Change Order",
-          "change order"
+          "Item Structure Component",
+          "item_structure_component"
+        ]
+      },
+      {
+        "id": "item_structure",
+        "displayName": "Item Structure",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Item Structure",
+          "item_structure"
+        ]
+      },
+      {
+        "id": "manufacturer_items",
+        "displayName": "Manufacturer Items",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Manufacturer Items",
+          "manufacturer_items"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC8108E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.fnd.applcore.flex.vst.valueSetService.view.ValueSetVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 50,
@@ -1696,31 +2839,119 @@
     ],
     "aliases": [
       "Profile Management",
-      "Profile Management (PER)",
+      "HcmTalent",
       "PER",
-      "profile management"
+      "profile_management"
     ],
-    "restProduct": "PER",
+    "instanceProductName": "HcmTalent",
+    "restProduct": "HcmTalent",
+    "productId": "47110F64AC2308E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "talent_profile",
-        "displayName": "Talent Profile",
+        "id": "content_items",
+        "displayName": "Content Items",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Talent Profile",
-          "talent profile"
+          "Content Items",
+          "content_items"
+        ],
+        "restBusinessObjectType": "oracle.apps.hcm.profiles.contentLibrary.uiModel.view.ContentItemAuditVO",
+        "restValue": "oracle.apps.hcm.profiles.contentLibrary.uiModel.view.ContentItemAuditVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC2308E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.hcm.profiles.contentLibrary.uiModel.view.ContentItemAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "rating_levels",
+        "displayName": "Rating Levels",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Rating Levels",
+          "rating_levels"
         ]
       },
       {
-        "id": "profile_item",
-        "displayName": "Profile Item",
+        "id": "rating_models",
+        "displayName": "Rating Models",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Profile Item",
-          "profile item"
+          "Rating Models",
+          "rating_models"
+        ]
+      },
+      {
+        "id": "model_profile_items",
+        "displayName": "Model Profile Items",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Model Profile Items",
+          "model_profile_items"
+        ]
+      },
+      {
+        "id": "person_profile_items",
+        "displayName": "Person Profile Items",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Person Profile Items",
+          "person_profile_items"
+        ]
+      },
+      {
+        "id": "profile_keywords",
+        "displayName": "Profile Keywords",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Profile Keywords",
+          "profile_keywords"
+        ]
+      },
+      {
+        "id": "talent_pool_members",
+        "displayName": "Talent Pool Members",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Talent Pool Members",
+          "talent_pool_members"
+        ]
+      },
+      {
+        "id": "profile_type_section_properties",
+        "displayName": "Profile Type Section Properties",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Profile Type Section Properties",
+          "profile_type_section_properties"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC2308E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.hcm.profiles.contentLibrary.uiModel.view.ContentItemAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 51,
@@ -1732,31 +2963,15 @@
     ],
     "aliases": [
       "Project Foundation",
-      "Project Foundation (PJF)",
       "PJF",
-      "project foundation"
+      "project_foundation"
     ],
+    "instanceProductName": "PJF",
     "restProduct": "PJF",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "project",
-        "displayName": "Project",
-        "aliases": [
-          "Project",
-          "project"
-        ]
-      },
-      {
-        "id": "project_task",
-        "displayName": "Project Task",
-        "aliases": [
-          "Project Task",
-          "project task"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 52,
@@ -1768,23 +2983,118 @@
     ],
     "aliases": [
       "Public Sector Common Components",
-      "Public Sector Common Components (PSB)",
       "PSB",
-      "public sector common components"
+      "public_sector_common_components"
     ],
-    "restProduct": "PSB",
+    "instanceProductName": "Public Sector Common Components",
+    "restProduct": "Public Sector Common Components",
+    "productId": "5AE4C38131A16D3AE0531720F00A9CE7",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "public_sector_objects",
-        "displayName": "Public Sector Objects",
+        "id": "trading_community_customer_billing_account",
+        "displayName": "Trading Community Customer Billing Account",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Public Sector Objects",
-          "public sector objects"
+          "Trading Community Customer Billing Account",
+          "trading_community_customer_billing_account"
+        ],
+        "restBusinessObjectType": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+        "restValue": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+        "payloadTemplate": {
+          "productId": "5AE4C38131A16D3AE0531720F00A9CE7",
+          "businessObjectType": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "household",
+        "displayName": "Household",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Household",
+          "household"
+        ]
+      },
+      {
+        "id": "account",
+        "displayName": "Account",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Account",
+          "account"
+        ]
+      },
+      {
+        "id": "contact",
+        "displayName": "Contact",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Contact",
+          "contact"
+        ]
+      },
+      {
+        "id": "account_extension_base",
+        "displayName": "Account Extension Base",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Account Extension Base",
+          "account_extension_base"
+        ]
+      },
+      {
+        "id": "business",
+        "displayName": "Business",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Business",
+          "business"
+        ]
+      },
+      {
+        "id": "locations",
+        "displayName": "Locations",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Locations",
+          "locations"
+        ]
+      },
+      {
+        "id": "owners",
+        "displayName": "Owners",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Owners",
+          "owners"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "5AE4C38131A16D3AE0531720F00A9CE7",
+      "businessObjectType": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 53,
@@ -1796,31 +3106,59 @@
     ],
     "aliases": [
       "Quality Issue and Action Management",
-      "Quality Issue and Action Management (QIM)",
+      "enqActions",
       "QIM",
-      "quality issue and action management"
+      "quality_issue_and_action_management"
     ],
-    "restProduct": "QIM",
+    "instanceProductName": "enqActions",
+    "restProduct": "enqActions",
+    "productId": "13BFA4ABD1ACDBA4E050F00A17206E1D",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "quality_issue",
-        "displayName": "Quality Issue",
+        "id": "quality_issue_attachment",
+        "displayName": "Quality Issue Attachment",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Quality Issue",
-          "quality issue"
-        ]
+          "Quality Issue Attachment",
+          "quality_issue_attachment"
+        ],
+        "restBusinessObjectType": "oracle.apps.scm.enterpriseQualityManagement.issues.publicUiModel.view.IssueAttachmentAuditVO",
+        "restValue": "oracle.apps.scm.enterpriseQualityManagement.issues.publicUiModel.view.IssueAttachmentAuditVO",
+        "payloadTemplate": {
+          "productId": "13BFA4ABD1ACDBA4E050F00A17206E1D",
+          "businessObjectType": "oracle.apps.scm.enterpriseQualityManagement.issues.publicUiModel.view.IssueAttachmentAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       },
       {
-        "id": "quality_action",
-        "displayName": "Quality Action",
+        "id": "quality_issue",
+        "displayName": "Quality Issue",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Quality Action",
-          "quality action"
+          "Quality Issue",
+          "quality_issue"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "13BFA4ABD1ACDBA4E050F00A17206E1D",
+      "businessObjectType": "oracle.apps.scm.enterpriseQualityManagement.issues.publicUiModel.view.IssueAttachmentAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 54,
@@ -1832,39 +3170,48 @@
     ],
     "aliases": [
       "Receivables",
-      "Receivables (AR)",
       "AR",
       "receivables"
     ],
-    "restProduct": "AR",
+    "instanceProductName": "Receivables",
+    "restProduct": "Receivables",
+    "productId": "47110F64AC0408E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "invoice",
-        "displayName": "Invoice",
+        "id": "trading_community_customer_billing_account",
+        "displayName": "Trading Community Customer Billing Account",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Invoice",
-          "invoice"
-        ]
-      },
-      {
-        "id": "receipt",
-        "displayName": "Receipt",
-        "aliases": [
-          "Receipt",
-          "receipt"
-        ]
-      },
-      {
-        "id": "customer_account",
-        "displayName": "Customer Account",
-        "aliases": [
-          "Customer Account",
-          "customer account"
-        ]
+          "Trading Community Customer Billing Account",
+          "trading_community_customer_billing_account"
+        ],
+        "restBusinessObjectType": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+        "restValue": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC0408E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC0408E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.cdm.foundation.parties.customerAccountService.view.CustomerAccountVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 55,
@@ -1876,31 +3223,15 @@
     ],
     "aliases": [
       "Receiving",
-      "Receiving (RCV)",
       "RCV",
       "receiving"
     ],
+    "instanceProductName": "RCV",
     "restProduct": "RCV",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "receipt",
-        "displayName": "Receipt",
-        "aliases": [
-          "Receipt",
-          "receipt"
-        ]
-      },
-      {
-        "id": "receiving_transaction",
-        "displayName": "Receiving Transaction",
-        "aliases": [
-          "Receiving Transaction",
-          "receiving transaction"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 56,
@@ -1912,39 +3243,15 @@
     ],
     "aliases": [
       "Recruiting",
-      "Recruiting (IRC)",
       "IRC",
       "recruiting"
     ],
+    "instanceProductName": "IRC",
     "restProduct": "IRC",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "candidate",
-        "displayName": "Candidate",
-        "aliases": [
-          "Candidate",
-          "candidate"
-        ]
-      },
-      {
-        "id": "job_requisition",
-        "displayName": "Job Requisition",
-        "aliases": [
-          "Job Requisition",
-          "job requisition"
-        ]
-      },
-      {
-        "id": "application",
-        "displayName": "Application",
-        "aliases": [
-          "Application",
-          "application"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 57,
@@ -1956,31 +3263,15 @@
     ],
     "aliases": [
       "Revenue Management",
-      "Revenue Management (ORA-REV)",
       "ORA-REV",
-      "revenue management"
+      "revenue_management"
     ],
+    "instanceProductName": "ORA-REV",
     "restProduct": "ORA-REV",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "customer_contract",
-        "displayName": "Customer Contract",
-        "aliases": [
-          "Customer Contract",
-          "customer contract"
-        ]
-      },
-      {
-        "id": "revenue_contract",
-        "displayName": "Revenue Contract",
-        "aliases": [
-          "Revenue Contract",
-          "revenue contract"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 58,
@@ -1993,26 +3284,31 @@
     ],
     "aliases": [
       "Risks and Controls",
-      "Risks and Controls (RACM / RMC)",
-      "RACM",
       "RMC",
-      "risks and controls"
+      "RACM",
+      "risks_and_controls"
     ],
-    "restProduct": "RACM",
+    "instanceProductName": "RMC",
+    "restProduct": "RMC",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "advanced_controls",
         "displayName": "Advanced Controls",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Advanced Controls",
-          "advanced controls"
+          "advanced_controls"
         ]
       },
       {
         "id": "entitlements",
         "displayName": "Entitlements",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Entitlements",
           "entitlements"
@@ -2021,33 +3317,41 @@
       {
         "id": "global_conditions",
         "displayName": "Global Conditions",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Global Conditions",
-          "global conditions"
+          "global_conditions"
         ]
       },
       {
         "id": "global_users",
         "displayName": "Global Users",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Global Users",
-          "global users"
+          "global_users"
         ]
       },
       {
         "id": "user_groups",
         "displayName": "User Groups",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "User Groups",
-          "user groups"
+          "user_groups"
         ]
       },
       {
         "id": "business_object_security",
         "displayName": "Business Object Security",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Business Object Security",
-          "business object security"
+          "business_object_security"
         ]
       }
     ]
@@ -2063,40 +3367,16 @@
     ],
     "aliases": [
       "Sales",
-      "Sales (ZSF / CRM)",
       "ZSF",
       "CRM",
       "sales"
     ],
+    "instanceProductName": "ZSF",
     "restProduct": "ZSF",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "account",
-        "displayName": "Account",
-        "aliases": [
-          "Account",
-          "account"
-        ]
-      },
-      {
-        "id": "opportunity",
-        "displayName": "Opportunity",
-        "aliases": [
-          "Opportunity",
-          "opportunity"
-        ]
-      },
-      {
-        "id": "lead",
-        "displayName": "Lead",
-        "aliases": [
-          "Lead",
-          "lead"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 60,
@@ -2108,31 +3388,59 @@
     ],
     "aliases": [
       "Sales Catalog",
-      "Sales Catalog (QSC)",
+      "sales",
       "QSC",
-      "sales catalog"
+      "sales_catalog"
     ],
-    "restProduct": "QSC",
+    "instanceProductName": "sales",
+    "restProduct": "sales",
+    "productId": "47110F64ABF408E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
         "id": "product",
         "displayName": "Product",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
           "Product",
           "product"
-        ]
+        ],
+        "restBusinessObjectType": "oracle.apps.orderCapture.product.productService.view.ProductVO",
+        "restValue": "oracle.apps.orderCapture.product.productService.view.ProductVO",
+        "payloadTemplate": {
+          "productId": "47110F64ABF408E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.orderCapture.product.productService.view.ProductVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       },
       {
-        "id": "product_group",
-        "displayName": "Product Group",
+        "id": "item_attachments",
+        "displayName": "Item Attachments",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Product Group",
-          "product group"
+          "Item Attachments",
+          "item_attachments"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64ABF408E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.orderCapture.product.productService.view.ProductVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 61,
@@ -2142,21 +3450,14 @@
     "shortCodes": [],
     "aliases": [
       "Sales for Communications",
-      "sales for communications"
+      "sales_for_communications"
     ],
-    "restProduct": "Sales for Communications",
-    "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "communication_objects",
-        "displayName": "Communication Objects",
-        "aliases": [
-          "Communication Objects",
-          "communication objects"
-        ]
-      }
-    ]
+    "instanceProductName": "Sales for Communications",
+    "restProduct": null,
+    "productId": null,
+    "mappingStatus": "UNRESOLVED",
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 62,
@@ -2168,31 +3469,89 @@
     ],
     "aliases": [
       "Service",
-      "Service (CS)",
+      "ORA_SERVICE",
       "CS",
       "service"
     ],
-    "restProduct": "CS",
+    "instanceProductName": "ORA_SERVICE",
+    "restProduct": "ORA_SERVICE",
+    "productId": "08C1ABF048177E22E050F00A1720179C",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "service_request",
-        "displayName": "Service Request",
+        "id": "work_order",
+        "displayName": "Work Order",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Service Request",
-          "service request"
+          "Work Order",
+          "work_order"
+        ],
+        "restBusinessObjectType": "oracle.apps.crm.service.fieldservice.workOrderService.view.WorkOrderVO",
+        "restValue": "oracle.apps.crm.service.fieldservice.workOrderService.view.WorkOrderVO",
+        "payloadTemplate": {
+          "productId": "08C1ABF048177E22E050F00A1720179C",
+          "businessObjectType": "oracle.apps.crm.service.fieldservice.workOrderService.view.WorkOrderVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "queue",
+        "displayName": "Queue",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Queue",
+          "queue"
         ]
       },
       {
-        "id": "customer",
-        "displayName": "Customer",
+        "id": "service_request",
+        "displayName": "Service Request",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Customer",
-          "customer"
+          "Service Request",
+          "service_request"
+        ]
+      },
+      {
+        "id": "category",
+        "displayName": "Category",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Category",
+          "category"
+        ]
+      },
+      {
+        "id": "service_request_reference",
+        "displayName": "Service Request Reference",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Service Request Reference",
+          "service_request_reference"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "08C1ABF048177E22E050F00A1720179C",
+      "businessObjectType": "oracle.apps.crm.service.fieldservice.workOrderService.view.WorkOrderVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 63,
@@ -2204,31 +3563,49 @@
     ],
     "aliases": [
       "Sourcing",
-      "Sourcing (PON)",
+      "procurement",
       "PON",
       "sourcing"
     ],
-    "restProduct": "PON",
+    "instanceProductName": "procurement",
+    "restProduct": "procurement",
+    "productId": "47110F64AC6408E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "sourcing_event",
-        "displayName": "Sourcing Event",
+        "id": "supplier_negotiation",
+        "displayName": "Supplier Negotiation",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Sourcing Event",
-          "sourcing event"
-        ]
-      },
-      {
-        "id": "negotiation",
-        "displayName": "Negotiation",
-        "aliases": [
-          "Negotiation",
-          "negotiation"
-        ]
+          "Supplier Negotiation",
+          "supplier_negotiation"
+        ],
+        "restBusinessObjectType": "oracle.apps.prc.pon.commonPon.protectedModel.view.AuditNegotiationCreationHeaderVO",
+        "restValue": "oracle.apps.prc.pon.commonPon.protectedModel.view.AuditNegotiationCreationHeaderVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC6408E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.prc.pon.commonPon.protectedModel.view.AuditNegotiationCreationHeaderVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC6408E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.prc.pon.commonPon.protectedModel.view.AuditNegotiationCreationHeaderVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 64,
@@ -2240,31 +3617,15 @@
     ],
     "aliases": [
       "Student Admissions",
-      "Student Admissions (SAD)",
       "SAD",
-      "student admissions"
+      "student_admissions"
     ],
+    "instanceProductName": "SAD",
     "restProduct": "SAD",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "admission_application",
-        "displayName": "Admission Application",
-        "aliases": [
-          "Admission Application",
-          "admission application"
-        ]
-      },
-      {
-        "id": "applicant",
-        "displayName": "Applicant",
-        "aliases": [
-          "Applicant",
-          "applicant"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 65,
@@ -2276,31 +3637,15 @@
     ],
     "aliases": [
       "Student Financials",
-      "Student Financials (SFA)",
       "SFA",
-      "student financials"
+      "student_financials"
     ],
+    "instanceProductName": "SFA",
     "restProduct": "SFA",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "student_account",
-        "displayName": "Student Account",
-        "aliases": [
-          "Student Account",
-          "student account"
-        ]
-      },
-      {
-        "id": "financial_aid",
-        "displayName": "Financial Aid",
-        "aliases": [
-          "Financial Aid",
-          "financial aid"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 66,
@@ -2312,31 +3657,119 @@
     ],
     "aliases": [
       "Student Records",
-      "Student Records (SSR)",
+      "ORA_RECORDSMANAGEMENT",
       "SSR",
-      "student records"
+      "student_records"
     ],
-    "restProduct": "SSR",
+    "instanceProductName": "ORA_RECORDSMANAGEMENT",
+    "restProduct": "ORA_RECORDSMANAGEMENT",
+    "productId": "F72168F6CC3D391AE040F00A17205E86",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "student",
-        "displayName": "Student",
+        "id": "account",
+        "displayName": "Account",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Student",
-          "student"
+          "Account",
+          "account"
+        ],
+        "restBusinessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+        "restValue": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+        "payloadTemplate": {
+          "productId": "F72168F6CC3D391AE040F00A17205E86",
+          "businessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
+        "id": "contact",
+        "displayName": "Contact",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Contact",
+          "contact"
         ]
       },
       {
-        "id": "academic_record",
-        "displayName": "Academic Record",
+        "id": "external_organization_accrediting_entity",
+        "displayName": "External Organization Accrediting Entity",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Academic Record",
-          "academic record"
+          "External Organization Accrediting Entity",
+          "external_organization_accrediting_entity"
+        ]
+      },
+      {
+        "id": "external_organization_location",
+        "displayName": "External Organization Location",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "External Organization Location",
+          "external_organization_location"
+        ]
+      },
+      {
+        "id": "external_organization_contact",
+        "displayName": "External Organization Contact",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "External Organization Contact",
+          "external_organization_contact"
+        ]
+      },
+      {
+        "id": "external_organization_identifier",
+        "displayName": "External Organization Identifier",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "External Organization Identifier",
+          "external_organization_identifier"
+        ]
+      },
+      {
+        "id": "external_organization_tag",
+        "displayName": "External Organization Tag",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "External Organization Tag",
+          "external_organization_tag"
+        ]
+      },
+      {
+        "id": "external_organization",
+        "displayName": "External Organization",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "External Organization",
+          "external_organization"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "F72168F6CC3D391AE040F00A17205E86",
+      "businessObjectType": "oracle.apps.cdm.foundation.parties.organizationService.view.OrganizationDVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 67,
@@ -2348,28 +3781,23 @@
     ],
     "aliases": [
       "Subledger Accounting",
-      "Subledger Accounting (XLA)",
       "XLA",
-      "subledger accounting"
+      "subledger_accounting"
     ],
+    "instanceProductName": "XLA",
     "restProduct": "XLA",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "subledger_journal_entry",
-        "displayName": "Subledger Journal Entry",
+        "id": "journal_entry_rule_set_assignment_audit",
+        "displayName": "Journal Entry Rule Set Assignment Audit",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "Subledger Journal Entry",
-          "subledger journal entry"
-        ]
-      },
-      {
-        "id": "accounting_event",
-        "displayName": "Accounting Event",
-        "aliases": [
-          "Accounting Event",
-          "accounting event"
+          "Journal Entry Rule Set Assignment Audit",
+          "journal_entry_rule_set_assignment_audit"
         ]
       }
     ]
@@ -2384,31 +3812,59 @@
     ],
     "aliases": [
       "Subscription Management",
-      "Subscription Management (OSS)",
+      "ORA_CRM_UI",
       "OSS",
-      "subscription management"
+      "subscription_management"
     ],
-    "restProduct": "OSS",
+    "instanceProductName": "ORA_CRM_UI",
+    "restProduct": "ORA_CRM_UI",
+    "productId": "6441A454211447B1E0531720F00A79D9",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
+        "id": "subscription_product",
+        "displayName": "Subscription Product",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "aliases": [
+          "Subscription Product",
+          "subscription_product"
+        ],
+        "restBusinessObjectType": "oracle.apps.subscriptions.subscriptionManagement.subscriptionService.view.ProductsVO",
+        "restValue": "oracle.apps.subscriptions.subscriptionManagement.subscriptionService.view.ProductsVO",
+        "payloadTemplate": {
+          "productId": "6441A454211447B1E0531720F00A79D9",
+          "businessObjectType": "oracle.apps.subscriptions.subscriptionManagement.subscriptionService.view.ProductsVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
+      },
+      {
         "id": "subscription",
         "displayName": "Subscription",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
           "Subscription",
           "subscription"
         ]
-      },
-      {
-        "id": "subscription_product",
-        "displayName": "Subscription Product",
-        "aliases": [
-          "Subscription Product",
-          "subscription product"
-        ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "6441A454211447B1E0531720F00A79D9",
+      "businessObjectType": "oracle.apps.subscriptions.subscriptionManagement.subscriptionService.view.ProductsVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 69,
@@ -2420,31 +3876,15 @@
     ],
     "aliases": [
       "Succession Management",
-      "Succession Management (PER)",
       "PER",
-      "succession management"
+      "succession_management"
     ],
+    "instanceProductName": "PER",
     "restProduct": "PER",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "succession_plan",
-        "displayName": "Succession Plan",
-        "aliases": [
-          "Succession Plan",
-          "succession plan"
-        ]
-      },
-      {
-        "id": "talent_pool",
-        "displayName": "Talent Pool",
-        "aliases": [
-          "Talent Pool",
-          "talent pool"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 70,
@@ -2456,39 +3896,49 @@
     ],
     "aliases": [
       "Supplier Model",
-      "Supplier Model (POS)",
+      "procurement",
       "POS",
-      "supplier model"
+      "supplier_model"
     ],
-    "restProduct": "POS",
+    "instanceProductName": "procurement",
+    "restProduct": "procurement",
+    "productId": "47110F64AC6708E2E040449823C60DB6",
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "supplier",
-        "displayName": "Supplier",
+        "id": "supplier_negotiation",
+        "displayName": "Supplier Negotiation",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Supplier",
-          "supplier"
-        ]
-      },
-      {
-        "id": "supplier_site",
-        "displayName": "Supplier Site",
-        "aliases": [
-          "Supplier Site",
-          "supplier site"
-        ]
-      },
-      {
-        "id": "supplier_bank_account",
-        "displayName": "Supplier Bank Account",
-        "aliases": [
-          "Supplier Bank Account",
-          "supplier bank account"
-        ]
+          "Supplier Negotiation",
+          "supplier_negotiation"
+        ],
+        "restBusinessObjectType": "oracle.apps.prc.poz.suppliers.protectedModel.core.view.AuditSupplierVO",
+        "restValue": "oracle.apps.prc.poz.suppliers.protectedModel.core.view.AuditSupplierVO",
+        "payloadTemplate": {
+          "productId": "47110F64AC6708E2E040449823C60DB6",
+          "businessObjectType": "oracle.apps.prc.poz.suppliers.protectedModel.core.view.AuditSupplierVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true",
+          "includeExtendedObjectIdentiferColumns": "true"
+        }
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "47110F64AC6708E2E040449823C60DB6",
+      "businessObjectType": "oracle.apps.prc.poz.suppliers.protectedModel.core.view.AuditSupplierVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true",
+      "includeExtendedObjectIdentiferColumns": "true"
+    }
   },
   {
     "sno": 71,
@@ -2500,20 +3950,53 @@
     ],
     "aliases": [
       "Supply Chain Management Common Components",
-      "Supply Chain Management Common Components (RCS)",
       "RCS",
-      "supply chain management common components"
+      "supply_chain_management_common_components"
     ],
+    "instanceProductName": "RCS",
     "restProduct": "RCS",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "scm_common_objects",
-        "displayName": "SCM Common Objects",
+        "id": "locator",
+        "displayName": "Locator",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
         "aliases": [
-          "SCM Common Objects",
-          "scm common objects"
+          "Locator",
+          "locator"
+        ]
+      },
+      {
+        "id": "retail_license_individual_owner",
+        "displayName": "Retail License Individual Owner",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Retail License Individual Owner",
+          "retail_license_individual_owner"
+        ]
+      },
+      {
+        "id": "accessory_dwelling_unit_permit",
+        "displayName": "Accessory Dwelling Unit Permit",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "Accessory Dwelling Unit Permit",
+          "accessory_dwelling_unit_permit"
+        ]
+      },
+      {
+        "id": "preapplication",
+        "displayName": "PreApplication",
+        "isSupported": false,
+        "status": "UNSUPPORTED",
+        "aliases": [
+          "PreApplication",
+          "preapplication"
         ]
       }
     ]
@@ -2528,39 +4011,15 @@
     ],
     "aliases": [
       "Tax",
-      "Tax (ZX)",
       "ZX",
       "tax"
     ],
+    "instanceProductName": "ZX",
     "restProduct": "ZX",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "tax",
-        "displayName": "Tax",
-        "aliases": [
-          "Tax",
-          "tax"
-        ]
-      },
-      {
-        "id": "tax_regime",
-        "displayName": "Tax Regime",
-        "aliases": [
-          "Tax Regime",
-          "tax regime"
-        ]
-      },
-      {
-        "id": "tax_rate",
-        "displayName": "Tax Rate",
-        "aliases": [
-          "Tax Rate",
-          "tax rate"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 73,
@@ -2572,31 +4031,15 @@
     ],
     "aliases": [
       "Territory Management",
-      "Territory Management (JTM)",
       "JTM",
-      "territory management"
+      "territory_management"
     ],
+    "instanceProductName": "JTM",
     "restProduct": "JTM",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "territory",
-        "displayName": "Territory",
-        "aliases": [
-          "Territory",
-          "territory"
-        ]
-      },
-      {
-        "id": "territory_hierarchy",
-        "displayName": "Territory Hierarchy",
-        "aliases": [
-          "Territory Hierarchy",
-          "territory hierarchy"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 74,
@@ -2609,32 +4052,16 @@
     ],
     "aliases": [
       "Time and Labor",
-      "Time and Labor (HXT / TLM)",
       "HXT",
       "TLM",
-      "time and labor"
+      "time_and_labor"
     ],
+    "instanceProductName": "HXT",
     "restProduct": "HXT",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "time_card",
-        "displayName": "Time Card",
-        "aliases": [
-          "Time Card",
-          "time card"
-        ]
-      },
-      {
-        "id": "time_entry",
-        "displayName": "Time Entry",
-        "aliases": [
-          "Time Entry",
-          "time entry"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 75,
@@ -2646,39 +4073,15 @@
     ],
     "aliases": [
       "Trading Community Model",
-      "Trading Community Model (HZ)",
       "HZ",
-      "trading community model"
+      "trading_community_model"
     ],
+    "instanceProductName": "HZ",
     "restProduct": "HZ",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "party",
-        "displayName": "Party",
-        "aliases": [
-          "Party",
-          "party"
-        ]
-      },
-      {
-        "id": "customer",
-        "displayName": "Customer",
-        "aliases": [
-          "Customer",
-          "customer"
-        ]
-      },
-      {
-        "id": "contact",
-        "displayName": "Contact",
-        "aliases": [
-          "Contact",
-          "contact"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 76,
@@ -2690,23 +4093,15 @@
     ],
     "aliases": [
       "U.S. Federal Financials",
-      "U.S. Federal Financials (FV)",
       "FV",
-      "u s federal financials"
+      "u_s_federal_financials"
     ],
+    "instanceProductName": "FV",
     "restProduct": "FV",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": true,
-    "businessObjects": [
-      {
-        "id": "federal_financial_objects",
-        "displayName": "Federal Financial Objects",
-        "aliases": [
-          "Federal Financial Objects",
-          "federal financial objects"
-        ]
-      }
-    ]
+    "requiresBusinessObjectType": false,
+    "businessObjects": []
   },
   {
     "sno": 77,
@@ -2718,23 +4113,48 @@
     ],
     "aliases": [
       "Workforce Health and Safety Incidents",
-      "Workforce Health and Safety Incidents (HNS)",
       "HNS",
-      "workforce health and safety incidents"
+      "workforce_health_and_safety_incidents"
     ],
+    "instanceProductName": "HNS",
     "restProduct": "HNS",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "health_and_safety_incident",
-        "displayName": "Health and Safety Incident",
+        "id": "periodstatusaudit",
+        "displayName": "PeriodStatusAudit",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "restValue": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+        "payloadTemplate": {
+          "product": "HNS",
+          "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        },
         "aliases": [
-          "Health and Safety Incident",
-          "health and safety incident"
+          "PeriodStatusAudit",
+          "periodstatusaudit"
         ]
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "HNS",
+      "businessObjectType": "oracle.apps.financials.generalLedger.calendars.accounting.uiModel.view.PeriodStatusAuditVO",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   },
   {
     "sno": 78,
@@ -2746,30 +4166,47 @@
     ],
     "aliases": [
       "Workforce Scheduling",
-      "Workforce Scheduling (WFM)",
       "WFM",
-      "workforce scheduling"
+      "workforce_scheduling"
     ],
+    "instanceProductName": "WFM",
     "restProduct": "WFM",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
       {
-        "id": "workforce_schedule",
-        "displayName": "Workforce Schedule",
+        "id": "value_set",
+        "displayName": "Value set",
+        "isSupported": true,
+        "status": "SUPPORTED",
         "aliases": [
-          "Workforce Schedule",
-          "workforce schedule"
-        ]
-      },
-      {
-        "id": "work_shift",
-        "displayName": "Work Shift",
-        "aliases": [
-          "Work Shift",
-          "work shift"
-        ]
+          "Value set",
+          "value_set"
+        ],
+        "restBusinessObjectType": "Work Shift",
+        "restValue": "Work Shift",
+        "payloadTemplate": {
+          "product": "WFM",
+          "businessObjectType": "Work Shift",
+          "timeZone": "UTC",
+          "includeChildObjects": "false",
+          "includeImpersonator": "false",
+          "includeAttributes": "false",
+          "attributeDetailMode": "false",
+          "includeExtendedObjectIdentiferColumns": "false"
+        }
       }
-    ]
+    ],
+    "defaultPayloadTemplate": {
+      "product": "WFM",
+      "businessObjectType": "Work Shift",
+      "timeZone": "UTC",
+      "includeChildObjects": "false",
+      "includeImpersonator": "false",
+      "includeAttributes": "false",
+      "attributeDetailMode": "false",
+      "includeExtendedObjectIdentiferColumns": "false"
+    }
   }
 ]
