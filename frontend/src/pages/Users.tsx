@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
-import AppUsersList from '../components/AppUsersList';
 
 interface UsersProps {
   initialFilter?: string;
@@ -12,40 +11,7 @@ interface UsersProps {
 }
 
 export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInspectRole, hasAccess }: UsersProps) {
-  // Mock Screen 8 — Application Users (managed accounts) is the primary tab.
-  // The Oracle Fusion directory browser is preserved as a secondary tab so
-  // dashboard drill-downs (initialFilter) and investigation flows keep working.
-  const [activeTab, setActiveTab] = useState<'APP' | 'ORACLE'>(() => (
-    initialFilter !== 'ALL' ? 'ORACLE' : 'APP'
-  ));
-  const tabBar = (
-    <div role="tablist" aria-label="Users views" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-      {([
-        { id: 'APP', label: 'Application Users' },
-        { id: 'ORACLE', label: 'Oracle Directory' },
-      ] as const).map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === t.id}
-          onClick={() => setActiveTab(t.id)}
-          style={{
-            padding: '0.5rem 1.1rem',
-            fontSize: '0.83rem',
-            fontWeight: 700,
-            borderRadius: '8px',
-            border: activeTab === t.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
-            background: activeTab === t.id ? 'var(--accent-blue)' : 'transparent',
-            color: activeTab === t.id ? '#fff' : 'var(--text-secondary)',
-            cursor: 'pointer'
-          }}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
+  void hasAccess;
   const [users, setUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -59,9 +25,26 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
   const [pageSize, setPageSize] = useState(50);
   const [totalResults, setTotalResults] = useState(0);
 
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState(initialFilter);
+
   useEffect(() => {
-    // Oracle directory fetch only runs on its own tab (the APP tab has its own loader).
-    if (activeTab !== 'ORACLE') return;
+    setActiveCategoryFilter(initialFilter);
+    setCurrentPage(1);
+  }, [initialFilter]);
+
+  // Helper for human-readable category filter label
+  const getCategoryBadgeLabel = (filterKey: string) => {
+    const norm = (filterKey || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (norm === 'NO_ROLES' || norm === 'WITHOUT_ROLES' || norm === 'USERS_WITHOUT_ROLES') return 'Users Without Roles';
+    if (norm === 'ADMIN_ROLES' || norm === 'SECURITY_ADMINISTRATORS' || norm === 'SECURITY_ADMINS') return 'Security Administrators';
+    if (norm === 'HIGH_RISK' || norm === 'HIGH_RISK_USERS' || norm === 'HIGH_RISK_ROLE_USERS') return 'High-Risk Users';
+    if (norm === 'MULTIPLE_ROLES' || norm === 'MULTIPLE_ROLE_USERS') return 'Multiple Role Users';
+    if (norm === 'SINGLE_ROLE' || norm === 'SINGLE_ROLE_USERS') return 'Single Role Users';
+    if (norm === 'INACTIVE' || norm === 'INACTIVE_ACCOUNTS') return 'Inactive Accounts';
+    return filterKey;
+  };
+
+  useEffect(() => {
     const delay = searchTerm ? 350 : 0;
     const delayDebounceFn = setTimeout(() => {
       async function loadUsers() {
@@ -69,7 +52,12 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
         setError('');
         try {
           const startIndex = (currentPage - 1) * pageSize + 1;
-          const res = await api.getUsers(searchTerm || undefined, startIndex, pageSize);
+          const res = await api.getUsers(
+            searchTerm || undefined,
+            startIndex,
+            pageSize,
+            activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined
+          );
           if (res?.users) {
             setUsers(res.users);
             setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
@@ -86,10 +74,11 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     }, delay);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentPage, pageSize, activeTab]);
+  }, [searchTerm, currentPage, pageSize, activeCategoryFilter]);
 
   // Client-side filtering on current page items for status/insight tags if applicable
   const filteredUsers = useMemo(() => {
+    const normCat = (activeCategoryFilter || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
     return users.filter(user => {
       const matchesStatus = 
         statusFilter === 'ALL' ||
@@ -97,25 +86,26 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
         (statusFilter === 'INACTIVE' && !user.active);
 
       let matchesInsight = true;
-      if (initialFilter === 'Multiple Role Users') {
-        matchesInsight = user.assignedRoles && user.assignedRoles.length > 1;
-      } else if (initialFilter === 'Users Without Roles') {
-        matchesInsight = !user.assignedRoles || user.assignedRoles.length === 0;
-      } else if (initialFilter === 'Security Administrators') {
-        matchesInsight = user.assignedRoles && user.assignedRoles.some((r: any) => {
-          const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
-          return val.includes('Security Administrator') || val.includes('IT Security Manager');
-        });
-      } else if (initialFilter === 'High-Risk Role Users') {
-        matchesInsight = user.assignedRoles && user.assignedRoles.some((r: any) => {
-          const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
-          return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
-        });
+      if (normCat && normCat !== 'ALL') {
+        if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
+          matchesInsight = !user.assignedRoles || user.assignedRoles.length === 0;
+        } else if (normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS' || normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS') {
+          matchesInsight = Boolean(user.assignedRoles && user.assignedRoles.some((r: any) => {
+            const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
+            return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
+          }));
+        } else if (normCat === 'MULTIPLE_ROLES' || normCat === 'MULTIPLE_ROLE_USERS') {
+          matchesInsight = Boolean(user.assignedRoles && user.assignedRoles.length > 1);
+        } else if (normCat === 'SINGLE_ROLE' || normCat === 'SINGLE_ROLE_USERS') {
+          matchesInsight = Boolean(user.assignedRoles && user.assignedRoles.length === 1);
+        } else if (normCat === 'INACTIVE' || normCat === 'INACTIVE_ACCOUNTS') {
+          matchesInsight = !user.active;
+        }
       }
 
       return matchesStatus && matchesInsight;
     });
-  }, [users, statusFilter, initialFilter]);
+  }, [users, statusFilter, activeCategoryFilter]);
 
   const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
 
@@ -143,9 +133,11 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     const list: { label: string; value: string }[] = [];
     if (searchTerm) list.push({ label: 'Search', value: `"${searchTerm}"` });
     if (statusFilter !== 'ALL') list.push({ label: 'Status', value: statusFilter });
-    if (initialFilter !== 'ALL') list.push({ label: 'Category Filter', value: initialFilter });
+    if (activeCategoryFilter && activeCategoryFilter !== 'ALL') {
+      list.push({ label: 'Category Filter', value: getCategoryBadgeLabel(activeCategoryFilter) });
+    }
     return list;
-  }, [searchTerm, statusFilter, initialFilter]);
+  }, [searchTerm, statusFilter, activeCategoryFilter]);
 
   // Page numbering helper
   const renderPaginationButtons = () => {
@@ -220,11 +212,10 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     );
   };
 
-  if (activeTab === 'ORACLE' && loading && users.length === 0) {
+  if (loading && users.length === 0) {
     return (
-      <div style={{ padding: '2rem' }}>
-        {tabBar}
-        <div style={{ height: '35px', width: '150px', marginBottom: '1.5rem' }} className="skeleton" />
+      <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
+        <div style={{ height: '35px', width: '220px', marginBottom: '1.5rem' }} className="skeleton" />
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <div style={{ height: '40px', width: '250px' }} className="skeleton" />
           <div style={{ height: '40px', width: '150px' }} className="skeleton" />
@@ -234,23 +225,11 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     );
   }
 
-  // Mock Screen 8 — Application Users List (AC1–AC13). The Oracle directory
-  // browser below is preserved under the ORACLE tab.
-  if (activeTab === 'APP') {
-    return (
-      <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
-        {tabBar}
-        <AppUsersList hasAccess={hasAccess} onInvestigateUser={onInvestigateUser} />
-      </div>
-    );
-  }
-
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto', display: 'flex', gap: '2rem' }}>
       
       {/* Left Column: List */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {tabBar}
 
         <div className="page-header-banner animate-fade-in" style={{
           display: 'flex',
@@ -273,11 +252,46 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', marginBottom: '0.35rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
               Identity & Access Management
             </h1>
-            <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
-              Verify user statuses and trace role entitlements inside the {dataSource || 'Oracle Fusion'} catalog.
-              {initialFilter !== 'ALL' && (
-                <span style={{ marginLeft: '0.6rem', padding: '0.15rem 0.6rem', backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  Filter: {initialFilter}
+            <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span>Verify user statuses and trace role entitlements inside the {dataSource || 'Oracle Fusion'} catalog.</span>
+              {activeCategoryFilter && activeCategoryFilter !== 'ALL' && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.15rem 0.65rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                  borderRadius: '9999px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  backdropFilter: 'blur(4px)'
+                }}>
+                  <span>Filter: {getCategoryBadgeLabel(activeCategoryFilter)}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategoryFilter('ALL');
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      border: 'none',
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      color: '#ffffff',
+                      borderRadius: '50%',
+                      width: '16px',
+                      height: '16px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      padding: 0
+                    }}
+                    title="Clear category filter"
+                  >
+                    ×
+                  </button>
                 </span>
               )}
             </p>

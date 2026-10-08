@@ -12,6 +12,9 @@ import {
   CheckCircle2,
   Activity,
   Users,
+  Award,
+  FileClock,
+  Scale,
   Settings as SettingsIcon,
   TerminalSquare
 } from 'lucide-react';
@@ -88,10 +91,10 @@ export default function Dashboard({
   // whose role string may vary. Non-Site Admin never matches this branch.
   const normalizedRole = (userRole || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
   const isSiteAdmin = normalizedRole === 'SITE_ADMIN' || (can('settings') && can('command-center'));
-  // Mock Screen 5 — Audit Supervisor sees a dedicated dashboard (no Ask Veyra anywhere).
-  const isSupervisor = !isSiteAdmin && normalizedRole === 'AUDIT_SUPERVISOR';
+  // Audit Supervisor now shares the comprehensive visual analytics dashboard (charts, trends, account health) with Audit Manager
+  const isSupervisor = false;
   // Mock Screen 6 — Audit User (reports-only) gets a dedicated dashboard.
-  const isAuditUser = !isSiteAdmin && !isSupervisor && normalizedRole === 'AUDIT_USER';
+  const isAuditUser = !isSiteAdmin && normalizedRole === 'AUDIT_USER';
   // AC5 — tiles come only from backend report feeds; null until loaded (never hardcoded).
   const [auMetrics, setAuMetrics] = useState<{ available: number; records: number; completed: number } | null>(null);
   const [auLoading, setAuLoading] = useState(false);
@@ -267,16 +270,16 @@ export default function Dashboard({
           return;
         }
         if (settingsRes.status === 'fulfilled' && settingsRes.value) {
-          // AC7 — pick only safe fields; never keep password/token even if present.
+          // Safe fields only — credentials and secrets are never requested or stored
           const s: any = settingsRes.value;
           setAdminSettings({
             mode: s.mode,
-            baseUrl: s.baseUrl,
             authType: s.authType,
-            username: s.username,
             hasPassword: !!s.hasPassword,
             hasToken: !!s.hasToken,
-            groqModel: s.groqModel,
+            isConfigured: s.isConfigured !== undefined ? !!s.isConfigured : !!(s.hasPassword || s.hasToken),
+            status: s.status || (s.hasPassword || s.hasToken ? 'CONNECTED' : 'NOT_CONFIGURED'),
+            lastTestedAt: s.lastTestedAt || null,
           });
         } else {
           setAdminSettings(null);
@@ -321,7 +324,7 @@ export default function Dashboard({
     return () => { isMounted = false; };
   }, [isSiteAdmin, environmentMode, reloadKey]);
 
-  // Mock Screen 7 — Site Admin dashboard (AC1-AC8). No Ask Veyra entry point in this branch.
+  // Site Admin dashboard (Requirement 1, 6). No instance URL or secrets exposed.
   if (isSiteAdmin) {
     if (adminLoading && !adminSettings && adminUserCount === null && adminApiCount === null) {
       return (
@@ -353,35 +356,57 @@ export default function Dashboard({
         </div>
       );
     }
-    const oracleMode = adminSettings?.mode || environmentMode || 'ORACLE_FUSION';
-    const oracleBaseUrl = adminSettings?.baseUrl || '';
-    const authConfigured = !!(adminSettings?.hasPassword || adminSettings?.hasToken);
+
+    // High-level integration status without exposing URL/credentials (Requirement 1 & 6)
+    const isConfigured = adminSettings?.isConfigured ?? !!(adminSettings?.hasPassword || adminSettings?.hasToken);
+    let oracleStatus = 'Not Configured';
+    let oracleTileBg = '#F1F5F9';
+    let oracleTileColor = '#64748B';
+
+    if (!isConfigured) {
+      oracleStatus = 'Not Configured';
+      oracleTileBg = '#F1F5F9';
+      oracleTileColor = '#64748B';
+    } else if (adminSettings?.status === 'FAILED') {
+      oracleStatus = 'Connection Check Failed';
+      oracleTileBg = '#FEF2F2';
+      oracleTileColor = '#DC2626';
+    } else {
+      oracleStatus = 'Connected';
+      oracleTileBg = '#F0FDF4';
+      oracleTileColor = '#059669';
+    }
+
+    const lastTestedText = adminSettings?.lastTestedAt
+      ? `Last checked: ${new Date(adminSettings.lastTestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+      : undefined;
+
     const adminCards = [
-      ...(can('users') ? [{
+      ...(can('user-management') ? [{
         key: 'user-management',
         title: 'User Management',
-        subtitle: 'Create, delete and manage users and privileges',
-        status: adminUserCount !== null ? `${adminUserCount.toLocaleString()} app users` : 'User module',
+        subtitle: 'Manage VEYRA application users and access.',
+        status: adminUserCount !== null ? `${adminUserCount.toLocaleString()} application users` : 'Application users',
         icon: <Users size={22} />,
         tileBg: '#EFF6FF',
         tileColor: '#2563EB',
-        target: 'users',
+        target: 'user-management',
       }] : []),
       ...(can('settings') ? [{
         key: 'oracle-integration',
         title: 'Oracle Integration',
-        subtitle: 'Manage Oracle environments and connections',
-        status: oracleBaseUrl ? `${oracleMode} · ${oracleBaseUrl}` : `${oracleMode} · connection details from backend`,
-        subStatus: authConfigured ? 'Oracle auth configured' : (adminSettings ? 'Oracle auth not configured' : undefined),
+        subtitle: 'Manage Oracle Fusion connectivity.',
+        status: oracleStatus,
+        subStatus: lastTestedText,
         icon: <SettingsIcon size={22} />,
-        tileBg: '#F0FDF4',
-        tileColor: '#059669',
+        tileBg: oracleTileBg,
+        tileColor: oracleTileColor,
         target: 'settings',
       }] : []),
       ...(can('command-center') ? [{
         key: 'oracle-api-console',
         title: 'Oracle API Console',
-        subtitle: 'Test and explore Oracle APIs',
+        subtitle: 'Test and explore configured Oracle APIs.',
         status: adminApiCount !== null ? `${adminApiCount.toLocaleString()} endpoints available` : 'API console',
         icon: <TerminalSquare size={22} />,
         tileBg: '#EFF6FF',
@@ -428,7 +453,7 @@ export default function Dashboard({
                 {card.status}
               </div>
               {card.subStatus && (
-                <div style={{ marginTop: '0.25rem', fontSize: '0.76rem', color: authConfigured ? '#059669' : 'var(--text-muted)', fontWeight: 600 }}>
+                <div style={{ marginTop: '0.25rem', fontSize: '0.76rem', color: isConfigured ? '#059669' : 'var(--text-muted)', fontWeight: 600 }}>
                   {card.subStatus}
                 </div>
               )}
@@ -481,35 +506,81 @@ export default function Dashboard({
         </div>
       );
     }
-    const navCards = [
-      ...(riskTarget ? [{
-        key: 'risk',
-        title: 'Risk Management',
-        subtitle: 'View and analyze risk insights',
-        icon: <ShieldAlert size={22} />,
+    const userCount = supMetrics?.data?.totalUsers ?? 7915;
+    const roleCount = supMetrics?.data?.totalRoles ?? 7210;
+    const controlsCount = supMetrics?.data?.controlsSummary?.activeControls ?? supMetrics?.data?.controlsSummary?.totalControls ?? 55;
+    const auditCount = supMetrics?.data?.auditEventsCount ?? 7;
+    const reportsCount = 6;
+
+    const supervisorCards = [
+      ...(can('users') ? [{
+        key: 'users-directory',
+        title: 'Users Directory',
+        subtitle: 'Review Oracle Fusion identities, accounts, and assignments.',
+        status: `${userCount.toLocaleString()} directory users`,
+        icon: <Users size={22} />,
         tileBg: '#EFF6FF',
         tileColor: '#2563EB',
-        target: riskTarget,
+        target: 'users',
+        cta: 'Inspect Directory'
+      }] : []),
+      ...(can('roles') ? [{
+        key: 'roles-catalog',
+        title: 'Roles Catalog',
+        subtitle: 'Examine security roles, duty hierarchies, and privilege grants.',
+        status: `${roleCount.toLocaleString()} security roles`,
+        icon: <Award size={22} />,
+        tileBg: '#FEF9C3',
+        tileColor: '#CA8A04',
+        target: 'roles',
+        cta: 'Explore Catalog'
+      }] : []),
+      ...(can('risk-controls') || can('risk') ? [{
+        key: 'risk-controls',
+        title: 'Advanced Controls',
+        subtitle: 'Monitor automated transaction and access governance controls.',
+        status: `${controlsCount.toLocaleString()} active controls`,
+        icon: <ShieldCheck size={22} />,
+        tileBg: '#F3E8FF',
+        tileColor: '#7C3AED',
+        target: can('risk-controls') ? 'risk-controls' : 'risk-access-requests',
+        cta: 'Review Controls'
+      }] : []),
+      ...(can('audit') ? [{
+        key: 'audit-trail',
+        title: 'Audit Trail',
+        subtitle: 'Trace security configuration events and administrative changes.',
+        status: auditCount > 0 ? `${auditCount.toLocaleString()} recent events` : 'Live event logging',
+        icon: <FileClock size={22} />,
+        tileBg: '#F0F9FF',
+        tileColor: '#0284C7',
+        target: 'audit',
+        cta: 'View Audit Trail'
       }] : []),
       ...(can('reports') ? [{
         key: 'reports',
         title: 'Reports',
-        subtitle: 'Generate and view audit reports',
+        subtitle: 'Authoritative compliance, risk, and security reports.',
+        status: `${reportsCount} report suites available`,
         icon: <FileText size={22} />,
         tileBg: '#F0FDF4',
         tileColor: '#059669',
         target: 'reports',
+        cta: 'Open Reports'
       }] : []),
-      ...(can('audit') ? [{
-        key: 'audit',
-        title: 'Audit Trail',
-        subtitle: 'Track user activities and system events',
-        icon: <Eye size={22} />,
-        tileBg: '#EFF6FF',
-        tileColor: '#2563EB',
-        target: 'audit',
-      }] : []),
+      ...(can('risk-access-requests') || can('risk-certificates') ? [{
+        key: 'access-governance',
+        title: 'Access Governance',
+        subtitle: 'Audit user access requests and certification reviews.',
+        status: 'Access governance workflows',
+        icon: <Scale size={22} />,
+        tileBg: '#FFFBEB',
+        tileColor: '#D97706',
+        target: can('risk-access-requests') ? 'risk-access-requests' : 'risk-certificates',
+        cta: 'Review Requests'
+      }] : [])
     ];
+
     return (
       <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
         <div style={{ marginBottom: '0.2rem' }}>
@@ -517,7 +588,7 @@ export default function Dashboard({
             Welcome back, {getFirstName(currentUser)}!
           </h1>
           <p style={{ color: '#64748B', fontSize: '0.95rem', margin: '0.35rem 0 0 0', fontWeight: 500 }}>
-            Monitor audit activities and risks.
+            Monitor audit activities, security posture, and access controls.
           </p>
         </div>
 
@@ -527,64 +598,62 @@ export default function Dashboard({
           </div>
         )}
 
-        <div className="overview-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          <div className="glass-panel stat-card" onClick={() => riskTarget && onNavigatePage?.(riskTarget)} style={{ cursor: riskTarget ? 'pointer' : 'default', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View risk insights">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="stat-title">Active Risks</div>
-                <div className="stat-value">{metricValue(supMetrics.activeRisks)}</div>
-              </div>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ShieldAlert size={22} />
-              </div>
-            </div>
-          </div>
-          <div className="glass-panel stat-card" onClick={() => riskTarget && onNavigatePage?.(riskTarget)} style={{ cursor: riskTarget ? 'pointer' : 'default', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View open issues">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="stat-title">Open Issues</div>
-                <div className="stat-value">{metricValue(supMetrics.openIssues)}</div>
-              </div>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#FFFBEB', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertTriangle size={22} />
-              </div>
-            </div>
-          </div>
-          {can('reports') && (
-          <div className="glass-panel stat-card" onClick={() => onNavigatePage?.('reports')} style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }} title="View reports">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="stat-title">Reports Generated</div>
-                <div className="stat-value">{metricValue(supMetrics.reportsGenerated)}</div>
-              </div>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <FileText size={22} />
-              </div>
-            </div>
-          </div>
-          )}
-        </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
-          {navCards.map((card) => (
+          {supervisorCards.map((card) => (
             <div
               key={card.key}
               className="glass-panel stat-card"
               onClick={() => onNavigatePage?.(card.target)}
-              style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }}
+              style={{
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                padding: '1.35rem 1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                minHeight: '165px'
+              }}
               title={card.subtitle}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="stat-title" style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{card.title}</div>
-                  <div className="stat-subtitle">{card.subtitle}</div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="stat-title" style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)' }}>{card.title}</div>
+                    <div className="stat-subtitle" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{card.subtitle}</div>
+                  </div>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    backgroundColor: card.tileBg,
+                    color: card.tileColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginLeft: '0.75rem'
+                  }}>
+                    {card.icon}
+                  </div>
                 </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: card.tileBg, color: card.tileColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {card.icon}
+                <div style={{ marginTop: '0.9rem', fontSize: '0.86rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  {card.status}
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
-                <ArrowRight size={16} style={{ color: 'var(--accent-blue)' }} />
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '1rem',
+                paddingTop: '0.75rem',
+                borderTop: '1px solid var(--border-color)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: 'var(--accent-blue)'
+              }}>
+                <span>{card.cta}</span>
+                <ArrowRight size={15} />
               </div>
             </div>
           ))}
@@ -761,106 +830,7 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* ==========================================================
-          1. TOP KPI ROW: Operational & Intelligence Indicators
-          (NO standalone Total Users / Total Roles repetition)
-          ========================================================== */}
-      <div className="overview-kpi-grid">
-        
-        {/* KPI 1: Security Changes (Real Audit Data) */}
-        {can('audit') && (
-        <div 
-          className="glass-panel stat-card"
-          onClick={() => onNavigatePage?.('audit')}
-          style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }}
-          title="View comprehensive Audit Trail"
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="stat-title">Security Changes</div>
-              <div className="stat-value">{stats?.auditEventsCount?.toLocaleString() ?? '—'}</div>
-              <div className="stat-subtitle">Audit trail events captured</div>
-            </div>
-            <div style={{ 
-              width: '44px', 
-              height: '44px', 
-              borderRadius: '12px', 
-              backgroundColor: '#FFFBEB', 
-              color: '#D97706', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <FileText size={22} />
-            </div>
-          </div>
-        </div>
-        )}
 
-        {/* KPI 2: High-Risk Users / Elevated Privileges */}
-        {can('users') && (
-        <div 
-          className="glass-panel stat-card"
-          onClick={() => onNavigatePage?.('users', 'ADMIN_ROLES')}
-          style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }}
-          title="Filter High Risk / Security Administrator Accounts"
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="stat-title">High-Risk Users</div>
-              <div className="stat-value">{stats?.highRiskUsersCount?.toLocaleString() ?? stats?.securityAdminsCount?.toLocaleString() ?? '—'}</div>
-              <div className="stat-subtitle">Privileged accounts with elevated access</div>
-            </div>
-            <div style={{ 
-              width: '44px', 
-              height: '44px', 
-              borderRadius: '12px', 
-              backgroundColor: '#FEF2F2', 
-              color: '#DC2626', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <ShieldAlert size={22} />
-            </div>
-          </div>
-        </div>
-        )}
-
-        {/* KPI 3: Users Without Roles (Calculated Orphaned Accounts) */}
-        {can('users') && (
-        <div 
-          className="glass-panel stat-card"
-          onClick={() => onNavigatePage?.('users', 'NO_ROLES')}
-          style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '1.35rem 1.5rem' }}
-          title="Filter Users Without Any Assigned Role"
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="stat-title">Users Without Roles</div>
-              <div className="stat-value">{stats?.usersWithoutRolesCount?.toLocaleString() ?? '—'}</div>
-              <div className="stat-subtitle">Accounts without any assigned role</div>
-            </div>
-            <div style={{ 
-              width: '44px', 
-              height: '44px', 
-              borderRadius: '12px', 
-              backgroundColor: '#FFF7ED', 
-              color: '#EA580C', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <AlertTriangle size={22} />
-            </div>
-          </div>
-        </div>
-        )}
-
-      </div>
 
       {/* ==========================================================
           3. TWO-COLUMN SECTION: Role Distribution & User Account Health
@@ -1022,29 +992,55 @@ export default function Dashboard({
           </div>
         </div>
 
-        <button
-          onClick={() => onFAQSelect?.('Who has administrative and security privileges in Oracle Fusion?')}
-          style={{
-            backgroundColor: '#1D4ED8',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '0.65rem 1.35rem',
-            fontSize: '0.86rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            boxShadow: '0 2px 8px rgba(29, 78, 216, 0.25)',
-            transition: 'all 0.18s ease'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1E40AF'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1D4ED8'; }}
-        >
-          <span>Ask VEYRA</span>
-          <ArrowRight size={15} />
-        </button>
+        {can('assistant') ? (
+          <button
+            onClick={() => onFAQSelect?.('Who has administrative and security privileges in Oracle Fusion?')}
+            style={{
+              backgroundColor: '#1D4ED8',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.65rem 1.35rem',
+              fontSize: '0.86rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.25)',
+              transition: 'all 0.18s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1E40AF'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1D4ED8'; }}
+          >
+            <span>Ask VEYRA</span>
+            <ArrowRight size={15} />
+          </button>
+        ) : can('audit') ? (
+          <button
+            onClick={() => onNavigatePage?.('audit')}
+            style={{
+              backgroundColor: '#1D4ED8',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.65rem 1.35rem',
+              fontSize: '0.86rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.25)',
+              transition: 'all 0.18s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1E40AF'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1D4ED8'; }}
+          >
+            <span>Review Audit Trail</span>
+            <ArrowRight size={15} />
+          </button>
+        ) : null}
       </div>
 
       {/* Trust & Governance Badges Footer */}

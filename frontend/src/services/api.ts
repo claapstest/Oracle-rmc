@@ -219,9 +219,10 @@ export const api = {
   },
 
   // Users
-  async getUsers(filter?: string, startIndex?: number, count?: number) {
+  async getUsers(filter?: string, startIndex?: number, count?: number, category?: string) {
     const params = new URLSearchParams();
     if (filter) params.append('filter', filter);
+    if (category && category !== 'ALL') params.append('category', category);
     if (startIndex) params.append('startIndex', String(startIndex));
     if (count) params.append('count', String(count));
     params.append('source', 'oracle');
@@ -229,8 +230,11 @@ export const api = {
     return apiRequest(`/users${query}`);
   },
 
-  async getUser(userId: string) {
-    return apiRequest(`/users/${userId}`);
+  async getUser(userId: string, source: string = 'oracle') {
+    const params = new URLSearchParams();
+    if (source) params.append('source', source);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/users/${encodeURIComponent(userId)}${query}`);
   },
 
   // Roles

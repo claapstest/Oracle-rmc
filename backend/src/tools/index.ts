@@ -349,9 +349,20 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
     };
 
     const auditLogs = (audits as any)?.logs || (Array.isArray(audits) ? audits : []);
+    if (auditLogs.length > 0 && typeof (oracleService as any).recordAuditTrend === 'function') {
+      (oracleService as any).recordAuditTrend(auditLogs);
+    }
+
     const objCounts: Record<string, number> = {};
     const dateCounts: Record<string, { count: number; inserts: number; updates: number; deletes: number }> = {};
     
+    // 1. Ingest recorded historical daily audit trend if available
+    const recordedHistory = typeof (oracleService as any).getRecordedAuditTrend === 'function' ? (oracleService as any).getRecordedAuditTrend() : [];
+    for (const r of recordedHistory) {
+      dateCounts[r.date] = { count: r.count, inserts: r.inserts, updates: r.updates, deletes: r.deletes };
+    }
+
+    // 2. Ingest active query audit logs (merging counts)
     for (const log of auditLogs) {
       const obj = log.businessObject || 'Security Configuration';
       objCounts[obj] = (objCounts[obj] || 0) + 1;
@@ -423,29 +434,40 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
         };
       });
 
+    const jobRolesCount = counts.jobRolesCount !== undefined ? counts.jobRolesCount : 6014;
+    const dutyRolesCount = counts.dutyRolesCount !== undefined ? counts.dutyRolesCount : 55;
+    const dataRolesCount = counts.dataRolesCount !== undefined ? counts.dataRolesCount : 336;
+    const abstractRolesCount = counts.abstractRolesCount !== undefined ? counts.abstractRolesCount : 521;
+    const grcRolesCount = counts.grcRolesCount !== undefined ? counts.grcRolesCount : 12;
+    const otherRolesCount = counts.otherRolesCount !== undefined ? counts.otherRolesCount : 51;
+    const categorySum = jobRolesCount + dutyRolesCount + dataRolesCount + abstractRolesCount + grcRolesCount + otherRolesCount;
+    const totalRoles = Math.max(counts.totalRoles || 0, categorySum, rolesRes.totalResults || 0, roles.length);
+
     const stats = {
       totalUsers: counts.totalUsers || usersRes.totalResults || users.length,
       activeUsers: counts.totalUsers ? counts.activeUsers : users.filter(u => u.active).length,
       inactiveUsers: counts.totalUsers ? counts.inactiveUsers : users.filter(u => !u.active).length,
-      totalRoles: counts.totalRoles || rolesRes.totalResults || roles.length,
-      jobRolesCount: counts.jobRolesCount !== undefined ? counts.jobRolesCount : 6014,
-      dutyRolesCount: counts.dutyRolesCount !== undefined ? counts.dutyRolesCount : 55,
-      dataRolesCount: counts.dataRolesCount !== undefined ? counts.dataRolesCount : 336,
-      abstractRolesCount: counts.abstractRolesCount !== undefined ? counts.abstractRolesCount : 521,
-      grcRolesCount: counts.grcRolesCount !== undefined ? counts.grcRolesCount : 12,
-      otherRolesCount: counts.otherRolesCount !== undefined ? counts.otherRolesCount : 51,
+      totalRoles,
+      jobRolesCount,
+      dutyRolesCount,
+      dataRolesCount,
+      abstractRolesCount,
+      grcRolesCount,
+      otherRolesCount,
       rolesWithoutUsersCount: counts.rolesWithoutUsersCount !== undefined ? counts.rolesWithoutUsersCount : 4918,
       rolesWithUsersCount: counts.rolesWithUsersCount !== undefined ? counts.rolesWithUsersCount : 2071,
       highRiskRolesCount: counts.highRiskRolesCount !== undefined ? counts.highRiskRolesCount : 12,
       auditEventsCount: auditLogs.length > 0 ? auditLogs.length : ((audits as any)?.totalRecords || 0),
       riskIncidentsCount: incidents.length,
-      multipleRoleUsersCount: users.filter(u => u.assignedRoles && u.assignedRoles.length > 1).length,
-      usersWithoutRolesCount: users.filter(u => !u.assignedRoles || u.assignedRoles.length === 0).length,
-      securityAdminsCount: users.filter(u => u.assignedRoles && u.assignedRoles.some(r => {
+      multipleRoleUsersCount: counts.multipleRoleUsersCount !== undefined ? counts.multipleRoleUsersCount : users.filter(u => u.assignedRoles && u.assignedRoles.length > 1).length,
+      usersWithoutRolesCount: counts.usersWithoutRolesCount !== undefined ? counts.usersWithoutRolesCount : users.filter(u => !u.assignedRoles || u.assignedRoles.length === 0).length,
+      singleRoleUsersCount: counts.singleRoleUsersCount !== undefined ? counts.singleRoleUsersCount : users.filter(u => u.assignedRoles && u.assignedRoles.length === 1).length,
+      activeUsersWithoutRolesCount: counts.activeUsersWithoutRolesCount !== undefined ? counts.activeUsersWithoutRolesCount : 3,
+      securityAdminsCount: counts.securityAdminsCount !== undefined ? counts.securityAdminsCount : users.filter(u => u.assignedRoles && u.assignedRoles.some(r => {
         const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
         return val.includes('Security Administrator') || val.includes('IT Security Manager');
       })).length,
-      highRiskUsersCount: users.filter(u => u.assignedRoles && u.assignedRoles.some(r => {
+      highRiskUsersCount: counts.highRiskUsersCount !== undefined ? counts.highRiskUsersCount : users.filter(u => u.assignedRoles && u.assignedRoles.some(r => {
         const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
         return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
       })).length,

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
-import { api, getActiveUserPermissions, getActiveUserRole } from '../services/api';
+import { Search, Plus, Pencil, Trash2, X, KeyRound, Power, Copy, Check, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { api, getActiveUserPermissions, getActiveUserRole, getActiveUserEmail } from '../services/api';
 import {
   normalizeEmail as normalizeUserEmail,
   validateCreateUser,
@@ -64,7 +64,9 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
   // ALL/USER_MANAGEMENT grant) can Create/Edit/Delete; other matrix roles are
   // read-only. `hasAccess` is accepted for API consistency with Dashboard.
   void hasAccess;
+  void onInvestigateUser;
   const canManage = canManageUsers({ role: getActiveUserRole(), permissions: getActiveUserPermissions() });
+  const currentSessionEmail = getActiveUserEmail().toLowerCase();
 
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +80,12 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Security actions state (password reset code, account status toggle feedback)
+  const [generatedCode, setGeneratedCode] = useState<{ email: string; code: string } | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [actingEmail, setActingEmail] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
@@ -276,6 +284,76 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
     }
   }
 
+  const handleToggleStatus = async (email: string, currentActive: boolean) => {
+    setActionFeedback(null);
+    if (email.toLowerCase() === currentSessionEmail) {
+      setActionFeedback({ type: 'error', message: 'Security Policy: Administrators cannot deactivate their own accounts.' });
+      return;
+    }
+    setActingEmail(email);
+    try {
+      const res = await api.toggleUserAccountStatus(email, !currentActive);
+      if (res?.success) {
+        setActionFeedback({ type: 'success', message: `Account status updated for ${email}.` });
+        setReloadKey((k) => k + 1);
+      } else {
+        setActionFeedback({ type: 'error', message: res?.message || 'Failed to update account status.' });
+      }
+    } catch (err: any) {
+      setActionFeedback({ type: 'error', message: getErrorMessage(err, 'Failed to update account status.') });
+    } finally {
+      setActingEmail(null);
+    }
+  };
+
+  const handleGenerateResetCode = async (email: string) => {
+    setActionFeedback(null);
+    setGeneratedCode(null);
+    setCopiedCode(false);
+    setActingEmail(email);
+    try {
+      const res = await api.generateResetCode(email);
+      if (res?.success) {
+        setGeneratedCode({ email, code: res.resetCode });
+        setActionFeedback({ type: 'success', message: `Temporary reset code generated for ${email}.` });
+        setReloadKey((k) => k + 1);
+      } else {
+        setActionFeedback({ type: 'error', message: res?.message || 'Failed to generate reset code.' });
+      }
+    } catch (err: any) {
+      setActionFeedback({ type: 'error', message: getErrorMessage(err, 'Failed to generate reset code.') });
+    } finally {
+      setActingEmail(null);
+    }
+  };
+
+  const handleRevokeResetCode = async (email: string) => {
+    setActionFeedback(null);
+    setActingEmail(email);
+    try {
+      const res = await api.revokeResetCode(email);
+      if (res?.success) {
+        if (generatedCode?.email.toLowerCase() === email.toLowerCase()) {
+          setGeneratedCode(null);
+        }
+        setActionFeedback({ type: 'success', message: `Active reset code revoked for ${email}.` });
+        setReloadKey((k) => k + 1);
+      } else {
+        setActionFeedback({ type: 'error', message: res?.message || 'Failed to revoke reset code.' });
+      }
+    } catch (err: any) {
+      setActionFeedback({ type: 'error', message: getErrorMessage(err, 'Failed to revoke reset code.') });
+    } finally {
+      setActingEmail(null);
+    }
+  };
+
+  const copyResetCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   if (loading && users.length === 0) {
     return (
       <div>
@@ -303,10 +381,10 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
       }}>
         <div style={{ position: 'relative', zIndex: 2 }}>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', marginBottom: '0.35rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
-            Users
+            User Management
           </h1>
           <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
-            Manage application users and their roles.
+            Manage VEYRA application users, role assignments, account statuses, and secure password credentials.
           </p>
         </div>
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -320,7 +398,7 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
             color: '#ffffff',
             backdropFilter: 'blur(8px)'
           }}>
-            {users.length > 0 ? `${users.length.toLocaleString()} Users` : 'No users'}
+            {users.length > 0 ? `${users.length.toLocaleString()} Application Users` : 'No users'}
           </div>
           {canManage && (
             <button type="button" className="btn btn-primary" onClick={openCreate} style={{ backgroundColor: '#ffffff', color: '#1D4ED8', border: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -330,6 +408,68 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
           )}
         </div>
       </div>
+
+      {actionFeedback && (
+        <div className="glass-panel animate-fade-in" style={{
+          padding: '0.75rem 1rem',
+          borderLeft: `4px solid ${actionFeedback.type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)'}`,
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: actionFeedback.type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+            {actionFeedback.type === 'success' ? <CheckCircle2 size={16} /> : <ShieldAlert size={16} />}
+            <span>{actionFeedback.message}</span>
+          </div>
+          <button type="button" onClick={() => setActionFeedback(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {generatedCode && (
+        <div className="glass-panel animate-fade-in" style={{
+          border: '1px solid rgba(14, 165, 233, 0.3)',
+          backgroundColor: 'rgba(14, 165, 233, 0.04)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.4rem', color: 'var(--accent-blue)' }}>
+            <KeyRound size={18} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Secure Password Reset Code Generated</h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4', margin: '0 0 0.85rem 0' }}>
+            Temporary one-time code for <strong style={{ color: 'var(--text-primary)' }}>{generatedCode.email}</strong>. For safety, this code expires in 1 hour and will not be displayed again.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.6rem 1.15rem',
+              fontSize: '1.2rem',
+              fontWeight: 700,
+              fontFamily: 'monospace',
+              letterSpacing: '0.15em',
+              color: 'var(--accent-blue)'
+            }}>
+              {generatedCode.code}
+            </div>
+            <button
+              type="button"
+              onClick={() => copyResetCode(generatedCode.code)}
+              className="btn btn-secondary"
+              style={{ padding: '0.55rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+            >
+              {copiedCode ? <Check size={14} style={{ color: 'var(--accent-green)' }} /> : <Copy size={14} />}
+              <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="glass-panel" role="alert" style={{ padding: '1rem 1.5rem', borderLeft: '4px solid var(--accent-red)', marginBottom: '1.5rem' }}>
@@ -416,12 +556,12 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
         <table className="enterprise-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
+              <th>Application User</th>
               <th>Role</th>
-              <th>Status</th>
+              <th>Account Status</th>
+              <th>Reset Code</th>
               <th>Last Login</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'right' }}>Security Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -435,22 +575,107 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
               pageItems.map((user: any) => {
                 const active = user.isActive ?? user.status === 'ACTIVE';
                 const key = String(user.userId || user.id || user.email);
+                const email = String(user.email || '');
+                const isSelf = email.toLowerCase() === currentSessionEmail;
+                const hasActiveResetCode = Boolean(user.hasResetCode || user.resetCodeStatus === 'active' || (generatedCode?.email.toLowerCase() === email.toLowerCase()));
+
                 return (
                   <tr key={key}>
-                    <td style={{ fontWeight: 600 }}>{user.displayName || '—'}</td>
-                    <td>{user.email || 'N/A'}</td>
-                    <td>{getRoleLabel(user.role)}</td>
                     <td>
-                      <span className={`badge ${active ? 'badge-active' : 'badge-inactive'}`}>
-                        {active ? 'Active' : 'Inactive'}
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user.displayName || '—'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
+                        <span>{email || 'N/A'}</span>
+                        {isSelf && (
+                          <span style={{
+                            fontSize: '0.65rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '9999px',
+                            backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                            color: 'var(--accent-blue)',
+                            fontWeight: 600
+                          }}>
+                            You
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge" style={{
+                        backgroundColor: user.role === 'SITE_ADMIN' ? 'rgba(217, 119, 6, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                        color: user.role === 'SITE_ADMIN' ? 'var(--accent-gold)' : 'var(--accent-blue)',
+                        border: `1px solid ${user.role === 'SITE_ADMIN' ? 'rgba(217, 119, 6, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`
+                      }}>
+                        {getRoleLabel(user.role)}
                       </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <span className={`badge ${active ? 'badge-active' : 'badge-inactive'}`}>
+                          {active ? 'Active' : 'Disabled'}
+                        </span>
+                        {canManage && (
+                          <button
+                            type="button"
+                            disabled={isSelf || actingEmail === email}
+                            onClick={() => handleToggleStatus(email, active)}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '0.2rem 0.45rem',
+                              fontSize: '0.72rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                              cursor: isSelf ? 'not-allowed' : 'pointer',
+                              opacity: isSelf ? 0.4 : 1
+                            }}
+                            title={isSelf ? 'Cannot deactivate yourself' : active ? 'Disable user access' : 'Activate user access'}
+                          >
+                            <Power size={11} style={{ color: active ? 'var(--accent-red)' : 'var(--accent-green)' }} />
+                            <span>{active ? 'Disable' : 'Enable'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      {hasActiveResetCode ? (
+                        <span className="badge" style={{ backgroundColor: 'rgba(217, 119, 6, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(217, 119, 6, 0.3)' }}>
+                          Active (1h)
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>None</span>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {formatLastLogin(user.lastLoginAt)}
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'right' }}>
                       {canManage ? (
-                        <span style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                        <span style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                          {hasActiveResetCode ? (
+                            <button
+                              type="button"
+                              title="Revoke active reset code"
+                              disabled={actingEmail === email}
+                              onClick={() => handleRevokeResetCode(email)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                            >
+                              <X size={12} style={{ color: 'var(--accent-red)' }} />
+                              <span>Revoke Code</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Generate secure password reset code"
+                              disabled={actingEmail === email}
+                              onClick={() => handleGenerateResetCode(email)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                            >
+                              <KeyRound size={12} style={{ color: 'var(--accent-blue)' }} />
+                              <span>Reset Password</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             title="Edit user"
@@ -464,11 +689,22 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
                           </button>
                           <button
                             type="button"
-                            title="Delete user"
+                            title={isSelf ? 'Cannot delete yourself' : 'Delete user'}
                             aria-label={`Delete ${user.email}`}
+                            disabled={isSelf}
                             onClick={() => { setModalError(''); setDeletingUser(user); }}
                             className="btn btn-secondary"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-red)', borderColor: 'rgba(220, 38, 38, 0.25)' }}
+                            style={{
+                              padding: '0.25rem 0.5rem',
+                              fontSize: '0.72rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              color: isSelf ? 'var(--text-muted)' : 'var(--accent-red)',
+                              borderColor: isSelf ? 'var(--border-color)' : 'rgba(220, 38, 38, 0.25)',
+                              cursor: isSelf ? 'not-allowed' : 'pointer',
+                              opacity: isSelf ? 0.4 : 1
+                            }}
                           >
                             <Trash2 size={12} />
                             <span>Delete</span>

@@ -49,6 +49,10 @@ export interface AuditDashboardMetrics {
   rolesWithUsersCount: number;
   highRiskRolesCount: number;
 
+  multipleRoleUsersCount?: number;
+  singleRoleUsersCount?: number;
+  activeUsersWithoutRolesCount?: number;
+
   // Breakdown & Trend Structures
   roleDistribution: Array<{
     roleType: string;
@@ -61,6 +65,10 @@ export interface AuditDashboardMetrics {
     inactiveUsers: number;
     highRiskUsers: number;
     usersWithoutRoles: number;
+    activeUsersWithoutRoles?: number;
+    multipleRoleUsers?: number;
+    singleRoleUsers?: number;
+    securityAdmins?: number;
     totalUsers: number;
   };
   activityTrend: Array<{
@@ -287,13 +295,14 @@ class AuditDashboardService {
     const totalUsers = statsData.totalUsers || 7915;
     const activeUsers = statsData.activeUsers || 7731;
     const inactiveUsers = statsData.inactiveUsers || 184;
-    const totalRoles = statsData.totalRoles || 6989;
     const jobRolesCount = statsData.jobRolesCount || 6014;
     const dutyRolesCount = statsData.dutyRolesCount || 55;
     const dataRolesCount = statsData.dataRolesCount || 336;
     const abstractRolesCount = statsData.abstractRolesCount || 521;
     const grcRolesCount = statsData.grcRolesCount || 12;
     const otherRolesCount = statsData.otherRolesCount || 51;
+    const categorySum = jobRolesCount + dutyRolesCount + dataRolesCount + abstractRolesCount + grcRolesCount + otherRolesCount;
+    const totalRoles = Math.max(statsData.totalRoles || 0, categorySum) || 6989;
     const rolesWithoutUsersCount = statsData.rolesWithoutUsersCount || 4918;
     const rolesWithUsersCount = statsData.rolesWithUsersCount || 2071;
     const highRiskRolesCount = statsData.highRiskRolesCount || 12;
@@ -301,6 +310,9 @@ class AuditDashboardService {
     const highRiskUsersCount = statsData.highRiskUsersCount || 8;
     const securityAdminsCount = statsData.securityAdminsCount || 8;
     const usersWithoutRolesCount = statsData.usersWithoutRolesCount || 24;
+    const multipleRoleUsersCount = statsData.multipleRoleUsersCount !== undefined ? statsData.multipleRoleUsersCount : 881;
+    const singleRoleUsersCount = statsData.singleRoleUsersCount !== undefined ? statsData.singleRoleUsersCount : 94;
+    const activeUsersWithoutRolesCount = statsData.activeUsersWithoutRolesCount !== undefined ? statsData.activeUsersWithoutRolesCount : 3;
 
     // Role Distribution Breakdown
     const roleDistribution = [
@@ -342,6 +354,10 @@ class AuditDashboardService {
       inactiveUsers,
       highRiskUsers: highRiskUsersCount,
       usersWithoutRoles: usersWithoutRolesCount,
+      activeUsersWithoutRoles: activeUsersWithoutRolesCount,
+      multipleRoleUsers: multipleRoleUsersCount,
+      singleRoleUsers: singleRoleUsersCount,
+      securityAdmins: securityAdminsCount,
       totalUsers
     };
 
@@ -402,6 +418,9 @@ class AuditDashboardService {
       highRiskUsersCount,
       securityAdminsCount,
       usersWithoutRolesCount,
+      multipleRoleUsersCount,
+      singleRoleUsersCount,
+      activeUsersWithoutRolesCount,
       totalUsers,
       activeUsers,
       inactiveUsers,
@@ -577,6 +596,7 @@ class AuditDashboardService {
       { metricKey: 'AUDIT_EVENTS_COUNT', metricValue: metrics.auditEventsCount, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'VEYRA_POSTGRES', isMock, capturedAt: now },
       { metricKey: 'TOTAL_USERS', metricValue: metrics.totalUsers, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
       { metricKey: 'TOTAL_ROLES', metricValue: metrics.totalRoles, metricType: 'COUNTER', scopeType: 'GLOBAL', source: 'ORACLE_FUSION', isMock, capturedAt: now },
+      { metricKey: 'ACTIVITY_TREND', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.activityTrend, source: 'ORACLE_FUSION', isMock, capturedAt: now },
       { metricKey: 'ROLE_DISTRIBUTION', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.roleDistribution, source: 'ORACLE_FUSION', isMock, capturedAt: now },
       { metricKey: 'USER_ACCOUNT_HEALTH', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.userAccountHealth, source: 'VEYRA_CALCULATED', isMock, capturedAt: now },
       { metricKey: 'CONTROLS_SUMMARY', metricType: 'SUMMARY_SNAPSHOT', scopeType: 'GLOBAL', metricPayload: metrics.controlsSummary, source: 'ORACLE_FUSION', isMock, capturedAt: now }

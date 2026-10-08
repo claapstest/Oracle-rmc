@@ -13,6 +13,7 @@ import {
   UserCheck, 
   CheckCircle2, 
   ArrowRight,
+  ArrowLeft,
   GitFork,
   ChevronLeft,
   ChevronRight,
@@ -284,11 +285,15 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   }, [activeReportId]);
 
   // Single report-selection mechanism for the workspace
-  const handleSelectReport = (id: ReportId) => {
+  const handleSelectReport = (id: ReportId | null) => {
     setActiveReportId(id);
     try {
       const url = new URL(window.location.href);
-      url.searchParams.set('report', reportParamFromId(id));
+      if (id) {
+        url.searchParams.set('report', reportParamFromId(id));
+      } else {
+        url.searchParams.delete('report');
+      }
       window.history.replaceState(null, '', url.toString());
     } catch (_) {
       /* URL sync is best-effort; component state remains authoritative */
@@ -964,7 +969,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
         <div style={{ position: 'relative', zIndex: 2 }}>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', marginBottom: '0.35rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
-            Enterprise Reports
+            Reports
           </h1>
           <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
             Authoritative compliance, security, audit, and risk intelligence from your connected Oracle Fusion environment.
@@ -1029,6 +1034,30 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       {activeMeta ? (
       <div className="glass-panel" style={{ borderRadius: '12px', padding: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
         
+        {/* Back to All Reports Link */}
+        <div style={{ marginBottom: '1.1rem' }}>
+          <button
+            type="button"
+            onClick={() => handleSelectReport(null)}
+            className="btn btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              padding: '0.35rem 0.75rem',
+              color: 'var(--accent-blue)',
+              borderColor: 'rgba(53, 99, 233, 0.25)',
+              background: 'transparent',
+              cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft size={13} />
+            <span>Back to All Reports</span>
+          </button>
+        </div>
+
         {/* Selected Report Header Bar */}
         <div style={{
           display: 'flex',
@@ -3059,17 +3088,96 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
       </div>
       ) : (
-      <div>
-        <ReportsList canGenerate={canGenerate} />
-      <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-header)', color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
-          Enterprise Reporting
-        </h2>
-        <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
-          A unified workspace for reviewing security, access, audit, and risk intelligence across your Oracle Fusion environment.
-        </p>
-      </div>
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ textAlign: 'left', marginBottom: '0.25rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-header)', color: 'var(--text-primary)', margin: '0 0 0.35rem 0' }}>
+              Available Reports Catalog
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Select a report suite below or use the selector dropdown above to review live Oracle Fusion data.
+            </p>
+          </div>
+
+          {REPORT_DOMAIN_ORDER.map((domain) => {
+            const domainReports = REPORT_DEFINITIONS.filter(r => REPORT_DOMAIN_LABELS[r.section] === domain);
+            return (
+              <div key={domain} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                    {domain}
+                  </span>
+                  <div style={{ height: '1px', flex: 1, backgroundColor: 'var(--border-color)' }} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem' }}>
+                  {domainReports.map((report) => {
+                    const ReportIcon = report.icon;
+                    return (
+                      <div
+                        key={report.id}
+                        className="glass-panel stat-card"
+                        onClick={() => handleSelectReport(report.id)}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '1.5rem',
+                          borderRadius: '12px',
+                          border: '1px solid var(--border-color)',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '1rem',
+                          backgroundColor: 'var(--bg-secondary)'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
+                            <div style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '10px',
+                              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                              color: '#2563EB',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <ReportIcon size={20} />
+                            </div>
+                            <span className="badge badge-gold" style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                              {report.badge}
+                            </span>
+                          </div>
+
+                          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.35rem 0', fontFamily: 'var(--font-header)' }}>
+                            {REPORT_SELECTOR_NAMES[report.id] || report.title}
+                          </h3>
+                          <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                            {report.subtitle}
+                          </p>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingTop: '0.85rem',
+                          borderTop: '1px solid var(--border-color)',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          color: 'var(--accent-blue)'
+                        }}>
+                          <span>Generate & View Report</span>
+                          <ArrowRight size={15} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* -------------------------------------------------------------

@@ -9,12 +9,12 @@ export interface AuthContext {
 }
 
 // Privileges (any one grants) per frontend page. 'dashboard' needs auth only.
-// requireAdmin-backed modules use adminOnly instead of a privilege list.
 const PAGE_PRIVILEGES: Record<string, string[]> = {
   dashboard: [],
   assistant: ['ASK_VEYRA'],
-  users: ['USERS_LIST', 'USER_READ', 'USER_MANAGEMENT', 'SECURITY_READ'],
-  roles: ['ROLES_CATALOG', 'ROLE_READ', 'USER_MANAGEMENT', 'SECURITY_READ'],
+  users: ['USERS_LIST', 'USER_READ'],
+  'user-management': ['USER_MANAGEMENT'],
+  roles: ['ROLES_CATALOG', 'ROLE_READ'],
   audit: ['AUDIT_TRAIL', 'AUDIT_READ'],
   // Group shell needs the group's own privilege (a REPORTS-only role may still
   // open risk-certificates directly, matching the backend's per-page grants).
@@ -22,21 +22,21 @@ const PAGE_PRIVILEGES: Record<string, string[]> = {
   'risk-access-requests': ['RISK_MANAGEMENT', 'RISK_READ'],
   'risk-controls': ['RISK_MANAGEMENT', 'RISK_READ'],
   'risk-certificates': ['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL'],
-  reports: ['REPORTS', 'REPORTS_READ']
+  reports: ['REPORTS', 'REPORTS_READ'],
+  settings: ['ORACLE_INTEGRATION'],
+  'command-center': ['ORACLE_API_CONSOLE']
 };
-
-const ADMIN_PAGES = new Set(['settings', 'command-center']);
 
 export function normalizePrivileges(permissions?: string[]): string[] {
   return (permissions || []).map((p) => String(p || '').trim().toUpperCase()).filter(Boolean);
 }
 
-// Mock Screen 8 (AC7/AC8) — destructive user operations (Create/Edit/Delete)
-// require the management privilege. Site Admin (isAdmin/ALL) always qualifies;
-// Audit Manager / Supervisor hold USERS_LIST (read) but not USER_MANAGEMENT.
+// Destructive user operations (Create/Edit/Delete) and administration require USER_MANAGEMENT.
+// Site Admin (role SITE_ADMIN / USER_MANAGEMENT) qualifies.
 export function canManageUsers(auth: AuthContext | null): boolean {
   if (!auth) return false;
-  if (auth.isAdmin === true) return true;
+  const normalizedRole = (auth.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (normalizedRole === 'SITE_ADMIN' || auth.isAdmin === true) return true;
   const perms = normalizePrivileges(auth.permissions);
   return perms.includes('ALL') || perms.includes('USER_MANAGEMENT');
 }
@@ -44,13 +44,27 @@ export function canManageUsers(auth: AuthContext | null): boolean {
 export function canAccessPage(pageId: string, auth: AuthContext | null): boolean {
   if (!auth) return false;
   const required = PAGE_PRIVILEGES[pageId];
-  // Fail-closed: unknown pages deny for everyone, including admins.
-  if (!required && !ADMIN_PAGES.has(pageId)) return false;
+  // Fail-closed: unknown pages deny for everyone.
+  if (!required) return false;
+  if (required.length === 0) return true; // authenticated session suffices (e.g. dashboard)
+
+  const normalizedRole = (auth.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
   const perms = normalizePrivileges(auth.permissions);
-  // ponytail: Entra ID seam — role/permission shape stays identical when Entra
-  // replaces local auth; only the issuer populating it changes.
-  if (auth.isAdmin === true || perms.includes('ALL')) return true;
-  if (ADMIN_PAGES.has(pageId)) return false;
-  if (required!.length === 0) return true; // authenticated session suffices
-  return required!.some((p) => perms.includes(p));
+  const effectivePerms = new Set(perms);
+
+  // Map Site Admin canonical privileges if not explicitly present
+  if (normalizedRole === 'SITE_ADMIN') {
+    effectivePerms.add('USER_MANAGEMENT');
+    effectivePerms.add('ORACLE_INTEGRATION');
+    effectivePerms.add('ORACLE_API_CONSOLE');
+    // Site Admin sees only the modules corresponding to its authorized privileges per Requirement 7
+    return required.some((p) =>
+      ['USER_MANAGEMENT', 'ORACLE_INTEGRATION', 'ORACLE_API_CONSOLE'].includes(p)
+    );
+  }
+
+  // If a non-Site Admin has 'ALL', allow
+  if (perms.includes('ALL')) return true;
+
+  return required.some((p) => effectivePerms.has(p));
 }

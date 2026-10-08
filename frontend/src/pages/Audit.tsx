@@ -56,11 +56,19 @@ interface AuditLogItem {
   impersonator?: string;
 }
 
-export default function Audit() {
+export interface AuditProps {
+  initialBOId?: string;
+  initialProductId?: string;
+}
+
+export default function Audit({
+  initialBOId = 'document_records',
+  initialProductId = 'hcm'
+}: AuditProps = {}) {
   // Product Catalog state
   const [products, setProducts] = useState<AuditProduct[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string>('hcm');
-  const [selectedBOId, setSelectedBOId] = useState<string>('person');
+  const [selectedProductId, setSelectedProductId] = useState<string>(initialProductId || 'hcm');
+  const [selectedBOId, setSelectedBOId] = useState<string>(initialBOId || 'document_records');
 
   // Filter state
   const [fromDate, setFromDate] = useState<string>(() => {
@@ -100,6 +108,16 @@ export default function Audit() {
   // Expandable row state (set of expanded log IDs)
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
 
+  // Synchronize props when navigating from cards
+  useEffect(() => {
+    if (initialProductId && initialProductId !== selectedProductId) {
+      setSelectedProductId(initialProductId);
+    }
+    if (initialBOId && initialBOId !== selectedBOId) {
+      setSelectedBOId(initialBOId);
+    }
+  }, [initialBOId, initialProductId]);
+
   // 1. Load authoritative product catalog on mount
   useEffect(() => {
     let isCancelled = false;
@@ -109,23 +127,16 @@ export default function Audit() {
         if (isCancelled) return;
         if (res?.success && Array.isArray(res.products)) {
           setProducts(res.products);
-          // Default to confirmed hcm if available
-          const hcm = res.products.find((p: AuditProduct) => p.id === 'hcm' || p.sno === 32);
-          if (hcm) {
-            setSelectedProductId(hcm.id);
-            const firstSupported = (hcm.businessObjects || []).find(b => b.isSupported !== false);
-            if (firstSupported) {
-              setSelectedBOId(firstSupported.id);
-            } else if (hcm.businessObjects && hcm.businessObjects.length > 0) {
-              setSelectedBOId(hcm.businessObjects[0].id);
-            }
-          } else if (res.products.length > 0) {
-            setSelectedProductId(res.products[0].id);
-            const firstSupported = (res.products[0].businessObjects || []).find(b => b.isSupported !== false);
-            if (firstSupported) {
-              setSelectedBOId(firstSupported.id);
-            } else if (res.products[0].businessObjects && res.products[0].businessObjects.length > 0) {
-              setSelectedBOId(res.products[0].businessObjects[0].id);
+          const targetProdId = initialProductId || 'hcm';
+          const targetBOId = initialBOId || 'document_records';
+          const targetProd = res.products.find((p: AuditProduct) => p.id === targetProdId || p.sno === 32) || res.products[0];
+          if (targetProd) {
+            setSelectedProductId(targetProd.id);
+            const targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) => b.id === targetBOId) ||
+                             (targetProd.businessObjects || []).find((b: AuditProductBO) => b.isSupported !== false) ||
+                             targetProd.businessObjects?.[0];
+            if (targetBO) {
+              setSelectedBOId(targetBO.id);
             }
           }
         }
@@ -139,7 +150,7 @@ export default function Audit() {
     };
   }, []);
 
-  // Update business object selection when selected product changes
+  // Update business object selection when selected product changes (user manual dropdown change)
   useEffect(() => {
     const prod = products.find(p => p.id === selectedProductId);
     if (!prod) return;
@@ -147,8 +158,11 @@ export default function Audit() {
     if (!prod.requiresBusinessObjectType || !prod.businessObjects || prod.businessObjects.length === 0) {
       setSelectedBOId('');
     } else {
-      const firstSupported = prod.businessObjects.find(b => b.isSupported !== false);
-      setSelectedBOId(firstSupported ? firstSupported.id : (prod.businessObjects[0]?.id || ''));
+      const alreadyMatches = prod.businessObjects.some(b => b.id === selectedBOId);
+      if (!alreadyMatches) {
+        const firstSupported = prod.businessObjects.find(b => b.isSupported !== false);
+        setSelectedBOId(firstSupported ? firstSupported.id : (prod.businessObjects[0]?.id || ''));
+      }
     }
   }, [selectedProductId, products]);
 
@@ -171,14 +185,21 @@ export default function Audit() {
   // Auto-run initial search once product catalog is loaded
   const [hasAutoSearched, setHasAutoSearched] = useState(false);
   useEffect(() => {
-    if (!hasAutoSearched && products.length > 0 && selectedProductId) {
+    if (!hasAutoSearched && products.length > 0 && selectedProductId && selectedBOId) {
       setHasAutoSearched(true);
-      handleSearch(1);
+      handleSearch(1, selectedProductId, selectedBOId);
     }
-  }, [products, selectedProductId, hasAutoSearched]);
+  }, [products, selectedProductId, selectedBOId, hasAutoSearched]);
+
+  // Re-run search if selected BO or product changes after initial search has run
+  useEffect(() => {
+    if (hasAutoSearched && products.length > 0 && selectedProductId && selectedBOId) {
+      handleSearch(1, selectedProductId, selectedBOId);
+    }
+  }, [selectedProductId, selectedBOId]);
 
   // Execute Search
-  const handleSearch = async (targetPage = 1) => {
+  const handleSearch = async (targetPage = 1, overrideProdId?: string, overrideBOId?: string) => {
     if (dateWarning && (new Date(toDate).getTime() < new Date(fromDate).getTime())) {
       setError('Please correct the date range before searching.');
       return;
@@ -188,8 +209,10 @@ export default function Audit() {
     setError('');
     setConfigNotice('');
 
-    const prod = products.find(p => p.id === selectedProductId);
-    const selectedBO = prod?.businessObjects.find(b => b.id === selectedBOId);
+    const currentProdId = overrideProdId || selectedProductId;
+    const currentBOId = overrideBOId !== undefined ? overrideBOId : selectedBOId;
+    const prod = products.find(p => p.id === currentProdId);
+    const selectedBO = prod?.businessObjects.find(b => b.id === currentBOId);
 
     // If user selected an additional business object that is not yet configured, provide a clear controlled message
     if (selectedBO && selectedBO.isSupported === false) {
@@ -207,8 +230,8 @@ export default function Audit() {
 
     try {
       const res = await api.getAuditLogs({
-        product: prod?.productName || prod?.displayName || selectedProductId,
-        businessObjectType: selectedBO?.displayName || selectedBOId || undefined,
+        product: prod?.productName || prod?.displayName || currentProdId,
+        businessObjectType: selectedBO?.displayName || currentBOId || undefined,
         fromDate,
         toDate,
         username: userQuery.trim() || undefined,

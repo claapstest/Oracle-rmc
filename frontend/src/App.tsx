@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   MessageSquareCode,
   Users,
+  UserCheck,
   Award,
   FileClock,
   ShieldAlert,
@@ -11,7 +12,6 @@ import {
   LogOut,
   Lock,
   PanelLeft,
-  Bell,
   Terminal,
   FileSpreadsheet,
   FileText,
@@ -26,6 +26,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Assistant from './pages/Assistant';
 import UsersPage from './pages/Users';
+import UserManagementPage from './pages/UserManagement';
 import RolesPage from './pages/Roles';
 import AuditPage from './pages/Audit';
 import AdvancedAccessRequestsPage from './pages/AdvancedAccessRequests';
@@ -63,6 +64,7 @@ const TOP_LEVEL_PAGE_IDS = new Set([
   'dashboard',
   'assistant',
   'users',
+  'user-management',
   'roles',
   'audit',
   'reports',
@@ -377,7 +379,7 @@ export default function App() {
     }
   }, []);
 
-  const handlePageSelect = (pageId: string) => {
+  const handlePageSelect = (pageId: string, filter?: string) => {
     setCurrentPage(pageId);
     sessionStorage.setItem('activePage', pageId);
     try {
@@ -394,8 +396,19 @@ export default function App() {
       return next;
     });
     handleClose(); // Clear investigation when switching screens
-    setInitialRolesCategory('ALL'); // Reset filters
-    setInitialUsersFilter('ALL');
+    if (pageId === 'roles') {
+      setInitialRolesCategory(filter || 'ALL');
+    } else {
+      setInitialRolesCategory('ALL');
+    }
+    if (pageId === 'users') {
+      setInitialUsersFilter(filter || 'ALL');
+    } else {
+      setInitialUsersFilter('ALL');
+    }
+    if (pageId === 'audit') {
+      setInitialAuditBO(filter || 'document_records');
+    }
     if (pageId === 'assistant') {
       setIsSidebarOpen(false); // Ask VEYRA defaults to full width
     } else {
@@ -406,6 +419,7 @@ export default function App() {
   // States to pass down filters when navigating from cards
   const [initialRolesCategory, setInitialRolesCategory] = useState('ALL');
   const [initialUsersFilter, setInitialUsersFilter] = useState('ALL');
+  const [initialAuditBO, setInitialAuditBO] = useState('document_records');
 
   // Synchronize settings and verify admin status on login
   useEffect(() => {
@@ -582,20 +596,21 @@ export default function App() {
     onClick?: () => void;
   }
 
-  // Mock Screen 7 administration navigation: Dashboard, User Management (users),
-  // Oracle Integration (settings, adminOnly), Oracle API Console (command-center, adminOnly).
-  // AC4/AC5 enforced via canAccessPage + isDeniedPage; direct URLs to adminOnly
-  // pages render Access Denied for non-Site Admin.
+  // Administration navigation: Dashboard, User Management (users),
+  // Oracle Integration (settings), Oracle API Console (command-center).
+  // Privilege enforcement via canAccessPage + isDeniedPage; unauthorized users
+  // see only modules permitted by their assigned privileges.
   const allNavItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'assistant', label: 'Ask VEYRA', icon: MessageSquareCode },
-    { id: 'users', label: 'Users List', icon: Users },
+    { id: 'users', label: 'Users List', icon: UserCheck },
+    { id: 'user-management', label: 'User Management', icon: Users },
     { id: 'roles', label: 'Roles Catalog', icon: Award },
     { id: 'audit', label: 'Audit Trail', icon: FileClock },
     { id: 'risk', label: 'Risk Management', icon: ShieldAlert, isGroup: true },
     { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
-    { id: 'settings', label: 'Oracle Integration', icon: SettingsIcon, adminOnly: true },
-    { id: 'command-center', label: 'Oracle API Console', icon: Terminal, adminOnly: true }
+    { id: 'settings', label: 'Oracle Integration', icon: SettingsIcon },
+    { id: 'command-center', label: 'Oracle API Console', icon: Terminal }
   ];
 
   // Risk Management is a parent group: expanded while a child page is active,
@@ -774,39 +789,6 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Notification Bell with Badge matching Reference */}
-          <div style={{
-            position: 'relative',
-            cursor: 'pointer',
-            padding: '0.4rem',
-            borderRadius: '8px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff'
-          }} title="0 active alerts">
-            <Bell size={15} />
-            <span style={{
-              position: 'absolute',
-              top: '-3px',
-              right: '-3px',
-              backgroundColor: '#EF4444',
-              color: '#ffffff',
-              fontSize: '0.6rem',
-              fontWeight: 800,
-              width: '14px',
-              height: '14px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid #1D4ED8'
-            }}>
-              0
-            </span>
-          </div>
-
           {/* Topbar User Profile Dropdown Menu - Clean Unpill Layout */}
           <div ref={userMenuRef} style={{ position: 'relative' }}>
             <button
@@ -1000,9 +982,10 @@ export default function App() {
                 onInvestigate={handleInvestigate}
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
                 onNavigatePage={(pageId, filter) => {
-                  handlePageSelect(pageId);
+                  handlePageSelect(pageId, filter);
                   if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
                   if (pageId === 'users' && filter) setInitialUsersFilter(filter);
+                  if (pageId === 'audit' && filter) setInitialAuditBO(filter);
                 }}
               />
             </div>
@@ -1018,9 +1001,10 @@ export default function App() {
               clearInitialQuestion={() => setFaqQuestion('')}
               environmentMode={environmentMode}
               onNavigatePage={(pageId, filter) => {
-                handlePageSelect(pageId);
+                handlePageSelect(pageId, filter);
                 if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
                 if (pageId === 'users' && filter) setInitialUsersFilter(filter);
+                if (pageId === 'audit' && filter) setInitialAuditBO(filter);
               }}
               onInvestigate={handleInvestigate}
               onOpenFullInvestigation={handleOpenQueryInvestigation}
@@ -1036,6 +1020,14 @@ export default function App() {
               />
             </div>
           )}
+          {visitedPages.has('user-management') && (
+            <div style={{ display: currentPage === 'user-management' ? 'block' : 'none', height: '100%' }}>
+              <UserManagementPage
+                hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
+                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
+              />
+            </div>
+          )}
           {visitedPages.has('roles') && (
             <div style={{ display: currentPage === 'roles' ? 'block' : 'none', height: '100%' }}>
               <RolesPage
@@ -1046,7 +1038,7 @@ export default function App() {
           )}
           {visitedPages.has('audit') && (
             <div style={{ display: currentPage === 'audit' ? 'block' : 'none', height: '100%' }}>
-              <AuditPage />
+              <AuditPage initialBOId={initialAuditBO} />
             </div>
           )}
           {visitedPages.has('risk-access-requests') && (

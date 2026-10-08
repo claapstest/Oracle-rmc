@@ -1,0 +1,12 @@
+{
+  "totalUsers": 2994,
+  "activeUsers": 979,
+  "inactiveUsers": 2015,
+  "usersWithoutRoles": 2019,
+  "activeUsersWithoutRoles": 36,
+  "singleRoleUsers": 94,
+  "multipleRoleUsers": 881,
+  "securityAdmins": 446,
+  "highRiskUsers": 446,
+  "syncedAt": "2026-10-08T07:43:58.365Z"
+}

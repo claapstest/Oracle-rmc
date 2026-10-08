@@ -125,11 +125,14 @@ interface UserAccountHealthProps {
     inactiveUsers: number;
     multipleRoleUsersCount?: number;
     usersWithoutRolesCount?: number;
+    singleRoleUsersCount?: number;
+    activeUsersWithoutRolesCount?: number;
     securityAdminsCount?: number;
     highRiskRolesCount?: number;
     highRiskUsersCount?: number;
     grcRolesCount?: number;
     rolesWithoutUsersCount?: number;
+    userAccountHealth?: any;
   };
   onNavigatePage?: (pageId: string, filter?: string) => void;
 }
@@ -139,20 +142,27 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   const [activeFilter, setActiveFilter] = React.useState<string | null>(null);
   const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
 
-  const total = stats.totalUsers || 7915;
-  const inactive = stats.inactiveUsers || 184;
-  const usersNoRoles = stats.usersWithoutRolesCount || 3;
-  const multipleRoles = stats.multipleRoleUsersCount || 47;
-  const singleRole = Math.max(0, (stats.activeUsers || 7731) - multipleRoles - usersNoRoles);
-  const securityAdmins = stats.securityAdminsCount || 45;
+  const total = stats.totalUsers || 2993;
+  const inactive = stats.inactiveUsers || 2015;
+  const usersNoRoles = stats.usersWithoutRolesCount !== undefined ? stats.usersWithoutRolesCount : 2018;
+  const activeUsersWithoutRoles = stats.activeUsersWithoutRolesCount !== undefined 
+    ? stats.activeUsersWithoutRolesCount 
+    : (stats.userAccountHealth?.activeUsersWithoutRoles !== undefined ? stats.userAccountHealth.activeUsersWithoutRoles : 3);
+  const multipleRoles = stats.multipleRoleUsersCount !== undefined 
+    ? stats.multipleRoleUsersCount 
+    : (stats.userAccountHealth?.multipleRoleUsers !== undefined ? stats.userAccountHealth.multipleRoleUsers : 881);
+  const singleRole = stats.singleRoleUsersCount !== undefined 
+    ? stats.singleRoleUsersCount 
+    : (stats.userAccountHealth?.singleRoleUsers !== undefined ? stats.userAccountHealth.singleRoleUsers : 94);
+  const securityAdmins = stats.securityAdminsCount !== undefined ? stats.securityAdminsCount : 446;
   const highRiskRoles = stats.highRiskRolesCount || stats.grcRolesCount || 12;
-  const rolesWithoutUsers = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4918;
+  const rolesWithoutUsers = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 249;
 
-  // Mutually-exclusive user access breakdown for donut
+  // Mutually-exclusive user access breakdown for donut (Single + Multiple + No Roles + Inactive = Total)
   const accessSegments = [
     { label: 'Single Role Users', count: singleRole, color: '#10B981', filter: 'SINGLE_ROLE' },
     { label: 'Multiple Role Users', count: multipleRoles, color: '#2563EB', filter: 'MULTIPLE_ROLES' },
-    { label: 'Users Without Roles', count: usersNoRoles, color: '#EF4444', filter: 'NO_ROLES' },
+    { label: 'Users Without Roles', count: activeUsersWithoutRoles, color: '#EF4444', filter: 'NO_ROLES' },
     { label: 'Inactive Accounts', count: inactive, color: '#64748B', filter: 'INACTIVE' }
   ];
 
@@ -550,8 +560,6 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
   const [activeFilter, setActiveFilter] = React.useState<string | null>(null);
   const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
 
-  const total = stats.totalRoles || 6989;
-  
   const segments = [
     { label: 'Job Roles', count: stats.jobRolesCount || 6014, color: '#2563EB', category: 'JOB' },
     { label: 'Duty Roles', count: stats.dutyRolesCount || 55, color: '#EC4899', category: 'DUTY' },
@@ -559,6 +567,9 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
     { label: 'Abstract Roles', count: stats.abstractRolesCount || 521, color: '#8B5CF6', category: 'ABSTRACT' },
     { label: 'GRC Roles', count: stats.grcRolesCount || 12, color: '#10B981', category: 'GRC' }
   ];
+
+  const segmentSum = segments.reduce((acc, s) => acc + (s.count || 0), 0);
+  const total = segmentSum > 0 ? (stats.totalRoles && stats.totalRoles >= segmentSum ? stats.totalRoles : segmentSum) : (stats.totalRoles || 6989);
 
   // Calculate SVG donut stroke arcs on a large prominent radius
   const radius = 76;
@@ -801,6 +812,9 @@ interface RiskTrendProps {
 }
 
 export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps) {
+  const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+  const [activeSeries, setActiveSeries] = React.useState<'ALL' | 'TOTAL' | 'INSERTS' | 'UPDATES'>('ALL');
+
   // Use real timestamped data aggregated by day from audit events
   const data = activityTrend.length > 0 ? activityTrend : [
     { date: '2026-09-05', count: 13, inserts: 13, updates: 0, deletes: 0 },
@@ -814,22 +828,33 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
     { date: '2026-09-14', count: 6, inserts: 6, updates: 0, deletes: 0 },
   ];
 
-  const maxVal = Math.max(...data.map(d => d.count), 50);
+  const totalEvents = data.reduce((a, b) => a + (b.count || 0), 0);
+  const totalInserts = data.reduce((a, b) => a + (b.inserts || 0), 0);
+  const totalUpdates = data.reduce((a, b) => a + (b.updates || 0), 0);
+
+  // Dynamic headroom scaling based on real observed max values (avoid flatlining on low volume)
+  const highestDaily = Math.max(...data.map(d => Math.max(d.count || 0, d.inserts || 0, d.updates || 0)), 1);
+  const maxVal = highestDaily > 30 ? Math.ceil(highestDaily * 1.25) : highestDaily > 8 ? Math.ceil(highestDaily * 1.35) : Math.max(highestDaily + 2, 5);
+
   const width = 560;
   const height = 140;
   const paddingX = 35;
-  const paddingY = 20;
+  const paddingY = 22;
 
   const points = data.map((d, index) => {
     const x = paddingX + (index / (data.length - 1 || 1)) * (width - 2 * paddingX);
     const yTotal = height - paddingY - (d.count / maxVal) * (height - 2 * paddingY);
-    const yInserts = height - paddingY - (d.inserts / maxVal) * (height - 2 * paddingY);
-    const yUpdates = height - paddingY - ((d.updates * 10) / maxVal) * (height - 2 * paddingY); // scaled for visibility
+    const yInserts = height - paddingY - ((d.inserts || 0) / maxVal) * (height - 2 * paddingY);
+    const yUpdates = height - paddingY - ((d.updates || 0) / maxVal) * (height - 2 * paddingY);
     return { ...d, x, yTotal, yInserts, yUpdates };
   });
 
   const pathTotal = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yTotal}`, '');
   const areaTotal = `${pathTotal} L ${points[points.length - 1]?.x || width} ${height - paddingY} L ${points[0]?.x || paddingX} ${height - paddingY} Z`;
+  const pathInserts = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yInserts}`, '');
+  const pathUpdates = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yUpdates}`, '');
+
+  const hoveredPoint = hoveredIdx !== null && points[hoveredIdx] ? points[hoveredIdx] : null;
 
   return (
     <div className="glass-panel" style={{ padding: '1.1rem 1.4rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -843,16 +868,35 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             Daily security changes and audit activity events in Oracle Fusion
           </p>
         </div>
-        <span
-          onClick={() => onNavigatePage?.('audit')}
-          style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-        >
-          View Details &rarr;
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {activeSeries !== 'ALL' && (
+            <button
+              onClick={() => setActiveSeries('ALL')}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: '#475569',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Reset Series Filter
+            </button>
+          )}
+          <span
+            onClick={() => onNavigatePage?.('audit')}
+            style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+          >
+            View Details &rarr;
+          </span>
+        </div>
       </div>
 
       {/* SVG Line / Area Multi-Point Chart */}
-      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', flex: 1, display: 'flex', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}>
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', maxHeight: '200px', display: 'block' }}>
           <defs>
             <linearGradient id="riskAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -875,37 +919,165 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             );
           })}
 
-          {/* Area fill */}
-          <path d={areaTotal} fill="url(#riskAreaGrad)" />
+          {/* Area fill for total changes */}
+          {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
+            <path d={areaTotal} fill="url(#riskAreaGrad)" />
+          )}
 
-          {/* Primary Trend Line: Security Changes */}
-          <path d={pathTotal} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {/* 1. Primary Trend Line: Security Changes (Total) */}
+          {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
+            <path
+              d={pathTotal}
+              fill="none"
+              stroke="#2563EB"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={activeSeries === 'ALL' || activeSeries === 'TOTAL' ? 1 : 0.2}
+            />
+          )}
 
-          {/* Data Points on Line */}
-          {points.map((p, i) => (
-            <g key={i}>
-              <circle cx={p.x} cy={p.yTotal} r="3.5" fill="#FFFFFF" stroke="#2563EB" strokeWidth="2.2" />
-              <text x={p.x} y={height - 8} textAnchor="middle" fontSize="9" fill="#64748B" fontWeight="500">
-                {p.date.slice(5)}
-              </text>
-            </g>
-          ))}
+          {/* 2. Secondary Line: Inserts / Additions (Green) */}
+          {(activeSeries === 'ALL' || activeSeries === 'INSERTS') && totalInserts > 0 && (
+            <path
+              d={pathInserts}
+              fill="none"
+              stroke="#10B981"
+              strokeWidth="2"
+              strokeDasharray={totalInserts === totalEvents ? "4 3" : "none"}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* 3. Tertiary Line: Updates (Orange) */}
+          {(activeSeries === 'ALL' || activeSeries === 'UPDATES') && totalUpdates > 0 && (
+            <path
+              d={pathUpdates}
+              fill="none"
+              stroke="#F59E0B"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Data Points on Line with hover interactions */}
+          {points.map((p, i) => {
+            const isHovered = hoveredIdx === i;
+            return (
+              <g
+                key={i}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                style={{ cursor: 'pointer' }}
+              >
+                {/* Invisible hover target for easier mouse hovering */}
+                <rect x={p.x - 14} y={10} width={28} height={height - 25} fill="transparent" />
+
+                {/* Vertical guide line on hover */}
+                {isHovered && (
+                  <line x1={p.x} y1={paddingY} x2={p.x} y2={height - paddingY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                )}
+
+                {/* Total points */}
+                {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
+                  <circle
+                    cx={p.x}
+                    cy={p.yTotal}
+                    r={isHovered ? 4.5 : 3.5}
+                    fill="#FFFFFF"
+                    stroke="#2563EB"
+                    strokeWidth={isHovered ? 2.8 : 2.2}
+                  />
+                )}
+
+                {/* Inserts points when present */}
+                {(activeSeries === 'ALL' || activeSeries === 'INSERTS') && (p.inserts || 0) > 0 && (
+                  <circle
+                    cx={p.x}
+                    cy={p.yInserts}
+                    r={isHovered ? 4 : 3}
+                    fill="#10B981"
+                    stroke="#FFFFFF"
+                    strokeWidth="1.5"
+                  />
+                )}
+
+                {/* Updates points when present */}
+                {(activeSeries === 'ALL' || activeSeries === 'UPDATES') && (p.updates || 0) > 0 && (
+                  <circle
+                    cx={p.x}
+                    cy={p.yUpdates}
+                    r={isHovered ? 4 : 3}
+                    fill="#F59E0B"
+                    stroke="#FFFFFF"
+                    strokeWidth="1.5"
+                  />
+                )}
+
+                <text x={p.x} y={height - 8} textAnchor="middle" fontSize="9" fill={isHovered ? "#1E293B" : "#64748B"} fontWeight={isHovered ? 700 : 500}>
+                  {p.date.slice(5)}
+                </text>
+              </g>
+            );
+          })}
         </svg>
+
+        {/* Hover Tooltip Card */}
+        {hoveredPoint && (
+          <div style={{
+            position: 'absolute',
+            left: `${hoveredPoint.x}px`,
+            top: '15px',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(15, 23, 42, 0.94)',
+            color: '#FFFFFF',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            fontSize: '0.74rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            pointerEvents: 'none',
+            zIndex: 10,
+            whiteSpace: 'nowrap'
+          }}>
+            <div style={{ fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '3px', marginBottom: '3px' }}>
+              {hoveredPoint.date}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.72rem' }}>
+              <span style={{ color: '#93C5FD' }}>Total: {hoveredPoint.count} events</span>
+              <span style={{ color: '#86EFAC' }}>Inserts: {hoveredPoint.inserts || 0}</span>
+              <span style={{ color: '#FCD34D' }}>Updates: {hoveredPoint.updates || 0}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Series Legend */}
+      {/* Series Legend with Actual Dynamic Counts & Series Filter */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.6rem', marginTop: '0.4rem', fontSize: '0.76rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+        <div
+          onClick={() => setActiveSeries(activeSeries === 'TOTAL' ? 'ALL' : 'TOTAL')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'TOTAL' ? 1 : 0.4 }}
+          title="Click to toggle Total Security Changes series"
+        >
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Security Changes ({data.reduce((a, b) => a + b.count, 0)})</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Security Changes ({totalEvents})</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+        <div
+          onClick={() => setActiveSeries(activeSeries === 'INSERTS' ? 'ALL' : 'INSERTS')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'INSERTS' ? 1 : 0.4 }}
+          title="Click to toggle Inserts / Additions series"
+        >
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Inserts / Additions</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inserts / Additions ({totalInserts})</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+        <div
+          onClick={() => setActiveSeries(activeSeries === 'UPDATES' ? 'ALL' : 'UPDATES')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'UPDATES' ? 1 : 0.4 }}
+          title="Click to toggle Updates series"
+        >
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Updates</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Updates ({totalUpdates})</span>
         </div>
       </div>
     </div>

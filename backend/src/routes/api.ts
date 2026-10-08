@@ -166,8 +166,8 @@ export function requireAuditManagerDashboard(req: Request, res: Response, next: 
     const userPermissions: string[] = res.locals.permissions || [];
     const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
 
-    // Site Admin, Audit Manager, Security Analyst, Compliance Officer, and authorized administrative roles
-    if (isAdmin || userRole === 'AUDIT_MANAGER' || userRole === 'SECURITY_ANALYST' || userRole === 'COMPLIANCE_OFFICER') {
+    // Site Admin, Audit Manager, Security Analyst, Compliance Officer, Audit Supervisor, and authorized administrative roles
+    if (isAdmin || userRole === 'AUDIT_MANAGER' || userRole === 'SECURITY_ANALYST' || userRole === 'COMPLIANCE_OFFICER' || userRole === 'AUDIT_SUPERVISOR') {
       return next();
     }
 
@@ -505,11 +505,10 @@ apiRouter.get('/investigations/:id', requireAuth, (req: Request, res: Response) 
 
 // --- Admin Portal User & Reset Code Management Endpoints ---
 
-// GET /admin/users - List application users (Mock Screen 8).
-// Readable with USERS_LIST privilege (Site Admin / Audit Manager / Supervisor per
-// the privilege matrix); all mutations stay requireAdmin. Response carries safe
-// fields only (see authService.getAdminUsersList — no password hashes).
-apiRouter.get('/admin/users', requirePrivilege(['USER_MANAGEMENT', 'USERS_LIST', 'USER_READ', 'SECURITY_READ']), (req: Request, res: Response) => {
+// GET /admin/users - List application users (User Management).
+// Readable with USER_MANAGEMENT privilege per the privilege matrix.
+// Response carries safe fields only (see authService.getAdminUsersList — no password hashes).
+apiRouter.get('/admin/users', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
   try {
     const usersList = authService.getAdminUsersList();
     res.json({ success: true, users: usersList });
@@ -519,7 +518,7 @@ apiRouter.get('/admin/users', requirePrivilege(['USER_MANAGEMENT', 'USERS_LIST',
 });
 
 // POST /admin/users/toggle-status - Activate/Deactivate Account
-apiRouter.post('/admin/users/toggle-status', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
   const { email: rawEmail, active } = req.body;
   if (rawEmail === undefined || active === undefined) {
     return res.status(400).json({ success: false, message: 'Target email and active status are required.' });
@@ -540,7 +539,7 @@ apiRouter.post('/admin/users/toggle-status', requireAdmin, (req: Request, res: R
 });
 
 // POST /admin/users/delete - Permanently delete user account
-apiRouter.post('/admin/users/delete', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -561,7 +560,7 @@ apiRouter.post('/admin/users/delete', requireAdmin, (req: Request, res: Response
 });
 
 // POST /admin/users/generate-reset-code - Create one-time reset code
-apiRouter.post('/admin/users/generate-reset-code', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -578,7 +577,7 @@ apiRouter.post('/admin/users/generate-reset-code', requireAdmin, (req: Request, 
 });
 
 // POST /admin/users/revoke-reset-code - Revoke/Invalidate active reset code
-apiRouter.post('/admin/users/revoke-reset-code', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -635,8 +634,8 @@ function validateAndNormalizeUrl(url: string): string {
 }
 
 // 1. Connection & Settings API
-apiRouter.get('/settings', requireAdmin, (req: Request, res: Response) => {
-  const adminUser = res.locals.username;
+apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
+  const adminUser = res.locals.email || res.locals.username;
   logAudit(adminUser, 'READ_SETTINGS', 'Retrieved settings metadata');
   
   res.json({
@@ -648,11 +647,14 @@ apiRouter.get('/settings', requireAdmin, (req: Request, res: Response) => {
     hasToken: !!config.oracle.token,
     hasGeminiKey: !!config.groqApiKey,
     groqModel: config.groqModel,
+    isConfigured: oracleService.isConfigured(),
+    status: oracleService.getConnectionStatus(),
+    lastTestedAt: oracleService.getLastTestedAt(),
   });
 });
 
-apiRouter.post('/settings/test-connection', requireAdmin, async (req: Request, res: Response) => {
-  const adminUser = res.locals.username;
+apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION'), async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || res.locals.username;
   try {
     const { baseUrl, authType, username, password, token } = req.body;
     
@@ -693,7 +695,7 @@ apiRouter.post('/settings/test-connection', requireAdmin, async (req: Request, r
   }
 });
 
-apiRouter.post('/settings/toggle-mode', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
   const adminUser = res.locals.username;
   const { mode, baseUrl, username, password, token, authType, groqModel } = req.body;
 
@@ -1634,7 +1636,7 @@ apiRouter.post('/admin/oracle/sync', requireAdmin, async (req: Request, res: Res
 });
 
 // GET /api/admin/users/summary - Admin users summary (AC2, AC6)
-apiRouter.get('/admin/users/summary', requireAdmin, (_req: Request, res: Response) => {
+apiRouter.get('/admin/users/summary', requirePrivilege('USER_MANAGEMENT'), (_req: Request, res: Response) => {
   try {
     const adminUsers = authService.getAdminUsersList();
     const total = adminUsers.length;
@@ -1683,6 +1685,7 @@ apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Respon
     // If explicitly requested Oracle SCIM directory source, delegate to oracleService
     if (source === 'oracle' || source === 'scim') {
       const filter = (req.query.filter || req.query.search || req.query.q) as string | undefined;
+      const category = (req.query.category || req.query.insight || req.query.initialFilter) as string | undefined;
       const startIndex = req.query.startIndex
         ? parseInt(req.query.startIndex as string, 10)
         : (req.query.page && req.query.limit
@@ -1691,7 +1694,7 @@ apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Respon
       const count = req.query.count
         ? parseInt(req.query.count as string, 10)
         : (req.query.pageSize || req.query.limit ? parseInt((req.query.pageSize || req.query.limit) as string, 10) : 50);
-      const result = await oracleService.getUsers({ filterText: filter, startIndex, count });
+      const result = await oracleService.getUsers({ filterText: filter, category, startIndex, count });
       return res.json({ ...result, ...oracleService.getModeInfo() });
     }
 
@@ -1733,21 +1736,27 @@ apiRouter.get('/users/:id', requireUsersListAccess, async (req: Request, res: Re
       if (oracleUser) {
         return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
       }
-      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found in Oracle directory.' });
     }
 
     const user = await authService.getUserByIdOrEmail(id);
-    if (!user) {
-      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
+    if (user) {
+      try {
+        const scopes = await authService.getUserApplicationScopes(user.id || user.email);
+        (user as any).applicationScopes = scopes;
+      } catch (_) {}
+
+      logAudit(res.locals.email || 'UNKNOWN', 'READ_USER_DETAIL', `Viewed user details for ${user.email}`);
+      return res.status(200).json({ success: true, user });
     }
 
-    try {
-      const scopes = await authService.getUserApplicationScopes(user.id || user.email);
-      (user as any).applicationScopes = scopes;
-    } catch (_) {}
+    // Fallback: If not found in local authService, look up in Oracle directory
+    const oracleUser = await oracleService.getUser(id);
+    if (oracleUser) {
+      return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
+    }
 
-    logAudit(res.locals.email || 'UNKNOWN', 'READ_USER_DETAIL', `Viewed user details for ${user.email}`);
-    return res.status(200).json({ success: true, user });
+    return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
   } catch (err) {
     console.error('[Get Single User Error]:', err);
     return res.status(500).json({ success: false, message: (err as Error).message });
@@ -1764,8 +1773,8 @@ apiRouter.get('/users/:id/scopes', requireUsersListAccess, async (req: Request, 
   }
 });
 
-// POST /api/users - Create new user (AC1 - AC12: Site Admin only)
-apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
+// POST /api/users - Create new user (USER_MANAGEMENT privilege required)
+apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
   try {
     const { email, displayName, name, role, password, status, applicationAccess, access, sendInvitation, permissions } = req.body || {};
 
@@ -1803,8 +1812,8 @@ apiRouter.post('/users', requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/users/:id - Update user / role assignment (AC1, AC2, AC9, AC10: Site Admin only)
-apiRouter.put('/users/:id', requireAdmin, async (req: Request, res: Response) => {
+// PUT /api/users/:id - Update user / role assignment (USER_MANAGEMENT privilege required)
+apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const { displayName, role, status, password, permissions } = req.body;
@@ -1832,8 +1841,8 @@ apiRouter.put('/users/:id', requireAdmin, async (req: Request, res: Response) =>
   }
 });
 
-// DELETE /api/users/:id - Delete user (AC1, AC2, AC7, AC8, AC9: Site Admin only)
-apiRouter.delete('/users/:id', requireAdmin, async (req: Request, res: Response) => {
+// DELETE /api/users/:id - Delete user (USER_MANAGEMENT privilege required)
+apiRouter.delete('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const result = await authService.deleteUser(id, res.locals.email);
@@ -1849,32 +1858,6 @@ apiRouter.delete('/users/:id', requireAdmin, async (req: Request, res: Response)
     }
 
     logAudit(res.locals.email, 'ADMIN_DELETE_USER', `Permanently deleted user account ${id}`);
-    return res.status(200).json(result);
-  } catch (err) {
-    return res.status(500).json({ success: false, message: (err as Error).message });
-  }
-});
-
-// GET /api/admin/users - Admin alias for users list (AC2)
-apiRouter.get('/admin/users', requireAdmin, async (req: Request, res: Response) => {
-  try {
-    const search = (req.query.search || req.query.q || req.query.name || req.query.email || req.query.filter) as string | undefined;
-    const role = req.query.role as string | undefined;
-    const status = req.query.status as string | undefined;
-    const page = req.query.page as string | undefined;
-    const pageSize = (req.query.pageSize || req.query.limit) as string | undefined;
-    const sortBy = (req.query.sortBy || req.query.sortField) as string | undefined;
-    const sortOrder = (req.query.sortOrder || req.query.order) as string | undefined;
-
-    const result = await authService.getPaginatedUsers({
-      search,
-      role,
-      status,
-      page,
-      pageSize,
-      sortBy,
-      sortOrder
-    });
     return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ success: false, message: (err as Error).message });
@@ -2375,7 +2358,7 @@ apiRouter.get('/risk/certifications', requirePrivilege(['REPORTS', 'REPORTS_READ
 // ==========================================
 
 // Get Catalog Metadata (status, counts, instance, last sync)
-apiRouter.get('/catalog/role-privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), (req: Request, res: Response) => {
+apiRouter.get('/catalog/role-privileges', requirePrivilege(['ORACLE_INTEGRATION', 'ROLES_CATALOG', 'ROLE_READ']), (req: Request, res: Response) => {
   try {
     const meta = rolePrivilegeCatalogService.getMetadata();
     res.json({ success: true, catalog: meta });
@@ -2385,7 +2368,7 @@ apiRouter.get('/catalog/role-privileges', requirePrivilege(['ROLES_CATALOG', 'RO
 });
 
 // Trigger Background Catalog Synchronization (Admin only)
-apiRouter.post('/catalog/role-privileges/sync', requireAdmin, async (req: Request, res: Response) => {
+apiRouter.post('/catalog/role-privileges/sync', requirePrivilege(['ORACLE_INTEGRATION', 'ROLES_CATALOG']), async (req: Request, res: Response) => {
   try {
     logAudit(res.locals.email || 'SYSTEM', 'CATALOG_SYNC_TRIGGERED', 'Role & Privilege catalog sync started in background');
     const result = await rolePrivilegeCatalogService.syncCatalogInBackground(oracleService);
@@ -2459,7 +2442,7 @@ apiRouter.get('/catalog/role-privileges/privileges-by-role', requirePrivilege(['
 // =========================================================
 
 // POST /command-center/request - Execute an API request against Oracle Fusion safely
-apiRouter.post('/command-center/request', requireAdmin, async (req: Request, res: Response) => {
+apiRouter.post('/command-center/request', requirePrivilege('ORACLE_API_CONSOLE'), async (req: Request, res: Response) => {
   try {
     const { method, url, params, headers, body, authMode, timeoutMs } = req.body;
     if (!url) {
@@ -2498,7 +2481,7 @@ apiRouter.post('/command-center/request', requireAdmin, async (req: Request, res
 });
 
 // POST /command-center/test-connection - Real connection health probe
-apiRouter.post('/command-center/test-connection', requireAdmin, async (_req: Request, res: Response) => {
+apiRouter.post('/command-center/test-connection', requirePrivilege('ORACLE_API_CONSOLE'), async (_req: Request, res: Response) => {
   try {
     const result = await commandCenterService.testConnection();
     res.json(result);
@@ -2515,7 +2498,7 @@ apiRouter.post('/command-center/test-connection', requireAdmin, async (_req: Req
 });
 
 // GET /command-center/catalog - Pre-defined categorized catalog of Oracle Fusion APIs
-apiRouter.get('/command-center/catalog', requireAdmin, (_req: Request, res: Response) => {
+apiRouter.get('/command-center/catalog', requirePrivilege('ORACLE_API_CONSOLE'), (_req: Request, res: Response) => {
   try {
     const catalog = commandCenterService.getCatalog();
     res.json({ success: true, catalog, baseUrl: config.oracle.baseUrl });
@@ -2525,7 +2508,7 @@ apiRouter.get('/command-center/catalog', requireAdmin, (_req: Request, res: Resp
 });
 
 // GET /command-center/history - Execution history
-apiRouter.get('/command-center/history', requireAdmin, (_req: Request, res: Response) => {
+apiRouter.get('/command-center/history', requirePrivilege('ORACLE_API_CONSOLE'), (_req: Request, res: Response) => {
   try {
     const history = commandCenterService.getHistory();
     res.json({ success: true, history });
@@ -2535,7 +2518,7 @@ apiRouter.get('/command-center/history', requireAdmin, (_req: Request, res: Resp
 });
 
 // DELETE /command-center/history - Clear execution history
-apiRouter.delete('/command-center/history', requireAdmin, (_req: Request, res: Response) => {
+apiRouter.delete('/command-center/history', requirePrivilege('ORACLE_API_CONSOLE'), (_req: Request, res: Response) => {
   try {
     commandCenterService.clearHistory();
     res.json({ success: true, message: 'Oracle API Console history cleared.' });
@@ -2545,7 +2528,7 @@ apiRouter.delete('/command-center/history', requireAdmin, (_req: Request, res: R
 });
 
 // GET /command-center/saved-requests - List saved requests / collections
-apiRouter.get('/command-center/saved-requests', requireAdmin, (_req: Request, res: Response) => {
+apiRouter.get('/command-center/saved-requests', requirePrivilege('ORACLE_API_CONSOLE'), (_req: Request, res: Response) => {
   try {
     const saved = commandCenterService.getSavedRequests();
     res.json({ success: true, items: saved });
@@ -2555,7 +2538,7 @@ apiRouter.get('/command-center/saved-requests', requireAdmin, (_req: Request, re
 });
 
 // POST /command-center/saved-requests - Save a request template
-apiRouter.post('/command-center/saved-requests', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/command-center/saved-requests', requirePrivilege('ORACLE_API_CONSOLE'), (req: Request, res: Response) => {
   try {
     const { name, category, description, method, url, params, headers, body, id } = req.body;
     if (!name || !url) {
@@ -2579,7 +2562,7 @@ apiRouter.post('/command-center/saved-requests', requireAdmin, (req: Request, re
 });
 
 // DELETE /command-center/saved-requests/:id - Delete a saved request template
-apiRouter.delete('/command-center/saved-requests/:id', requireAdmin, (req: Request, res: Response) => {
+apiRouter.delete('/command-center/saved-requests/:id', requirePrivilege('ORACLE_API_CONSOLE'), (req: Request, res: Response) => {
   try {
     const success = commandCenterService.deleteSavedRequest(req.params.id);
     res.json({ success, message: success ? 'Saved request deleted.' : 'Item not found.' });
