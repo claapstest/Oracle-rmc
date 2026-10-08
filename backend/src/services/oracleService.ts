@@ -9,6 +9,7 @@ import { classifyRoleRecord } from './roleClassification.js';
 import { auditProductCatalogService, AuditProduct } from './auditProductCatalogService.js';
 import { bipClient } from '../oracle/bipClient.js';
 import { userAccessReportService } from './userAccessReportService.js';
+import { userRoleRawDbService } from './userRoleRawDbService.js';
 export { classifyRoleRecord };
 
 const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
@@ -261,6 +262,11 @@ class OracleService {
         roles: this.authoritativeRoles
       }, null, 2));
       console.log('[Oracle Service] Successfully saved authoritative role dataset to disk.');
+
+      // Also persist raw roles to PostgreSQL oracle_raw_roles table
+      userRoleRawDbService.saveRawRolesBatch(this.authoritativeRoles).catch((err) => {
+        console.warn('[Oracle Service] Failed to persist raw roles to database:', err.message);
+      });
     } catch (err) {
       console.error('[Oracle Service] Failed to save authoritative roles cache:', (err as Error).message);
     }
@@ -988,6 +994,13 @@ class OracleService {
       startIndex,
       count
     };
+
+    // Asynchronously persist raw users to PostgreSQL oracle_raw_users table
+    if (mapped.length > 0) {
+      userRoleRawDbService.saveRawUsersBatch(mapped).catch((err) => {
+        console.warn('[Oracle Service] Failed to save raw users to database:', err.message);
+      });
+    }
 
     this.setInCache(cacheKey, result, 3 * 60 * 1000);
     return result;
