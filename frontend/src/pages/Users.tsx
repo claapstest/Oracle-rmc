@@ -212,6 +212,26 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     );
   };
 
+  const renderRowsPerPageSelect = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+      <span>Rows per page:</span>
+      <select
+        value={pageSize}
+        onChange={(e) => {
+          setPageSize(Number(e.target.value));
+          setCurrentPage(1);
+        }}
+        className="form-select"
+        style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+      >
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+        <option value={250}>250</option>
+      </select>
+    </div>
+  );
+
   if (loading && users.length === 0) {
     return (
       <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
@@ -407,7 +427,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           />
         </div>
 
-        {/* Table Toolbar: Clear count and Rows Per Page */}
+        {/* Table Toolbar: Clear count, Rows Per Page & Top Pagination */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -416,29 +436,16 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           fontSize: '0.82rem',
           color: 'var(--text-secondary)',
           flexWrap: 'wrap',
-          gap: '0.5rem'
+          gap: '0.75rem'
         }}>
           <div>
             Showing <strong>{totalResults > 0 ? ((currentPage - 1) * pageSize + 1).toLocaleString() : 0}</strong>–<strong>{Math.min(currentPage * pageSize, totalResults).toLocaleString()}</strong> of <strong>{totalResults.toLocaleString()}</strong> users
             {loading && <span style={{ marginLeft: '0.5rem', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>(updating...)</span>}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="form-select"
-              style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={250}>250</option>
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {renderRowsPerPageSelect()}
+            {totalPages > 1 && renderPaginationButtons()}
           </div>
         </div>
 
@@ -536,7 +543,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           </table>
         </div>
 
-        {/* Pagination Controls Bar */}
+        {/* Pagination Controls Bar (Bottom) */}
         {totalPages > 1 && (
           <div style={{
             display: 'flex',
@@ -547,8 +554,11 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             flexWrap: 'wrap',
             gap: '0.75rem'
           }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({totalResults.toLocaleString()} total users)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({totalResults.toLocaleString()} total users)
+              </div>
+              {renderRowsPerPageSelect()}
             </div>
             {renderPaginationButtons()}
           </div>

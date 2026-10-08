@@ -134,6 +134,70 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
     return list;
   }, [categoryFilter, searchTerm]);
 
+  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
+
+  const renderPaginationButtons = () => (
+    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+      <button
+        onClick={() => setCurrentPage(1)}
+        disabled={currentPage === 1}
+        className="btn btn-secondary"
+        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage === 1 ? 0.5 : 1 }}
+      >
+        First
+      </button>
+      <button
+        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+        disabled={currentPage === 1}
+        className="btn btn-secondary"
+        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage === 1 ? 0.5 : 1 }}
+      >
+        Prev
+      </button>
+
+      <span style={{ padding: '0 0.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
+        {currentPage}
+      </span>
+
+      <button
+        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+        disabled={currentPage >= totalPages}
+        className="btn btn-secondary"
+        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage >= totalPages ? 0.5 : 1 }}
+      >
+        Next
+      </button>
+      <button
+        onClick={() => setCurrentPage(totalPages)}
+        disabled={currentPage >= totalPages}
+        className="btn btn-secondary"
+        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage >= totalPages ? 0.5 : 1 }}
+      >
+        Last
+      </button>
+    </div>
+  );
+
+  const renderRowsPerPageSelect = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+      <span>Rows per page:</span>
+      <select
+        className="form-select"
+        style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+        value={pageSize}
+        onChange={(e) => {
+          setPageSize(Number(e.target.value));
+          setCurrentPage(1);
+        }}
+      >
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+        <option value={200}>200</option>
+      </select>
+    </div>
+  );
+
   if (loading) {
     return (
       <div style={{ padding: '2rem' }}>
@@ -236,24 +300,6 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
             <option value="OTHER">Other Roles</option>
           </select>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            <span>Per Page:</span>
-            <select
-              className="form-select"
-              style={{ width: '80px' }}
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
-            </select>
-          </div>
-
           <EnterpriseExportControl
             filename="oracle_roles_catalog"
             sheetName="Roles Catalog"
@@ -286,6 +332,28 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
               return res?.roles || [];
             }}
           />
+        </div>
+
+        {/* Top Table Toolbar: Count, Rows Per Page & Top Pagination Controls */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '0.75rem',
+          fontSize: '0.82rem',
+          color: 'var(--text-secondary)',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
+        }}>
+          <div>
+            Showing <strong>{totalResults > 0 ? ((currentPage - 1) * pageSize + 1).toLocaleString() : 0}</strong>–<strong>{Math.min(currentPage * pageSize, totalResults).toLocaleString()}</strong> of <strong>{totalResults.toLocaleString()}</strong> roles
+            {loading && <span style={{ marginLeft: '0.5rem', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>(updating...)</span>}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {renderRowsPerPageSelect()}
+            {totalPages > 1 && renderPaginationButtons()}
+          </div>
         </div>
 
         {/* List Table */}
@@ -348,51 +416,26 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
           </table>
         </div>
 
-        {/* Pagination Bar */}
-        {Math.ceil(totalResults / pageSize) > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div>
-              Page {currentPage} of {Math.ceil(totalResults / pageSize)}
+        {/* Bottom Pagination Bar */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '1rem',
+            padding: '0.75rem 0.25rem',
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <div>
+                Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({totalResults.toLocaleString()} total roles)
+              </div>
+              {renderRowsPerPageSelect()}
             </div>
-            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-              <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="btn btn-secondary"
-                style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage === 1 ? 0.5 : 1 }}
-              >
-                First
-              </button>
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="btn btn-secondary"
-                style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage === 1 ? 0.5 : 1 }}
-              >
-                Prev
-              </button>
-
-              <span style={{ padding: '0 0.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {currentPage}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalResults / pageSize), p + 1))}
-                disabled={currentPage >= Math.ceil(totalResults / pageSize)}
-                className="btn btn-secondary"
-                style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage >= Math.ceil(totalResults / pageSize) ? 0.5 : 1 }}
-              >
-                Next
-              </button>
-              <button
-                onClick={() => setCurrentPage(Math.ceil(totalResults / pageSize))}
-                disabled={currentPage >= Math.ceil(totalResults / pageSize)}
-                className="btn btn-secondary"
-                style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', opacity: currentPage >= Math.ceil(totalResults / pageSize) ? 0.5 : 1 }}
-              >
-                Last
-              </button>
-            </div>
+            {renderPaginationButtons()}
           </div>
         )}
       </div>
