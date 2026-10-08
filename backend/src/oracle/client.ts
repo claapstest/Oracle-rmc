@@ -459,7 +459,21 @@ export class OracleFusionClient {
         timeout,
       });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      const respData = error?.response?.data;
+      const detailStr = typeof respData === 'object' && respData !== null
+        ? (respData.detail || respData['o:errorDetails']?.[0]?.detail || JSON.stringify(respData))
+        : String(respData || error?.message || '');
+
+      if (
+        detailStr.includes('GTG-3660354') ||
+        detailStr.toLowerCase().includes("control analysis hasn't been run") ||
+        detailStr.toLowerCase().includes('no incidents to view')
+      ) {
+        console.log(`[Oracle Client] Control ${controlId}: Analysis has not been run in Oracle Fusion. Returning 0 incidents.`);
+        return { items: [], totalResults: 0, count: 0, hasMore: false };
+      }
+
       this.handleError(error, `Get Advanced Control Incidents API for ID "${controlId}" (offset: ${options.offset ?? 0})`);
     }
   }

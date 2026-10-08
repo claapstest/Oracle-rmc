@@ -18,6 +18,12 @@ async function main() {
   });
   console.log('Updated RISK_CONTROLS cadence:', updated?.sync_cadence, 'interval:', updated?.sync_interval_hours);
 
+  // Test recordProductSyncRun
+  await controlRawDbService.recordProductSyncRun('RISK_CONTROLS', 'SUCCESS');
+  console.log('Recorded product sync SUCCESS');
+  await controlRawDbService.recordProductSyncRun('RISK_CONTROLS', 'FAILED', 'Test error log');
+  console.log('Recorded product sync FAILED with error');
+
   // 3. Raw Control Save & Retrieve
   const testCtrlId = 'TEST_CTRL_E2E';
   const sampleCtrl = {

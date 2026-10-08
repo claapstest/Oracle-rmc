@@ -392,16 +392,16 @@ export class ControlRawDbService {
     const watermark = await this.getWatermark(cleanId);
     const syncedDbCount = watermark?.synced_incidents || 0;
 
-    if (syncedDbCount === 0 || !watermark) {
+    if (!watermark) {
       return {
         hasUpdates: true,
         needsInitialSync: true,
         oracleLatestUpdateDate: null,
-        dbLatestUpdateDate: watermark?.last_oracle_update_date || null,
+        dbLatestUpdateDate: null,
         totalOracleCount: null,
-        syncedDbCount,
-        syncStatus: watermark?.sync_status || 'NOT_SYNCED',
-        lastSyncedAt: watermark?.last_synced_at || null,
+        syncedDbCount: 0,
+        syncStatus: 'NOT_SYNCED',
+        lastSyncedAt: null,
       };
     }
 
@@ -415,14 +415,22 @@ export class ControlRawDbService {
 
       const firstItem = Array.isArray(probeRes?.items) ? probeRes.items[0] : null;
       const oracleLatestStr = firstItem?.LastUpdateDate || firstItem?.lastUpdateDate || null;
-      const totalOracleCount = typeof probeRes?.totalResults === 'number' ? probeRes.totalResults : null;
+      const totalOracleCount = typeof probeRes?.totalResults === 'number' ? probeRes.totalResults : (probeRes?.items?.length || 0);
 
       await query(
         `UPDATE oracle_control_incidents SET updated_at = NOW(), total_incidents = COALESCE($1, total_incidents) WHERE environment_host = $2 AND control_id = $3`,
         [totalOracleCount, this.getHost(), cleanId]
       );
 
-      if (!oracleLatestStr) {
+      // If Oracle has 0 incidents (or analysis not run in Oracle), mark as READY and stop probing
+      if (!oracleLatestStr || totalOracleCount === 0) {
+        if (watermark.sync_status === 'SYNCING' || watermark.sync_status === 'NOT_SYNCED') {
+          await this.upsertWatermark(cleanId, {
+            totalIncidents: 0,
+            syncedIncidents: 0,
+            syncStatus: 'READY',
+          });
+        }
         return {
           hasUpdates: false,
           needsInitialSync: false,
@@ -430,7 +438,7 @@ export class ControlRawDbService {
           dbLatestUpdateDate: watermark.last_oracle_update_date,
           totalOracleCount: 0,
           syncedDbCount,
-          syncStatus: watermark.sync_status,
+          syncStatus: 'READY',
           lastSyncedAt: watermark.last_synced_at,
         };
       }
@@ -440,7 +448,7 @@ export class ControlRawDbService {
         ? new Date(watermark.last_oracle_update_date).getTime()
         : 0;
 
-      const countMismatch = totalOracleCount !== null && totalOracleCount > syncedDbCount;
+      const countMismatch = totalOracleCount > syncedDbCount;
       const hasNewerTimestamp = oracleLatestTime > dbLatestTime + 1000;
       const hasUpdates = hasNewerTimestamp || countMismatch;
 
@@ -699,11 +707,11 @@ export class ControlRawDbService {
     const sql = `
       UPDATE product_sync_policy
       SET
-        last_status = $2,
+        last_status = $2::varchar,
         last_error = $3,
-        last_run_at = CASE WHEN $2 IN ('SUCCESS', 'FAILED') THEN NOW() ELSE last_run_at END,
+        last_run_at = CASE WHEN $2::varchar IN ('SUCCESS', 'FAILED') THEN NOW() ELSE last_run_at END,
         next_scheduled_at = CASE
-          WHEN $2 = 'SUCCESS' THEN NOW() + (sync_interval_hours || ' hours')::interval
+          WHEN $2::varchar = 'SUCCESS' THEN NOW() + (sync_interval_hours || ' hours')::interval
           ELSE next_scheduled_at
         END,
         updated_at = NOW()
