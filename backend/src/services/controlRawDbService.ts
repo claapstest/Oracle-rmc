@@ -575,12 +575,12 @@ export class ControlRawDbService {
 
     console.log(`[AutoSyncScheduler] Initialized. Background sync interval: ${intervalMinutes} minutes.`);
 
-    // Run first check after 20 seconds of server startup
+    // Run initial discovery and sync 5 seconds after server startup
     setTimeout(() => {
       this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
         console.error('[AutoSyncScheduler] Initial run error:', err.message);
       });
-    }, 20000);
+    }, 5000);
 
     // Run recurring periodic checks
     this.schedulerTimer = setInterval(() => {
@@ -591,7 +591,9 @@ export class ControlRawDbService {
   }
 
   /**
-   * Runs an automated update cycle across all stored controls.
+   * Runs an automated update cycle across all controls from Oracle Fusion.
+   * Discovers all controls in Oracle Fusion, saves their headers, and automatically syncs
+   * their incidents into the single-cell database storage.
    */
   public async runAutoSyncCycle(oracleServiceOrClient: any): Promise<void> {
     if (this.isSchedulerRunning) return;
@@ -603,35 +605,100 @@ export class ControlRawDbService {
           ? oracleServiceOrClient.getClient()
           : oracleServiceOrClient;
 
-      // 1. Get all controls currently stored in database
       const host = this.getHost();
-      const res = await query<{ control_id: string; control_name: string }>(
-        `SELECT control_id, control_name FROM oracle_control_incidents WHERE environment_host = $1`,
-        [host]
-      );
 
-      const controls = res.rows;
-      if (controls.length === 0) {
+      // 1. Discover ALL controls directly from Oracle Fusion Catalog (all controls in Oracle)
+      let catalogControls: Array<{ id: string; name: string; raw?: any }> = [];
+      try {
+        if (oracleServiceOrClient && typeof oracleServiceOrClient.getControlCatalogService === 'function') {
+          const catalogRes = await oracleServiceOrClient.getControlCatalogService().getAllControls();
+          if (Array.isArray(catalogRes?.items)) {
+            catalogControls = catalogRes.items.map((c: any) => ({
+              id: String(c.id).trim(),
+              name: c.name || `Control ${c.id}`,
+              raw: c.raw || c,
+            }));
+          }
+        } else {
+          const res = await client.getAdvancedControls({ limit: 100 });
+          if (Array.isArray(res?.items)) {
+            catalogControls = res.items.map((c: any) => ({
+              id: String(c.Id ?? c.id).trim(),
+              name: c.Name ?? c.name ?? `Control ${c.Id ?? c.id}`,
+              raw: c,
+            }));
+          }
+        }
+      } catch (catErr: any) {
+        console.warn('[AutoSyncScheduler] Could not fetch Oracle catalog list:', catErr.message);
+      }
+
+      // If catalog discovery didn't find any, fall back to existing database controls
+      if (catalogControls.length === 0) {
+        const dbFallback = await query<{ control_id: string; control_name: string }>(
+          `SELECT control_id, control_name FROM oracle_control_incidents WHERE environment_host = $1`,
+          [host]
+        );
+        catalogControls = dbFallback.rows.map((r) => ({
+          id: r.control_id,
+          name: r.control_name || `Control ${r.control_id}`,
+        }));
+      }
+
+      if (catalogControls.length === 0) {
+        console.log('[AutoSyncScheduler] No controls available to synchronize.');
         return;
       }
 
-      console.log(`[AutoSyncScheduler] Checking ${controls.length} controls for Oracle updates...`);
+      // 2. Query what is currently saved in PostgreSQL
+      const dbRes = await query<{ control_id: string; sync_status: string }>(
+        `SELECT control_id, sync_status FROM oracle_control_incidents WHERE environment_host = $1`,
+        [host]
+      );
+      const existingControls = new Set(dbRes.rows.map((r) => r.control_id));
 
-      for (const ctrl of controls) {
+      console.log(
+        `[AutoSyncScheduler] Auto-sync cycle started: ${catalogControls.length} total controls discovered in Oracle (${existingControls.size} already in DB).`
+      );
+
+      for (let i = 0; i < catalogControls.length; i++) {
+        const ctrl = catalogControls[i];
         try {
-          const probe = await this.checkMicroProbe(ctrl.control_id, client);
-          if (probe.hasUpdates) {
-            console.log(
-              `[AutoSyncScheduler] Control ${ctrl.control_id} has newer data in Oracle. Updating database automatically...`
-            );
-            await this.syncControlIncidents(ctrl.control_id, client, ctrl.control_name);
-            console.log(`[AutoSyncScheduler] Control ${ctrl.control_id} successfully auto-synced.`);
+          // Persist raw control definition to oracle_raw_controls
+          if (ctrl.raw) {
+            await this.saveRawControl(ctrl.id, ctrl.raw).catch(() => {});
           }
-        } catch (probeErr: any) {
-          console.warn(`[AutoSyncScheduler] Probe check warning for control ${ctrl.control_id}:`, probeErr.message);
+
+          const isAlreadyInDb = existingControls.has(ctrl.id);
+
+          if (!isAlreadyInDb) {
+            // Control was NEVER opened or saved -> Automatically fetch and store it now!
+            console.log(
+              `[AutoSyncScheduler] [${i + 1}/${catalogControls.length}] Auto-discovering and syncing control ${ctrl.id} ("${ctrl.name}")...`
+            );
+            await this.syncControlIncidents(ctrl.id, client, ctrl.name);
+            console.log(
+              `[AutoSyncScheduler] [${i + 1}/${catalogControls.length}] Control ${ctrl.id} stored in database.`
+            );
+          } else {
+            // Already in DB -> Use lightweight micro-probe to detect if Oracle has newer data
+            const probe = await this.checkMicroProbe(ctrl.id, client);
+            if (probe.hasUpdates) {
+              console.log(
+                `[AutoSyncScheduler] [${i + 1}/${catalogControls.length}] Control ${ctrl.id} has updates in Oracle. Updating database...`
+              );
+              await this.syncControlIncidents(ctrl.id, client, ctrl.name);
+              console.log(
+                `[AutoSyncScheduler] [${i + 1}/${catalogControls.length}] Control ${ctrl.id} updated in database.`
+              );
+            }
+          }
+        } catch (ctrlErr: any) {
+          console.warn(`[AutoSyncScheduler] Warning syncing control ${ctrl.id}:`, ctrlErr.message);
         }
       }
 
+      console.log(`[AutoSyncScheduler] Auto-sync cycle completed across all ${catalogControls.length} controls.`);
       await this.recordProductSyncRun('RISK_CONTROLS', 'SUCCESS');
     } catch (err: any) {
       console.error('[AutoSyncScheduler] Auto-sync cycle error:', err.message);
