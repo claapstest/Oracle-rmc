@@ -78,8 +78,7 @@ async function main() {
 
   // 6. Cleanup test records
   const { query } = await import('../src/db.js');
-  await query('DELETE FROM oracle_control_raw_incidents WHERE control_id = $1', [testCtrlId]);
-  await query('DELETE FROM oracle_control_sync_watermark WHERE control_id = $1', [testCtrlId]);
+  await query('DELETE FROM oracle_control_incidents WHERE control_id = $1', [testCtrlId]);
   await query('DELETE FROM oracle_raw_controls WHERE control_id = $1', [testCtrlId]);
   console.log('Test records cleaned up successfully.');
 

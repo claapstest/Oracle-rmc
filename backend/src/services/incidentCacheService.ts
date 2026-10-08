@@ -275,6 +275,7 @@ export class IncidentCacheService {
       let totalResults = 0;
       let isFirstPage = true;
       let maxOracleUpdateDate: Date | null = null;
+      const allRawItems: any[] = [];
 
       // Initialize watermark in PostgreSQL
       controlRawDbService.upsertWatermark(controlId, { controlName, syncStatus: 'SYNCING' }).catch(() => {});
@@ -303,6 +304,7 @@ export class IncidentCacheService {
             const fetchedInBatch = rawItems.length;
 
             if (fetchedInBatch > 0) {
+              allRawItems.push(...rawItems);
               // Track latest Oracle update date for change detection
               for (const item of rawItems) {
                 const dtStr = item.LastUpdateDate || item.lastUpdateDate;
@@ -313,11 +315,6 @@ export class IncidentCacheService {
                   }
                 }
               }
-
-              // Persist raw batch to PostgreSQL in background
-              controlRawDbService.saveRawIncidentsBatch(controlId, rawItems, controlName).catch(dbErr => {
-                console.warn(`[IncidentCache] DB raw batch save warning for control ${controlId}:`, dbErr.message);
-              });
             }
 
             rawItems.forEach(item => {
@@ -356,6 +353,17 @@ export class IncidentCacheService {
         const allIncidents = Array.from(incidentsMap.values());
         const finalTotal = totalResults || allIncidents.length;
 
+        // Persist ALL raw incidents in a SINGLE cell for this control ID in PostgreSQL
+        controlRawDbService.saveControlRawIncidents(
+          controlId,
+          allRawItems,
+          controlName,
+          finalTotal,
+          maxOracleUpdateDate
+        ).catch(dbErr => {
+          console.warn(`[IncidentCache] DB single-cell save warning for control ${controlId}:`, dbErr.message);
+        });
+
         const cachedData: CachedIncidentData = {
           controlId,
           baseUrl: config.oracle.baseUrl,
@@ -368,17 +376,6 @@ export class IncidentCacheService {
         };
 
         this.writeCacheAtomically(controlId, cachedData);
-
-        // Update watermark in PostgreSQL to READY
-        controlRawDbService.upsertWatermark(controlId, {
-          controlName,
-          totalIncidents: finalTotal,
-          syncedIncidents: allIncidents.length,
-          lastOracleUpdateDate: maxOracleUpdateDate,
-          syncStatus: 'READY'
-        }).catch(dbErr => {
-          console.warn(`[IncidentCache] DB watermark update warning for control ${controlId}:`, dbErr.message);
-        });
 
         const partialFilePath = this.getCacheFilePath(controlId) + '.partial.json';
         if (fs.existsSync(partialFilePath)) {
@@ -394,14 +391,23 @@ export class IncidentCacheService {
         job.status = incidentsMap.size > 0 ? 'PARTIAL' : 'ERROR';
         job.error = err.message || 'Failed to synchronize incidents from Oracle Fusion.';
 
-        // Update watermark in PostgreSQL to PARTIAL or ERROR
-        controlRawDbService.upsertWatermark(controlId, {
-          controlName,
-          totalIncidents: totalResults,
-          syncedIncidents: incidentsMap.size,
-          syncStatus: incidentsMap.size > 0 ? 'PARTIAL' : 'ERROR',
-          errorMessage: err.message
-        }).catch(() => {});
+        if (allRawItems.length > 0) {
+          controlRawDbService.saveControlRawIncidents(
+            controlId,
+            allRawItems,
+            controlName,
+            totalResults,
+            maxOracleUpdateDate
+          ).catch(() => {});
+        } else {
+          controlRawDbService.upsertWatermark(controlId, {
+            controlName,
+            totalIncidents: totalResults,
+            syncedIncidents: 0,
+            syncStatus: 'ERROR',
+            errorMessage: err.message
+          }).catch(() => {});
+        }
 
         // Record synchronization metadata on partial failure (Requirement J)
         if (incidentsMap.size > 0) {

@@ -1,7 +1,7 @@
 /**
  * Automated Database Verification Suite for:
  * Story: VY-STRY-34
- * Title: DB: Raw Oracle Fusion JSON Storage, Watermarks, and Product-Level Sync Policy Schema
+ * Title: DB: Single-Row-Per-Control Raw JSON Storage, Watermarks, and Product-Level Sync Policy Schema
  */
 
 import pg from 'pg';
@@ -39,7 +39,7 @@ function assert(condition: boolean, testName: string, details?: string) {
 
 async function runVerification() {
   console.log('========================================================================');
-  console.log('  VEYRA Database Verification: Oracle Raw Incidents & Sync Policy Schema');
+  console.log('  VEYRA Database Verification: Single-Row-Per-Control Raw JSON Storage');
   console.log(`  Connecting to: ${connectionString.replace(/:[^:@]+@/, ':****@')}`);
   console.log('========================================================================\n');
 
@@ -62,152 +62,118 @@ async function runVerification() {
     assert(codes.includes('ACCESS_CERTS'), 'ACCESS_CERTS product policy seeded');
     assert(codes.includes('USER_ROLES'), 'USER_ROLES product policy seeded');
 
-    // TEST 3: oracle_control_sync_watermark table exists
-    const watermarkRes = await pool.query(`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_name = 'oracle_control_sync_watermark'
-    `);
-    assert(watermarkRes.rows.length === 1, 'Table oracle_control_sync_watermark exists');
-
-    // TEST 4: oracle_control_raw_incidents table exists with JSONB column
-    const rawTableRes = await pool.query(`
+    // TEST 3: oracle_control_incidents table exists (1 row per control ID)
+    const ctrlIncidentsRes = await pool.query(`
       SELECT column_name, data_type FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'oracle_control_raw_incidents'
+      WHERE table_schema = 'public' AND table_name = 'oracle_control_incidents'
     `);
-    assert(rawTableRes.rows.length > 0, 'Table oracle_control_raw_incidents exists');
-    const jsonbCol = rawTableRes.rows.find((c: any) => c.column_name === 'raw_payload');
-    assert(jsonbCol && jsonbCol.data_type === 'jsonb', 'Column raw_payload is of type JSONB');
+    assert(ctrlIncidentsRes.rows.length > 0, 'Table oracle_control_incidents exists');
+    const rawIncidentsCol = ctrlIncidentsRes.rows.find((c: any) => c.column_name === 'raw_incidents');
+    assert(rawIncidentsCol && rawIncidentsCol.data_type === 'jsonb', 'Column raw_incidents is of type JSONB');
 
-    // TEST 5: Verify Indexes exist (GIN, environment_host, control_id)
-    const indexRes = await pool.query(`
-      SELECT indexname, indexdef FROM pg_indexes
-      WHERE tablename = 'oracle_control_raw_incidents'
+    // TEST 4: Verify single-row per control ID constraint (composite primary key)
+    const pkRes = await pool.query(`
+      SELECT kcu.column_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name
+      WHERE tc.table_name = 'oracle_control_incidents' AND tc.constraint_type = 'PRIMARY KEY'
     `);
-    const indexNames = indexRes.rows.map((r: any) => r.indexname);
-    assert(indexNames.includes('ix_oracle_raw_incidents_host_ctrl'), 'Composite index on host + control_id exists');
-    assert(indexNames.includes('ix_oracle_raw_incidents_jsonb'), 'GIN index on raw_payload exists');
+    const pkCols = pkRes.rows.map((r: any) => r.column_name);
+    assert(pkCols.includes('environment_host') && pkCols.includes('control_id'), 'Primary key enforces exactly 1 row per (environment_host, control_id)');
 
-    // TEST 6: Insert & Upsert raw incident with JSONB data
+    // TEST 5: Insert exactly 1 row containing an entire array of raw incidents
     const testHost = 'test.fusion.oracle.com';
     const testControlId = 'TST_CTRL_1001';
-    const testIncId = 'INC_TEST_999';
-    const sampleRawOracle = {
-      Id: testIncId,
-      ControlId: testControlId,
-      ControlName: 'Test Segregation of Duties Control',
-      GlobalUserName: 'Audit.Tester',
-      Status: 'Open',
-      Priority: 'High',
-      CreationDate: '2026-10-08T10:00:00Z',
-      LastUpdateDate: '2026-10-08T11:00:00Z',
-      ConflictingRoles: 'Purchasing Manager vs General Accountant'
-    };
+    const sampleIncidentsArray = [
+      {
+        Id: '1001:1',
+        ControlId: testControlId,
+        GlobalUserName: 'User.One@deloitte.com',
+        Status: 'ASSIGNED',
+        State: 'IN_INVESTIGATION',
+        Priority: '1',
+        LastUpdateDate: '2026-10-08T11:00:00Z'
+      },
+      {
+        Id: '1001:2',
+        ControlId: testControlId,
+        GlobalUserName: 'User.Two@deloitte.com',
+        Status: 'ASSIGNED',
+        State: 'IN_INVESTIGATION',
+        Priority: '1',
+        LastUpdateDate: '2026-10-08T11:05:00Z'
+      },
+      {
+        Id: '1001:3',
+        ControlId: testControlId,
+        GlobalUserName: 'User.Three@deloitte.com',
+        Status: 'CLOSED',
+        State: 'RESOLVED',
+        Priority: '2',
+        LastUpdateDate: '2026-10-08T11:10:00Z'
+      }
+    ];
 
     await pool.query(`
-      INSERT INTO oracle_control_raw_incidents (
-        environment_host,
-        control_id,
-        incident_id,
-        status,
-        global_user_name,
-        oracle_last_update_date,
-        raw_payload
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
-      ON CONFLICT (environment_host, control_id, incident_id)
-      DO UPDATE SET
-        status = EXCLUDED.status,
-        raw_payload = EXCLUDED.raw_payload,
-        updated_at = NOW()
-    `, [
-      testHost,
-      testControlId,
-      testIncId,
-      'Open',
-      'Audit.Tester',
-      new Date('2026-10-08T11:00:00Z'),
-      JSON.stringify(sampleRawOracle)
-    ]);
-
-    const verifyInsert = await pool.query(`
-      SELECT raw_payload FROM oracle_control_raw_incidents
-      WHERE environment_host = $1 AND control_id = $2 AND incident_id = $3
-    `, [testHost, testControlId, testIncId]);
-
-    assert(verifyInsert.rows.length === 1, 'Incident successfully stored in PostgreSQL');
-    assert(verifyInsert.rows[0].raw_payload.GlobalUserName === 'Audit.Tester', 'Raw JSONB preserves nested Oracle fields');
-
-    // TEST 7: Query directly inside JSONB using PostgreSQL operators
-    const jsonbQuery = await pool.query(`
-      SELECT incident_id FROM oracle_control_raw_incidents
-      WHERE raw_payload->>'ConflictingRoles' ILIKE '%Purchasing Manager%'
-        AND environment_host = $1
-    `, [testHost]);
-    assert(jsonbQuery.rows.length >= 1, 'Native JSONB query on raw Oracle properties succeeds');
-
-    // TEST 8: Watermark upsert
-    await pool.query(`
-      INSERT INTO oracle_control_sync_watermark (
+      INSERT INTO oracle_control_incidents (
         environment_host,
         control_id,
         control_name,
         total_incidents,
-        synced_incidents,
         last_oracle_update_date,
+        raw_incidents,
         sync_status
       )
-      VALUES ($1, $2, $3, 1, 1, NOW(), 'READY')
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb, 'READY')
       ON CONFLICT (environment_host, control_id)
-      DO UPDATE SET sync_status = 'READY', total_incidents = 1
-    `, [testHost, testControlId, 'Test Segregation of Duties Control']);
+      DO UPDATE SET
+        total_incidents = EXCLUDED.total_incidents,
+        last_oracle_update_date = EXCLUDED.last_oracle_update_date,
+        raw_incidents = EXCLUDED.raw_incidents,
+        updated_at = NOW()
+    `, [
+      testHost,
+      testControlId,
+      'Test Single Row Control',
+      sampleIncidentsArray.length,
+      new Date('2026-10-08T11:10:00Z'),
+      JSON.stringify(sampleIncidentsArray)
+    ]);
 
-    const verifyWatermark = await pool.query(`
-      SELECT sync_status, total_incidents FROM oracle_control_sync_watermark
+    // TEST 6: Verify exactly 1 row exists for this control ID
+    const countCheck = await pool.query(`
+      SELECT COUNT(*)::int as row_count FROM oracle_control_incidents
       WHERE environment_host = $1 AND control_id = $2
     `, [testHost, testControlId]);
-    assert(verifyWatermark.rows[0]?.sync_status === 'READY', 'Control watermark status is READY');
+    assert(countCheck.rows[0].row_count === 1, 'Exactly 1 row stored for control ID');
 
-    // TEST 9: oracle_raw_controls table exists with JSONB
+    // TEST 7: Verify all incidents are stored in the single raw_incidents cell
+    const cellCheck = await pool.query(`
+      SELECT jsonb_array_length(raw_incidents) as incidents_count, total_incidents, raw_incidents
+      FROM oracle_control_incidents
+      WHERE environment_host = $1 AND control_id = $2
+    `, [testHost, testControlId]);
+    assert(cellCheck.rows[0].incidents_count === 3, 'Single cell contains all 3 raw incidents');
+    assert(cellCheck.rows[0].raw_incidents[0].GlobalUserName === 'User.One@deloitte.com', 'Raw Oracle fields preserved in single cell');
+
+    // TEST 8: Native JSONB array operations on the single cell
+    const jsonFilterRes = await pool.query(`
+      SELECT jsonb_path_query_array(raw_incidents, '$[*] ? (@.Status == "ASSIGNED")') as assigned_items
+      FROM oracle_control_incidents
+      WHERE environment_host = $1 AND control_id = $2
+    `, [testHost, testControlId]);
+    assert(jsonFilterRes.rows[0]?.assigned_items?.length === 2, 'Native JSONB filtering inside single cell succeeds');
+
+    // TEST 9: Table oracle_raw_controls exists with JSONB
     const ctrlTableRes = await pool.query(`
       SELECT column_name, data_type FROM information_schema.columns
       WHERE table_schema = 'public' AND table_name = 'oracle_raw_controls'
     `);
     assert(ctrlTableRes.rows.length > 0, 'Table oracle_raw_controls exists');
-    const ctrlJsonb = ctrlTableRes.rows.find((c: any) => c.column_name === 'raw_payload');
-    assert(ctrlJsonb && ctrlJsonb.data_type === 'jsonb', 'oracle_raw_controls raw_payload is of type JSONB');
-
-    // TEST 10: Insert and retrieve raw control
-    const sampleRawControl = {
-      Id: testControlId,
-      Name: 'Users with Sensitive Privileges (Raw Test)',
-      Status: 'Active',
-      StateCode: 'APPROVED',
-      Description: 'Raw Oracle control test payload'
-    };
-    await pool.query(`
-      INSERT INTO oracle_raw_controls (
-        environment_host,
-        control_id,
-        name,
-        state,
-        status,
-        raw_payload
-      )
-      VALUES ($1, $2, $3, $4, $5, $6::jsonb)
-      ON CONFLICT (environment_host, control_id)
-      DO UPDATE SET raw_payload = EXCLUDED.raw_payload
-    `, [testHost, testControlId, sampleRawControl.Name, 'APPROVED', 'Active', JSON.stringify(sampleRawControl)]);
-
-    const verifyCtrl = await pool.query(`
-      SELECT raw_payload FROM oracle_raw_controls
-      WHERE environment_host = $1 AND control_id = $2
-    `, [testHost, testControlId]);
-    assert(verifyCtrl.rows.length === 1, 'Raw control stored and retrieved successfully');
-    assert(verifyCtrl.rows[0].raw_payload.Name === sampleRawControl.Name, 'Raw control JSONB payload matches');
 
     // Clean up test records
-    await pool.query(`DELETE FROM oracle_control_raw_incidents WHERE environment_host = $1 AND control_id = $2`, [testHost, testControlId]);
-    await pool.query(`DELETE FROM oracle_control_sync_watermark WHERE environment_host = $1 AND control_id = $2`, [testHost, testControlId]);
+    await pool.query(`DELETE FROM oracle_control_incidents WHERE environment_host = $1 AND control_id = $2`, [testHost, testControlId]);
     await pool.query(`DELETE FROM oracle_raw_controls WHERE environment_host = $1 AND control_id = $2`, [testHost, testControlId]);
 
     console.log(`\n========================================================================`);

@@ -43,6 +43,9 @@ export interface MicroProbeResult {
 }
 
 export class ControlRawDbService {
+  private schedulerTimer: NodeJS.Timeout | null = null;
+  private isSchedulerRunning = false;
+
   /**
    * Normalizes the host string for environment isolation (e.g. eiiv-dev14.fa.us6.oraclecloud.com)
    */
@@ -55,6 +58,10 @@ export class ControlRawDbService {
     } catch (_) {}
     return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'default_env';
   }
+
+  // =============================================================
+  // Raw Control Definition Methods (1 Row per Control)
+  // =============================================================
 
   /**
    * Saves a raw Oracle control definition object into PostgreSQL using atomic UPSERT.
@@ -137,109 +144,85 @@ export class ControlRawDbService {
     return res.rows.map((r) => r.raw_payload);
   }
 
+  // =============================================================
+  // Single-Cell Raw Incidents Storage (EXACTLY 1 Row per Control)
+  // =============================================================
+
   /**
-   * Saves a batch of raw Oracle incident objects into PostgreSQL using atomic UPSERT.
-   * Stores 100% of the raw JSON object in the `raw_payload` JSONB column.
+   * Saves ALL incidents for a control into a SINGLE cell (`raw_incidents` JSONB).
+   * Ensures exactly ONE row exists per control ID in `oracle_control_incidents`.
+   */
+  public async saveControlRawIncidents(
+    controlId: string,
+    rawIncidents: any[],
+    controlName?: string,
+    totalCount?: number,
+    lastOracleUpdateDate?: Date | null
+  ): Promise<number> {
+    if (!Array.isArray(rawIncidents)) return 0;
+
+    const host = this.getHost();
+    const cleanId = String(controlId).trim();
+    const total = typeof totalCount === 'number' ? totalCount : rawIncidents.length;
+
+    // Detect latest update date if not provided
+    let maxDate = lastOracleUpdateDate || null;
+    if (!maxDate) {
+      for (const item of rawIncidents) {
+        const dtStr = item?.LastUpdateDate || item?.lastUpdateDate;
+        if (dtStr) {
+          const d = new Date(dtStr);
+          if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) {
+            maxDate = d;
+          }
+        }
+      }
+    }
+
+    const rawJson = JSON.stringify(rawIncidents);
+
+    const sql = `
+      INSERT INTO oracle_control_incidents (
+        environment_host,
+        control_id,
+        control_name,
+        total_incidents,
+        last_oracle_update_date,
+        last_synced_at,
+        sync_status,
+        raw_incidents,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW(), 'READY', $6::jsonb, NOW())
+      ON CONFLICT (environment_host, control_id)
+      DO UPDATE SET
+        control_name = COALESCE(EXCLUDED.control_name, oracle_control_incidents.control_name),
+        total_incidents = EXCLUDED.total_incidents,
+        last_oracle_update_date = COALESCE(EXCLUDED.last_oracle_update_date, oracle_control_incidents.last_oracle_update_date),
+        last_synced_at = NOW(),
+        sync_status = 'READY',
+        raw_incidents = EXCLUDED.raw_incidents,
+        updated_at = NOW()
+    `;
+
+    await query(sql, [host, cleanId, controlName || null, total, maxDate, rawJson]);
+    return rawIncidents.length;
+  }
+
+  /**
+   * Appends or replaces raw incidents in the single cell.
    */
   public async saveRawIncidentsBatch(
     controlId: string,
     rawIncidents: any[],
     controlName?: string
   ): Promise<number> {
-    if (!Array.isArray(rawIncidents) || rawIncidents.length === 0) return 0;
-
-    const host = this.getHost();
-    const cleanId = String(controlId).trim();
-    const batchSize = 100;
-    let totalSaved = 0;
-
-    for (let i = 0; i < rawIncidents.length; i += batchSize) {
-      const chunk = rawIncidents.slice(i, i + batchSize);
-      const values: any[] = [];
-      const rowSnippets: string[] = [];
-
-      chunk.forEach((item, idx) => {
-        const incidentId = String(
-          item.Id ?? item.id ?? item.IncidentId ?? `INC-${cleanId}-${idx + i + 1}`
-        ).trim();
-
-        const status = item.Status ?? item.status ?? item.StatusId ?? null;
-        const state = item.State ?? item.state ?? item.StateCode ?? null;
-        const priority = item.Priority !== undefined && item.Priority !== null ? String(item.Priority) : null;
-        const globalUserName = item.GlobalUserName ?? item.globalUserName ?? null;
-        const roleName = item.Role ?? item.role ?? null;
-
-        let creationDate: Date | null = null;
-        if (item.CreationDate || item.creationDate) {
-          const d = new Date(item.CreationDate || item.creationDate);
-          if (!isNaN(d.getTime())) creationDate = d;
-        }
-
-        let lastUpdateDate: Date | null = null;
-        if (item.LastUpdateDate || item.lastUpdateDate) {
-          const d = new Date(item.LastUpdateDate || item.lastUpdateDate);
-          if (!isNaN(d.getTime())) lastUpdateDate = d;
-        }
-
-        const rawJson = JSON.stringify(item);
-
-        const offset = values.length;
-        values.push(
-          host,
-          cleanId,
-          incidentId,
-          status,
-          state,
-          priority,
-          globalUserName,
-          roleName,
-          creationDate,
-          lastUpdateDate,
-          rawJson
-        );
-
-        rowSnippets.push(
-          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}::jsonb)`
-        );
-      });
-
-      const sql = `
-        INSERT INTO oracle_control_raw_incidents (
-          environment_host,
-          control_id,
-          incident_id,
-          status,
-          state,
-          priority,
-          global_user_name,
-          role_name,
-          oracle_creation_date,
-          oracle_last_update_date,
-          raw_payload
-        )
-        VALUES ${rowSnippets.join(', ')}
-        ON CONFLICT (environment_host, control_id, incident_id)
-        DO UPDATE SET
-          status = EXCLUDED.status,
-          state = EXCLUDED.state,
-          priority = EXCLUDED.priority,
-          global_user_name = EXCLUDED.global_user_name,
-          role_name = EXCLUDED.role_name,
-          oracle_last_update_date = EXCLUDED.oracle_last_update_date,
-          raw_payload = EXCLUDED.raw_payload,
-          updated_at = NOW()
-      `;
-
-      await query(sql, values);
-      totalSaved += chunk.length;
-    }
-
-    return totalSaved;
+    return this.saveControlRawIncidents(controlId, rawIncidents, controlName);
   }
 
   /**
-   * Retrieves raw incidents directly from PostgreSQL in <10ms.
-   * Returns exact Oracle raw_payload JSON objects preserved without transformation.
+   * Retrieves raw incidents directly from the single JSONB cell in <5ms.
+   * Performs in-memory filtering and pagination on the raw Oracle JSON array.
    */
   public async getRawIncidents(
     controlId: string,
@@ -255,43 +238,64 @@ export class ControlRawDbService {
     const limit = Math.min(500, Math.max(1, options.limit || 50));
     const offset = Math.max(0, options.offset || 0);
 
-    const whereClauses = ['environment_host = $1', 'control_id = $2'];
-    const params: any[] = [host, cleanId];
+    const res = await query<{
+      raw_incidents: any;
+      total_incidents: number;
+    }>(
+      `SELECT raw_incidents, total_incidents FROM oracle_control_incidents
+       WHERE environment_host = $1 AND control_id = $2`,
+      [host, cleanId]
+    );
 
-    if (options.status && options.status !== 'ALL') {
-      params.push(options.status.trim());
-      whereClauses.push(`status = $${params.length}`);
+    const row = res.rows[0];
+    if (!row || !Array.isArray(row.raw_incidents)) {
+      return { total: 0, rawItems: [], count: 0 };
     }
 
-    if (options.search && options.search.trim()) {
-      params.push(`%${options.search.trim()}%`);
-      whereClauses.push(
-        `(global_user_name ILIKE $${params.length} OR role_name ILIKE $${params.length} OR incident_id ILIKE $${params.length})`
+    let allItems: any[] = row.raw_incidents;
+
+    // Optional in-memory status filter
+    if (options.status && options.status !== 'ALL') {
+      const st = options.status.trim().toUpperCase();
+      allItems = allItems.filter(
+        (it) => String(it.Status || it.status || it.StatusId || '').toUpperCase() === st
       );
     }
 
-    const whereSql = whereClauses.join(' AND ');
+    // Optional in-memory search filter
+    if (options.search && options.search.trim()) {
+      const q = options.search.trim().toLowerCase();
+      allItems = allItems.filter((it) => {
+        const u = String(it.GlobalUserName || it.globalUserName || '').toLowerCase();
+        const r = String(it.Role || it.role || '').toLowerCase();
+        const id = String(it.Id || it.id || '').toLowerCase();
+        return u.includes(q) || r.includes(q) || id.includes(q);
+      });
+    }
 
-    // 1. Get total count
-    const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM oracle_control_raw_incidents WHERE ${whereSql}`,
-      params
-    );
-    const total = parseInt(countRes.rows[0]?.count || '0', 10);
-
-    // 2. Fetch page with index optimization
-    params.push(limit, offset);
-    const dataRes = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_control_raw_incidents
-       WHERE ${whereSql}
-       ORDER BY oracle_last_update_date DESC NULLS LAST, id ASC
-       LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
-    );
-
-    const rawItems = dataRes.rows.map((r) => r.raw_payload);
+    const total = allItems.length;
+    const rawItems = allItems.slice(offset, offset + limit);
     return { total, rawItems, count: rawItems.length };
   }
+
+  /**
+   * Retrieves the raw incidents array directly in its exact raw form as returned from Oracle Fusion.
+   */
+  public async getAllRawIncidentsForControl(controlId: string): Promise<any[]> {
+    const host = this.getHost();
+    const cleanId = String(controlId).trim();
+
+    const res = await query<{ raw_incidents: any }>(
+      `SELECT raw_incidents FROM oracle_control_incidents WHERE environment_host = $1 AND control_id = $2`,
+      [host, cleanId]
+    );
+
+    return Array.isArray(res.rows[0]?.raw_incidents) ? res.rows[0].raw_incidents : [];
+  }
+
+  // =============================================================
+  // Watermark & Change Detection
+  // =============================================================
 
   /**
    * Retrieves the current watermark metadata for a given control.
@@ -300,8 +304,22 @@ export class ControlRawDbService {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
 
-    const res = await query<ControlWatermarkRecord>(
-      `SELECT * FROM oracle_control_sync_watermark WHERE environment_host = $1 AND control_id = $2`,
+    const res = await query<any>(
+      `SELECT
+        environment_host,
+        control_id,
+        control_name,
+        total_incidents,
+        COALESCE(jsonb_array_length(raw_incidents), 0) as synced_incidents,
+        last_oracle_update_date,
+        last_synced_at,
+        updated_at as last_checked_at,
+        sync_status,
+        NULL as error_message,
+        created_at,
+        updated_at
+       FROM oracle_control_incidents
+       WHERE environment_host = $1 AND control_id = $2`,
       [host, cleanId]
     );
 
@@ -326,35 +344,29 @@ export class ControlRawDbService {
     const cleanId = String(controlId).trim();
 
     const sql = `
-      INSERT INTO oracle_control_sync_watermark (
+      INSERT INTO oracle_control_incidents (
         environment_host,
         control_id,
         control_name,
         total_incidents,
-        synced_incidents,
         last_oracle_update_date,
         last_synced_at,
-        last_checked_at,
         sync_status,
-        error_message
+        updated_at
       )
       VALUES (
-        $1, $2, $3, $4, $5, $6,
-        CASE WHEN $7::varchar IN ('READY', 'PARTIAL') THEN NOW() ELSE NULL END,
-        NOW(),
-        COALESCE($7, 'SYNCING'),
-        $8
+        $1, $2, $3, $4, $5,
+        CASE WHEN $6::varchar IN ('READY', 'PARTIAL') THEN NOW() ELSE NULL END,
+        COALESCE($6, 'SYNCING'),
+        NOW()
       )
       ON CONFLICT (environment_host, control_id)
       DO UPDATE SET
-        control_name = COALESCE(EXCLUDED.control_name, oracle_control_sync_watermark.control_name),
-        total_incidents = COALESCE(EXCLUDED.total_incidents, oracle_control_sync_watermark.total_incidents),
-        synced_incidents = COALESCE(EXCLUDED.synced_incidents, oracle_control_sync_watermark.synced_incidents),
-        last_oracle_update_date = COALESCE(EXCLUDED.last_oracle_update_date, oracle_control_sync_watermark.last_oracle_update_date),
-        last_synced_at = CASE WHEN EXCLUDED.sync_status IN ('READY', 'PARTIAL') THEN NOW() ELSE oracle_control_sync_watermark.last_synced_at END,
-        last_checked_at = NOW(),
-        sync_status = COALESCE(EXCLUDED.sync_status, oracle_control_sync_watermark.sync_status),
-        error_message = EXCLUDED.error_message,
+        control_name = COALESCE(EXCLUDED.control_name, oracle_control_incidents.control_name),
+        total_incidents = COALESCE(EXCLUDED.total_incidents, oracle_control_incidents.total_incidents),
+        last_oracle_update_date = COALESCE(EXCLUDED.last_oracle_update_date, oracle_control_incidents.last_oracle_update_date),
+        last_synced_at = CASE WHEN EXCLUDED.sync_status IN ('READY', 'PARTIAL') THEN NOW() ELSE oracle_control_incidents.last_synced_at END,
+        sync_status = COALESCE(EXCLUDED.sync_status, oracle_control_incidents.sync_status),
         updated_at = NOW()
     `;
 
@@ -363,17 +375,14 @@ export class ControlRawDbService {
       cleanId,
       data.controlName || null,
       data.totalIncidents ?? 0,
-      data.syncedIncidents ?? 0,
       data.lastOracleUpdateDate || null,
       data.syncStatus || 'SYNCING',
-      data.errorMessage || null,
     ]);
   }
 
   /**
    * Executes the Micro-Watermark Probe against Oracle Fusion REST API.
-   * Performs a lightweight 1-record check (<150ms) to detect if Oracle has newer data
-   * without re-downloading entire incident datasets.
+   * Performs a lightweight 1-record check (<150ms) to detect if Oracle has newer data.
    */
   public async checkMicroProbe(
     controlId: string,
@@ -381,13 +390,8 @@ export class ControlRawDbService {
   ): Promise<MicroProbeResult> {
     const cleanId = String(controlId).trim();
     const watermark = await this.getWatermark(cleanId);
-    const dbCountRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM oracle_control_raw_incidents WHERE environment_host = $1 AND control_id = $2`,
-      [this.getHost(), cleanId]
-    );
-    const syncedDbCount = parseInt(dbCountRes.rows[0]?.count || '0', 10);
+    const syncedDbCount = watermark?.synced_incidents || 0;
 
-    // If no incidents exist in DB, initial sync is mandatory
     if (syncedDbCount === 0 || !watermark) {
       return {
         hasUpdates: true,
@@ -402,7 +406,6 @@ export class ControlRawDbService {
     }
 
     try {
-      // Micro-Probe: Fetch top 1 record sorted by LastUpdateDate descending
       const probeRes = await client.getAdvancedControlIncidents(cleanId, {
         offset: 0,
         limit: 1,
@@ -414,14 +417,12 @@ export class ControlRawDbService {
       const oracleLatestStr = firstItem?.LastUpdateDate || firstItem?.lastUpdateDate || null;
       const totalOracleCount = typeof probeRes?.totalResults === 'number' ? probeRes.totalResults : null;
 
-      // Update last_checked_at timestamp in database
       await query(
-        `UPDATE oracle_control_sync_watermark SET last_checked_at = NOW(), total_incidents = COALESCE($1, total_incidents) WHERE environment_host = $2 AND control_id = $3`,
+        `UPDATE oracle_control_incidents SET updated_at = NOW(), total_incidents = COALESCE($1, total_incidents) WHERE environment_host = $2 AND control_id = $3`,
         [totalOracleCount, this.getHost(), cleanId]
       );
 
       if (!oracleLatestStr) {
-        // Oracle returned no items or count is 0
         return {
           hasUpdates: false,
           needsInitialSync: false,
@@ -439,10 +440,8 @@ export class ControlRawDbService {
         ? new Date(watermark.last_oracle_update_date).getTime()
         : 0;
 
-      // Also check if total count grew in Oracle
       const countMismatch = totalOracleCount !== null && totalOracleCount > syncedDbCount;
-      const hasNewerTimestamp = oracleLatestTime > dbLatestTime + 1000; // 1s tolerance
-
+      const hasNewerTimestamp = oracleLatestTime > dbLatestTime + 1000;
       const hasUpdates = hasNewerTimestamp || countMismatch;
 
       return {
@@ -456,7 +455,6 @@ export class ControlRawDbService {
         lastSyncedAt: watermark.last_synced_at,
       };
     } catch (err: any) {
-      console.warn(`[ControlRawDbService] Micro-probe error for control ${cleanId}:`, err.message);
       return {
         hasUpdates: false,
         needsInitialSync: false,
@@ -471,8 +469,8 @@ export class ControlRawDbService {
   }
 
   /**
-   * Synchronizes all incidents for a control from Oracle Fusion into PostgreSQL raw storage.
-   * Efficiently streams in batches, computes latest update date watermark, and updates sync status.
+   * Synchronizes all incidents for a control from Oracle Fusion into the single JSONB cell in PostgreSQL.
+   * Efficiently streams in batches, compiles into a single raw array, and updates the single control row.
    */
   public async syncControlIncidents(
     controlId: string,
@@ -490,9 +488,9 @@ export class ControlRawDbService {
     let offset = 0;
     let hasMore = true;
     let totalResults = 0;
-    let totalSynced = 0;
     let isFirstPage = true;
     let maxOracleUpdateDate: Date | null = null;
+    const allRawItems: any[] = [];
 
     try {
       while (hasMore) {
@@ -514,7 +512,7 @@ export class ControlRawDbService {
 
           const rawItems: any[] = Array.isArray(res?.items) ? res.items : [];
           if (rawItems.length > 0) {
-            // Track max LastUpdateDate
+            allRawItems.push(...rawItems);
             for (const item of rawItems) {
               const dtStr = item.LastUpdateDate || item.lastUpdateDate;
               if (dtStr) {
@@ -524,15 +522,12 @@ export class ControlRawDbService {
                 }
               }
             }
-
-            const savedCount = await this.saveRawIncidentsBatch(cleanId, rawItems, controlName);
-            totalSynced += savedCount;
           }
 
-          hasMore = res?.hasMore === true && (totalResults > 0 ? totalSynced < totalResults : rawItems.length >= pageSize);
+          hasMore = res?.hasMore === true && (totalResults > 0 ? allRawItems.length < totalResults : rawItems.length >= pageSize);
           offset += rawItems.length;
 
-          if (rawItems.length === 0 || !hasMore || (totalResults > 0 && totalSynced >= totalResults)) {
+          if (rawItems.length === 0 || !hasMore || (totalResults > 0 && allRawItems.length >= totalResults)) {
             break;
           }
         } catch (batchErr: any) {
@@ -547,36 +542,101 @@ export class ControlRawDbService {
         }
       }
 
-      await this.upsertWatermark(cleanId, {
-        controlName,
-        totalIncidents: totalResults || totalSynced,
-        syncedIncidents: totalSynced,
-        lastOracleUpdateDate: maxOracleUpdateDate,
-        syncStatus: 'READY'
-      });
+      // Store ALL raw incidents into that single cell in 1 single row!
+      await this.saveControlRawIncidents(cleanId, allRawItems, controlName, totalResults || allRawItems.length, maxOracleUpdateDate);
 
-      return { totalSynced, syncStatus: 'READY' };
+      return { totalSynced: allRawItems.length, syncStatus: 'READY' };
     } catch (err: any) {
-      const status = totalSynced > 0 ? 'PARTIAL' : 'ERROR';
-      await this.upsertWatermark(cleanId, {
-        controlName,
-        totalIncidents: totalResults,
-        syncedIncidents: totalSynced,
-        syncStatus: status,
-        errorMessage: err.message
-      });
-
-      return { totalSynced, syncStatus: status, errorMessage: err.message };
+      if (allRawItems.length > 0) {
+        await this.saveControlRawIncidents(cleanId, allRawItems, controlName, totalResults, maxOracleUpdateDate);
+      }
+      return { totalSynced: allRawItems.length, syncStatus: allRawItems.length > 0 ? 'PARTIAL' : 'ERROR', errorMessage: err.message };
     }
   }
 
-  // -------------------------------------------------------------
-  // Product-Level Sync Policy Management
-  // -------------------------------------------------------------
+  // =============================================================
+  // Automatic Background Sync Scheduler
+  // =============================================================
 
   /**
-   * Retrieves all product-level sync policies.
+   * Starts the automatic background synchronization scheduler.
+   * Periodically checks controls for updates in Oracle Fusion Cloud and updates the database automatically.
    */
+  public startAutoSyncScheduler(oracleServiceOrClient: any, intervalMinutes = 15): void {
+    if (this.schedulerTimer) return;
+
+    console.log(`[AutoSyncScheduler] Initialized. Background sync interval: ${intervalMinutes} minutes.`);
+
+    // Run first check after 20 seconds of server startup
+    setTimeout(() => {
+      this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
+        console.error('[AutoSyncScheduler] Initial run error:', err.message);
+      });
+    }, 20000);
+
+    // Run recurring periodic checks
+    this.schedulerTimer = setInterval(() => {
+      this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
+        console.error('[AutoSyncScheduler] Cycle error:', err.message);
+      });
+    }, intervalMinutes * 60 * 1000);
+  }
+
+  /**
+   * Runs an automated update cycle across all stored controls.
+   */
+  public async runAutoSyncCycle(oracleServiceOrClient: any): Promise<void> {
+    if (this.isSchedulerRunning) return;
+    this.isSchedulerRunning = true;
+
+    try {
+      const client: OracleFusionClient =
+        typeof oracleServiceOrClient.getClient === 'function'
+          ? oracleServiceOrClient.getClient()
+          : oracleServiceOrClient;
+
+      // 1. Get all controls currently stored in database
+      const host = this.getHost();
+      const res = await query<{ control_id: string; control_name: string }>(
+        `SELECT control_id, control_name FROM oracle_control_incidents WHERE environment_host = $1`,
+        [host]
+      );
+
+      const controls = res.rows;
+      if (controls.length === 0) {
+        return;
+      }
+
+      console.log(`[AutoSyncScheduler] Checking ${controls.length} controls for Oracle updates...`);
+
+      for (const ctrl of controls) {
+        try {
+          const probe = await this.checkMicroProbe(ctrl.control_id, client);
+          if (probe.hasUpdates) {
+            console.log(
+              `[AutoSyncScheduler] Control ${ctrl.control_id} has newer data in Oracle. Updating database automatically...`
+            );
+            await this.syncControlIncidents(ctrl.control_id, client, ctrl.control_name);
+            console.log(`[AutoSyncScheduler] Control ${ctrl.control_id} successfully auto-synced.`);
+          }
+        } catch (probeErr: any) {
+          console.warn(`[AutoSyncScheduler] Probe check warning for control ${ctrl.control_id}:`, probeErr.message);
+        }
+      }
+
+      await this.recordProductSyncRun('RISK_CONTROLS', 'SUCCESS');
+    } catch (err: any) {
+      console.error('[AutoSyncScheduler] Auto-sync cycle error:', err.message);
+      await this.recordProductSyncRun('RISK_CONTROLS', 'FAILED', err.message);
+    } finally {
+      this.isSchedulerRunning = false;
+    }
+  }
+
+  // =============================================================
+  // Product-Level Sync Policy Management
+  // =============================================================
+
   public async getProductSyncPolicies(): Promise<ProductSyncPolicyRecord[]> {
     const res = await query<ProductSyncPolicyRecord>(
       `SELECT * FROM product_sync_policy ORDER BY product_code ASC`
@@ -584,9 +644,6 @@ export class ControlRawDbService {
     return res.rows;
   }
 
-  /**
-   * Retrieves a specific product's sync policy by product code.
-   */
   public async getProductSyncPolicy(productCode: string): Promise<ProductSyncPolicyRecord | null> {
     const res = await query<ProductSyncPolicyRecord>(
       `SELECT * FROM product_sync_policy WHERE product_code = $1`,
@@ -595,9 +652,6 @@ export class ControlRawDbService {
     return res.rows[0] || null;
   }
 
-  /**
-   * Updates a product-level synchronization policy.
-   */
   public async updateProductSyncPolicy(
     productCode: string,
     updates: {
@@ -636,9 +690,6 @@ export class ControlRawDbService {
     return res.rows[0] || null;
   }
 
-  /**
-   * Records execution of a product-level synchronization run.
-   */
   public async recordProductSyncRun(
     productCode: string,
     status: 'RUNNING' | 'SUCCESS' | 'FAILED',

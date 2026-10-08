@@ -6,6 +6,7 @@ import { config, validateConfig, loadPersistedConfig } from './config.js';
 import { oracleService } from './services/oracleService.js';
 import { rolePrivilegeCatalogService } from './services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from './services/privilegeRoleCatalogService.js';
+import { controlRawDbService } from './services/controlRawDbService.js';
 import { apiRouter } from './routes/api.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -97,4 +98,5 @@ app.listen(config.port, () => {
   console.log(`  Server is listening on port: http://localhost:${config.port}`);
   console.log(`  Environment Mode: ${config.environmentMode}`);
   console.log(`===========================================================`);
+  controlRawDbService.startAutoSyncScheduler(oracleService);
 });
