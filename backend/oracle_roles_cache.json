@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-10-08T07:44:03.234Z",
+  "syncedAt": "2026-10-08T15:01:35.597Z",
   "totalResults": 701,
   "counts": {
     "Job": 507,
@@ -5121,6 +5121,10 @@
           "display": ""
         },
         {
+          "value": "DF8AB1E94C1C45478B6E6899DEE24575",
+          "display": ""
+        },
+        {
           "value": "E5B6A59F50D04E6C97709EB58C25F37E",
           "display": ""
         },
@@ -5133,7 +5137,15 @@
           "display": ""
         },
         {
+          "value": "F090FC2FC213439FA0723983C32ED244",
+          "display": ""
+        },
+        {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "190648FD282F460AA6795744D1976132",
           "display": ""
         },
         {
@@ -19259,6 +19271,10 @@
           "display": ""
         },
         {
+          "value": "DF8AB1E94C1C45478B6E6899DEE24575",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -19268,6 +19284,14 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "190648FD282F460AA6795744D1976132",
+          "display": ""
+        },
+        {
+          "value": "F090FC2FC213439FA0723983C32ED244",
           "display": ""
         },
         {
@@ -38949,6 +38973,14 @@
           "display": ""
         },
         {
+          "value": "DF8AB1E94C1C45478B6E6899DEE24575",
+          "display": ""
+        },
+        {
+          "value": "190648FD282F460AA6795744D1976132",
+          "display": ""
+        },
+        {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
           "display": ""
         },
@@ -38966,6 +38998,10 @@
         },
         {
           "value": "621628F7F0064A9E845C38591ED1D6E3",
+          "display": ""
+        },
+        {
+          "value": "F090FC2FC213439FA0723983C32ED244",
           "display": ""
         },
         {
@@ -43433,6 +43469,10 @@
           "display": ""
         },
         {
+          "value": "DF8AB1E94C1C45478B6E6899DEE24575",
+          "display": ""
+        },
+        {
           "value": "73AAE0844C7F440C9307C03075B9E54D",
           "display": ""
         },
@@ -43454,6 +43494,14 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "F090FC2FC213439FA0723983C32ED244",
+          "display": ""
+        },
+        {
+          "value": "190648FD282F460AA6795744D1976132",
           "display": ""
         },
         {
@@ -70079,6 +70127,18 @@
       "category": "Job",
       "description": "Copy of AP Supervisor Role with added access to be an Agent\nOversees the activities of Accounts Payables Specialists. Initiates and manages pay runs. Resolves nondata entry holds.\n",
       "members": [
+        {
+          "value": "DF8AB1E94C1C45478B6E6899DEE24575",
+          "display": ""
+        },
+        {
+          "value": "190648FD282F460AA6795744D1976132",
+          "display": ""
+        },
+        {
+          "value": "F090FC2FC213439FA0723983C32ED244",
+          "display": ""
+        },
         {
           "value": "56964B8F2314E981E063B9131CACD7F0",
           "display": ""
