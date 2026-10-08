@@ -514,6 +514,184 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     loadIncidentCountSeparately(selectedControlId, true);
   };
 
+  // Helper renderers for Continuous Monitoring Incidents pagination
+  const renderIncidentPageSizeSelect = (idSuffix = 'top') => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+      <label htmlFor={`incident-page-size-${idSuffix}`}>Rows per page:</label>
+      <select
+        id={`incident-page-size-${idSuffix}`}
+        value={incidentPageSize}
+        onChange={e => handleIncidentPageSizeChange(Number(e.target.value))}
+        disabled={incidentsLoading}
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '6px',
+          color: 'var(--text-primary)',
+          padding: '0.25rem 0.5rem',
+          fontSize: '0.8rem',
+          cursor: 'pointer',
+          width: '75px'
+        }}
+      >
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+        <option value={250}>250</option>
+      </select>
+    </div>
+  );
+
+  const renderIncidentPaginationButtons = () => {
+    const totalIncidentPages = incidentsTotalCount ? Math.ceil(incidentsTotalCount / incidentPageSize) : undefined;
+    const canPrev = incidentPage > 1 && !incidentsLoading;
+    const canNext = !incidentsLoading && Boolean(incidentsHasMore || (incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount));
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <button
+          onClick={() => handleIncidentPageChange(incidentPage - 1)}
+          disabled={!canPrev}
+          className="btn btn-secondary"
+          style={{ 
+            padding: '0.35rem 0.65rem', 
+            fontSize: '0.78rem', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.3rem',
+            cursor: !canPrev ? 'not-allowed' : 'pointer',
+            opacity: !canPrev ? 0.5 : 1
+          }}
+          title="Previous page of incidents"
+        >
+          <ChevronLeft size={14} /> Previous
+        </button>
+
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '0 0.25rem' }}>
+          Page <strong style={{ color: 'var(--text-primary)' }}>{incidentPage}</strong>
+          {totalIncidentPages ? (
+            <> of <strong style={{ color: 'var(--text-primary)' }}>{totalIncidentPages}</strong></>
+          ) : null}
+        </span>
+
+        <button
+          onClick={() => handleIncidentPageChange(incidentPage + 1)}
+          disabled={!canNext}
+          className="btn btn-secondary"
+          style={{ 
+            padding: '0.35rem 0.65rem', 
+            fontSize: '0.78rem', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.3rem',
+            cursor: !canNext ? 'not-allowed' : 'pointer',
+            opacity: !canNext ? 0.5 : 1
+          }}
+          title="Next page of incidents"
+        >
+          Next <ChevronRight size={14} />
+        </button>
+      </div>
+    );
+  };
+
+  // Helper renderers for Main Controls Catalog pagination
+  const renderControlsRowsPerPageSelect = (idSuffix = 'top') => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+      <label htmlFor={`controls-page-size-${idSuffix}`}>Rows per page:</label>
+      <select
+        id={`controls-page-size-${idSuffix}`}
+        value={pageSize}
+        onChange={e => {
+          setPageSize(Number(e.target.value));
+          setCurrentPage(1);
+        }}
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '6px',
+          padding: '0.25rem 0.5rem',
+          fontSize: '0.8rem',
+          color: 'var(--text-primary)',
+          cursor: 'pointer',
+          width: '75px'
+        }}
+      >
+        <option value={10}>10</option>
+        <option value={15}>15</option>
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+      </select>
+    </div>
+  );
+
+  const renderControlsPaginationButtons = () => {
+    if (totalPages <= 1) return null;
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="btn btn-secondary"
+          style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+          aria-label="Previous controls page"
+        >
+          <ChevronLeft size={14} />
+          <span>Prev</span>
+        </button>
+        {pages.map((p, idx) =>
+          typeof p === 'string' ? (
+            <span key={`ellipsis-${idx}`} style={{ padding: '0 0.3rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>...</span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => setCurrentPage(p)}
+              aria-label={`Go to controls page ${p}`}
+              aria-current={p === currentPage ? 'page' : undefined}
+              style={{
+                minWidth: '28px',
+                height: '28px',
+                padding: '0 0.35rem',
+                fontSize: '0.78rem',
+                fontWeight: p === currentPage ? 700 : 500,
+                borderRadius: '6px',
+                border: p === currentPage ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
+                backgroundColor: p === currentPage ? 'var(--accent-blue-light)' : 'var(--bg-secondary)',
+                color: p === currentPage ? 'var(--accent-blue)' : 'var(--text-primary)',
+                cursor: 'pointer'
+              }}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="btn btn-secondary"
+          style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+          aria-label="Next controls page"
+        >
+          <span>Next</span>
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    );
+  };
+
   // Columns toggle functions
   const toggleColumn = (key: string) => {
     setVisibleColumnKeys(prev => {
@@ -1081,7 +1259,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
               {/* Incidents Table Panel with True Pagination */}
               <div className="glass-panel" style={{ padding: '1.75rem', position: 'relative' }}>
-                {/* Header Row with Title, Badge, and Action */}
+                {/* Header Row with Title, Badge, Pagination Controls & Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, fontFamily: 'var(--font-header)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1108,16 +1286,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     </span>
                   </div>
 
-                  <button
-                    onClick={handleRefreshIncidents}
-                    disabled={incidentsLoading || incidentsCountLoading}
-                    className="btn btn-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
-                    title="Refresh current page and count from Oracle Fusion"
-                  >
-                    <RefreshCw size={13} className={incidentsLoading || incidentsCountLoading ? 'animate-spin' : ''} />
-                    Refresh Incidents
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    {renderIncidentPageSizeSelect('top')}
+                    {renderIncidentPaginationButtons()}
+
+                    <button
+                      onClick={handleRefreshIncidents}
+                      disabled={incidentsLoading || incidentsCountLoading}
+                      className="btn btn-secondary"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+                      title="Refresh current page and count from Oracle Fusion"
+                    >
+                      <RefreshCw size={13} className={incidentsLoading || incidentsCountLoading ? 'animate-spin' : ''} />
+                      Refresh Incidents
+                    </button>
+                  </div>
                 </div>
 
                 {/* Initial Loading State */}
@@ -1249,7 +1432,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       </table>
                     </div>
 
-                    {/* Pagination Bar */}
+                    {/* Bottom Pagination Bar */}
                     <div 
                       style={{ 
                         display: 'flex', 
@@ -1262,75 +1445,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         borderTop: '1px solid var(--border-color)' 
                       }}
                     >
-                      {/* Page Size Selector */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        <span>Rows per page:</span>
-                        <select
-                          value={incidentPageSize}
-                          onChange={e => handleIncidentPageSizeChange(Number(e.target.value))}
-                          disabled={incidentsLoading}
-                          style={{
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '4px',
-                            color: 'var(--text-primary)',
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.82rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <option value={25}>25</option>
-                          <option value={50}>50</option>
-                          <option value={100}>100</option>
-                        </select>
-                      </div>
-
-                      {/* Page indicator */}
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        Page <strong style={{ color: 'var(--text-primary)' }}>{incidentPage}</strong>
-                        {incidentsTotalCount ? (
-                          <> of <strong style={{ color: 'var(--text-primary)' }}>{Math.ceil(incidentsTotalCount / incidentPageSize) || 1}</strong></>
-                        ) : null}
-                      </div>
-
-                      {/* Navigation buttons */}
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => handleIncidentPageChange(incidentPage - 1)}
-                          disabled={incidentPage <= 1 || incidentsLoading}
-                          className="btn btn-secondary"
-                          style={{ 
-                            padding: '0.4rem 0.75rem', 
-                            fontSize: '0.82rem', 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.35rem',
-                            cursor: incidentPage <= 1 || incidentsLoading ? 'not-allowed' : 'pointer',
-                            opacity: incidentPage <= 1 || incidentsLoading ? 0.5 : 1
-                          }}
-                        >
-                          <ChevronLeft size={15} /> Previous
-                        </button>
-                        <button
-                          onClick={() => handleIncidentPageChange(incidentPage + 1)}
-                          disabled={
-                            incidentsLoading || 
-                            (!incidentsHasMore && !(incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount))
-                          }
-                          className="btn btn-secondary"
-                          style={{ 
-                            padding: '0.4rem 0.75rem', 
-                            fontSize: '0.82rem', 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.35rem',
-                            cursor: incidentsLoading || (!incidentsHasMore && !(incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount)) ? 'not-allowed' : 'pointer',
-                            opacity: incidentsLoading || (!incidentsHasMore && !(incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount)) ? 0.5 : 1
-                          }}
-                        >
-                          Next <ChevronRight size={15} />
-                        </button>
-                      </div>
+                      {renderIncidentPageSizeSelect('bottom')}
+                      {renderIncidentPaginationButtons()}
                     </div>
                   </div>
                 )}
@@ -1980,16 +2096,30 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             </div>
           )}
 
-          {/* Result counts — total dataset vs filtered vs current page */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {/* Top Controls Toolbar: Domain counts, Showing count, Rows per page & Top Pagination */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            marginBottom: '0.75rem',
+            fontSize: '0.82rem',
+            color: 'var(--text-secondary)'
+          }}>
             <div>
               <strong style={{ color: 'var(--text-primary)' }}>{activeSubsectionControls.length.toLocaleString()}</strong> {activeEntityName.toLowerCase()} in domain
               {filteredControls.length !== activeSubsectionControls.length && (
                 <span> · <strong style={{ color: 'var(--accent-blue)' }}>{filteredControls.length.toLocaleString()}</strong> matching filters</span>
               )}
+              <span style={{ marginLeft: '0.75rem' }}>
+                Showing <strong>{paginatedControls.length > 0 ? ((currentPage - 1) * pageSize + 1).toLocaleString() : 0}</strong>–<strong>{Math.min(currentPage * pageSize, sortedControls.length).toLocaleString()}</strong> of <strong>{sortedControls.length.toLocaleString()}</strong>
+              </span>
             </div>
-            <div>
-              Showing {paginatedControls.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}&ndash;{Math.min(currentPage * pageSize, sortedControls.length)} of {sortedControls.length.toLocaleString()}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              {renderControlsRowsPerPageSelect('top')}
+              {renderControlsPaginationButtons()}
             </div>
           </div>
 
@@ -2340,88 +2470,14 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               gap: '1rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="controls-page-size">Rows per page:</label>
-              <select
-                id="controls-page-size"
-                value={pageSize}
-                onChange={e => setPageSize(Number(e.target.value))}
-                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-primary)' }}
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <div>
+                Showing {paginatedControls.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}&ndash;{Math.min(currentPage * pageSize, sortedControls.length)} of {sortedControls.length} {activeEntityName.toLowerCase()}
+              </div>
+              {renderControlsRowsPerPageSelect('bottom')}
             </div>
 
-            {totalPages > 1 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="btn btn-secondary"
-                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
-                  aria-label="Previous controls page"
-                >
-                  <ChevronLeft size={14} />
-                  <span>Prev</span>
-                </button>
-                {(() => {
-                  const pages: (number | string)[] = [];
-                  if (totalPages <= 7) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    pages.push(1);
-                    if (currentPage > 3) pages.push('...');
-                    const start = Math.max(2, currentPage - 1);
-                    const end = Math.min(totalPages - 1, currentPage + 1);
-                    for (let i = start; i <= end; i++) pages.push(i);
-                    if (currentPage < totalPages - 2) pages.push('...');
-                    pages.push(totalPages);
-                  }
-                  return pages.map((p, idx) =>
-                    typeof p === 'string' ? (
-                      <span key={`ellipsis-${idx}`} style={{ padding: '0 0.3rem', fontSize: '0.8rem' }}>...</span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setCurrentPage(p)}
-                        aria-label={`Go to controls page ${p}`}
-                        aria-current={p === currentPage ? 'page' : undefined}
-                        style={{
-                          minWidth: '30px',
-                          padding: '0.35rem 0.5rem',
-                          fontSize: '0.78rem',
-                          fontWeight: p === currentPage ? 700 : 500,
-                          borderRadius: '6px',
-                          border: p === currentPage ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
-                          backgroundColor: p === currentPage ? 'var(--accent-blue-light)' : '#FFFFFF',
-                          color: p === currentPage ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {p}
-                      </button>
-                    )
-                  );
-                })()}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="btn btn-secondary"
-                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
-                  aria-label="Next controls page"
-                >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            ) : (
-              <div>
-                Showing {paginatedControls.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, sortedControls.length)} of {sortedControls.length} {activeEntityName.toLowerCase()}
-              </div>
-            )}
+            {renderControlsPaginationButtons()}
           </div>
         </div>
       )}
