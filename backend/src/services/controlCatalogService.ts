@@ -76,6 +76,7 @@ export interface ControlCatalogResult {
 
 import { IncidentCacheService, IncidentSyncProgress } from './incidentCacheService.js';
 import { IncidentCountCacheService, CachedCountEntry, IncidentCountCache } from './incidentCountCacheService.js';
+import { controlRawDbService } from './controlRawDbService.js';
 
 export interface ControlDetailResult {
   success: boolean;
@@ -469,11 +470,18 @@ export class ControlCatalogService {
       // 1. Resolve or fetch Control Header (<1s)
       let control = this.byId.get(cleanId);
       if (!control) {
-        console.log(`[Control Catalog] Fetching live header for control "${cleanId}" from Oracle Fusion...`);
-        const headerRaw = await this.client.getAdvancedControlHeader(cleanId);
-        if (headerRaw) {
-          control = this.normalizeControl(headerRaw);
+        const rawFromDb = await controlRawDbService.getRawControl(cleanId);
+        if (rawFromDb) {
+          control = this.normalizeControl(rawFromDb);
           this.byId.set(control.id, control);
+        } else {
+          console.log(`[Control Catalog] Fetching live header for control "${cleanId}" from Oracle Fusion...`);
+          const headerRaw = await this.client.getAdvancedControlHeader(cleanId);
+          if (headerRaw) {
+            control = this.normalizeControl(headerRaw);
+            this.byId.set(control.id, control);
+            controlRawDbService.saveRawControl(cleanId, headerRaw).catch(() => {});
+          }
         }
       }
 
@@ -498,12 +506,18 @@ export class ControlCatalogService {
         this.incidentCountCacheService.fetchCount(cleanId, options.forceRefresh).catch(() => {});
       }
 
-      // Check if legacy full cache exists on disk to serve fallback count if count cache is empty
+      // Check PostgreSQL watermark or legacy disk cache if count cache is empty
       if (!countEntry || countEntry.count === null) {
-        const legacyCache = this.incidentCacheService.readCache(cleanId);
-        if (legacyCache && typeof legacyCache.totalResults === 'number') {
-          incidentCount = legacyCache.totalResults;
-          this.incidentCountCacheService.setCount(cleanId, incidentCount, 'READY');
+        const watermark = await controlRawDbService.getWatermark(cleanId);
+        if (watermark && typeof watermark.total_incidents === 'number' && watermark.total_incidents > 0) {
+          incidentCount = watermark.total_incidents;
+          this.incidentCountCacheService.setCount(cleanId, incidentCount, watermark.sync_status === 'READY' ? 'READY' : undefined);
+        } else {
+          const legacyCache = this.incidentCacheService.readCache(cleanId);
+          if (legacyCache && typeof legacyCache.totalResults === 'number') {
+            incidentCount = legacyCache.totalResults;
+            this.incidentCountCacheService.setCount(cleanId, incidentCount, 'READY');
+          }
         }
       }
 
@@ -633,15 +647,55 @@ export class ControlCatalogService {
       // 1. Resolve control header/name if available
       let control = this.byId.get(cleanId);
       if (!control) {
-        const headerRaw = await this.client.getAdvancedControlHeader(cleanId);
-        if (headerRaw) {
-          control = this.normalizeControl(headerRaw);
+        const rawFromDb = await controlRawDbService.getRawControl(cleanId);
+        if (rawFromDb) {
+          control = this.normalizeControl(rawFromDb);
           this.byId.set(control.id, control);
+        } else {
+          const headerRaw = await this.client.getAdvancedControlHeader(cleanId);
+          if (headerRaw) {
+            control = this.normalizeControl(headerRaw);
+            this.byId.set(control.id, control);
+            controlRawDbService.saveRawControl(cleanId, headerRaw).catch(() => {});
+          }
         }
       }
       const controlName = control?.name;
 
-      // 2. Fetch only the requested page without totalResults for instant speed
+      // 2. High-Performance PostgreSQL Read-Through (<10ms)
+      if (!options.forceRefresh) {
+        const dbRes = await controlRawDbService.getRawIncidents(cleanId, { offset, limit });
+        if (dbRes.total > 0) {
+          const normalizedItems = dbRes.rawItems.map(item => this.normalizeIncident(item, cleanId, controlName));
+          const watermark = await controlRawDbService.getWatermark(cleanId);
+
+          // Background micro-probe check if watermark was checked >30 mins ago
+          if (watermark && (Date.now() - new Date(watermark.last_checked_at).getTime() > 1800000)) {
+            controlRawDbService.checkMicroProbe(cleanId, this.client).then(probe => {
+              if (probe.hasUpdates) {
+                console.log(`[MicroProbe] Control ${cleanId} has newer Oracle updates. Triggering background sync.`);
+                this.incidentCacheService.getOrStartSync(cleanId, { forceRefresh: true, controlName });
+              }
+            }).catch(() => {});
+          }
+
+          return {
+            success: true,
+            controlId: cleanId,
+            controlName,
+            page,
+            limit,
+            offset,
+            hasMore: offset + limit < dbRes.total,
+            count: normalizedItems.length,
+            totalResults: watermark?.total_incidents || dbRes.total,
+            countStatus: (watermark?.sync_status === 'READY' ? 'READY' : (watermark?.sync_status === 'ERROR' ? 'ERROR' : 'CALCULATING')),
+            items: normalizedItems
+          };
+        }
+      }
+
+      // 3. Fallback or Forced Refresh: Fetch page from Oracle live and persist to DB
       const res = await this.client.getAdvancedControlIncidents(cleanId, {
         offset,
         limit,
@@ -651,19 +705,23 @@ export class ControlCatalogService {
       const rawItems: any[] = Array.isArray(res?.items) ? res.items : [];
       const normalizedItems = rawItems.map(item => this.normalizeIncident(item, cleanId, controlName));
 
-      // 3. Check / trigger count cache asynchronously
+      // Asynchronously store this batch in PostgreSQL
+      if (rawItems.length > 0) {
+        controlRawDbService.saveRawIncidentsBatch(cleanId, rawItems, controlName).catch(err => {
+          console.warn(`[ControlCatalogService] DB save warning for ${cleanId}:`, err.message);
+        });
+      }
+
+      // Trigger full background sync to persist all incidents into PostgreSQL
+      this.incidentCacheService.getOrStartSync(cleanId, { forceRefresh: options.forceRefresh, controlName });
+
+      // Check / trigger count cache asynchronously
       let cachedCount = this.incidentCountCacheService.getCount(cleanId);
       if (!this.incidentCountCacheService.isFresh(cachedCount) || options.forceRefresh) {
         this.incidentCountCacheService.fetchCount(cleanId, options.forceRefresh).catch(() => {});
       }
 
-      // If count cache is still empty, check legacy disk cache file for existing count
-      if (!cachedCount || cachedCount.count === null) {
-        const legacyCache = this.incidentCacheService.readCache(cleanId);
-        if (legacyCache && typeof legacyCache.totalResults === 'number') {
-          cachedCount = this.incidentCountCacheService.setCount(cleanId, legacyCache.totalResults, 'READY');
-        }
-      }
+      const watermark = await controlRawDbService.getWatermark(cleanId);
 
       return {
         success: true,
@@ -674,8 +732,8 @@ export class ControlCatalogService {
         offset,
         hasMore: Boolean(res?.hasMore),
         count: normalizedItems.length,
-        totalResults: cachedCount?.count ?? null,
-        countStatus: cachedCount?.status ?? 'CALCULATING',
+        totalResults: watermark?.total_incidents ?? cachedCount?.count ?? null,
+        countStatus: (watermark?.sync_status === 'READY' ? 'READY' : (watermark?.sync_status === 'ERROR' ? 'ERROR' : (cachedCount?.status ?? 'CALCULATING'))),
         items: normalizedItems
       };
     } catch (err: any) {

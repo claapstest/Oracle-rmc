@@ -3125,6 +3125,10 @@ class OracleService {
   getControlCatalogService(): ControlCatalogService {
     return this.controlCatalogService;
   }
+
+  getClient(): OracleFusionClient {
+    return this.client;
+  }
 }
 
 export const oracleService = new OracleService();

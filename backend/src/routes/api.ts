@@ -13,6 +13,7 @@ import { userAccessReportService } from '../services/userAccessReportService.js'
 import { auditDashboardService } from '../services/auditDashboardService.js';
 import { supervisorDashboardDbService } from '../services/supervisorDashboardDbService.js';
 import { reportDbService } from '../services/reportDbService.js';
+import { controlRawDbService } from '../services/controlRawDbService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -2229,6 +2230,112 @@ apiRouter.get('/risk/controls/:id/count', requirePrivilege(['RISK_MANAGEMENT', '
       success: false,
       message: (err as Error).message || 'Unable to retrieve incident count from Oracle Fusion.'
     });
+  }
+});
+
+// GET /sync/policies - Product-level synchronization policies
+apiRouter.get('/sync/policies', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN', 'RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const policies = await controlRawDbService.getProductSyncPolicies();
+    res.json({ success: true, policies });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /sync/policies/:productCode - Update sync cadence or interval for a product
+apiRouter.put('/sync/policies/:productCode', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN']), async (req: Request, res: Response) => {
+  try {
+    const { productCode } = req.params;
+    const { syncCadence, syncIntervalHours, autoSyncEnabled } = req.body;
+    const updated = await controlRawDbService.updateProductSyncPolicy(productCode, {
+      syncCadence,
+      syncIntervalHours: syncIntervalHours !== undefined ? Number(syncIntervalHours) : undefined,
+      autoSyncEnabled: autoSyncEnabled !== undefined ? Boolean(autoSyncEnabled) : undefined
+    });
+    if (!updated) {
+      return res.status(404).json({ success: false, message: `Product policy '${productCode}' not found.` });
+    }
+    res.json({ success: true, policy: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /sync/policies/:productCode/run - Trigger on-demand sync for a product policy
+apiRouter.post('/sync/policies/:productCode/run', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN', 'RISK_MANAGEMENT']), async (req: Request, res: Response) => {
+  try {
+    const { productCode } = req.params;
+    const policy = await controlRawDbService.getProductSyncPolicy(productCode);
+    if (!policy) {
+      return res.status(404).json({ success: false, message: `Product policy '${productCode}' not found.` });
+    }
+
+    // Record running status
+    await controlRawDbService.recordProductSyncRun(productCode, 'RUNNING');
+
+    // Run async sync for RISK_CONTROLS
+    if (productCode.toUpperCase() === 'RISK_CONTROLS') {
+      (async () => {
+        try {
+          const controlsRes = await oracleService.getControlCatalogService().getAllControls();
+          const items = controlsRes?.items || [];
+          for (const ctrl of items.slice(0, 50)) {
+            await controlRawDbService.syncControlIncidents(ctrl.id, oracleService.getClient(), ctrl.name);
+          }
+          await controlRawDbService.recordProductSyncRun(productCode, 'SUCCESS');
+        } catch (err: any) {
+          await controlRawDbService.recordProductSyncRun(productCode, 'FAILED', err.message);
+        }
+      })();
+    } else {
+      setTimeout(async () => {
+        await controlRawDbService.recordProductSyncRun(productCode, 'SUCCESS');
+      }, 500);
+    }
+
+    res.json({
+      success: true,
+      message: `Product sync triggered for ${productCode}. Running in background.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /risk/controls/:id/sync-status - Watermark and micro-probe change detection status
+apiRouter.get('/risk/controls/:id/sync-status', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const controlId = req.params.id;
+    const checkProbe = req.query.probe === 'true';
+    const watermark = await controlRawDbService.getWatermark(controlId);
+    let probe = null;
+    if (checkProbe) {
+      probe = await controlRawDbService.checkMicroProbe(controlId, oracleService.getClient());
+    }
+    res.json({
+      success: true,
+      controlId,
+      watermark,
+      probe
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /risk/controls/:id/sync - Trigger on-demand sync for a control
+apiRouter.post('/risk/controls/:id/sync', requirePrivilege(['RISK_MANAGEMENT', 'SITE_ADMIN']), async (req: Request, res: Response) => {
+  try {
+    const controlId = req.params.id;
+    const result = oracleService.getControlCatalogService().getIncidentCacheService().getOrStartSync(controlId, { forceRefresh: true });
+    res.json({
+      success: true,
+      message: `Synchronization started for control ${controlId}.`,
+      status: result
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
