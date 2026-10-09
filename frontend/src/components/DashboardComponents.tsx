@@ -900,8 +900,8 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', maxHeight: '200px', display: 'block' }}>
           <defs>
             <linearGradient id="riskAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="#EAB308" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#EAB308" stopOpacity="0.01" />
             </linearGradient>
           </defs>
 
@@ -924,12 +924,12 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             <path d={areaTotal} fill="url(#riskAreaGrad)" />
           )}
 
-          {/* 1. Primary Trend Line: Security Changes (Total) */}
+          {/* 1. Primary Trend Line: Security Changes (Total - Yellow) */}
           {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
             <path
               d={pathTotal}
               fill="none"
-              stroke="#2563EB"
+              stroke="#EAB308"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -937,12 +937,12 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             />
           )}
 
-          {/* 2. Secondary Line: Inserts / Additions (Green) */}
+          {/* 2. Secondary Line: Inserts / Additions (Red) */}
           {(activeSeries === 'ALL' || activeSeries === 'INSERTS') && totalInserts > 0 && (
             <path
               d={pathInserts}
               fill="none"
-              stroke="#10B981"
+              stroke="#EF4444"
               strokeWidth="2"
               strokeDasharray={totalInserts === totalEvents ? "4 3" : "none"}
               strokeLinecap="round"
@@ -955,7 +955,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             <path
               d={pathUpdates}
               fill="none"
-              stroke="#F59E0B"
+              stroke="#F97316"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -980,37 +980,37 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
                   <line x1={p.x} y1={paddingY} x2={p.x} y2={height - paddingY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
                 )}
 
-                {/* Total points */}
+                {/* Total points (Yellow) */}
                 {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
                   <circle
                     cx={p.x}
                     cy={p.yTotal}
                     r={isHovered ? 4.5 : 3.5}
                     fill="#FFFFFF"
-                    stroke="#2563EB"
+                    stroke="#EAB308"
                     strokeWidth={isHovered ? 2.8 : 2.2}
                   />
                 )}
 
-                {/* Inserts points when present */}
+                {/* Inserts points when present (Red) */}
                 {(activeSeries === 'ALL' || activeSeries === 'INSERTS') && (p.inserts || 0) > 0 && (
                   <circle
                     cx={p.x}
                     cy={p.yInserts}
                     r={isHovered ? 4 : 3}
-                    fill="#10B981"
+                    fill="#EF4444"
                     stroke="#FFFFFF"
                     strokeWidth="1.5"
                   />
                 )}
 
-                {/* Updates points when present */}
+                {/* Updates points when present (Orange) */}
                 {(activeSeries === 'ALL' || activeSeries === 'UPDATES') && (p.updates || 0) > 0 && (
                   <circle
                     cx={p.x}
                     cy={p.yUpdates}
                     r={isHovered ? 4 : 3}
-                    fill="#F59E0B"
+                    fill="#F97316"
                     stroke="#FFFFFF"
                     strokeWidth="1.5"
                   />
@@ -1045,9 +1045,9 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
               {hoveredPoint.date}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.72rem' }}>
-              <span style={{ color: '#93C5FD' }}>Total: {hoveredPoint.count} events</span>
-              <span style={{ color: '#86EFAC' }}>Inserts: {hoveredPoint.inserts || 0}</span>
-              <span style={{ color: '#FCD34D' }}>Updates: {hoveredPoint.updates || 0}</span>
+              <span style={{ color: '#FDE047' }}>Total: {hoveredPoint.count} events</span>
+              <span style={{ color: '#FCA5A5' }}>Inserts: {hoveredPoint.inserts || 0}</span>
+              <span style={{ color: '#FDBA74' }}>Updates: {hoveredPoint.updates || 0}</span>
             </div>
           </div>
         )}
@@ -1060,7 +1060,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'TOTAL' ? 1 : 0.4 }}
           title="Click to toggle Total Security Changes series"
         >
-          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
+          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#EAB308' }} />
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Security Changes ({totalEvents})</span>
         </div>
         <div
@@ -1068,7 +1068,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'INSERTS' ? 1 : 0.4 }}
           title="Click to toggle Inserts / Additions series"
         >
-          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inserts / Additions ({totalInserts})</span>
         </div>
         <div
@@ -1076,7 +1076,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'UPDATES' ? 1 : 0.4 }}
           title="Click to toggle Updates series"
         >
-          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
+          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#F97316' }} />
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Updates ({totalUpdates})</span>
         </div>
       </div>

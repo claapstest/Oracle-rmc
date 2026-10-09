@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-10-08T15:01:35.597Z",
+  "syncedAt": "2026-10-09T14:51:50.555Z",
   "totalResults": 701,
   "counts": {
     "Job": 507,
@@ -1610,6 +1610,10 @@
         },
         {
           "value": "6C45649893354B0393450316FA30C565",
+          "display": ""
+        },
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
           "display": ""
         },
         {
@@ -5150,6 +5154,10 @@
         },
         {
           "value": "76328FC05C3840B0ABFD57671FAE1427",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -8887,6 +8895,10 @@
           "display": ""
         },
         {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
           "value": "5956643D50D9F242E063B9131CACAD63",
           "display": ""
         },
@@ -9415,6 +9427,10 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -9436,6 +9452,10 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -9939,6 +9959,10 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "F9E9874834D547CEA098292DD717AB3E",
           "display": ""
         },
@@ -9952,6 +9976,14 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -10535,6 +10567,10 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
           "display": ""
         },
         {
@@ -17177,6 +17213,10 @@
           "display": ""
         },
         {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -19292,6 +19332,10 @@
         },
         {
           "value": "F090FC2FC213439FA0723983C32ED244",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -22875,6 +22919,10 @@
           "display": ""
         },
         {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -24902,6 +24950,14 @@
         },
         {
           "value": "3D9430E215FFE9B6E063B9131CAC703E",
+          "display": ""
+        },
+        {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -29326,11 +29382,19 @@
           "display": ""
         },
         {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "76328FC05C3840B0ABFD57671FAE1427",
           "display": ""
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "5956643D5111F242E063B9131CACAD63",
           "display": ""
         },
         {
@@ -29828,11 +29892,23 @@
           "display": ""
         },
         {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
+          "value": "5956643D5111F242E063B9131CACAD63",
           "display": ""
         },
         {
@@ -30145,6 +30221,10 @@
         },
         {
           "value": "621628F7F0064A9E845C38591ED1D6E3",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -34845,11 +34925,19 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
           "display": ""
         },
         {
           "value": "36AD6540A71D476D8321861A61997518",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -35417,6 +35505,10 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -35442,6 +35534,10 @@
         },
         {
           "value": "76328FC05C3840B0ABFD57671FAE1427",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -36780,6 +36876,10 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
           "display": ""
         },
@@ -36789,6 +36889,14 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
           "display": ""
         },
         {
@@ -39014,6 +39122,10 @@
         },
         {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -43509,6 +43621,10 @@
           "display": ""
         },
         {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "EAB83B58C96841FC82653442E38AC81F",
           "display": ""
         },
@@ -46326,6 +46442,18 @@
           "display": ""
         },
         {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "6C45649893354B0393450316FA30C565",
           "display": ""
         },
@@ -46866,6 +46994,10 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -46875,6 +47007,10 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -47590,6 +47726,10 @@
           "display": ""
         },
         {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        },
+        {
           "value": "5176A38C68292EE7E063B9131CACB9D6",
           "display": ""
         },
@@ -48004,6 +48144,14 @@
         {
           "value": "8201255032716A10E0501A0AC89C456D",
           "display": ""
+        },
+        {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
         }
       ],
       "parentRoles": [],
@@ -48019,6 +48167,10 @@
       "members": [
         {
           "value": "8201255032796A10E0501A0AC89C456D",
+          "display": ""
+        },
+        {
+          "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
           "display": ""
         }
       ],
@@ -51547,6 +51699,10 @@
         },
         {
           "value": "F9E9874834D547CEA098292DD717AB3E",
+          "display": ""
+        },
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
           "display": ""
         },
         {
@@ -59141,6 +59297,10 @@
           "display": ""
         },
         {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "56964BDB602CE9B3E063B9131CAC2CD1",
           "display": ""
         },
@@ -59238,6 +59398,10 @@
         },
         {
           "value": "D77587DD7528492D8AC8AE1A713FBF6D",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -59370,6 +59534,10 @@
         },
         {
           "value": "306FAE70D8F8688EE063B9131CAC7E49",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -59554,6 +59722,10 @@
         },
         {
           "value": "621628F7F0064A9E845C38591ED1D6E3",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
         {
@@ -65369,6 +65541,14 @@
           "display": ""
         },
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "59566489898EF27EE063B9131CAC1C22",
           "display": ""
         },
@@ -68633,6 +68813,14 @@
       "description": "Oracle Fusion Security Job Role",
       "members": [
         {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
           "value": "4D87E2D3E54FC96DE063B9131CAC1290",
           "display": ""
         },
@@ -69432,7 +69620,20 @@
       "roleCode": "TEST_AP_ACCOUNTS_PAYABLE_MANAGER_JOB_JOB",
       "category": "Job",
       "description": "Manages Accounts Payable department and personnel. Overrides exceptions, analyzes Oracle Fusion Payables balances, and submits income tax and withholding reports to meet regulatory requirements.",
-      "members": [],
+      "members": [
+        {
+          "value": "C7E31AC4FD6946F0823CB78D2231447D",
+          "display": ""
+        },
+        {
+          "value": "925970D6C2AA47F984FCE887340DDB7C",
+          "display": ""
+        },
+        {
+          "value": "0ABCDC24BC654C4ABF31DFF4B2FF864A",
+          "display": ""
+        }
+      ],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []
@@ -69860,7 +70061,12 @@
       "roleCode": "ORA_MSC_INVENTORY_OPTIMIZATION_PLANNER_JOB",
       "category": "Job",
       "description": "Individual responsible for multi-echelon safety stock planning, inventory level optimization across warehouses and organizations, and service level management to reduce excess and obsolete stock while improving working capital and ensuring optimum availability of inventory.",
-      "members": [],
+      "members": [
+        {
+          "value": "5956648989D6F27EE063B9131CAC1C22",
+          "display": ""
+        }
+      ],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []
@@ -70111,6 +70317,14 @@
       "category": "Job",
       "description": "Oracle Fusion Security Job Role",
       "members": [
+        {
+          "value": "5956643D5111F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
         {
           "value": "588845523B3F2935E063B9131CAC0EC8",
           "display": ""

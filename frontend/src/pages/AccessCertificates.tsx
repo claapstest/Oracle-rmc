@@ -22,38 +22,26 @@ interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
 }
 
-// Certifier worksheet columns (23). Each column lists candidate row-field keys so
-// both camelCase and UPPER_SNAKE BIP payload shapes resolve; missing fields render '—'.
 interface WorksheetColumn {
   header: string;
   keys: string[];
   icon?: 'role';
 }
 
+// Certifier worksheet columns (11). Matches the exact Oracle BI Publisher report layout
+// created for Claaps Access_certifier_worksheet.
 export const WORKSHEET_COLUMNS: WorksheetColumn[] = [
-  { header: 'ROLE NAME', keys: ['roleName', 'ROLE_NAME'], icon: 'role' },
-  { header: 'USER NAME', keys: ['userName', 'ownerName', 'USER_NAME'] },
-  { header: 'DIRECT MANAGER', keys: ['directManager', 'DIRECT_MANAGER'] },
-  { header: 'ACTION', keys: ['action', 'certificationAction', 'ACTION'] },
-  { header: 'ATTACHMENTS', keys: ['attachments', 'attachmentCount', 'ATTACHMENTS'] },
-  { header: 'COMMENTS', keys: ['comments', 'commentCount', 'COMMENTS'] },
-  { header: 'FOLLOW-UP', keys: ['followUp', 'FOLLOW_UP'] },
-  { header: 'BUSINESS UNIT', keys: ['businessUnit', 'userBusinessUnit', 'BUSINESS_UNIT'] },
-  { header: 'CREATED BY', keys: ['createdBy', 'CREATED_BY'] },
-  { header: 'CREATION DATE', keys: ['creationDate', 'CREATION_DATE'] },
-  { header: 'FOLLOW-UP STATUS', keys: ['followUpStatus', 'FOLLOW_UP_STATUS'] },
-  { header: 'JOB NAME', keys: ['jobName', 'JOB_NAME'] },
-  { header: 'LAST DECISION BY', keys: ['lastDecisionBy', 'LAST_DECISION_BY'] },
-  { header: 'LAST DECISION DATE', keys: ['lastDecisionDate', 'LAST_DECISION_DATE'] },
-  { header: 'LAST UPDATED DATE', keys: ['lastUpdatedDate', 'LAST_UPDATED_DATE'] },
-  { header: 'LOCATION', keys: ['location', 'LOCATION'] },
-  { header: 'PENDING SUBMISSION', keys: ['pendingSubmission', 'PENDING_SUBMISSION'] },
-  { header: 'POSITION NAME', keys: ['positionName', 'POSITION_NAME'] },
-  { header: 'USER-ROLE BUSINESS UNIT', keys: ['userRoleBusinessUnit', 'USER_ROLE_BUSINESS_UNIT'] },
-  { header: 'ROLE CODE', keys: ['roleCode', 'ROLE_CODE'] },
-  { header: 'ROLE DESCRIPTION', keys: ['roleDescription', 'ROLE_DESCRIPTION'] },
-  { header: 'SELF-CERTIFIED', keys: ['selfCertified', 'SELF_CERTIFIED'] },
-  { header: 'UPDATED BY', keys: ['updatedBy', 'UPDATED_BY'] }
+  { header: 'CERTIFICATION NAME', keys: ['certificationName', 'Certification Name', 'name', 'CERTIFICATION_NAME'] },
+  { header: 'JOB ROLE NAME', keys: ['jobRoleName', 'Job Role Name', 'roleName', 'Role Name', 'JOB_ROLE_NAME', 'ROLE_NAME'], icon: 'role' },
+  { header: 'ROLE CODE', keys: ['roleCode', 'Role Code', 'ROLE_CODE'] },
+  { header: 'USER NAME', keys: ['userName', 'User Name', 'ownerName', 'Owner Name', 'USER_NAME'] },
+  { header: 'COMMENT', keys: ['comment', 'Comment', 'comments', 'Comments', 'COMMENTS', 'COMMENT'] },
+  { header: 'ACTION', keys: ['action', 'Action', 'certificationAction', 'ACTION'] },
+  { header: 'USER-ROLE BUSINESS UNIT', keys: ['userRoleBusinessUnit', 'User-Role Business Unit', 'userBusinessUnit', 'businessUnit', 'Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'BUSINESS_UNIT'] },
+  { header: 'USER POSITION NAME', keys: ['userPositionName', 'User Position Name', 'positionName', 'Position Name', 'USER_POSITION_NAME', 'POSITION_NAME'] },
+  { header: 'USER MANAGER NAME', keys: ['userManagerName', 'User Manager Name', 'managerName', 'Manager Name', 'certifiedManager', 'Certified Manager', 'directManager', 'Direct Manager', 'USER_MANAGER_NAME', 'MANAGER_NAME'] },
+  { header: 'USER JOB NAME', keys: ['userJobName', 'User Job Name', 'jobName', 'Job Name', 'USER_JOB_NAME', 'JOB_NAME'] },
+  { header: 'USER LOCATION', keys: ['userLocation', 'User Location', 'location', 'Location', 'USER_LOCATION', 'LOCATION'] }
 ];
 
 export function wsVal(row: any, keys: string[]): string {
@@ -76,7 +64,7 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastExecuted, setLastExecuted] = useState<string>('');
-  const [activeReportPath, setActiveReportPath] = useState<string>('/Custom/Claaps Access Certification Review Report.xdo');
+  const [activeReportPath, setActiveReportPath] = useState<string>('/Custom/Claaps Access_certifier_worksheet.xdo');
 
   // Drill-Down / Certifier Worksheet State
   const [drillDownCertId, setDrillDownCertId] = useState<string | null>(null);

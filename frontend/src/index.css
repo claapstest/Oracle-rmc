@@ -652,16 +652,16 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Semantic Audit Event Badges */
 .badge-insert {
-  background-color: #DCFCE7 !important;
-  color: #15803D !important;
-  border: 1px solid #BBF7D0;
+  background-color: #FEE2E2 !important;
+  color: #DC2626 !important;
+  border: 1px solid #FCA5A5;
   font-weight: 700;
 }
 
 .badge-update {
-  background-color: #FEF3C7 !important;
-  color: #B45309 !important;
-  border: 1px solid #FDE68A;
+  background-color: #FFEDD5 !important;
+  color: #C2410C !important;
+  border: 1px solid #FDBA74;
   font-weight: 700;
 }
 

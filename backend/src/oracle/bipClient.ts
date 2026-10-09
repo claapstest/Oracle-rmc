@@ -123,11 +123,10 @@ export interface UserRoleAutoProvisionRow {
 
 export class BipClient {
   private axiosInstance: AxiosInstance;
-  public reportPath = '/Custom/Claaps Access Certification.xdo';
-  public reviewReportPath = '/Custom/Claaps Access Certification review.xdo';
+  public reportPath = '/Custom/Claaps Access Certification Review Report.xdo';
+  public reviewReportPath = '/Custom/Claaps Access_certifier_worksheet.xdo';
   /**
-   * Priority candidates for the Access Certification / Review Worksheet report.
-   * Checks environment variables first, then known paths, and falls back to /Custom catalog scan.
+   * Priority candidates for the main Access Certification Campaign List report.
    */
   public readonly accessCertReportPaths = [
     process.env.BIP_REPORT_PATH,
@@ -140,6 +139,21 @@ export class BipClient {
   ].filter(Boolean) as string[];
   private accessCertResolvedPath: string | null = null;
   private accessCertResolvedAt = 0;
+
+  /**
+   * Priority candidates for the Certifier Worksheet / User Access Details drilldown report.
+   */
+  public readonly certifierWorksheetReportPaths = [
+    process.env.BIP_WORKSHEET_REPORT_PATH,
+    '/Custom/Claaps Access_certifier_worksheet.xdo',
+    '/Custom/Claaps Access_certifier_worksheet',
+    '/Custom/Claaps Access_Certifier_Worksheet.xdo',
+    '/Custom/Claaps Access_Certifier_Worksheet',
+    '/Custom/Claaps Access Certifier Worksheet.xdo',
+    '/Custom/Claaps Access Certifier Worksheet',
+  ].filter(Boolean) as string[];
+  private worksheetResolvedPath: string | null = null;
+  private worksheetResolvedAt = 0;
 
   /**
    * Priority candidates for the runnable Auto-Provisioning report built on the
@@ -267,9 +281,8 @@ export class BipClient {
   }
 
   /**
-   * Resolves runnable Access Certification / Review Worksheet report: priority candidates first
-   * (via isReportExist), then a /Custom catalog scan for any report whose name suggests
-   * access certification review. Cached 1h.
+   * Resolves main Access Certification Campaign List report: priority candidates first
+   * (via isReportExist: /Custom/Claaps Access Certification Review Report.xdo). Cached 1h.
    */
   public async findAccessCertReportPath(): Promise<string> {
     const now = Date.now();
@@ -283,8 +296,7 @@ export class BipClient {
           this.accessCertResolvedPath = candidate;
           this.accessCertResolvedAt = now;
           this.reportPath = candidate;
-          this.reviewReportPath = candidate;
-          console.log(`[BIP Client] Resolved Access Certification report: "${candidate}"`);
+          console.log(`[BIP Client] Resolved Access Certification Main List report: "${candidate}"`);
           return candidate;
         }
       } catch {
@@ -293,23 +305,62 @@ export class BipClient {
     }
 
     try {
-      const scanned = await this.scanCustomReportsForAccessCert();
+      const scanned = await this.scanCustomReportsForMainList();
       if (scanned) {
         this.accessCertResolvedPath = scanned;
         this.accessCertResolvedAt = now;
         this.reportPath = scanned;
-        this.reviewReportPath = scanned;
-        console.log(`[BIP Client] Discovered Access Certification report via catalog scan: "${scanned}"`);
+        console.log(`[BIP Client] Discovered Access Certification Main List report via catalog scan: "${scanned}"`);
         return scanned;
       }
     } catch (err: any) {
-      console.warn('[BIP Client] Catalog scan for Access Certification report failed:', err.message);
+      console.warn('[BIP Client] Catalog scan for Access Certification Main List report failed:', err.message);
     }
 
     return this.reportPath;
   }
 
-  private async scanCustomReportsForAccessCert(): Promise<string | null> {
+  /**
+   * Resolves Certifier Worksheet / User Access Details drilldown report: priority candidates first
+   * (via isReportExist: /Custom/Claaps Access_certifier_worksheet.xdo). Cached 1h.
+   */
+  public async findCertifierWorksheetReportPath(): Promise<string> {
+    const now = Date.now();
+    if (this.worksheetResolvedPath && now - this.worksheetResolvedAt < 60 * 60 * 1000) {
+      return this.worksheetResolvedPath;
+    }
+
+    for (const candidate of this.certifierWorksheetReportPaths) {
+      try {
+        if (await this.isReportExist(candidate)) {
+          this.worksheetResolvedPath = candidate;
+          this.worksheetResolvedAt = now;
+          this.reviewReportPath = candidate;
+          console.log(`[BIP Client] Resolved Certifier Worksheet report: "${candidate}"`);
+          return candidate;
+        }
+      } catch {
+        // try next candidate
+      }
+    }
+
+    try {
+      const scanned = await this.scanCustomReportsForWorksheet();
+      if (scanned) {
+        this.worksheetResolvedPath = scanned;
+        this.worksheetResolvedAt = now;
+        this.reviewReportPath = scanned;
+        console.log(`[BIP Client] Discovered Certifier Worksheet report via catalog scan: "${scanned}"`);
+        return scanned;
+      }
+    } catch (err: any) {
+      console.warn('[BIP Client] Catalog scan for Certifier Worksheet report failed:', err.message);
+    }
+
+    return this.reviewReportPath;
+  }
+
+  private async scanCustomReportsForMainList(): Promise<string | null> {
     const xml = await this.soapCall(
       'getFolderContents',
       '    <pub:getFolderContents>\n      <pub:folderAbsolutePath>/Custom</pub:folderAbsolutePath>\n    </pub:getFolderContents>'
@@ -324,7 +375,29 @@ export class BipClient {
     for (const item of items) {
       const type = String(item?.type || '');
       const absPath = String(item?.absolutePath || '');
-      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.*cert|cert.*access|cert.*review|claaps.*cert)/i.test(absPath)) {
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.*cert.*review|claaps.*review|cert.*review|access.*cert.*report)/i.test(absPath)) {
+        if (await this.isReportExist(absPath)) return absPath;
+      }
+    }
+    return null;
+  }
+
+  private async scanCustomReportsForWorksheet(): Promise<string | null> {
+    const xml = await this.soapCall(
+      'getFolderContents',
+      '    <pub:getFolderContents>\n      <pub:folderAbsolutePath>/Custom</pub:folderAbsolutePath>\n    </pub:getFolderContents>'
+    );
+    const parsed: any = await xml2js.parseStringPromise(xml, {
+      explicitArray: false,
+      ignoreAttrs: true,
+      tagNameProcessors: [xml2js.processors.stripPrefix],
+    });
+    const contents = this.findFieldRecursively(parsed, 'catalogContents');
+    const items = contents?.item ? (Array.isArray(contents.item) ? contents.item : [contents.item]) : [];
+    for (const item of items) {
+      const type = String(item?.type || '');
+      const absPath = String(item?.absolutePath || '');
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access_certifier_worksheet|certifier_worksheet|claaps.*worksheet)/i.test(absPath)) {
         if (await this.isReportExist(absPath)) return absPath;
       }
     }
@@ -735,7 +808,7 @@ export class BipClient {
       };
     }
 
-    const reportPath = await this.findAccessCertReportPath();
+    const reportPath = await this.findCertifierWorksheetReportPath();
     const { baseUrl } = this.getCredentials();
     const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
     // Pass actual parameter P_CERTIFICATION_ID
@@ -1312,6 +1385,14 @@ export class BipClient {
       formattedDue = formattedDue.split('T')[0];
     }
 
+    const jobRole = String(row['Job Role Name'] ?? row['jobRoleName'] ?? row['JOB_ROLE_NAME'] ?? role).trim();
+    const position = String(row['User Position Name'] ?? row['userPositionName'] ?? row['Position Name'] ?? row['positionName'] ?? '').trim();
+    const userJob = String(row['User Job Name'] ?? row['userJobName'] ?? row['Job Name'] ?? row['jobName'] ?? '').trim();
+    const loc = String(row['User Location'] ?? row['userLocation'] ?? row['Location'] ?? row['location'] ?? '').trim();
+    const userRoleBu = String(row['User-Role Business Unit'] ?? row['userRoleBusinessUnit'] ?? bu).trim();
+    const userMgrName = String(row['User Manager Name'] ?? row['userManagerName'] ?? manager).trim();
+    const commentVal = String(row['Comment'] ?? row['comment'] ?? row['Comments'] ?? row['comments'] ?? '').trim();
+
     return {
       id: numericCertId,
       certificationId: numericCertId,
@@ -1319,16 +1400,24 @@ export class BipClient {
       certificationName: certName,
       userName: owner,
       ownerName: owner,
-      roleName: role,
+      roleName: jobRole || role,
+      jobRoleName: jobRole || role,
       roleCode: row['Role Code'] || row['roleCode'] || '',
       certifiedManager: manager,
       certifierName: manager || owner,
       certifierId: row['Certifier ID'] || row['certifierId'] || '',
       userBusinessUnit: bu,
       businessUnit: bu,
+      userRoleBusinessUnit: userRoleBu || bu,
       userManager: manager,
-      userManagerName: manager,
+      userManagerName: userMgrName || manager,
       directManager: row['Direct Manager'] || row['directManager'] || row['DIRECT_MANAGER'] || null,
+      userPositionName: position,
+      positionName: position,
+      userJobName: userJob,
+      jobName: userJob,
+      userLocation: loc,
+      location: loc,
       department: row['Department'] || row['department'] || '',
       status: String(row['Status'] ?? row['status'] ?? 'Active'),
       type: String(row['Type'] ?? row['type'] ?? 'Standard'),
@@ -1336,8 +1425,9 @@ export class BipClient {
       dueDate: String(row['Due Date'] ?? row['dueDate'] ?? ''),
       creationDate: String(row['Creation Date'] ?? row['creationDate'] ?? ''),
       createdBy: String(row['Created By'] ?? row['createdBy'] ?? ''),
-      action: row['Action'] || row['action'] || '',
-      comments: row['Comments'] || row['comments'] || '',
+      action: row['Action'] || row['action'] || 'Pending',
+      comment: commentVal,
+      comments: commentVal,
       followUpStatus: row['Follow-Up'] || row['followUpStatus'] || '',
       lastDecisionBy: row['Last Decision By'] || row['lastDecisionBy'] || '',
       lastDecisionDate: row['Last Decision Date'] || row['lastDecisionDate'] || ''

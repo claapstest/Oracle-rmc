@@ -46,7 +46,7 @@ async function runBipPipelineTests() {
   assert(envelope.includes('<wsse:UsernameToken'), 'Contains UsernameToken');
   assert(envelope.includes('<wsu:Created>'), 'Contains dynamic Created timestamp');
   assert(envelope.includes('<wsu:Expires>'), 'Contains dynamic Expires timestamp');
-  assert(envelope.includes('<pub:reportAbsolutePath>/Custom/Claaps Access Certification.xdo</pub:reportAbsolutePath>'), 'Points to /Custom/Claaps Access Certification.xdo');
+  assert(envelope.includes('<pub:reportAbsolutePath>/Custom/Claaps Access Certification Review Report.xdo</pub:reportAbsolutePath>'), 'Points to /Custom/Claaps Access Certification Review Report.xdo');
   assert(envelope.includes('<pub:attributeFormat>xlsx</pub:attributeFormat>'), 'Requests attributeFormat xlsx');
   assert(envelope.includes('<pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>'), 'Requests full size chunk download (-1)');
 
@@ -157,8 +157,8 @@ async function runBipPipelineTests() {
     { P_CERTIFICATION_ID: '35006' }
   );
   assert(
-    worksheetEnvelope.includes('<pub:reportAbsolutePath>/Custom/Claaps Access Certification review.xdo</pub:reportAbsolutePath>'),
-    'Points to /Custom/Claaps Access Certification review.xdo'
+    worksheetEnvelope.includes('<pub:reportAbsolutePath>/Custom/Claaps Access_certifier_worksheet.xdo</pub:reportAbsolutePath>'),
+    'Points to /Custom/Claaps Access_certifier_worksheet.xdo'
   );
   assert(worksheetEnvelope.includes('<pub:name>P_CERTIFICATION_ID</pub:name>'), 'Envelope contains parameter P_CERTIFICATION_ID');
   assert(worksheetEnvelope.includes('<pub:item>35006</pub:item>'), 'Envelope contains parameter value 35006');
