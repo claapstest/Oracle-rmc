@@ -14,6 +14,7 @@ import { auditDashboardService } from '../services/auditDashboardService.js';
 import { supervisorDashboardDbService } from '../services/supervisorDashboardDbService.js';
 import { reportDbService } from '../services/reportDbService.js';
 import { controlRawDbService } from '../services/controlRawDbService.js';
+import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1977,10 +1978,20 @@ apiRouter.get('/privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'PR
 
 apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
   try {
-    const result = await oracleService.getRoleHierarchyReport();
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await oracleService.getRoleHierarchyReport(forceRefresh);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
+  try {
+    const result = await roleHierarchyService.syncFromBip();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 

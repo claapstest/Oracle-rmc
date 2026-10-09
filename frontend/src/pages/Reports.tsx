@@ -31,7 +31,12 @@ import {
   User,
   Users,
   Sliders,
-  RotateCcw
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  FolderTree,
+  Key,
+  ExternalLink
 } from 'lucide-react';
 import { api } from '../services/api';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
@@ -224,6 +229,14 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   const [hierarchyIntegrationNotice, setHierarchyIntegrationNotice] = useState<string>('');
   const [rhSearch, setRhSearch] = useState<string>('');
   const [rhCategoryFilter, setRhCategoryFilter] = useState<string>('ALL');
+  const [rhViewMode, setRhViewMode] = useState<'TABLE' | 'TREE'>('TABLE');
+  const [rhSelectedRoleForTree, setRhSelectedRoleForTree] = useState<string>('');
+  const [rhTreeData, setRhTreeData] = useState<any | null>(null);
+  const [rhTreeLoading, setRhTreeLoading] = useState<boolean>(false);
+  const [rhTreeModalOpen, setRhTreeModalOpen] = useState<boolean>(false);
+  const [rhExpandedNodes, setRhExpandedNodes] = useState<Set<string>>(new Set());
+  const [rhExpandedPrivileges, setRhExpandedPrivileges] = useState<Set<string>>(new Set());
+  const [rhSyncing, setRhSyncing] = useState<boolean>(false);
 
   // -------------------------------------------------------------
   // 5. AUDIT HISTORY REPORT STATE
@@ -529,14 +542,18 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   };
 
   // Loader 4: Role Hierarchy
-  const loadRoleHierarchy = async () => {
+  const loadRoleHierarchy = async (forceRefresh = false) => {
     setHierarchyLoading(true);
     setHierarchyError('');
     setHierarchyIntegrationNotice('');
     try {
-      const res = await api.getRoleHierarchyReport();
-      if (res?.items) {
+      const res = await api.getRoleHierarchyReport(forceRefresh);
+      if (res?.items && Array.isArray(res.items)) {
         setHierarchyData(res.items);
+        if (res.items.length > 0 && !rhSelectedRoleForTree) {
+          const defaultJob = res.items.find((i: any) => i.category === 'Job') || res.items[0];
+          setRhSelectedRoleForTree(defaultJob.roleName || defaultJob.childRole);
+        }
       } else if (res?.integrationRequired) {
         setHierarchyIntegrationNotice(res.message || 'Live role hierarchy trees require privileged security catalog sync.');
         setHierarchyData([]);
@@ -547,6 +564,405 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     } finally {
       setHierarchyLoading(false);
     }
+  };
+
+  const loadRoleTree = async (roleName: string) => {
+    if (!roleName) return;
+    setRhSelectedRoleForTree(roleName);
+    setRhTreeLoading(true);
+    try {
+      const res = await api.getRoleHierarchy(roleName);
+      if (res && (res.success || res.childrenTree || res.parents)) {
+        setRhTreeData(res);
+        const exp = new Set<string>();
+        exp.add(roleName.toLowerCase());
+        (res.childrenTree || []).forEach((c: any) => exp.add(c.name.toLowerCase()));
+        setRhExpandedNodes(exp);
+      } else {
+        setRhTreeData(null);
+      }
+    } catch (err) {
+      console.error('Failed to load role tree:', err);
+      setRhTreeData(null);
+    } finally {
+      setRhTreeLoading(false);
+    }
+  };
+
+  const toggleTreeNode = (nodeKey: string) => {
+    setRhExpandedNodes(prev => {
+      const next = new Set(prev);
+      const key = nodeKey.toLowerCase();
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const togglePrivilegeNode = (nodeKey: string) => {
+    setRhExpandedPrivileges(prev => {
+      const next = new Set(prev);
+      const key = nodeKey.toLowerCase();
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const handleOpenTreeModal = (roleName: string) => {
+    setRhTreeModalOpen(true);
+    loadRoleTree(roleName);
+  };
+
+  const handleSyncHierarchyLive = async () => {
+    setRhSyncing(true);
+    try {
+      await api.syncRoleHierarchy();
+      await loadRoleHierarchy(true);
+    } catch (err: any) {
+      console.error('Live sync error:', err);
+      setHierarchyError('Failed to synchronize live hierarchy from Oracle Fusion.');
+    } finally {
+      setRhSyncing(false);
+    }
+  };
+
+  const expandAllTreeNodes = () => {
+    if (!rhTreeData) return;
+    const allKeys = new Set<string>();
+    const collectKeys = (node: any) => {
+      if (node.name) allKeys.add(node.name.toLowerCase());
+      if (node.children && node.children.length > 0) {
+        node.children.forEach(collectKeys);
+      }
+    };
+    allKeys.add(rhTreeData.roleName.toLowerCase());
+    (rhTreeData.childrenTree || []).forEach(collectKeys);
+    setRhExpandedNodes(allKeys);
+  };
+
+  const collapseAllTreeNodes = () => {
+    setRhExpandedNodes(new Set());
+  };
+
+  const renderHierarchyNode = (node: any, level = 0) => {
+    const isExpanded = rhExpandedNodes.has(node.name.toLowerCase());
+    const hasChildren = node.children && node.children.length > 0;
+    const hasPrivileges = node.privileges && node.privileges.length > 0;
+    const isPrivExpanded = rhExpandedPrivileges.has(node.name.toLowerCase());
+
+    return (
+      <div key={`${node.name}-${level}`} style={{ marginLeft: level > 0 ? `${Math.min(level * 22, 88)}px` : '0', marginBottom: '0.65rem' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.65rem 0.9rem',
+          borderRadius: '8px',
+          backgroundColor: level === 0 ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-secondary)',
+          border: level === 0 ? '1px solid rgba(37, 99, 235, 0.35)' : '1px solid var(--border-color)',
+          transition: 'all 0.15s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flex: 1, minWidth: 0 }}>
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleTreeNode(node.name)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title={isExpanded ? 'Collapse sub-roles' : 'Expand sub-roles'}
+              >
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </button>
+            ) : (
+              <div style={{ width: '16px' }} />
+            )}
+
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: level === 0 ? '#2563EB' : 'rgba(59, 130, 246, 0.1)',
+              color: level === 0 ? '#ffffff' : 'var(--accent-blue)',
+              flexShrink: 0
+            }}>
+              {level === 0 ? <Shield size={16} /> : <FolderTree size={15} />}
+            </div>
+
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                <span
+                  style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)', cursor: 'pointer' }}
+                  onClick={() => loadRoleTree(node.name)}
+                  title="Click to focus this role"
+                >
+                  {node.name}
+                </span>
+                {node.code && <code style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{node.code}</code>}
+                <span className={`badge ${node.type === 'JOB' ? 'badge-primary' : 'badge-gold'}`} style={{ fontSize: '0.66rem' }}>
+                  {node.type || node.category || 'Duty'}
+                </span>
+                {node.relationship && (
+                  <span className="badge badge-neutral" style={{ fontSize: '0.64rem' }}>
+                    {node.relationship}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            {hasPrivileges && (
+              <button
+                type="button"
+                onClick={() => togglePrivilegeNode(node.name)}
+                className="badge badge-neutral"
+                style={{
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.7rem',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: isPrivExpanded ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
+                  color: isPrivExpanded ? 'var(--accent-gold)' : 'var(--text-secondary)'
+                }}
+                title="Click to toggle functional privileges"
+              >
+                <Key size={12} />
+                <span>{node.privileges.length} Privileges</span>
+                {isPrivExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => loadRoleTree(node.name)}
+              className="btn btn-secondary"
+              style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              title="Focus this role in tree"
+            >
+              <GitFork size={12} /> Focus
+            </button>
+          </div>
+        </div>
+
+        {/* Privileges under this role */}
+        {hasPrivileges && isPrivExpanded && (
+          <div style={{
+            marginLeft: '2rem',
+            marginTop: '0.4rem',
+            marginBottom: '0.5rem',
+            padding: '0.65rem 0.9rem',
+            backgroundColor: 'var(--bg-tertiary)',
+            borderRadius: '6px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Key size={12} style={{ color: 'var(--accent-gold)' }} />
+              <span>Granted Functional Privileges ({node.privileges.length}):</span>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '180px', overflowY: 'auto' }}>
+              {node.privileges.map((p: any, idx: number) => (
+                <span
+                  key={`p-${node.name}-${idx}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    fontSize: '0.72rem',
+                    backgroundColor: 'var(--bg-primary)',
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)'
+                  }}
+                >
+                  <code style={{ fontSize: '0.7rem', color: 'var(--text-primary)' }}>{p.code || p.name}</code>
+                  {p.name && p.name !== p.code && <span style={{ opacity: 0.75 }}>({p.name})</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Child duties */}
+        {hasChildren && isExpanded && (
+          <div style={{ marginTop: '0.5rem', borderLeft: '2px solid var(--border-color)', paddingLeft: '0.75rem' }}>
+            {node.children.map((child: any) => renderHierarchyNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderHierarchyTreeContent = (isModal = false) => {
+    if (rhTreeLoading) {
+      return (
+        <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <RefreshCw size={30} className="animate-spin" style={{ margin: '0 auto 0.75rem auto', color: 'var(--accent-blue)' }} />
+          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Loading Role Hierarchy Tree...</div>
+          <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>
+            Tracing Job ➔ Duty ➔ Privileges relationships from Oracle Fusion
+          </div>
+        </div>
+      );
+    }
+
+    if (!rhTreeData) {
+      return (
+        <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <FolderTree size={36} style={{ margin: '0 auto 0.75rem auto', opacity: 0.4 }} />
+          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>No Role Selected</div>
+          <div style={{ fontSize: '0.82rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>
+            Select a role from the focus selector or click &quot;View Tree&quot; in the explorer table to inspect its full inheritance hierarchy.
+          </div>
+        </div>
+      );
+    }
+
+    const rootNode = {
+      name: rhTreeData.roleName,
+      code: rhTreeData.roleCode,
+      type: rhTreeData.category === 'Duty' ? 'DUTY' : 'JOB',
+      category: rhTreeData.category,
+      relationship: 'Root Focus Role',
+      privileges: rhTreeData.privileges || [],
+      children: rhTreeData.childrenTree || [],
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Tree Stats Bar */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.9rem 1.15rem',
+          backgroundColor: 'var(--bg-secondary)',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)',
+          gap: '0.75rem'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>{rhTreeData.roleName}</span>
+              <code style={{ fontSize: '0.8rem' }}>{rhTreeData.roleCode}</code>
+              <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>{rhTreeData.category}</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              Total Descendant Roles: <strong>{rhTreeData.totalDescendants}</strong> &bull; Direct Duties: <strong>{rhTreeData.childrenTree?.length || 0}</strong> &bull; Direct Privileges: <strong>{rhTreeData.privileges?.length || 0}</strong>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={expandAllTreeNodes}
+              style={{ fontSize: '0.76rem', padding: '0.3rem 0.65rem' }}
+            >
+              Expand All
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={collapseAllTreeNodes}
+              style={{ fontSize: '0.76rem', padding: '0.3rem 0.65rem' }}
+            >
+              Collapse All
+            </button>
+            {isModal && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setRhTreeModalOpen(false);
+                  setRhViewMode('TREE');
+                }}
+                style={{ fontSize: '0.76rem', padding: '0.3rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <ExternalLink size={12} /> Open in Page
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Section 1: Parent Grantor Roles */}
+        {rhTreeData.parents && rhTreeData.parents.length > 0 && (
+          <div style={{
+            padding: '0.85rem 1rem',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Layers size={14} style={{ color: 'var(--accent-blue)' }} />
+              <span>Parent Roles that Inherit or Grant this Role ({rhTreeData.parents.length}):</span>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+              {rhTreeData.parents.map((p: any) => (
+                <button
+                  key={`parent-${p.name}`}
+                  type="button"
+                  onClick={() => loadRoleTree(p.name)}
+                  className="badge badge-blue"
+                  style={{
+                    cursor: 'pointer',
+                    padding: '0.3rem 0.65rem',
+                    fontSize: '0.76rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    border: '1px solid rgba(37, 99, 235, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={`Focus parent role: ${p.name}`}
+                >
+                  <span>{p.name}</span>
+                  <span style={{ opacity: 0.7, fontSize: '0.68rem' }}>({p.type || 'ROLE'})</span>
+                  <ArrowRight size={11} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section 2: Recursive Hierarchy Tree */}
+        <div style={{
+          padding: '1rem',
+          backgroundColor: 'var(--bg-tertiary)',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)',
+          maxHeight: isModal ? '55vh' : 'auto',
+          overflowY: isModal ? 'auto' : 'visible'
+        }}>
+          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <FolderTree size={14} style={{ color: 'var(--accent-gold)' }} />
+            <span>Inheritance Tree: Job Role &rarr; Duty Role &rarr; Privileges</span>
+          </div>
+
+          {renderHierarchyNode(rootNode, 0)}
+        </div>
+      </div>
+    );
   };
 
   // Loader 5: Audit History
@@ -613,6 +1029,13 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       loadUserAccessReport();
     }
   }, [activeReportId]);
+
+  // Load role tree when tree view mode is active
+  useEffect(() => {
+    if (activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' && rhSelectedRoleForTree && !rhTreeData && !rhTreeLoading) {
+      loadRoleTree(rhSelectedRoleForTree);
+    }
+  }, [activeReportId, rhViewMode, rhSelectedRoleForTree]);
 
   // Audit Product Catalog loads lazily: only when the Audit History report is opened
   useEffect(() => {
@@ -1868,43 +2291,142 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             REPORT 4: ROLE HIERARCHY FILTERS
             ------------------------------------------------------------- */}
         {activeReportId === 'ROLE_HIERARCHY' && (
-          <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Search parent role, child role, or relation type..."
-                value={rhSearch}
-                onChange={(e) => { setRhSearch(e.target.value); setCurrentPage(1); }}
-                style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
-              />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+              {/* View Mode Toggle */}
+              <div style={{ display: 'flex', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', padding: '3px', border: '1px solid var(--border-color)', gap: '0.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setRhViewMode('TABLE')}
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    backgroundColor: rhViewMode === 'TABLE' ? 'var(--accent-blue)' : 'transparent',
+                    color: rhViewMode === 'TABLE' ? '#ffffff' : 'var(--text-secondary)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Layers size={14} /> Parent-Child Table
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRhViewMode('TREE');
+                    if (rhSelectedRoleForTree && !rhTreeData) {
+                      loadRoleTree(rhSelectedRoleForTree);
+                    }
+                  }}
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    backgroundColor: rhViewMode === 'TREE' ? 'var(--accent-blue)' : 'transparent',
+                    color: rhViewMode === 'TREE' ? '#ffffff' : 'var(--text-secondary)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <FolderTree size={14} /> Interactive Tree View
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => loadRoleHierarchy(false)}
+                  disabled={hierarchyLoading || rhSyncing}
+                  style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  title="Reload role hierarchy records"
+                >
+                  <RefreshCw size={14} className={hierarchyLoading ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSyncHierarchyLive}
+                  disabled={hierarchyLoading || rhSyncing}
+                  style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                  title="Re-run live BIP query against Oracle Fusion"
+                >
+                  <Database size={14} className={rhSyncing ? 'animate-spin' : ''} />
+                  <span>{rhSyncing ? 'Syncing BIP Live...' : 'Sync Oracle Fusion BIP'}</span>
+                </button>
+              </div>
             </div>
 
-            <select
-              className="form-select"
-              value={rhCategoryFilter}
-              onChange={(e) => { setRhCategoryFilter(e.target.value); setCurrentPage(1); }}
-              style={{ width: '150px', fontSize: '0.84rem' }}
-            >
-              <option value="ALL">Category: All</option>
-              <option value="Job">Job Roles</option>
-              <option value="Duty">Duty Roles</option>
-              <option value="Abstract">Abstract Roles</option>
-              <option value="Data">Data Roles</option>
-              <option value="GRC">GRC Roles</option>
-            </select>
+            {/* Filter controls row */}
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={rhViewMode === 'TABLE' ? 'Search parent role, child role, or relation type...' : 'Type to search role tree...'}
+                  value={rhSearch}
+                  onChange={(e) => {
+                    setRhSearch(e.target.value);
+                    setCurrentPage(1);
+                    if (rhViewMode === 'TREE' && e.target.value.length > 2) {
+                      const match = hierarchyData.find((h: any) =>
+                        h.roleName.toLowerCase().includes(e.target.value.toLowerCase()) ||
+                        h.childRole.toLowerCase().includes(e.target.value.toLowerCase()) ||
+                        h.parentRole.toLowerCase().includes(e.target.value.toLowerCase())
+                      );
+                      if (match) {
+                        loadRoleTree(match.roleName || match.childRole);
+                      }
+                    }
+                  }}
+                  style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
+                />
+              </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={loadRoleHierarchy}
-              disabled={hierarchyLoading}
-              style={{ fontSize: '0.82rem' }}
-            >
-              <RefreshCw size={14} className={hierarchyLoading ? 'animate-spin' : ''} />
-              <span>Refresh</span>
-            </button>
+              <select
+                className="form-select"
+                value={rhCategoryFilter}
+                onChange={(e) => { setRhCategoryFilter(e.target.value); setCurrentPage(1); }}
+                style={{ width: '160px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">Category: All</option>
+                <option value="Job">Job Roles</option>
+                <option value="Duty">Duty Roles</option>
+                <option value="Abstract">Abstract Roles</option>
+                <option value="Data">Data Roles</option>
+                <option value="GRC">GRC Roles</option>
+              </select>
+
+              {rhViewMode === 'TREE' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Focus Role:</span>
+                  <select
+                    className="form-select"
+                    value={rhSelectedRoleForTree}
+                    onChange={(e) => loadRoleTree(e.target.value)}
+                    style={{ maxWidth: '240px', fontSize: '0.84rem', fontWeight: 600 }}
+                  >
+                    {Array.from(new Set(filteredHierarchyData.slice(0, 100).map((h: any) => h.roleName))).map((name: any) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -2741,61 +3263,137 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
           {/* Table 4: Role Hierarchy */}
           {activeReportId === 'ROLE_HIERARCHY' && (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="enterprise-table">
-                <thead>
-                  <tr>
-                    <th>Role</th>
-                    <th>Role Code</th>
-                    <th>Category</th>
-                    <th>Parent Role</th>
-                    <th>Child Role</th>
-                    <th>Relationship Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {hierarchyLoading ? (
-                    Array.from({ length: 8 }).map((_, idx) => (
-                      <tr key={`rh-skel-${idx}`} className="animate-pulse">
-                        <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                      </tr>
-                    ))
-                  ) : hierarchyIntegrationNotice ? (
+            rhViewMode === 'TREE' ? (
+              renderHierarchyTreeContent(false)
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="enterprise-table">
+                  <thead>
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-                          <AlertCircle size={28} style={{ color: 'var(--accent-gold)', marginBottom: '0.5rem' }} />
-                          <div style={{ fontWeight: 600, fontSize: '0.92rem', marginBottom: '0.25rem' }}>Hierarchy Tree Information</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{hierarchyIntegrationNotice}</div>
-                        </div>
-                      </td>
+                      <th>Role</th>
+                      <th>Role Code</th>
+                      <th>Category</th>
+                      <th>Parent Role</th>
+                      <th>Child Role</th>
+                      <th>Relationship Type</th>
+                      <th>Functional Privileges</th>
+                      <th style={{ textAlign: 'right' }}>Hierarchy Action</th>
                     </tr>
-                  ) : paginatedSlice.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                        No hierarchy relationships found.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedSlice.map((item: any) => (
-                      <tr key={item.id}>
-                        <td style={{ fontWeight: 600 }}>{item.roleName}</td>
-                        <td><code style={{ fontSize: '0.78rem' }}>{item.roleCode}</code></td>
-                        <td><span className="badge badge-gold" style={{ fontSize: '0.68rem' }}>{item.category}</span></td>
-                        <td>{item.parentRole}</td>
-                        <td>{item.childRole}</td>
-                        <td><span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>{item.relationshipType}</span></td>
+                  </thead>
+                  <tbody>
+                    {hierarchyLoading ? (
+                      Array.from({ length: 8 }).map((_, idx) => (
+                        <tr key={`rh-skel-${idx}`} className="animate-pulse">
+                          <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                          <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td><div style={{ height: '18px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                          <td><div style={{ height: '18px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                          <td><div style={{ height: '24px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
+                        </tr>
+                      ))
+                    ) : hierarchyIntegrationNotice ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+                            <AlertCircle size={28} style={{ color: 'var(--accent-gold)', marginBottom: '0.5rem' }} />
+                            <div style={{ fontWeight: 600, fontSize: '0.92rem', marginBottom: '0.25rem' }}>Hierarchy Tree Information</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{hierarchyIntegrationNotice}</div>
+                          </div>
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : paginatedSlice.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                          No hierarchy relationships found.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedSlice.map((item: any) => (
+                        <tr key={item.id}>
+                          <td style={{ fontWeight: 600 }}>
+                            <span
+                              style={{ color: 'var(--accent-blue)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                              onClick={() => handleOpenTreeModal(item.roleName)}
+                              title="Click to view hierarchy tree"
+                            >
+                              <Shield size={13} style={{ flexShrink: 0 }} />
+                              {item.roleName}
+                            </span>
+                          </td>
+                          <td><code style={{ fontSize: '0.78rem' }}>{item.roleCode}</code></td>
+                          <td>
+                            <span className={`badge ${item.category === 'Job' ? 'badge-primary' : item.category === 'Duty' ? 'badge-gold' : 'badge-neutral'}`} style={{ fontSize: '0.68rem' }}>
+                              {item.category}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              style={{ cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline dotted', textUnderlineOffset: '3px' }}
+                              onClick={() => handleOpenTreeModal(item.parentRole)}
+                              title="Click to inspect parent role tree"
+                            >
+                              {item.parentRole}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              style={{ cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline dotted', textUnderlineOffset: '3px' }}
+                              onClick={() => handleOpenTreeModal(item.childRole)}
+                              title="Click to inspect child role tree"
+                            >
+                              {item.childRole}
+                            </span>
+                          </td>
+                          <td><span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>{item.relationshipType}</span></td>
+                          <td>
+                            {item.privileges && item.privileges.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenTreeModal(item.roleName || item.childRole)}
+                                className="badge badge-blue"
+                                style={{
+                                  fontSize: '0.7rem',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  border: '1px solid rgba(37, 99, 235, 0.25)',
+                                  backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                                  color: 'var(--accent-blue)',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px'
+                                }}
+                                title={item.privileges.slice(0, 8).map((p: any) => `• ${p.name || p.code} (${p.code})`).join('\n') + (item.privileges.length > 8 ? `\n...and ${item.privileges.length - 8} more privileges` : '')}
+                              >
+                                <Key size={11} style={{ flexShrink: 0 }} />
+                                <span>{item.privileges.length} Privileges</span>
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => handleOpenTreeModal(item.roleName || item.childRole)}
+                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                              title="Open interactive hierarchy tree"
+                            >
+                              <FolderTree size={12} />
+                              <span>View Tree</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
 
           {/* Table 5: Audit History */}
@@ -3034,57 +3632,75 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
         {/* -------------------------------------------------------------
             5. PAGINATION & DATASET FOOTER
             ------------------------------------------------------------- */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            Showing {totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalRows)} of <strong>{totalRows.toLocaleString()}</strong> applicable records
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Rows per page:</span>
-              <select
-                className="form-select"
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(parseInt(e.target.value, 10));
-                  setCurrentPage(1);
-                }}
-                style={{ padding: '0.2rem 0.5rem', height: '28px', fontSize: '0.78rem' }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+        {activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1.1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              Tree View Mode: Inspecting <strong>{rhSelectedRoleForTree || 'Selected Role'}</strong> across live Oracle Fusion inheritance trees (17,255 distinct role relationships).
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{ padding: '0.25rem 0.55rem', height: '28px' }}
+                onClick={() => setRhViewMode('TABLE')}
+                style={{ fontSize: '0.76rem', padding: '0.3rem 0.65rem' }}
               >
-                <ChevronLeft size={14} />
-              </button>
-
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', padding: '0 0.35rem' }}>
-                Page {currentPage} of {totalPages}
-              </span>
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages || totalRows === 0}
-                style={{ padding: '0.25rem 0.55rem', height: '28px' }}
-              >
-                <ChevronRight size={14} />
+                Switch to Table View
               </button>
             </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              Showing {totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalRows)} of <strong>{totalRows.toLocaleString()}</strong> applicable records
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Rows per page:</span>
+                <select
+                  className="form-select"
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(parseInt(e.target.value, 10));
+                    setCurrentPage(1);
+                  }}
+                  style={{ padding: '0.2rem 0.5rem', height: '28px', fontSize: '0.78rem' }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  style={{ padding: '0.25rem 0.55rem', height: '28px' }}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', padding: '0 0.35rem' }}>
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || totalRows === 0}
+                  style={{ padding: '0.25rem 0.55rem', height: '28px' }}
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
       ) : (
@@ -3409,6 +4025,90 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* -------------------------------------------------------------
+          7. ROLE HIERARCHY TREE MODAL
+          ------------------------------------------------------------- */}
+      {rhTreeModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '920px',
+            maxHeight: '90vh',
+            backgroundColor: 'var(--bg-primary)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 20px 45px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.1rem 1.4rem',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                  color: '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FolderTree size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, fontFamily: 'var(--font-header)', color: 'var(--text-primary)' }}>
+                    Role Hierarchy Explorer
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Job Role &rarr; Duty Role &rarr; Granted Privileges Tree
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setRhTreeModalOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem' }}
+                  title="Close modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
+              {renderHierarchyTreeContent(true)}
+            </div>
           </div>
         </div>
       )}

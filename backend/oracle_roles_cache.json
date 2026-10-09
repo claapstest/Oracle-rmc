@@ -1,10 +1,10 @@
 {
-  "syncedAt": "2026-10-09T14:51:50.555Z",
-  "totalResults": 701,
+  "syncedAt": "2026-10-09T16:28:27.931Z",
+  "totalResults": 703,
   "counts": {
     "Job": 507,
     "Duty": 2,
-    "Data": 46,
+    "Data": 48,
     "Abstract": 107,
     "GRC": 12,
     "Other": 27
@@ -25190,6 +25190,10 @@
         },
         {
           "value": "306FAE70D8F8688EE063B9131CAC7E49",
+          "display": ""
+        },
+        {
+          "value": "F3799090348F437EB85B25EC1C52AC9A",
           "display": ""
         },
         {
@@ -68534,6 +68538,10 @@
           "display": ""
         },
         {
+          "value": "51C03E68CEC54157B1F1755066B6A6A2",
+          "display": ""
+        },
+        {
           "value": "34D3B6657DAB097AE063B9131CAC0A4E",
           "display": ""
         },
@@ -69414,6 +69422,10 @@
       "category": "Data",
       "description": "Recruiter View All Data",
       "members": [
+        {
+          "value": "F3799090348F437EB85B25EC1C52AC9A",
+          "display": ""
+        },
         {
           "value": "34D3B6199FAE0920E063B9131CAC099B",
           "display": ""
@@ -70864,6 +70876,38 @@
       "members": [
         {
           "value": "AAC3DBA9A66A4BECBD43DCFB57CE46CF",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "A9BDCC278E5E4BB08711AEE2E9B44FC9",
+      "displayName": "Demo Org Test",
+      "roleCode": "DEMO_ORG_TEST_DATA",
+      "category": "Data",
+      "description": "Demo Org Test Data",
+      "members": [
+        {
+          "value": "635D628D8232441EBF0A058F882B0731",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "F1FBFFC21009488CBEE93DB31CC3A57A",
+      "displayName": "Demo Org Test Payroll Admin",
+      "roleCode": "DEMO_ORG_TEST_PAYROLL_ADMIN_DATA",
+      "category": "Data",
+      "description": "Demo Org Test Payroll Admin Data",
+      "members": [
+        {
+          "value": "EC0E4404FAB54309AC2A48199E7158A6",
           "display": ""
         }
       ],

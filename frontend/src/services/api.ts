@@ -270,8 +270,12 @@ export const api = {
     return apiRequest(`/roles/${encodeURIComponent(roleName)}/hierarchy`);
   },
 
-  async getRoleHierarchyReport() {
-    return apiRequest('/reports/role-hierarchy');
+  async getRoleHierarchyReport(forceRefresh = false) {
+    return apiRequest(`/reports/role-hierarchy${forceRefresh ? '?refresh=true' : ''}`);
+  },
+
+  async syncRoleHierarchy() {
+    return apiRequest('/reports/role-hierarchy/sync', { method: 'POST' });
   },
 
   // Mock 10 reports list: scope-enforced server-side (AC11).

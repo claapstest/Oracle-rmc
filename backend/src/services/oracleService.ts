@@ -10,6 +10,7 @@ import { auditProductCatalogService, AuditProduct } from './auditProductCatalogS
 import { bipClient } from '../oracle/bipClient.js';
 import { userAccessReportService } from './userAccessReportService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
+import { roleHierarchyService } from './roleHierarchyService.js';
 export { classifyRoleRecord };
 
 const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
@@ -2056,15 +2057,34 @@ class OracleService {
       };
     }
 
-    return {
-      success: false,
-      integrationRequired: true,
-      dataSource: 'Oracle Fusion',
-      message: 'Oracle REST API integration required. The Oracle Fusion SCIM API (/hcmRestApi/scim/Roles) does not natively return complete role hierarchies. Accessing hierarchies requires either configuration of a custom Oracle BI Publisher report service or the separate Security Console REST APIs.'
-    };
+    try {
+      const tree = await roleHierarchyService.getRoleHierarchyTree(roleName);
+      return {
+        success: true,
+        dataSource: 'Live Oracle Fusion (BIP)',
+        roleName: tree.roleName,
+        roleCode: tree.roleCode,
+        category: tree.category,
+        parents: tree.parents,
+        childrenTree: tree.childrenTree,
+        privileges: tree.privileges,
+        totalDescendants: tree.totalDescendants,
+        hierarchy: {
+          name: tree.roleName,
+          code: tree.roleCode,
+          category: tree.category,
+          children: tree.childrenTree
+        }
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.message || 'Failed to retrieve role hierarchy tree.'
+      };
+    }
   }
 
-  async getRoleHierarchyReport() {
+  async getRoleHierarchyReport(forceRefresh = false) {
     if (this.isDemoMode()) {
       const rows: Array<{
         roleName: string;
@@ -2131,14 +2151,19 @@ class OracleService {
       };
     }
 
-    return {
-      success: false,
-      integrationRequired: true,
-      dataSource: 'Oracle Fusion',
-      message: 'Live Oracle Fusion hierarchy data is not currently available. The Oracle Fusion SCIM API (/hcmRestApi/scim/Roles) does not natively return complete role hierarchies. Accessing hierarchies requires either configuration of a custom Oracle BI Publisher report service or the separate Security Console REST APIs.',
-      items: [],
-      totalCount: 0
-    };
+    try {
+      const result = await roleHierarchyService.getHierarchyReport({ forceRefresh });
+      return result;
+    } catch (err: any) {
+      return {
+        success: false,
+        integrationRequired: false,
+        dataSource: 'Oracle Fusion (BIP)',
+        message: err.message || 'Unable to retrieve role inheritance hierarchy from Oracle Fusion.',
+        items: [],
+        totalCount: 0
+      };
+    }
   }
 
   async getPrivilegesForRole(roleName: string) {
