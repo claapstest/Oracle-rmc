@@ -144,6 +144,8 @@ export class ControlCatalogService {
   private incidentCountCacheService: IncidentCountCacheService;
   private catalog: AdvancedControlItem[] = [];
   private lastRefreshedAt: string = '';
+  private lastCatalogFetchTime: number = 0;
+  private readonly CATALOG_CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute TTL to keep control statuses (ACTIVE/INACTIVE) fresh
   private byId = new Map<string, AdvancedControlItem>();
   private byName = new Map<string, AdvancedControlItem>();
   private byNormalizedName = new Map<string, AdvancedControlItem>();
@@ -239,8 +241,9 @@ export class ControlCatalogService {
    */
   public async getAllControls(forceRefresh = false): Promise<ControlCatalogResult> {
     const isDemo = this.isDemoMode();
+    const isStale = (Date.now() - this.lastCatalogFetchTime) > this.CATALOG_CACHE_TTL_MS;
 
-    if (!forceRefresh && this.catalog.length > 0) {
+    if (!forceRefresh && !isStale && this.catalog.length > 0) {
       const activeCount = this.catalog.filter(c => c.status === 'ACTIVE').length;
       const approvedCount = this.catalog.filter(c => c.state === 'APPROVED').length;
       return {
@@ -314,8 +317,13 @@ export class ControlCatalogService {
 
       const normalized = allRaw.map(item => {
         const ctrl = this.normalizeControl(item);
+
+        // Persist fresh control definition with current ACTIVE / INACTIVE status to PostgreSQL
+        controlRawDbService.saveRawControl(ctrl.id, item).catch(() => {});
+
+        const cachedCount = this.incidentCountCacheService.getCount(ctrl.id);
+
         if (ctrl.incidentCount === undefined) {
-          const cachedCount = this.incidentCountCacheService.getCount(ctrl.id);
           if (cachedCount && typeof cachedCount.count === 'number') {
             ctrl.incidentCount = cachedCount.count;
           } else {
@@ -326,45 +334,55 @@ export class ControlCatalogService {
           }
         }
 
-        // Attach authoritative incident lifecycle status breakdown
-        const cachedInc = this.incidentCacheService.readCache(ctrl.id);
-        if (cachedInc && Array.isArray(cachedInc.incidents) && cachedInc.incidents.length > 0) {
-          let assigned = 0, accepted = 0, remediate = 0, resolved = 0;
-          for (const inc of cachedInc.incidents) {
-            const st = (inc.status || '').toUpperCase();
-            const state = (inc.state || '').toUpperCase();
-            if (st.includes('ACCEPT') || state.includes('ACCEPT')) accepted++;
-            else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) remediate++;
-            else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE') || inc.closedDate) resolved++;
-            else assigned++;
-          }
-          const total = ctrl.incidentCount ?? cachedInc.totalResults ?? cachedInc.incidents.length;
-          if (total > cachedInc.incidents.length && cachedInc.incidents.length > 0) {
-            const scaledAssigned = Math.round((assigned / cachedInc.incidents.length) * total);
-            const scaledAccepted = Math.round((accepted / cachedInc.incidents.length) * total);
-            const scaledRemediate = Math.round((remediate / cachedInc.incidents.length) * total);
-            const scaledResolved = total - (scaledAssigned + scaledAccepted + scaledRemediate);
-            ctrl.incidentBreakdown = {
-              assigned: scaledAssigned,
-              accepted: scaledAccepted,
-              remediate: scaledRemediate,
-              resolved: Math.max(0, scaledResolved)
-            };
-          } else {
-            ctrl.incidentBreakdown = { assigned, accepted, remediate, resolved };
-          }
-        } else if (typeof ctrl.incidentCount === 'number') {
+        // Attach authoritative incident lifecycle status breakdown (Accepted, Assigned, Remediate, Resolved)
+        if (cachedCount && typeof cachedCount.assigned === 'number') {
           ctrl.incidentBreakdown = {
-            assigned: ctrl.incidentCount,
-            accepted: 0,
-            remediate: 0,
-            resolved: 0
+            assigned: cachedCount.assigned,
+            accepted: cachedCount.accepted ?? 0,
+            remediate: cachedCount.remediate ?? 0,
+            resolved: cachedCount.resolved ?? 0,
           };
+        } else {
+          const cachedInc = this.incidentCacheService.readCache(ctrl.id);
+          if (cachedInc && Array.isArray(cachedInc.incidents) && cachedInc.incidents.length > 0) {
+            let assigned = 0, accepted = 0, remediate = 0, resolved = 0;
+            for (const inc of cachedInc.incidents) {
+              const st = (inc.status || '').toUpperCase();
+              const state = (inc.state || '').toUpperCase();
+              if (st.includes('ACCEPT') || state.includes('ACCEPT')) accepted++;
+              else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) remediate++;
+              else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE') || inc.closedDate) resolved++;
+              else assigned++;
+            }
+            const total = ctrl.incidentCount ?? cachedInc.totalResults ?? cachedInc.incidents.length;
+            if (total > cachedInc.incidents.length && cachedInc.incidents.length > 0) {
+              const scaledAssigned = Math.round((assigned / cachedInc.incidents.length) * total);
+              const scaledAccepted = Math.round((accepted / cachedInc.incidents.length) * total);
+              const scaledRemediate = Math.round((remediate / cachedInc.incidents.length) * total);
+              const scaledResolved = total - (scaledAssigned + scaledAccepted + scaledRemediate);
+              ctrl.incidentBreakdown = {
+                assigned: scaledAssigned,
+                accepted: scaledAccepted,
+                remediate: scaledRemediate,
+                resolved: Math.max(0, scaledResolved)
+              };
+            } else {
+              ctrl.incidentBreakdown = { assigned, accepted, remediate, resolved };
+            }
+          } else if (typeof ctrl.incidentCount === 'number') {
+            ctrl.incidentBreakdown = {
+              assigned: ctrl.incidentCount,
+              accepted: 0,
+              remediate: 0,
+              resolved: 0
+            };
+          }
         }
 
         return ctrl;
       });
       this.indexControls(normalized);
+      this.lastCatalogFetchTime = Date.now();
       this.lastRefreshedAt = new Date().toISOString();
 
       // Trigger non-blocking background count synchronization for any stale or missing controls

@@ -174,6 +174,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   // Catalog / Domain Incident Status Analytics & Filter state (Assigned, Accepted, Remediate, Resolved)
   const [domainIncidentLifecycleFilter, setDomainIncidentLifecycleFilter] = useState<'ALL' | 'ASSIGNED' | 'ACCEPTED' | 'REMEDIATE' | 'RESOLVED'>('ALL');
   const [hoveredDomainLifecycleKey, setHoveredDomainLifecycleKey] = useState<string | null>(null);
+  const [hoveredControlStatusKey, setHoveredControlStatusKey] = useState<string | null>(null);
 
   const [incidentSyncState, setIncidentSyncState] = useState<{
     cacheStatus: 'NOT_CACHED' | 'SYNCING' | 'READY' | 'PARTIAL' | 'ERROR';
@@ -2582,44 +2583,297 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                 Catalog synced: {lastRefreshed}
               </span>
             )}
-          </div>          {/* 3. Incident Status Analytics & KPI Cards (Donut Pie Chart on Incident Lifecycle: Assigned, Accepted, Remediate, Resolved) */}
+          </div>          {/* 3. Dual Analytics Cards: Left = Controls Posture (Active vs Inactive Donut & KPI Cards), Right = Incident Lifecycle (Donut & Status Cards) */}
           <div 
-            className="glass-panel" 
             style={{ 
-              padding: '1.25rem 1.5rem', 
-              marginBottom: '1.75rem',
-              border: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-secondary)',
-              borderRadius: '10px'
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', 
+              gap: '1.25rem', 
+              marginBottom: '1.75rem' 
             }}
           >
-            {/* Top Header Row with Chart Title, Subtitle and Clear Filter action */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <PieChart size={17} style={{ color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981' }} />
-                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                    {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Incident Status Distribution
-                  </h4>
-                  <span 
-                    className="badge" 
+            {/* Left Card: Controls Posture (Active vs Inactive Controls) */}
+            <div 
+              className="glass-panel" 
+              style={{ 
+                padding: '1.25rem 1.4rem', 
+                border: '1px solid var(--border-color)', 
+                backgroundColor: 'var(--bg-secondary)', 
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ShieldCheck size={17} style={{ color: '#10B981' }} />
+                    <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                      {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Posture
+                    </h4>
+                    <span 
+                      className="badge" 
+                      style={{ 
+                        fontSize: '0.72rem', 
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                        color: '#10B981', 
+                        border: '1px solid rgba(16, 185, 129, 0.25)', 
+                        fontWeight: 600 
+                      }}
+                    >
+                      Controls Status
+                    </span>
+                  </div>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Active enforcement vs inactive governance controls in domain.
+                  </p>
+                </div>
+
+                {statusFilter !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('ALL')}
+                    className="btn btn-secondary"
                     style={{ 
-                      fontSize: '0.72rem', 
-                      backgroundColor: activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                      color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981', 
-                      border: `1px solid ${activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '0.35rem', 
+                      fontSize: '0.74rem', 
+                      padding: '0.22rem 0.55rem',
+                      color: 'var(--accent-gold)',
+                      borderColor: 'var(--accent-gold)'
+                    }}
+                    title="Clear control status filter"
+                  >
+                    <X size={12} /> Clear Filter ({statusFilter})
+                  </button>
+                )}
+              </div>
+
+              {/* Controls Donut + Status Cards */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
+                {/* SVG Donut Chart for Active vs Inactive */}
+                {(() => {
+                  const radius = 45;
+                  const circumference = 2 * Math.PI * radius;
+                  let accOffset = 0;
+                  const activeHovered = hoveredControlStatusKey ? controlStatusStats.items.find(i => i.key === hoveredControlStatusKey) : null;
+
+                  return (
+                    <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
+                      <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
+                        <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
+                        {controlStatusStats.items.map(seg => {
+                          if (seg.pct <= 0) return null;
+                          const dash = (seg.pct / 100) * circumference;
+                          const offset = -accOffset;
+                          accOffset += dash;
+                          const isHovered = hoveredControlStatusKey === seg.key;
+                          const isFiltered = statusFilter === seg.key;
+
+                          return (
+                            <circle
+                              key={seg.key}
+                              cx="60"
+                              cy="60"
+                              r={radius}
+                              fill="none"
+                              stroke={seg.color}
+                              strokeWidth={isHovered ? 16 : 13}
+                              strokeDasharray={`${dash} ${circumference - dash}`}
+                              strokeDashoffset={offset}
+                              style={{
+                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: 'pointer',
+                                filter: isHovered 
+                                  ? `drop-shadow(0 0 6px ${seg.color})` 
+                                  : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
+                                opacity: hoveredControlStatusKey !== null
+                                  ? (isHovered ? 1 : 0.4)
+                                  : (statusFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
+                              }}
+                              onMouseEnter={() => setHoveredControlStatusKey(seg.key)}
+                              onMouseLeave={() => setHoveredControlStatusKey(null)}
+                              onClick={() => setStatusFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
+                            />
+                          );
+                        })}
+                      </svg>
+
+                      {/* Center Text */}
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          pointerEvents: 'none',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHovered ? activeHovered.color : 'var(--text-primary)', lineHeight: 1.1, transition: 'color 0.2s ease' }}>
+                          {activeHovered ? activeHovered.count : controlStatusStats.total}
+                        </span>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem' }}>
+                          {activeHovered ? activeHovered.label.replace(' Controls', '') : 'Controls'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Right Column: Active and Inactive Control Tiles */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', flex: 1, minWidth: '220px' }}>
+                  {controlStatusStats.items.map(item => {
+                    const isSelected = statusFilter === item.key;
+                    const isHovered = hoveredControlStatusKey === item.key;
+                    const IconComponent = item.icon;
+
+                    return (
+                      <div
+                        key={item.key}
+                        onClick={() => setStatusFilter(prev => prev === item.key ? 'ALL' : item.key)}
+                        onMouseEnter={() => setHoveredControlStatusKey(item.key)}
+                        onMouseLeave={() => setHoveredControlStatusKey(null)}
+                        style={{
+                          padding: '0.7rem 0.9rem',
+                          backgroundColor: isSelected ? item.bg : (isHovered ? item.bg : 'var(--bg-primary)'),
+                          border: isSelected ? `2px solid ${item.color}` : (isHovered ? `1px solid ${item.color}` : '1px solid var(--border-color)'),
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? `0 0 10px ${item.color}35` : (isHovered ? `0 0 8px ${item.color}30` : 'none')
+                        }}
+                        title={`${item.description} - Click to filter controls`}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <IconComponent size={14} style={{ color: item.color }} />
+                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {item.label}
+                            </span>
+                          </div>
+                          <span 
+                            className="badge" 
+                            style={{ 
+                              fontSize: '0.68rem', 
+                              fontWeight: 600,
+                              backgroundColor: item.bg, 
+                              color: item.color, 
+                              border: `1px solid ${item.border}` 
+                            }}
+                          >
+                            {item.pct.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                            {item.count}
+                          </span>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                            {item.description}
+                          </span>
+                        </div>
+
+                        <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.45rem', overflow: 'hidden' }}>
+                          <div 
+                            style={{ 
+                              height: '100%', 
+                              width: `${Math.max(item.pct, item.count > 0 ? 4 : 0)}%`, 
+                              backgroundColor: item.color,
+                              borderRadius: '2px',
+                              transition: 'width 0.4s ease'
+                            }} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status Filter Banner */}
+              {statusFilter !== 'ALL' && (
+                <div 
+                  style={{ 
+                    marginTop: '0.85rem', 
+                    padding: '0.45rem 0.75rem', 
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)', 
+                    border: '1px solid rgba(16, 185, 129, 0.25)', 
+                    borderRadius: '6px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    fontSize: '0.78rem', 
+                    color: 'var(--text-primary)' 
+                  }}
+                >
+                  <span>
+                    Filtering by control status: <strong>{statusFilter}</strong> ({filteredControls.length} controls)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('ALL')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#10B981',
+                      textDecoration: 'underline',
+                      fontSize: '0.76rem',
+                      cursor: 'pointer',
                       fontWeight: 600
                     }}
                   >
-                    Oracle Lifecycle
-                  </span>
+                    Clear
+                  </button>
                 </div>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Continuous monitoring breakdown across the 4 standard Oracle incident lifecycle statuses: Assigned, Accepted, Remediate, and Resolved. Click any pie slice or status card to filter controls.
-                </p>
-              </div>
+              )}
+            </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Right Card: Incident Status Analytics & KPI Cards (Donut Pie Chart on Incident Lifecycle: Assigned, Accepted, Remediate, Resolved) */}
+            <div 
+              className="glass-panel" 
+              style={{ 
+                padding: '1.25rem 1.4rem', 
+                border: '1px solid var(--border-color)', 
+                backgroundColor: 'var(--bg-secondary)', 
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              {/* Top Header Row with Chart Title, Subtitle and Clear Filter action */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <PieChart size={17} style={{ color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981' }} />
+                    <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                      {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Incident Status
+                    </h4>
+                    <span 
+                      className="badge" 
+                      style={{ 
+                        fontSize: '0.72rem', 
+                        backgroundColor: activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
+                        color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981', 
+                        border: `1px solid ${activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+                        fontWeight: 600
+                      }}
+                    >
+                      Oracle Lifecycle
+                    </span>
+                  </div>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Continuous monitoring breakdown across 4 standard lifecycle statuses.
+                  </p>
+                </div>
+
                 {domainIncidentLifecycleFilter !== 'ALL' && (
                   <button
                     type="button"
@@ -2629,224 +2883,203 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       display: 'inline-flex', 
                       alignItems: 'center', 
                       gap: '0.35rem', 
-                      fontSize: '0.75rem', 
-                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.74rem', 
+                      padding: '0.22rem 0.55rem',
                       color: 'var(--accent-gold)',
                       borderColor: 'var(--accent-gold)'
                     }}
-                    title="Clear status filter and show all records"
+                    title="Clear incident status filter"
                   >
                     <X size={12} /> Clear Filter ({domainIncidentLifecycleFilter})
                   </button>
                 )}
               </div>
-            </div>
 
-            {/* Donut Pie Chart with 4 Lifecycle Status Cards */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.75rem' }}>
-              {/* Left: Interactive SVG Donut Chart */}
-              {(() => {
-                const radius = 45;
-                const circumference = 2 * Math.PI * radius; // ~282.743
-                let accOffset = 0;
-                const activeHoveredItem = hoveredDomainLifecycleKey ? domainIncidentStatusStats.items.find(i => i.key === hoveredDomainLifecycleKey) : null;
-
-                return (
-                  <div style={{ position: 'relative', width: '150px', height: '150px', flexShrink: 0, margin: '0 auto' }}>
-                    <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
-                      {/* Background neutral track */}
-                      <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
-                      
-                      {/* Lifecycle Status Segments */}
-                      {domainIncidentStatusStats.items.map(seg => {
-                        if (seg.pct <= 0) return null;
-                        const dash = (seg.pct / 100) * circumference;
-                        const offset = -accOffset;
-                        accOffset += dash;
-                        const isHovered = hoveredDomainLifecycleKey === seg.key;
-                        const isFiltered = domainIncidentLifecycleFilter === seg.key;
-
-                        return (
-                          <circle
-                            key={seg.key}
-                            cx="60"
-                            cy="60"
-                            r={radius}
-                            fill="none"
-                            stroke={seg.color}
-                            strokeWidth={isHovered ? 16 : 13}
-                            strokeDasharray={`${dash} ${circumference - dash}`}
-                            strokeDashoffset={offset}
-                            style={{
-                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                              cursor: 'pointer',
-                              filter: isHovered 
-                                ? `drop-shadow(0 0 6px ${seg.color})` 
-                                : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
-                              opacity: (hoveredDomainLifecycleKey !== null && hoveredDomainLifecycleKey !== 'ALL') 
-                                ? (isHovered ? 1 : 0.4) 
-                                : (domainIncidentLifecycleFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
-                            }}
-                            onMouseEnter={() => setHoveredDomainLifecycleKey(seg.key)}
-                            onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
-                            onClick={() => setDomainIncidentLifecycleFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
-                          />
-                        );
-                      })}
-                    </svg>
-
-                    {/* Center Total & Status Label */}
-                    {(() => {
-                      const isTotalHovered = hoveredDomainLifecycleKey === 'ALL';
-                      const totalColor = activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981';
-
-                      return (
-                        <div 
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            pointerEvents: 'none',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHoveredItem ? activeHoveredItem.color : (isTotalHovered ? totalColor : 'var(--text-primary)'), lineHeight: 1.1, transition: 'color 0.2s ease' }}>
-                            {activeHoveredItem ? activeHoveredItem.count.toLocaleString() : domainIncidentStatusStats.total.toLocaleString()}
-                          </span>
-                          <span style={{ fontSize: '0.68rem', color: isTotalHovered ? totalColor : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem', transition: 'color 0.2s ease' }}>
-                            {activeHoveredItem ? activeHoveredItem.label : 'Incidents'}
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                );
-              })()}
-
-              {/* Right: 4 Interactive Lifecycle Status Cards (Assigned, Accepted, Remediate, Resolved) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', flex: 1 }}>
-                {domainIncidentStatusStats.items.map(st => {
-                  const isSelected = domainIncidentLifecycleFilter === st.key;
-                  const isHovered = hoveredDomainLifecycleKey === st.key;
-                  const IconComponent = st.icon;
+              {/* Donut Pie Chart + 4 Lifecycle Status Cards */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
+                {/* Interactive SVG Donut Chart */}
+                {(() => {
+                  const radius = 45;
+                  const circumference = 2 * Math.PI * radius;
+                  let accOffset = 0;
+                  const activeHoveredItem = hoveredDomainLifecycleKey ? domainIncidentStatusStats.items.find(i => i.key === hoveredDomainLifecycleKey) : null;
 
                   return (
-                    <div
-                      key={st.key}
-                      onClick={() => setDomainIncidentLifecycleFilter(prev => prev === st.key ? 'ALL' : st.key)}
-                      onMouseEnter={() => setHoveredDomainLifecycleKey(st.key)}
-                      onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
-                      style={{
-                        padding: '0.85rem 1rem',
-                        backgroundColor: isSelected ? st.bg : (isHovered ? st.bg : 'var(--bg-primary)'),
-                        border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: isSelected ? `0 0 12px ${st.color}35` : (isHovered ? `0 0 10px ${st.color}30` : 'none'),
-                        position: 'relative'
-                      }}
-                      title={`${st.description} - Click to filter controls`}
-                    >
-                      {/* Status Name + Icon + Percentage Pill */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <IconComponent size={14} style={{ color: st.color }} />
-                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {st.label}
-                          </span>
-                        </div>
-                        <span 
-                          className="badge" 
-                          style={{ 
-                            fontSize: '0.7rem', 
-                            fontWeight: 600,
-                            backgroundColor: st.bg, 
-                            color: st.color, 
-                            border: `1px solid ${st.border}` 
-                          }}
-                        >
-                          {st.pct.toFixed(1)}%
+                    <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
+                      <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
+                        <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
+                        
+                        {domainIncidentStatusStats.items.map(seg => {
+                          if (seg.pct <= 0) return null;
+                          const dash = (seg.pct / 100) * circumference;
+                          const offset = -accOffset;
+                          accOffset += dash;
+                          const isHovered = hoveredDomainLifecycleKey === seg.key;
+                          const isFiltered = domainIncidentLifecycleFilter === seg.key;
+
+                          return (
+                            <circle
+                              key={seg.key}
+                              cx="60"
+                              cy="60"
+                              r={radius}
+                              fill="none"
+                              stroke={seg.color}
+                              strokeWidth={isHovered ? 16 : 13}
+                              strokeDasharray={`${dash} ${circumference - dash}`}
+                              strokeDashoffset={offset}
+                              style={{
+                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: 'pointer',
+                                filter: isHovered 
+                                  ? `drop-shadow(0 0 6px ${seg.color})` 
+                                  : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
+                                opacity: hoveredDomainLifecycleKey !== null
+                                  ? (isHovered ? 1 : 0.4) 
+                                  : (domainIncidentLifecycleFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
+                              }}
+                              onMouseEnter={() => setHoveredDomainLifecycleKey(seg.key)}
+                              onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
+                              onClick={() => setDomainIncidentLifecycleFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
+                            />
+                          );
+                        })}
+                      </svg>
+
+                      {/* Center Total & Status Label */}
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          pointerEvents: 'none',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHoveredItem ? activeHoveredItem.color : 'var(--text-primary)', lineHeight: 1.1, transition: 'color 0.2s ease' }}>
+                          {activeHoveredItem ? activeHoveredItem.count.toLocaleString() : domainIncidentStatusStats.total.toLocaleString()}
                         </span>
-                      </div>
-
-                      {/* Big Count */}
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                          {st.count.toLocaleString()}
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem', transition: 'color 0.2s ease' }}>
+                          {activeHoveredItem ? activeHoveredItem.label : 'Incidents'}
                         </span>
-                        {isSelected && (
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: st.color }}>
-                            ACTIVE FILTER
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Description */}
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                        {st.description}
-                      </div>
-
-                      {/* Mini Progress Bar Indicator */}
-                      <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.55rem', overflow: 'hidden' }}>
-                        <div 
-                          style={{ 
-                            height: '100%', 
-                            width: `${Math.max(st.pct, st.count > 0 ? 3 : 0)}%`, 
-                            backgroundColor: st.color,
-                            borderRadius: '2px',
-                            transition: 'width 0.4s ease'
-                          }} 
-                        />
                       </div>
                     </div>
                   );
-                })}
-              </div>
-            </div>
+                })()}
 
-            {/* Filter Banner Indicator */}
-            {domainIncidentLifecycleFilter !== 'ALL' && (
-              <div 
-                style={{ 
-                  marginTop: '1rem', 
-                  padding: '0.5rem 0.85rem', 
-                  backgroundColor: 'rgba(59, 130, 246, 0.08)', 
-                  border: '1px solid rgba(59, 130, 246, 0.25)', 
-                  borderRadius: '6px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  fontSize: '0.8rem', 
-                  color: 'var(--text-primary)' 
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Filter size={13} style={{ color: 'var(--accent-blue)' }} />
-                  <span>
-                    Filtering controls by incident status <strong>{domainIncidentLifecycleFilter}</strong>: showing <strong>{filteredControls.length}</strong> of <strong>{activeSubsectionControls.length}</strong> controls in this domain.
-                  </span>
+                {/* 4 Lifecycle Status Cards in 2x2 Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.65rem', flex: 1, minWidth: '240px' }}>
+                  {domainIncidentStatusStats.items.map(st => {
+                    const isSelected = domainIncidentLifecycleFilter === st.key;
+                    const isHovered = hoveredDomainLifecycleKey === st.key;
+                    const IconComponent = st.icon;
+
+                    return (
+                      <div
+                        key={st.key}
+                        onClick={() => setDomainIncidentLifecycleFilter(prev => prev === st.key ? 'ALL' : st.key)}
+                        onMouseEnter={() => setHoveredDomainLifecycleKey(st.key)}
+                        onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
+                        style={{
+                          padding: '0.65rem 0.8rem',
+                          backgroundColor: isSelected ? st.bg : (isHovered ? st.bg : 'var(--bg-primary)'),
+                          border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? `0 0 10px ${st.color}35` : (isHovered ? `0 0 8px ${st.color}30` : 'none')
+                        }}
+                        title={`${st.description} - Click to filter controls`}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <IconComponent size={13} style={{ color: st.color }} />
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {st.label}
+                            </span>
+                          </div>
+                          <span 
+                            className="badge" 
+                            style={{ 
+                              fontSize: '0.66rem', 
+                              fontWeight: 600,
+                              backgroundColor: st.bg, 
+                              color: st.color, 
+                              border: `1px solid ${st.border}` 
+                            }}
+                          >
+                            {st.pct.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                            {st.count.toLocaleString()}
+                          </span>
+                          {isSelected && (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: st.color }}>
+                              FILTERED
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ width: '100%', height: '3px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden' }}>
+                          <div 
+                            style={{ 
+                              height: '100%', 
+                              width: `${Math.max(st.pct, st.count > 0 ? 3 : 0)}%`, 
+                              backgroundColor: st.color,
+                              borderRadius: '2px',
+                              transition: 'width 0.4s ease'
+                            }} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDomainIncidentLifecycleFilter('ALL')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent-blue)',
-                    textDecoration: 'underline',
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    fontWeight: 600
+              </div>
+
+              {/* Incident Filter Banner Indicator */}
+              {domainIncidentLifecycleFilter !== 'ALL' && (
+                <div 
+                  style={{ 
+                    marginTop: '0.85rem', 
+                    padding: '0.45rem 0.75rem', 
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)', 
+                    border: '1px solid rgba(59, 130, 246, 0.25)', 
+                    borderRadius: '6px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    fontSize: '0.78rem', 
+                    color: 'var(--text-primary)' 
                   }}
                 >
-                  Clear Filter
-                </button>
-              </div>
-            )}
+                  <span>
+                    Filtering by incident status: <strong>{domainIncidentLifecycleFilter}</strong> ({filteredControls.length} controls)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDomainIncidentLifecycleFilter('ALL')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-blue)',
+                      textDecoration: 'underline',
+                      fontSize: '0.76rem',
+                      cursor: 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 4. Toolbar: Search, Filters, Columns Customizer, Enterprise Export */}

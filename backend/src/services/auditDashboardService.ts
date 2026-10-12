@@ -5,6 +5,7 @@ import { query as dbQuery } from '../db.js';
 import { reportDbService } from './reportDbService.js';
 import { authService } from './authService.js';
 import { commandCenterService } from './commandCenterService.js';
+import { auditRawDbService } from './auditRawDbService.js';
 
 export interface DashboardMetricRecord {
   metricId?: string;
@@ -361,18 +362,31 @@ class AuditDashboardService {
       totalUsers
     };
 
-    // Activity Trend
-    const activityTrend = Array.isArray(statsData.activityTrend) && statsData.activityTrend.length > 0
+    // Activity Trend from persistent PostgreSQL raw audit store
+    let activityTrend = Array.isArray(statsData.activityTrend) && statsData.activityTrend.length > 0
       ? statsData.activityTrend
-      : [
-          { date: '2026-03-20', count: 14, inserts: 4, updates: 8, deletes: 2 },
-          { date: '2026-03-21', count: 22, inserts: 6, updates: 12, deletes: 4 },
-          { date: '2026-03-22', count: 18, inserts: 5, updates: 10, deletes: 3 },
-          { date: '2026-03-23', count: 31, inserts: 9, updates: 17, deletes: 5 },
-          { date: '2026-03-24', count: 27, inserts: 8, updates: 15, deletes: 4 },
-          { date: '2026-03-25', count: 35, inserts: 11, updates: 19, deletes: 5 },
-          { date: '2026-03-26', count: 42, inserts: 14, updates: 23, deletes: 5 }
-        ];
+      : [];
+
+    try {
+      const dbTrend = await auditRawDbService.getRiskTrend({ range: '30d' });
+      if (dbTrend?.trend && dbTrend.trend.length > 0) {
+        activityTrend = dbTrend.trend;
+      }
+    } catch (e: any) {
+      console.warn('[AuditDashboardService] Database risk trend query note:', e.message);
+    }
+
+    if (activityTrend.length === 0) {
+      activityTrend = [
+        { date: '2026-03-20', count: 14, inserts: 4, updates: 8, deletes: 2 },
+        { date: '2026-03-21', count: 22, inserts: 6, updates: 12, deletes: 4 },
+        { date: '2026-03-22', count: 18, inserts: 5, updates: 10, deletes: 3 },
+        { date: '2026-03-23', count: 31, inserts: 9, updates: 17, deletes: 5 },
+        { date: '2026-03-24', count: 27, inserts: 8, updates: 15, deletes: 4 },
+        { date: '2026-03-25', count: 35, inserts: 11, updates: 19, deletes: 5 },
+        { date: '2026-03-26', count: 42, inserts: 14, updates: 23, deletes: 5 }
+      ];
+    }
 
     // Top At-Risk Business Objects
     const businessObjects = Array.isArray(statsData.businessObjects) && statsData.businessObjects.length > 0

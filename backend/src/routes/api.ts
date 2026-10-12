@@ -15,6 +15,7 @@ import { supervisorDashboardDbService } from '../services/supervisorDashboardDbS
 import { reportDbService } from '../services/reportDbService.js';
 import { controlRawDbService } from '../services/controlRawDbService.js';
 import { roleHierarchyService } from '../services/roleHierarchyService.js';
+import { auditRawDbService } from '../services/auditRawDbService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -853,6 +854,52 @@ apiRouter.get('/overview/stats', requireAuditManagerDashboard, async (req: Reque
       success: false,
       code: 'INTERNAL_ERROR',
       message: (err as Error).message || 'Failed to retrieve overview statistics.'
+    });
+  }
+});
+
+// GET /api/dashboard/risk-trend - Dedicated Product & Event Type Filtered Risk Trend API
+apiRouter.get('/dashboard/risk-trend', requireAuditManagerDashboard, async (req: Request, res: Response) => {
+  try {
+    const { product, eventType, range, fromDate, toDate } = req.query;
+    const result = await auditRawDbService.getRiskTrend({
+      product: product ? String(product) : undefined,
+      eventType: eventType ? String(eventType) : undefined,
+      range: range ? String(range) : undefined,
+      fromDate: fromDate ? String(fromDate) : undefined,
+      toDate: toDate ? String(toDate) : undefined
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err: any) {
+    console.error('[Risk Trend API Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: err.message || 'Failed to retrieve risk trend data.'
+    });
+  }
+});
+
+// GET /api/dashboard/product-activity - Products with recent audit records (today, yesterday, etc.)
+apiRouter.get('/dashboard/product-activity', requireAuditManagerDashboard, async (req: Request, res: Response) => {
+  try {
+    const timeframe = req.query.timeframe ? String(req.query.timeframe) : 'today';
+    const result = await auditRawDbService.getProductActivitySummary({ timeframe });
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err: any) {
+    console.error('[Product Activity API Error]:', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: err.message || 'Failed to retrieve product activity data.'
     });
   }
 });

@@ -380,7 +380,7 @@ export class OracleFusionClient {
     }
   }
 
-  async getAdvancedControls(options: { limit?: number; offset?: number; q?: string } = {}) {
+  async getAdvancedControls(options: { limit?: number; offset?: number; q?: string; orderBy?: string } = {}) {
     try {
       const params: Record<string, any> = {
         limit: options.limit || 100,
@@ -388,6 +388,9 @@ export class OracleFusionClient {
       };
       if (options.q) {
         params.q = options.q;
+      }
+      if (options.orderBy) {
+        params.orderBy = options.orderBy;
       }
       const response = await this.client.get('/fscmRestApi/resources/11.13.18.05/advancedControls', {
         params,
@@ -433,6 +436,8 @@ export class OracleFusionClient {
       timeout?: number;
       fields?: string;
       onlyData?: boolean;
+      orderBy?: string;
+      q?: string;
     } = {}
   ) {
     try {
@@ -450,9 +455,15 @@ export class OracleFusionClient {
       if (options.onlyData !== undefined) {
         params.onlyData = options.onlyData;
       }
+      if (options.orderBy) {
+        params.orderBy = options.orderBy;
+      }
+      if (options.q) {
+        params.q = options.q;
+      }
 
       const timeout = options.timeout || 120000; // 2-minute timeout for heavy count/page queries
-      console.log(`[Oracle Client] GET ${path} offset=${params.offset} limit=${params.limit} totalResults=${params.totalResults ?? false} timeout=${timeout}ms`);
+      console.log(`[Oracle Client] GET ${path} offset=${params.offset} limit=${params.limit} totalResults=${params.totalResults ?? false} orderBy=${params.orderBy || 'none'} timeout=${timeout}ms`);
 
       const response = await this.client.get(path, {
         params,

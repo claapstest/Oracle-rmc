@@ -24,7 +24,7 @@ import {
   UserAccountHealth,
   RoleDistributionDonut,
   RiskTrend,
-  TopAtRiskBusinessObjects
+  ProductActivityMonitor
 } from '../components/DashboardComponents';
 
 interface DashboardProps {
@@ -848,110 +848,10 @@ export default function Dashboard({
       </div>
 
       {/* ==========================================================
-          5. TWO-COLUMN OPERATIONAL: Recent Security Changes & Top At-Risk Objects
+          5. PRODUCT-LEVEL AUDIT ACTIVITY MONITOR (Active Products with Recent Records)
           ========================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.35rem' }}>
-        
-        {/* LEFT: Recent Security Configuration Changes */}
-        <div className="glass-panel" style={{ padding: '1.5rem 1.6rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.08rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, color: 'var(--text-primary)' }}>
-                Recent Security Configuration Changes
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-                Latest security audit records captured in Oracle Fusion
-              </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {recentAudits.length > 0 && (
-                <TableExportControl
-                  filename="recent_security_changes"
-                  data={recentAudits}
-                  totalCount={recentAudits.length}
-                  columns={[
-                    { key: 'timestamp', label: 'Timestamp', getValue: (l: any) => l.timestamp ? new Date(l.timestamp).toLocaleString() : '' },
-                    { key: 'username', label: 'User', getValue: (l: any) => l.username || 'System' },
-                    { key: 'businessObject', label: 'Object Modified', getValue: (l: any) => l.businessObject || l.qualifiedBusinessObject || 'Security Configuration' },
-                    { key: 'action', label: 'Action', getValue: (l: any) => l.action || l.event || 'UPDATE' }
-                  ]}
-                />
-              )}
-              {can('audit') && (
-              <span
-                onClick={() => onNavigatePage?.('audit')}
-                style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-              >
-                View Full Audit Trail &rarr;
-              </span>
-              )}
-            </div>
-          </div>
-
-          <div className="table-container" style={{ margin: 0, flex: 1 }}>
-            <table className="enterprise-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>User</th>
-                  <th>Object Modified</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentAudits.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                      {auditUnavailable 
-                        ? 'Audit history API is disabled in this Oracle Fusion environment.'
-                        : 'No recent security changes recorded.'
-                      }
-                    </td>
-                  </tr>
-                ) : (
-                  recentAudits.map(log => {
-                    const eventName = String(log.event || log.action || 'UPDATE').toUpperCase();
-                    const isInsert = eventName.includes('INSERT') || eventName.includes('CREATE') || eventName.includes('ADD');
-                    const isDelete = eventName.includes('DELETE') || eventName.includes('REMOVE') || eventName.includes('REVOKE');
-                    const badgeClass = isInsert ? 'badge-insert' : isDelete ? 'badge-delete' : 'badge-update';
-                  const badgeLabel = isInsert ? 'Object Data Insert' : isDelete ? 'Object Data Delete' : 'Object Data Update';
-
-                  return (
-                    <tr key={log.id}>
-                        <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                          {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
-                        </td>
-                        <td style={{ fontWeight: 600 }}>
-                          <span 
-                            onClick={() => onInvestigate?.('user', log.username, log.username)}
-                            style={{ color: 'var(--accent-blue)', cursor: 'pointer', textDecoration: 'underline' }}
-                          >
-                            {log.username || 'System'}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                          {log.businessObject || log.qualifiedBusinessObject || 'Security Configuration'}
-                        </td>
-                        <td>
-                          <span className={`badge ${badgeClass}`}>
-                            {badgeLabel}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* RIGHT: Top At-Risk Business Objects */}
-        <TopAtRiskBusinessObjects 
-          businessObjects={stats?.businessObjects ?? []} 
-          onNavigatePage={onNavigatePage} 
-        />
-
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.35rem' }}>
+        <ProductActivityMonitor onNavigatePage={onNavigatePage} />
       </div>
 
       {/* ==========================================================

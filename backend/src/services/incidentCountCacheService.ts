@@ -192,7 +192,11 @@ export class IncidentCountCacheService {
             controlId: cleanId,
             count: totalResults,
             status: 'READY',
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            assigned: existing?.assigned,
+            accepted: existing?.accepted,
+            remediate: existing?.remediate,
+            resolved: existing?.resolved,
           };
           this.memoryCache.set(cleanId, readyEntry);
           this.saveToDisk();

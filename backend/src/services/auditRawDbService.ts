@@ -268,6 +268,280 @@ export class AuditRawDbService {
     };
   }
 
+  /**
+   * Aggregates risk trend time-series by product, event type, and date interval (7d, 30d, 90d, YTD Jan to Present, Custom).
+   */
+  public async getRiskTrend(filter: {
+    product?: string;
+    eventType?: string;
+    range?: string;
+    fromDate?: string;
+    toDate?: string;
+  } = {}): Promise<{
+    trend: Array<{ date: string; count: number; inserts: number; updates: number; deletes: number }>;
+    summary: {
+      totalEvents: number;
+      totalInserts: number;
+      totalUpdates: number;
+      totalDeletes: number;
+      peakDate: string | null;
+      peakCount: number;
+    };
+    products: string[];
+    filterApplied: {
+      product: string;
+      eventType: string;
+      range: string;
+      fromDate: string;
+      toDate: string;
+    };
+  }> {
+    await this.initTable();
+    const host = this.getHost();
+
+    // Determine target date window
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    let range = filter.range || '30d';
+    let fromDate = filter.fromDate;
+    let toDate = filter.toDate || todayStr;
+
+    if (range === '7d') {
+      const d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      fromDate = d.toISOString().split('T')[0];
+    } else if (range === '30d') {
+      const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      fromDate = d.toISOString().split('T')[0];
+    } else if (range === '90d') {
+      const d = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      fromDate = d.toISOString().split('T')[0];
+    } else if (range === 'ytd' || range === 'jan_to_now' || range === 'all') {
+      fromDate = `${now.getFullYear()}-01-01`;
+      range = 'jan_to_now';
+    } else if (!fromDate) {
+      const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      fromDate = d.toISOString().split('T')[0];
+      range = '30d';
+    }
+
+    const conditions: string[] = ['environment_host = $1', 'event_timestamp IS NOT NULL'];
+    const values: any[] = [host];
+    let paramIdx = 2;
+
+    const selectedProduct = filter.product || 'ALL';
+    if (selectedProduct !== 'ALL') {
+      conditions.push(`(product = $${paramIdx} OR product ILIKE $${paramIdx + 1})`);
+      values.push(selectedProduct, `%${selectedProduct}%`);
+      paramIdx += 2;
+    }
+
+    if (fromDate) {
+      conditions.push(`event_timestamp >= $${paramIdx}::timestamptz`);
+      values.push(`${fromDate} 00:00:00`);
+      paramIdx++;
+    }
+
+    if (toDate) {
+      conditions.push(`event_timestamp <= $${paramIdx}::timestamptz`);
+      values.push(`${toDate} 23:59:59.999`);
+      paramIdx++;
+    }
+
+    const selectedEventType = filter.eventType || 'ALL';
+    if (selectedEventType !== 'ALL') {
+      const et = selectedEventType.toUpperCase();
+      if (et === 'INSERT' || et === 'INSERTS') {
+        conditions.push(`(event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')`);
+      } else if (et === 'UPDATE' || et === 'UPDATES') {
+        conditions.push(`(event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')`);
+      } else if (et === 'DELETE' || et === 'DELETES') {
+        conditions.push(`(event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')`);
+      } else {
+        conditions.push(`event_type ILIKE $${paramIdx}`);
+        values.push(`%${selectedEventType}%`);
+        paramIdx++;
+      }
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    const sql = `
+      SELECT 
+        TO_CHAR(event_timestamp, 'YYYY-MM-DD') AS date,
+        COUNT(*)::int AS count,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int AS inserts,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int AS updates,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int AS deletes
+      FROM oracle_raw_audit_records
+      WHERE ${whereClause}
+      GROUP BY TO_CHAR(event_timestamp, 'YYYY-MM-DD')
+      ORDER BY date ASC
+    `;
+
+    const [trendRes, productsRes] = await Promise.all([
+      query<{ date: string; count: number; inserts: number; updates: number; deletes: number }>(sql, values),
+      query<{ product: string }>(
+        `SELECT DISTINCT product FROM oracle_raw_audit_records WHERE environment_host = $1 AND product IS NOT NULL ORDER BY product ASC`,
+        [host]
+      )
+    ]);
+
+    const trend = trendRes.rows;
+    const products = productsRes.rows.map(r => r.product);
+
+    let totalEvents = 0;
+    let totalInserts = 0;
+    let totalUpdates = 0;
+    let totalDeletes = 0;
+    let peakCount = 0;
+    let peakDate: string | null = null;
+
+    for (const item of trend) {
+      const c = Number(item.count || 0);
+      const ins = Number(item.inserts || 0);
+      const upd = Number(item.updates || 0);
+      const del = Number(item.deletes || 0);
+      totalEvents += c;
+      totalInserts += ins;
+      totalUpdates += upd;
+      totalDeletes += del;
+      if (c > peakCount) {
+        peakCount = c;
+        peakDate = item.date;
+      }
+    }
+
+    return {
+      trend,
+      summary: {
+        totalEvents,
+        totalInserts,
+        totalUpdates,
+        totalDeletes,
+        peakDate,
+        peakCount
+      },
+      products,
+      filterApplied: {
+        product: selectedProduct,
+        eventType: selectedEventType,
+        range,
+        fromDate: fromDate || '',
+        toDate: toDate || ''
+      }
+    };
+  }
+
+  /**
+   * Aggregates active products that have audit records for today, yesterday, previous active day, or last 7/30 days.
+   */
+  public async getProductActivitySummary(filter: {
+    timeframe?: string;
+  } = {}): Promise<{
+    timeframe: string;
+    effectiveDateLabel: string;
+    targetDate: string;
+    products: Array<{
+      product: string;
+      totalRecords: number;
+      inserts: number;
+      updates: number;
+      deletes: number;
+      latestEventTime: string | null;
+    }>;
+    totalActiveProducts: number;
+    totalRecordsAcrossProducts: number;
+  }> {
+    await this.initTable();
+    const host = this.getHost();
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    const timeframe = filter.timeframe || 'today';
+    let whereClause = 'environment_host = $1 AND event_timestamp IS NOT NULL';
+    const values: any[] = [host];
+    let effectiveDateLabel = 'Today';
+    let targetDate = todayStr;
+
+    if (timeframe === 'today') {
+      whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
+      values.push(todayStr);
+      effectiveDateLabel = `Today (${todayStr})`;
+      targetDate = todayStr;
+    } else if (timeframe === 'yesterday') {
+      whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
+      values.push(yesterdayStr);
+      effectiveDateLabel = `Yesterday (${yesterdayStr})`;
+      targetDate = yesterdayStr;
+    } else if (timeframe === 'previous_active') {
+      // Find latest distinct date prior to today with records
+      const prevDateRes = await query<{ day: string }>(
+        `SELECT DISTINCT TO_CHAR(event_timestamp, 'YYYY-MM-DD') as day 
+         FROM oracle_raw_audit_records 
+         WHERE environment_host = $1 AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') < $2
+         ORDER BY day DESC LIMIT 1`,
+        [host, todayStr]
+      );
+      const prevDay = prevDateRes.rows[0]?.day || yesterdayStr;
+      whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
+      values.push(prevDay);
+      effectiveDateLabel = `Previous Active Day (${prevDay})`;
+      targetDate = prevDay;
+    } else if (timeframe === '7d') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      whereClause += ` AND event_timestamp >= $2::timestamptz`;
+      values.push(`${sevenDaysAgo} 00:00:00`);
+      effectiveDateLabel = `Last 7 Days (since ${sevenDaysAgo})`;
+      targetDate = sevenDaysAgo;
+    } else if (timeframe === '30d') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      whereClause += ` AND event_timestamp >= $2::timestamptz`;
+      values.push(`${thirtyDaysAgo} 00:00:00`);
+      effectiveDateLabel = `Last 30 Days (since ${thirtyDaysAgo})`;
+      targetDate = thirtyDaysAgo;
+    } else {
+      effectiveDateLabel = 'All Time';
+    }
+
+    const sql = `
+      SELECT 
+        product,
+        COUNT(*)::int as total_records,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
+        MAX(event_timestamp) as latest_event_time
+      FROM oracle_raw_audit_records
+      WHERE ${whereClause}
+      GROUP BY product
+      HAVING COUNT(*) > 0
+      ORDER BY total_records DESC
+    `;
+
+    const res = await query<any>(sql, values);
+    const products = res.rows.map(r => ({
+      product: r.product,
+      totalRecords: Number(r.total_records || 0),
+      inserts: Number(r.inserts || 0),
+      updates: Number(r.updates || 0),
+      deletes: Number(r.deletes || 0),
+      latestEventTime: r.latest_event_time ? new Date(r.latest_event_time).toISOString() : null
+    }));
+
+    const totalRecordsAcrossProducts = products.reduce((sum, p) => sum + p.totalRecords, 0);
+
+    return {
+      timeframe,
+      effectiveDateLabel,
+      targetDate,
+      products,
+      totalActiveProducts: products.length,
+      totalRecordsAcrossProducts
+    };
+  }
+
   private schedulerTimer: NodeJS.Timeout | null = null;
 
   /**

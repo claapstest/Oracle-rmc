@@ -57,6 +57,9 @@ interface AuditLogItem {
   impersonator?: string;
 }
 
+export const MIN_ALLOWED_AUDIT_DATE = '2026-01-01';
+export const MAX_ALLOWED_AUDIT_DATE = '2026-10-12';
+
 export interface AuditProps {
   initialBOId?: string;
   initialProductId?: string;
@@ -71,17 +74,46 @@ export default function Audit({
   const [selectedProductId, setSelectedProductId] = useState<string>(initialProductId || 'hcm');
   const [selectedBOId, setSelectedBOId] = useState<string>(initialBOId || 'document_records');
 
-  // Filter state
-  const [fromDate, setFromDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 9);
-    return d.toISOString().split('T')[0];
-  });
-  const [toDate, setToDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  // Filter state - restricted strictly to year 2026 up to October
+  const [fromDate, setFromDate] = useState<string>('2026-10-03');
+  const [toDate, setToDate] = useState<string>('2026-10-12');
   const [userQuery, setUserQuery] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
+
+  // Strict Calendar year & October bound handlers
+  const handleFromDateChange = (val: string) => {
+    if (!val) {
+      setFromDate('');
+      return;
+    }
+    if (val < MIN_ALLOWED_AUDIT_DATE) {
+      setDateWarning('Audit records are only available for calendar year 2026. Prior years are not supported.');
+      setFromDate(MIN_ALLOWED_AUDIT_DATE);
+    } else if (val > MAX_ALLOWED_AUDIT_DATE) {
+      setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
+      setFromDate(MAX_ALLOWED_AUDIT_DATE);
+    } else {
+      setDateWarning('');
+      setFromDate(val);
+    }
+  };
+
+  const handleToDateChange = (val: string) => {
+    if (!val) {
+      setToDate('');
+      return;
+    }
+    if (val < MIN_ALLOWED_AUDIT_DATE) {
+      setDateWarning('Audit records are only available for calendar year 2026. Prior years are not supported.');
+      setToDate(MIN_ALLOWED_AUDIT_DATE);
+    } else if (val > MAX_ALLOWED_AUDIT_DATE) {
+      setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
+      setToDate(MAX_ALLOWED_AUDIT_DATE);
+    } else {
+      setDateWarning('');
+      setToDate(val);
+    }
+  };
 
   // Query Results & Status
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
@@ -227,6 +259,16 @@ export default function Audit({
 
   // Execute Search
   const handleSearch = async (targetPage = 1, overrideProdId?: string, overrideBOId?: string) => {
+    if (fromDate && fromDate < MIN_ALLOWED_AUDIT_DATE) {
+      setError('Audit records are only available for calendar year 2026. Prior years are not supported.');
+      return;
+    }
+
+    if (toDate && toDate > MAX_ALLOWED_AUDIT_DATE) {
+      setError('Audit records beyond October 2026 are not supported in this Oracle Fusion instance.');
+      return;
+    }
+
     if (new Date(toDate).getTime() < new Date(fromDate).getTime()) {
       setError('Date From cannot be after Date To.');
       return;
@@ -326,10 +368,8 @@ export default function Audit({
       const firstSupported = (hcm.businessObjects || []).find(b => b.isSupported !== false);
       setSelectedBOId(firstSupported ? firstSupported.id : (hcm.businessObjects[0]?.id || 'person'));
     }
-    const d = new Date();
-    d.setDate(d.getDate() - 9);
-    setFromDate(d.toISOString().split('T')[0]);
-    setToDate(new Date().toISOString().split('T')[0]);
+    setFromDate('2026-10-03');
+    setToDate('2026-10-12');
     setUserQuery('');
     setActionFilter('ALL');
     setError('');
@@ -553,35 +593,45 @@ export default function Audit({
           {/* C. Date From */}
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              Date From
+              Date From (2026)
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="date"
                 className="form-input"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
+                min={MIN_ALLOWED_AUDIT_DATE}
+                max={MAX_ALLOWED_AUDIT_DATE}
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
+                onChange={(e) => handleFromDateChange(e.target.value)}
                 disabled={isSearching}
               />
             </div>
+            <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+              Allowed: Jan 01, 2026 – Oct 12, 2026
+            </span>
           </div>
 
           {/* D. Date To */}
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              Date To
+              Date To (2026)
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="date"
                 className="form-input"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
+                min={MIN_ALLOWED_AUDIT_DATE}
+                max={MAX_ALLOWED_AUDIT_DATE}
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
+                onChange={(e) => handleToDateChange(e.target.value)}
                 disabled={isSearching}
               />
             </div>
+            <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+              Allowed: Jan 01, 2026 – Oct 12, 2026
+            </span>
           </div>
 
           {/* E. User */}

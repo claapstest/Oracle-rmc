@@ -198,6 +198,30 @@ export const api = {
     return apiRequest('/overview/stats');
   },
 
+  // Dedicated Risk Trend with Product & Event Type & Date Range filters
+  async getRiskTrend(params?: {
+    product?: string;
+    eventType?: string;
+    range?: string;
+    fromDate?: string;
+    toDate?: string;
+  }) {
+    const query = new URLSearchParams();
+    if (params?.product && params.product !== 'ALL') query.set('product', params.product);
+    if (params?.eventType && params.eventType !== 'ALL') query.set('eventType', params.eventType);
+    if (params?.range) query.set('range', params.range);
+    if (params?.fromDate) query.set('fromDate', params.fromDate);
+    if (params?.toDate) query.set('toDate', params.toDate);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return apiRequest(`/dashboard/risk-trend${qs}`);
+  },
+
+  // Products with recent audit records (today, yesterday, 7d, 30d)
+  async getProductActivity(options?: { timeframe?: string }) {
+    const query = options?.timeframe ? `?timeframe=${encodeURIComponent(options.timeframe)}` : '';
+    return apiRequest(`/dashboard/product-activity${query}`);
+  },
+
   // Audit Supervisor Dashboard Metrics (Mock Screen 5: Active Risks, Open Issues, Reports Generated)
   // Backend scopes rows to the caller's permissions; 401/403 surfaces here for AC6/AC7 handling.
   async getAuditSupervisorMetrics(options?: { refresh?: boolean }) {

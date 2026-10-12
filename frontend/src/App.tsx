@@ -421,13 +421,21 @@ export default function App() {
   const [initialUsersFilter, setInitialUsersFilter] = useState('ALL');
   const [initialAuditBO, setInitialAuditBO] = useState('document_records');
 
-  // Synchronize settings and verify admin status on login
+  // Synchronize settings for administrator sessions
   useEffect(() => {
     async function fetchServerSettings() {
       if (!isLoggedIn || !currentUser) {
-        setIsAdmin(false);
         return;
       }
+
+      // /settings is an administrator-only endpoint requiring ORACLE_INTEGRATION privilege.
+      // Non-admin roles (e.g. Audit Manager, Supervisor, Audit User) should not query this endpoint.
+      const normalizedRole = (userRole || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+      const hasIntegrationPriv = userPermissions.includes('ORACLE_INTEGRATION') || userPermissions.includes('ALL');
+      if (!isAdmin && normalizedRole !== 'SITE_ADMIN' && !hasIntegrationPriv) {
+        return;
+      }
+
       try {
         const settings = await api.getSettings();
         if (settings?.mode) {
@@ -435,13 +443,14 @@ export default function App() {
           localStorage.setItem('environmentMode', settings.mode);
         }
         setIsAdmin(true);
-      } catch (err) {
-        console.error('Failed to sync server settings (unauthorized or network error):', err);
-        setIsAdmin(false);
+      } catch (err: any) {
+        if (err?.status !== 401 && err?.status !== 403) {
+          console.warn('Failed to sync server settings:', err?.message || err);
+        }
       }
     }
     fetchServerSettings();
-  }, [isLoggedIn, currentUser]);
+  }, [isLoggedIn, currentUser, isAdmin, userRole, userPermissions]);
 
   const handleLoginSuccess = (
     username: string,

@@ -12,6 +12,7 @@ import { userAccessReportService } from './userAccessReportService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { roleHierarchyService } from './roleHierarchyService.js';
 import { auditRawDbService } from './auditRawDbService.js';
+import { controlRawDbService } from './controlRawDbService.js';
 export { classifyRoleRecord };
 
 const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
@@ -132,6 +133,7 @@ class OracleService {
     this.riskService = new RiskService(this.client);
     this.controlCatalogService = new ControlCatalogService(this.client);
     this.controlSummaryService = new ControlSummaryService(this.client, this.controlCatalogService);
+    controlRawDbService.setIncidentCountCacheService(this.controlCatalogService.getIncidentCountCacheService());
     this.loadAuthoritativeRolesFromCache();
     this.loadUsersMetricsFromCache();
     this.loadPersistentPrivilegesFromDisk();

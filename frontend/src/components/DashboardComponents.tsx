@@ -1,5 +1,6 @@
 import React from 'react';
 import { TableExportControl } from './TableExportControl';
+import { api } from '../services/api';
 import { 
   Users, 
   ShieldAlert, 
@@ -9,7 +10,12 @@ import {
   AlertTriangle,
   ArrowRight,
   Lock,
-  Layers
+  Layers,
+  Calendar,
+  Filter,
+  RefreshCw,
+  TrendingUp,
+  Activity
 } from 'lucide-react';
 
 /* ==========================================================
@@ -803,42 +809,121 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
 
 
 /* ==========================================================
-/* ==========================================================
-   6. RISK TREND (LAST 30 DAYS) - REAL AUDIT EVENT SERIES
+   6. RISK TREND - PRODUCT-LEVEL & EVENT-TYPE TIME SERIES
    ========================================================== */
 interface RiskTrendProps {
   activityTrend?: Array<{ date: string; count: number; inserts: number; updates: number; deletes: number }>;
   onNavigatePage?: (pageId: string) => void;
 }
 
+const DEFAULT_PRODUCTS = [
+  'Applications Common Components',
+  'Audit Policies',
+  'Common CRM',
+  'General Ledger',
+  'Global Human Resources',
+  'Inventory Management',
+  'Oracle Platform Security Services',
+  'Payables',
+  'Profile Management',
+  'Public Sector Common Components',
+  'Quality Issue and Action Management',
+  'Receivables',
+  'Service'
+];
+
 export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps) {
   const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
-  const [activeSeries, setActiveSeries] = React.useState<'ALL' | 'TOTAL' | 'INSERTS' | 'UPDATES'>('ALL');
+  const [activeSeries, setActiveSeries] = React.useState<'ALL' | 'TOTAL' | 'INSERTS' | 'UPDATES' | 'DELETES'>('ALL');
 
-  // Use real timestamped data aggregated by day from audit events
-  const data = activityTrend.length > 0 ? activityTrend : [
-    { date: '2026-09-05', count: 13, inserts: 13, updates: 0, deletes: 0 },
-    { date: '2026-09-07', count: 30, inserts: 30, updates: 0, deletes: 0 },
-    { date: '2026-09-08', count: 32, inserts: 31, updates: 1, deletes: 0 },
-    { date: '2026-09-09', count: 24, inserts: 24, updates: 0, deletes: 0 },
-    { date: '2026-09-10', count: 28, inserts: 28, updates: 0, deletes: 0 },
-    { date: '2026-09-11', count: 47, inserts: 47, updates: 0, deletes: 0 },
-    { date: '2026-09-12', count: 16, inserts: 16, updates: 0, deletes: 0 },
-    { date: '2026-09-13', count: 14, inserts: 14, updates: 0, deletes: 0 },
-    { date: '2026-09-14', count: 6, inserts: 6, updates: 0, deletes: 0 },
-  ];
+  // Interactive filters
+  const [selectedProduct, setSelectedProduct] = React.useState<string>('ALL');
+  const [selectedEventType, setSelectedEventType] = React.useState<string>('ALL');
+  const [selectedInterval, setSelectedInterval] = React.useState<'7d' | '30d' | '90d' | 'jan_to_now' | 'custom'>('30d');
+  const [customFrom, setCustomFrom] = React.useState<string>('2026-01-01');
+  const [customTo, setCustomTo] = React.useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [isCustomDateOpen, setIsCustomDateOpen] = React.useState<boolean>(false);
 
-  const totalEvents = data.reduce((a, b) => a + (b.count || 0), 0);
-  const totalInserts = data.reduce((a, b) => a + (b.inserts || 0), 0);
-  const totalUpdates = data.reduce((a, b) => a + (b.updates || 0), 0);
+  const [productsList, setProductsList] = React.useState<string[]>(DEFAULT_PRODUCTS);
+  const [trendData, setTrendData] = React.useState<Array<{ date: string; count: number; inserts: number; updates: number; deletes: number }>>(activityTrend);
+  const [summaryData, setSummaryData] = React.useState<{
+    totalEvents: number;
+    totalInserts: number;
+    totalUpdates: number;
+    totalDeletes: number;
+    peakDate: string | null;
+    peakCount: number;
+  }>({
+    totalEvents: 0,
+    totalInserts: 0,
+    totalUpdates: 0,
+    totalDeletes: 0,
+    peakDate: null,
+    peakCount: 0
+  });
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
-  // Dynamic headroom scaling based on real observed max values (avoid flatlining on low volume)
-  const highestDaily = Math.max(...data.map(d => Math.max(d.count || 0, d.inserts || 0, d.updates || 0)), 1);
+  // Sync initial props
+  React.useEffect(() => {
+    if (activityTrend.length > 0 && trendData.length === 0) {
+      setTrendData(activityTrend);
+    }
+  }, [activityTrend]);
+
+  // Fetch updated trend whenever filter changes
+  const fetchTrend = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await api.getRiskTrend({
+        product: selectedProduct,
+        eventType: selectedEventType,
+        range: selectedInterval,
+        fromDate: selectedInterval === 'custom' ? customFrom : undefined,
+        toDate: selectedInterval === 'custom' ? customTo : undefined
+      });
+
+      if (res?.success && res?.data) {
+        setTrendData(res.data.trend || []);
+        if (res.data.summary) {
+          setSummaryData(res.data.summary);
+        }
+        if (Array.isArray(res.data.products) && res.data.products.length > 0) {
+          setProductsList(res.data.products);
+        }
+      }
+    } catch (err) {
+      console.error('[RiskTrend] Failed to fetch updated risk trend:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedProduct, selectedEventType, selectedInterval, customFrom, customTo]);
+
+  React.useEffect(() => {
+    fetchTrend();
+  }, [fetchTrend]);
+
+  // Fallback data if completely empty
+  const data = trendData.length > 0 ? trendData : (activityTrend.length > 0 ? activityTrend : [
+    { date: '2026-09-28', count: 68, inserts: 55, updates: 13, deletes: 0 },
+    { date: '2026-09-30', count: 147, inserts: 120, updates: 27, deletes: 0 },
+    { date: '2026-10-01', count: 289, inserts: 260, updates: 29, deletes: 0 },
+    { date: '2026-10-02', count: 144, inserts: 135, updates: 9, deletes: 0 },
+    { date: '2026-10-06', count: 201, inserts: 195, updates: 6, deletes: 0 },
+    { date: '2026-10-07', count: 204, inserts: 198, updates: 6, deletes: 0 }
+  ]);
+
+  const totalEvents = summaryData.totalEvents > 0 ? summaryData.totalEvents : data.reduce((a, b) => a + (b.count || 0), 0);
+  const totalInserts = summaryData.totalInserts > 0 ? summaryData.totalInserts : data.reduce((a, b) => a + (b.inserts || 0), 0);
+  const totalUpdates = summaryData.totalUpdates > 0 ? summaryData.totalUpdates : data.reduce((a, b) => a + (b.updates || 0), 0);
+  const totalDeletes = summaryData.totalDeletes > 0 ? summaryData.totalDeletes : data.reduce((a, b) => a + (b.deletes || 0), 0);
+
+  // Dynamic scaling
+  const highestDaily = Math.max(...data.map(d => Math.max(d.count || 0, d.inserts || 0, d.updates || 0, d.deletes || 0)), 1);
   const maxVal = highestDaily > 30 ? Math.ceil(highestDaily * 1.25) : highestDaily > 8 ? Math.ceil(highestDaily * 1.35) : Math.max(highestDaily + 2, 5);
 
-  const width = 560;
-  const height = 140;
-  const paddingX = 35;
+  const width = 720;
+  const height = 150;
+  const paddingX = 40;
   const paddingY = 22;
 
   const points = data.map((d, index) => {
@@ -846,29 +931,70 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
     const yTotal = height - paddingY - (d.count / maxVal) * (height - 2 * paddingY);
     const yInserts = height - paddingY - ((d.inserts || 0) / maxVal) * (height - 2 * paddingY);
     const yUpdates = height - paddingY - ((d.updates || 0) / maxVal) * (height - 2 * paddingY);
-    return { ...d, x, yTotal, yInserts, yUpdates };
+    const yDeletes = height - paddingY - ((d.deletes || 0) / maxVal) * (height - 2 * paddingY);
+    return { ...d, x, yTotal, yInserts, yUpdates, yDeletes };
   });
 
   const pathTotal = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yTotal}`, '');
   const areaTotal = `${pathTotal} L ${points[points.length - 1]?.x || width} ${height - paddingY} L ${points[0]?.x || paddingX} ${height - paddingY} Z`;
+  
   const pathInserts = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yInserts}`, '');
+  const areaInserts = `${pathInserts} L ${points[points.length - 1]?.x || width} ${height - paddingY} L ${points[0]?.x || paddingX} ${height - paddingY} Z`;
+
   const pathUpdates = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yUpdates}`, '');
+  const pathDeletes = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.yDeletes}`, '');
 
   const hoveredPoint = hoveredIdx !== null && points[hoveredIdx] ? points[hoveredIdx] : null;
 
+  // Smart tick decimation to avoid overcrowded X-axis
+  const tickStep = data.length > 50 ? Math.ceil(data.length / 8) : data.length > 20 ? Math.ceil(data.length / 7) : 1;
+  const isTickVisible = (i: number) => i === 0 || i === data.length - 1 || i % tickStep === 0;
+
+  // Format date interval label for header
+  const getIntervalLabel = () => {
+    switch (selectedInterval) {
+      case '7d': return 'Last 7 Days';
+      case '30d': return 'Last 30 Days';
+      case '90d': return 'Last 90 Days';
+      case 'jan_to_now': return '2026 Full Range (Jan 01 – Present)';
+      case 'custom': return `${customFrom} to ${customTo}`;
+      default: return 'Last 30 Days';
+    }
+  };
+
   return (
-    <div className="glass-panel" style={{ padding: '1.1rem 1.4rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+    <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.9rem', position: 'relative' }}>
+      
+      {/* 1. Header Bar: Title + Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.8rem' }}>
         <div>
-          <h3 style={{ fontSize: '1.08rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, color: 'var(--text-primary)' }}>
-            Risk Trend <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>(Last 30 Days)</span>
-          </h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-            Daily security changes and audit activity events in Oracle Fusion
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <h3 style={{ fontSize: '1.12rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <TrendingUp style={{ width: 19, height: 19, color: '#EF4444' }} />
+              Risk Trend
+            </h3>
+            <span style={{ 
+              fontSize: '0.74rem', 
+              fontWeight: 600, 
+              color: '#3B82F6', 
+              backgroundColor: '#EFF6FF', 
+              border: '1px solid #BFDBFE',
+              padding: '0.15rem 0.6rem', 
+              borderRadius: '9999px' 
+            }}>
+              {getIntervalLabel()}
+            </span>
+            {isLoading && (
+              <RefreshCw style={{ width: 14, height: 14, color: '#64748B', animation: 'spin 1s linear infinite' }} />
+            )}
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+            Multi-tier event security changes & audit activity tracking in Oracle Fusion
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+        {/* View Details Link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           {activeSeries !== 'ALL' && (
             <button
               onClick={() => setActiveSeries('ALL')}
@@ -878,7 +1004,7 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
                 color: '#475569',
                 backgroundColor: '#F8FAFC',
                 border: '1px solid #CBD5E1',
-                padding: '0.2rem 0.55rem',
+                padding: '0.22rem 0.55rem',
                 borderRadius: '6px',
                 cursor: 'pointer'
               }}
@@ -890,18 +1016,287 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             onClick={() => onNavigatePage?.('audit')}
             style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
           >
-            View Details &rarr;
+            Audit Trail &rarr;
           </span>
         </div>
       </div>
 
-      {/* SVG Line / Area Multi-Point Chart */}
-      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto', flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', maxHeight: '200px', display: 'block' }}>
+      {/* 2. Interactive Scope & Interval Controls Bar */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        flexWrap: 'wrap', 
+        gap: '0.85rem',
+        padding: '0.65rem 0.85rem',
+        backgroundColor: 'rgba(248, 250, 252, 0.85)',
+        border: '1px solid #E2E8F0',
+        borderRadius: '10px'
+      }}>
+        {/* Left: Product & Event Type Dropdowns */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', flexWrap: 'wrap' }}>
+          
+          {/* Product Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              Product:
+            </span>
+            <select
+              value={selectedProduct}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                color: '#1E293B',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                borderRadius: '6px',
+                padding: '0.28rem 0.65rem',
+                cursor: 'pointer',
+                outline: 'none',
+                maxWidth: '230px'
+              }}
+            >
+              <option value="ALL">All Products (Enterprise Scope)</option>
+              {productsList.map((prod) => (
+                <option key={prod} value={prod}>{prod}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Event Type Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              Event Type:
+            </span>
+            <select
+              value={selectedEventType}
+              onChange={(e) => setSelectedEventType(e.target.value)}
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                color: selectedEventType === 'INSERT' ? '#DC2626' : selectedEventType === 'UPDATE' ? '#2563EB' : selectedEventType === 'DELETE' ? '#7C3AED' : '#1E293B',
+                backgroundColor: '#FFFFFF',
+                border: selectedEventType === 'INSERT' ? '1px solid #FCA5A5' : '1px solid #CBD5E1',
+                borderRadius: '6px',
+                padding: '0.28rem 0.65rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="ALL">All Events</option>
+              <option value="INSERT">🔴 Inserts / Additions (New Records)</option>
+              <option value="UPDATE">🔵 Updates / Modifications</option>
+              <option value="DELETE">🟣 Deletions / Revocations</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Right: Date Interval Selector (Pills) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', marginRight: '0.25rem' }}>
+            Interval:
+          </span>
+
+          {[
+            { id: '7d', label: '7 Days' },
+            { id: '30d', label: '30 Days' },
+            { id: '90d', label: '90 Days' },
+            { id: 'jan_to_now', label: 'Jan to Now (YTD)' },
+            { id: 'custom', label: 'Custom' }
+          ].map((item) => {
+            const isSelected = selectedInterval === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setSelectedInterval(item.id as any);
+                  if (item.id === 'custom') {
+                    setIsCustomDateOpen(true);
+                  } else {
+                    setIsCustomDateOpen(false);
+                  }
+                }}
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: isSelected ? 700 : 500,
+                  color: isSelected ? '#FFFFFF' : '#475569',
+                  backgroundColor: isSelected ? '#2563EB' : '#FFFFFF',
+                  border: isSelected ? '1px solid #1D4ED8' : '1px solid #E2E8F0',
+                  padding: '0.24rem 0.6rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2B. Custom Date Input Drawer (Shown when Custom is selected) */}
+      {(selectedInterval === 'custom' || isCustomDateOpen) && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          padding: '0.55rem 0.85rem',
+          backgroundColor: '#EFF6FF',
+          border: '1px dashed #93C5FD',
+          borderRadius: '8px',
+          fontSize: '0.75rem',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontWeight: 600, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Calendar style={{ width: 14, height: 14 }} /> Custom Date Range:
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: '#475569' }}>From:</span>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              style={{
+                fontSize: '0.74rem',
+                border: '1px solid #CBD5E1',
+                borderRadius: '5px',
+                padding: '0.2rem 0.45rem',
+                backgroundColor: '#FFFFFF'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: '#475569' }}>To:</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              style={{
+                fontSize: '0.74rem',
+                border: '1px solid #CBD5E1',
+                borderRadius: '5px',
+                padding: '0.2rem 0.45rem',
+                backgroundColor: '#FFFFFF'
+              }}
+            />
+          </div>
+          <button
+            onClick={() => fetchTrend()}
+            style={{
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              color: '#FFFFFF',
+              backgroundColor: '#1D4ED8',
+              border: 'none',
+              padding: '0.25rem 0.75rem',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Apply Range
+          </button>
+        </div>
+      )}
+
+      {/* 3. Summary Metric Stat Chips */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          fontSize: '0.75rem', 
+          backgroundColor: '#F8FAFC', 
+          border: '1px solid #E2E8F0', 
+          borderRadius: '6px', 
+          padding: '0.22rem 0.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ color: '#64748B' }}>Total Events:</span>
+          <strong style={{ color: '#0F172A' }}>{totalEvents.toLocaleString()}</strong>
+        </div>
+
+        {/* REQUIRED: Insertions Highlighted in RED */}
+        <div style={{ 
+          fontSize: '0.75rem', 
+          backgroundColor: '#FEF2F2', 
+          border: '1px solid #FECACA', 
+          borderRadius: '6px', 
+          padding: '0.22rem 0.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#EF4444' }} />
+          <span style={{ color: '#991B1B', fontWeight: 600 }}>Inserts / Additions:</span>
+          <strong style={{ color: '#DC2626' }}>{totalInserts.toLocaleString()}</strong>
+        </div>
+
+        <div style={{ 
+          fontSize: '0.75rem', 
+          backgroundColor: '#EFF6FF', 
+          border: '1px solid #BFDBFE', 
+          borderRadius: '6px', 
+          padding: '0.22rem 0.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#3B82F6' }} />
+          <span style={{ color: '#1E40AF', fontWeight: 600 }}>Updates:</span>
+          <strong style={{ color: '#2563EB' }}>{totalUpdates.toLocaleString()}</strong>
+        </div>
+
+        <div style={{ 
+          fontSize: '0.75rem', 
+          backgroundColor: '#F5F3FF', 
+          border: '1px solid #DDD6FE', 
+          borderRadius: '6px', 
+          padding: '0.22rem 0.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#8B5CF6' }} />
+          <span style={{ color: '#5B21B6', fontWeight: 600 }}>Deletions:</span>
+          <strong style={{ color: '#7C3AED' }}>{totalDeletes.toLocaleString()}</strong>
+        </div>
+
+        {summaryData.peakDate && (
+          <div style={{ 
+            fontSize: '0.75rem', 
+            backgroundColor: '#FFFBEB', 
+            border: '1px solid #FDE68A', 
+            borderRadius: '6px', 
+            padding: '0.22rem 0.6rem',
+            marginLeft: 'auto',
+            color: '#92400E'
+          }}>
+            Peak: <strong>{summaryData.peakCount}</strong> events on <strong>{summaryData.peakDate}</strong>
+          </div>
+        )}
+      </div>
+
+      {/* 4. SVG Multi-Series Interactive Chart */}
+      <div style={{ width: '100%', margin: '0 auto', flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', maxHeight: '220px', display: 'block' }}>
           <defs>
-            <linearGradient id="riskAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            {/* Total Area Gradient */}
+            <linearGradient id="riskTotalAreaGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#EAB308" stopOpacity="0.22" />
               <stop offset="100%" stopColor="#EAB308" stopOpacity="0.01" />
+            </linearGradient>
+
+            {/* REQUIRED: Inserts Area Gradient in RED */}
+            <linearGradient id="riskInsertAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#EF4444" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#EF4444" stopOpacity="0.01" />
+            </linearGradient>
+
+            {/* Updates Area Gradient in Blue */}
+            <linearGradient id="riskUpdateAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.20" />
+              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.01" />
             </linearGradient>
           </defs>
 
@@ -919,43 +1314,60 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             );
           })}
 
-          {/* Area fill for total changes */}
-          {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
-            <path d={areaTotal} fill="url(#riskAreaGrad)" />
+          {/* Area fill for Inserts (RED) when selected or in ALL */}
+          {(activeSeries === 'INSERTS' || selectedEventType === 'INSERT') && totalInserts > 0 && (
+            <path d={areaInserts} fill="url(#riskInsertAreaGrad)" />
           )}
 
-          {/* 1. Primary Trend Line: Security Changes (Total - Yellow) */}
-          {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
+          {/* Area fill for total changes */}
+          {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && selectedEventType === 'ALL' && (
+            <path d={areaTotal} fill="url(#riskTotalAreaGrad)" />
+          )}
+
+          {/* 1. Total Activity Line (Amber Gold) */}
+          {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && selectedEventType === 'ALL' && (
             <path
               d={pathTotal}
               fill="none"
               stroke="#EAB308"
-              strokeWidth="2.5"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              opacity={activeSeries === 'ALL' || activeSeries === 'TOTAL' ? 1 : 0.2}
+              opacity={activeSeries === 'ALL' || activeSeries === 'TOTAL' ? 0.85 : 0.2}
             />
           )}
 
-          {/* 2. Secondary Line: Inserts / Additions (Red) */}
-          {(activeSeries === 'ALL' || activeSeries === 'INSERTS') && totalInserts > 0 && (
+          {/* 2. REQUIRED: Inserts / Additions Line in VIBRANT RED (#EF4444) */}
+          {(activeSeries === 'ALL' || activeSeries === 'INSERTS' || selectedEventType === 'INSERT') && totalInserts > 0 && (
             <path
               d={pathInserts}
               fill="none"
               stroke="#EF4444"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={totalInserts === totalEvents && selectedEventType === 'ALL' ? "4 3" : "none"}
+            />
+          )}
+
+          {/* 3. Updates Line in Electric Blue (#3B82F6) */}
+          {(activeSeries === 'ALL' || activeSeries === 'UPDATES' || selectedEventType === 'UPDATE') && totalUpdates > 0 && (
+            <path
+              d={pathUpdates}
+              fill="none"
+              stroke="#3B82F6"
               strokeWidth="2"
-              strokeDasharray={totalInserts === totalEvents ? "4 3" : "none"}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           )}
 
-          {/* 3. Tertiary Line: Updates (Orange) */}
-          {(activeSeries === 'ALL' || activeSeries === 'UPDATES') && totalUpdates > 0 && (
+          {/* 4. Deletions Line in Purple (#8B5CF6) */}
+          {(activeSeries === 'ALL' || activeSeries === 'DELETES' || selectedEventType === 'DELETE') && totalDeletes > 0 && (
             <path
-              d={pathUpdates}
+              d={pathDeletes}
               fill="none"
-              stroke="#F97316"
+              stroke="#8B5CF6"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -965,6 +1377,8 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
           {/* Data Points on Line with hover interactions */}
           {points.map((p, i) => {
             const isHovered = hoveredIdx === i;
+            const showPoint = points.length <= 40 || isHovered;
+
             return (
               <g
                 key={i}
@@ -972,53 +1386,75 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
                 onMouseLeave={() => setHoveredIdx(null)}
                 style={{ cursor: 'pointer' }}
               >
-                {/* Invisible hover target for easier mouse hovering */}
-                <rect x={p.x - 14} y={10} width={28} height={height - 25} fill="transparent" />
+                {/* Invisible hover target */}
+                <rect x={p.x - 8} y={10} width={16} height={height - 25} fill="transparent" />
 
                 {/* Vertical guide line on hover */}
                 {isHovered && (
                   <line x1={p.x} y1={paddingY} x2={p.x} y2={height - paddingY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
                 )}
 
-                {/* Total points (Yellow) */}
-                {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && (
+                {/* Total points (Amber) */}
+                {(activeSeries === 'ALL' || activeSeries === 'TOTAL') && selectedEventType === 'ALL' && showPoint && (
                   <circle
                     cx={p.x}
                     cy={p.yTotal}
-                    r={isHovered ? 4.5 : 3.5}
+                    r={isHovered ? 4.5 : 3}
                     fill="#FFFFFF"
                     stroke="#EAB308"
-                    strokeWidth={isHovered ? 2.8 : 2.2}
+                    strokeWidth={isHovered ? 2.5 : 1.8}
                   />
                 )}
 
-                {/* Inserts points when present (Red) */}
-                {(activeSeries === 'ALL' || activeSeries === 'INSERTS') && (p.inserts || 0) > 0 && (
+                {/* REQUIRED: Inserts points in RED (#EF4444) */}
+                {(activeSeries === 'ALL' || activeSeries === 'INSERTS' || selectedEventType === 'INSERT') && (p.inserts || 0) > 0 && showPoint && (
                   <circle
                     cx={p.x}
                     cy={p.yInserts}
-                    r={isHovered ? 4 : 3}
+                    r={isHovered ? 4.8 : 3.2}
                     fill="#EF4444"
                     stroke="#FFFFFF"
-                    strokeWidth="1.5"
+                    strokeWidth="1.6"
                   />
                 )}
 
-                {/* Updates points when present (Orange) */}
-                {(activeSeries === 'ALL' || activeSeries === 'UPDATES') && (p.updates || 0) > 0 && (
+                {/* Updates points in Electric Blue (#3B82F6) */}
+                {(activeSeries === 'ALL' || activeSeries === 'UPDATES' || selectedEventType === 'UPDATE') && (p.updates || 0) > 0 && showPoint && (
                   <circle
                     cx={p.x}
                     cy={p.yUpdates}
-                    r={isHovered ? 4 : 3}
-                    fill="#F97316"
+                    r={isHovered ? 4.2 : 2.8}
+                    fill="#3B82F6"
                     stroke="#FFFFFF"
                     strokeWidth="1.5"
                   />
                 )}
 
-                <text x={p.x} y={height - 8} textAnchor="middle" fontSize="9" fill={isHovered ? "#1E293B" : "#64748B"} fontWeight={isHovered ? 700 : 500}>
-                  {p.date.slice(5)}
-                </text>
+                {/* Deletions points in Purple (#8B5CF6) */}
+                {(activeSeries === 'ALL' || activeSeries === 'DELETES' || selectedEventType === 'DELETE') && (p.deletes || 0) > 0 && showPoint && (
+                  <circle
+                    cx={p.x}
+                    cy={p.yDeletes}
+                    r={isHovered ? 4.2 : 2.8}
+                    fill="#8B5CF6"
+                    stroke="#FFFFFF"
+                    strokeWidth="1.5"
+                  />
+                )}
+
+                {/* X-axis date tick */}
+                {isTickVisible(i) && (
+                  <text 
+                    x={p.x} 
+                    y={height - 6} 
+                    textAnchor="middle" 
+                    fontSize="9" 
+                    fill={isHovered ? "#0F172A" : "#64748B"} 
+                    fontWeight={isHovered ? 700 : 500}
+                  >
+                    {p.date.slice(5)}
+                  </text>
+                )}
               </g>
             );
           })}
@@ -1028,56 +1464,74 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
         {hoveredPoint && (
           <div style={{
             position: 'absolute',
-            left: `${hoveredPoint.x}px`,
-            top: '15px',
+            left: `${Math.min(Math.max(hoveredPoint.x, 80), width - 80)}px`,
+            top: '8px',
             transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(15, 23, 42, 0.94)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
             color: '#FFFFFF',
-            padding: '6px 10px',
-            borderRadius: '6px',
+            padding: '7px 11px',
+            borderRadius: '7px',
             fontSize: '0.74rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.25)',
             pointerEvents: 'none',
             zIndex: 10,
             whiteSpace: 'nowrap'
           }}>
-            <div style={{ fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '3px', marginBottom: '3px' }}>
+            <div style={{ fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '3px', marginBottom: '4px' }}>
               {hoveredPoint.date}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.72rem' }}>
-              <span style={{ color: '#FDE047' }}>Total: {hoveredPoint.count} events</span>
-              <span style={{ color: '#FCA5A5' }}>Inserts: {hoveredPoint.inserts || 0}</span>
-              <span style={{ color: '#FDBA74' }}>Updates: {hoveredPoint.updates || 0}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.72rem' }}>
+              <span style={{ color: '#FDE047', fontWeight: 600 }}>Total Events: {hoveredPoint.count}</span>
+              {/* REQUIRED: Inserts highlighted in RED */}
+              <span style={{ color: '#F87171', fontWeight: 700 }}>🔴 Inserts / Additions: {hoveredPoint.inserts || 0}</span>
+              <span style={{ color: '#93C5FD' }}>🔵 Updates: {hoveredPoint.updates || 0}</span>
+              <span style={{ color: '#C4B5FD' }}>🟣 Deletions: {hoveredPoint.deletes || 0}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Series Legend with Actual Dynamic Counts & Series Filter */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.6rem', marginTop: '0.4rem', fontSize: '0.76rem' }}>
+      {/* 5. Series Legend with Interactive Series Toggling */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.6rem', marginTop: '0.2rem', fontSize: '0.76rem', flexWrap: 'wrap' }}>
+        
+        {/* Total Security Changes */}
         <div
           onClick={() => setActiveSeries(activeSeries === 'TOTAL' ? 'ALL' : 'TOTAL')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'TOTAL' ? 1 : 0.4 }}
-          title="Click to toggle Total Security Changes series"
+          title="Click to focus on Total Security Events"
         >
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#EAB308' }} />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Security Changes ({totalEvents})</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Total Changes ({totalEvents})</span>
         </div>
+
+        {/* REQUIRED: Inserts in RED */}
         <div
           onClick={() => setActiveSeries(activeSeries === 'INSERTS' ? 'ALL' : 'INSERTS')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'INSERTS' ? 1 : 0.4 }}
-          title="Click to toggle Inserts / Additions series"
+          title="Click to focus on Inserts / Additions series"
         >
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inserts / Additions ({totalInserts})</span>
+          <span style={{ color: '#DC2626', fontWeight: 700 }}>Inserts / Additions ({totalInserts})</span>
         </div>
+
+        {/* Updates */}
         <div
           onClick={() => setActiveSeries(activeSeries === 'UPDATES' ? 'ALL' : 'UPDATES')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'UPDATES' ? 1 : 0.4 }}
-          title="Click to toggle Updates series"
+          title="Click to focus on Updates series"
         >
-          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#F97316' }} />
+          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Updates ({totalUpdates})</span>
+        </div>
+
+        {/* Deletions */}
+        <div
+          onClick={() => setActiveSeries(activeSeries === 'DELETES' ? 'ALL' : 'DELETES')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', opacity: activeSeries === 'ALL' || activeSeries === 'DELETES' ? 1 : 0.4 }}
+          title="Click to focus on Deletions series"
+        >
+          <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#8B5CF6' }} />
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Deletions ({totalDeletes})</span>
         </div>
       </div>
     </div>
@@ -1088,89 +1542,419 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
 export const SecurityActivityTrend = RiskTrend;
 
 /* ==========================================================
-   7. TOP AT-RISK BUSINESS OBJECTS
+   7. PRODUCT-LEVEL AUDIT ACTIVITY MONITOR
    ========================================================== */
-interface TopAtRiskBusinessObjectsProps {
-  businessObjects?: Array<{ businessObject: string; eventCount: number; activityLevel?: string; riskLevel?: string }>;
-  onNavigatePage?: (pageId: string) => void;
+interface ProductActivityMonitorProps {
+  onNavigatePage?: (pageId: string, filter?: string) => void;
+  onInvestigateProduct?: (productName: string) => void;
+  businessObjects?: any; // Backward compatibility prop
 }
 
-export function TopAtRiskBusinessObjects({ businessObjects = [], onNavigatePage }: TopAtRiskBusinessObjectsProps) {
-  const objects = businessObjects.length > 0 ? businessObjects : [
-    { businessObject: 'Person Legislative Information', eventCount: 148, riskLevel: 'High' },
-    { businessObject: 'Person Address', eventCount: 56, riskLevel: 'Medium' },
-    { businessObject: 'Person Phone', eventCount: 15, riskLevel: 'Medium' }
-  ];
+export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonitorProps) {
+  const [timeframe, setTimeframe] = React.useState<string>('today');
+  const [loading, setLoading] = React.useState<boolean>(false);
+  const [data, setData] = React.useState<{
+    timeframe: string;
+    effectiveDateLabel: string;
+    targetDate: string;
+    products: Array<{
+      product: string;
+      totalRecords: number;
+      inserts: number;
+      updates: number;
+      deletes: number;
+      latestEventTime: string | null;
+    }>;
+    totalActiveProducts: number;
+    totalRecordsAcrossProducts: number;
+  }>({
+    timeframe: 'today',
+    effectiveDateLabel: 'Today (2026-10-12)',
+    targetDate: '2026-10-12',
+    products: [],
+    totalActiveProducts: 0,
+    totalRecordsAcrossProducts: 0
+  });
+
+  const loadData = React.useCallback(async (tf: string) => {
+    setLoading(true);
+    try {
+      const res = await api.getProductActivity({ timeframe: tf });
+      if (res?.success && res?.data) {
+        setData(res.data);
+      }
+    } catch (err) {
+      console.error('[ProductActivityMonitor] Failed to load product activity:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadData(timeframe);
+  }, [timeframe, loadData]);
+
+  const totalInserts = data.products.reduce((acc, p) => acc + p.inserts, 0);
+  const totalUpdates = data.products.reduce((acc, p) => acc + p.updates, 0);
+  const totalDeletes = data.products.reduce((acc, p) => acc + p.deletes, 0);
+
+  const getProductCategory = (prodName: string) => {
+    const p = prodName.toLowerCase();
+    if (p.includes('human') || p.includes('hcm') || p.includes('profile')) return { category: 'HCM', color: '#10B981', bg: '#ECFDF5' };
+    if (p.includes('ledger') || p.includes('payables') || p.includes('receivables') || p.includes('financial')) return { category: 'FIN', color: '#2563EB', bg: '#EFF6FF' };
+    if (p.includes('crm') || p.includes('service') || p.includes('sales')) return { category: 'CRM', color: '#8B5CF6', bg: '#F5F3FF' };
+    if (p.includes('security') || p.includes('platform')) return { category: 'SEC', color: '#EF4444', bg: '#FEF2F2' };
+    if (p.includes('inventory') || p.includes('procurement')) return { category: 'SCM', color: '#F59E0B', bg: '#FFFBEB' };
+    return { category: 'COMMON', color: '#64748B', bg: '#F8FAFC' };
+  };
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem 1.6rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="glass-panel" style={{ padding: '1.4rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.8rem' }}>
         <div>
-          <h3 style={{ fontSize: '1.08rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, color: 'var(--text-primary)' }}>
-            Top At-Risk Business Objects
-          </h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-            Enterprise business entities modified with audit event intensity
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <Layers style={{ width: 19, height: 19, color: '#2563EB' }} />
+              Active Products Audit Activity
+            </h3>
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 600,
+              color: '#2563EB',
+              backgroundColor: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              padding: '0.15rem 0.6rem',
+              borderRadius: '9999px'
+            }}>
+              {data.effectiveDateLabel}
+            </span>
+            {loading && <RefreshCw style={{ width: 14, height: 14, color: '#64748B', animation: 'spin 1s linear infinite' }} />}
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+            Oracle Fusion applications with recorded transactions, security changes, and event volume
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {objects.length > 0 && (
+
+        {/* Right Controls: Timeframe Selector & Export & Audit Trail Link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Timeframe Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+              Timeframe:
+            </span>
+            <select
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                color: '#1E293B',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                borderRadius: '6px',
+                padding: '0.28rem 0.65rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="today">Today (2026-10-12)</option>
+              <option value="yesterday">Yesterday (2026-10-11)</option>
+              <option value="previous_active">Previous Active Day (2026-10-09)</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+          </div>
+
+          {data.products.length > 0 && (
             <TableExportControl
-              filename="top_at_risk_objects"
-              data={objects}
-              totalCount={objects.length}
+              filename={`product_audit_activity_${timeframe}`}
+              data={data.products}
+              totalCount={data.products.length}
               columns={[
-                { key: 'businessObject', label: 'Business Object' },
-                { key: 'eventCount', label: 'Event Count' },
-                { key: 'riskLevel', label: 'Risk Level', getValue: (obj: any) => obj.riskLevel || obj.activityLevel || (obj.eventCount > 100 ? 'High' : obj.eventCount > 30 ? 'Medium' : 'Low') }
+                { key: 'product', label: 'Oracle Product' },
+                { key: 'totalRecords', label: 'Total Records' },
+                { key: 'inserts', label: 'Inserts / Additions' },
+                { key: 'updates', label: 'Updates' },
+                { key: 'deletes', label: 'Deletions' },
+                { key: 'latestEventTime', label: 'Latest Event', getValue: (p: any) => p.latestEventTime ? new Date(p.latestEventTime).toLocaleString() : '' }
               ]}
             />
           )}
-          <span 
+
+          <span
             onClick={() => onNavigatePage?.('audit')}
             style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
           >
-            View All &rarr;
+            Full Audit Trail &rarr;
           </span>
         </div>
       </div>
 
+      {/* Summary KPI Chips */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{
+          fontSize: '0.75rem',
+          backgroundColor: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: '6px',
+          padding: '0.22rem 0.65rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ color: '#64748B' }}>Active Products:</span>
+          <strong style={{ color: '#0F172A' }}>{data.totalActiveProducts}</strong>
+        </div>
+
+        <div style={{
+          fontSize: '0.75rem',
+          backgroundColor: '#F1F5F9',
+          border: '1px solid #CBD5E1',
+          borderRadius: '6px',
+          padding: '0.22rem 0.65rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ color: '#475569' }}>Total Records Logged:</span>
+          <strong style={{ color: '#0F172A' }}>{data.totalRecordsAcrossProducts.toLocaleString()}</strong>
+        </div>
+
+        {/* Inserts in Red */}
+        <div style={{
+          fontSize: '0.75rem',
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: '6px',
+          padding: '0.22rem 0.65rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#EF4444' }} />
+          <span style={{ color: '#991B1B', fontWeight: 600 }}>Inserts / Additions:</span>
+          <strong style={{ color: '#DC2626' }}>{totalInserts.toLocaleString()}</strong>
+        </div>
+
+        {/* Updates in Blue */}
+        <div style={{
+          fontSize: '0.75rem',
+          backgroundColor: '#EFF6FF',
+          border: '1px solid #BFDBFE',
+          borderRadius: '6px',
+          padding: '0.22rem 0.65rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#3B82F6' }} />
+          <span style={{ color: '#1E40AF', fontWeight: 600 }}>Updates:</span>
+          <strong style={{ color: '#2563EB' }}>{totalUpdates.toLocaleString()}</strong>
+        </div>
+
+        {/* Deletes in Purple */}
+        {totalDeletes > 0 && (
+          <div style={{
+            fontSize: '0.75rem',
+            backgroundColor: '#F5F3FF',
+            border: '1px solid #DDD6FE',
+            borderRadius: '6px',
+            padding: '0.22rem 0.65rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#8B5CF6' }} />
+            <span style={{ color: '#5B21B6', fontWeight: 600 }}>Deletions:</span>
+            <strong style={{ color: '#7C3AED' }}>{totalDeletes.toLocaleString()}</strong>
+          </div>
+        )}
+      </div>
+
       {/* Table */}
-      <div className="table-container" style={{ margin: 0, flex: 1 }}>
+      <div className="table-container" style={{ margin: 0, flex: 1, minHeight: '160px' }}>
         <table className="enterprise-table">
           <thead>
             <tr>
-              <th>Business Object</th>
-              <th style={{ textAlign: 'right' }}>Event Count</th>
-              <th style={{ textAlign: 'right' }}>Risk Level</th>
+              <th>Oracle Product</th>
+              <th style={{ textAlign: 'center' }}>Total Records</th>
+              <th>Event Types Breakdown</th>
+              <th>Latest Recorded Event</th>
+              <th style={{ textAlign: 'right' }}>Activity Level</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {objects.map((obj, i) => {
-              const level = obj.riskLevel || obj.activityLevel || (obj.eventCount > 100 ? 'High' : obj.eventCount > 30 ? 'Medium' : 'Low');
-              return (
-                <tr key={i}>
-                  <td style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
-                    {obj.businessObject}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {obj.eventCount.toLocaleString()}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className={
-                      level === 'High' 
-                        ? 'badge badge-level-high' 
-                        : level === 'Medium' 
-                        ? 'badge badge-level-med' 
-                        : 'badge badge-level-low'
-                    }>
-                      {level}
+            {data.products.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569' }}>
+                      No audit records logged for this timeframe ({data.effectiveDateLabel}).
                     </span>
-                  </td>
-                </tr>
-              );
-            })}
+                    <span style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                      (e.g., non-working weekend day in Oracle Fusion).
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem' }}>
+                      <button
+                        onClick={() => setTimeframe('today')}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: '#2563EB',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        View Today (2026-10-12)
+                      </button>
+                      <button
+                        onClick={() => setTimeframe('previous_active')}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: '#F1F5F9',
+                          color: '#334155',
+                          border: '1px solid #CBD5E1',
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        View Previous Active Day (2026-10-09)
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              data.products.map((p, idx) => {
+                const cat = getProductCategory(p.product);
+                const isHigh = p.totalRecords > 30;
+                const isMed = p.totalRecords > 5;
+
+                return (
+                  <tr key={idx}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          backgroundColor: cat.bg,
+                          color: cat.color,
+                          padding: '0.12rem 0.45rem',
+                          borderRadius: '4px',
+                          border: `1px solid ${cat.color}30`
+                        }}>
+                          {cat.category}
+                        </span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+                          {p.product}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ 
+                        display: 'inline-block',
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '6px',
+                        backgroundColor: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        fontWeight: 700,
+                        color: '#0F172A',
+                        fontSize: '0.85rem'
+                      }}>
+                        {p.totalRecords.toLocaleString()}
+                      </span>
+                    </td>
+
+                    {/* Event Types Breakdown: Clean badges */}
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                        {p.inserts > 0 && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: '#DC2626',
+                            backgroundColor: '#FEF2F2',
+                            border: '1px solid #FECACA',
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: '5px'
+                          }}>
+                            🔴 {p.inserts} Inserts
+                          </span>
+                        )}
+                        {p.updates > 0 && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: '#2563EB',
+                            backgroundColor: '#EFF6FF',
+                            border: '1px solid #BFDBFE',
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: '5px'
+                          }}>
+                            🔵 {p.updates} Updates
+                          </span>
+                        )}
+                        {p.deletes > 0 && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: '#7C3AED',
+                            backgroundColor: '#F5F3FF',
+                            border: '1px solid #DDD6FE',
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: '5px'
+                          }}>
+                            🟣 {p.deletes} Deletes
+                          </span>
+                        )}
+                        {p.inserts === 0 && p.updates === 0 && p.deletes === 0 && (
+                          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Standard Logs</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                      {p.latestEventTime ? new Date(p.latestEventTime).toLocaleString() : 'N/A'}
+                    </td>
+
+                    <td style={{ textAlign: 'right' }}>
+                      <span className={
+                        isHigh
+                          ? 'badge badge-level-high'
+                          : isMed
+                          ? 'badge badge-level-med'
+                          : 'badge badge-level-low'
+                      }>
+                        {isHigh ? 'High Activity' : isMed ? 'Moderate' : 'Low Activity'}
+                      </span>
+                    </td>
+
+                    <td style={{ textAlign: 'right' }}>
+                      <span
+                        onClick={() => onNavigatePage?.('audit')}
+                        style={{
+                          fontSize: '0.78rem',
+                          color: 'var(--accent-blue)',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          textDecoration: 'none'
+                        }}
+                      >
+                        Inspect &rarr;
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -1179,4 +1963,5 @@ export function TopAtRiskBusinessObjects({ businessObjects = [], onNavigatePage 
 }
 
 // Backward compatibility alias
-export const MostActiveBusinessObjects = TopAtRiskBusinessObjects;
+export const TopAtRiskBusinessObjects = ProductActivityMonitor;
+export const MostActiveBusinessObjects = ProductActivityMonitor;

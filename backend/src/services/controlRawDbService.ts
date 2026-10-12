@@ -45,6 +45,11 @@ export interface MicroProbeResult {
 export class ControlRawDbService {
   private schedulerTimer: NodeJS.Timeout | null = null;
   private isSchedulerRunning = false;
+  private incidentCountCacheService: any = null;
+
+  public setIncidentCountCacheService(service: any): void {
+    this.incidentCountCacheService = service;
+  }
 
   /**
    * Normalizes the host string for environment isolation (e.g. eiiv-dev14.fa.us6.oraclecloud.com)
@@ -63,8 +68,75 @@ export class ControlRawDbService {
   // Raw Control Definition Methods (1 Row per Control)
   // =============================================================
 
+  private isSchemaInitialized = false;
+
+  /**
+   * Ensures breakdown columns exist in oracle_control_incidents.
+   */
+  public async initSchema(): Promise<void> {
+    if (this.isSchemaInitialized) return;
+    try {
+      await query(`
+        ALTER TABLE oracle_control_incidents 
+        ADD COLUMN IF NOT EXISTS assigned_incidents INT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS accepted_incidents INT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS remediate_incidents INT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS resolved_incidents INT DEFAULT 0;
+      `);
+      this.isSchemaInitialized = true;
+    } catch (err: any) {
+      console.warn('[ControlRawDbService] Schema column initialization notice:', err.message);
+    }
+  }
+
+  /**
+   * Categorizes raw incidents into the 4 Oracle Incident Lifecycle Statuses:
+   * Assigned, Accepted, Remediate, Resolved
+   */
+  public calculateIncidentBreakdown(rawIncidents: any[]): {
+    assigned: number;
+    accepted: number;
+    remediate: number;
+    resolved: number;
+  } {
+    let assigned = 0;
+    let accepted = 0;
+    let remediate = 0;
+    let resolved = 0;
+
+    if (!Array.isArray(rawIncidents)) {
+      return { assigned, accepted, remediate, resolved };
+    }
+
+    for (const item of rawIncidents) {
+      if (!item) continue;
+      const statusStr = String(item.Status ?? item.status ?? '').trim().toUpperCase();
+      const stateStr = String(item.State ?? item.state ?? item.StateCode ?? '').trim().toUpperCase();
+      const isClosed = Boolean(item.ClosedDate || item.closedDate);
+
+      if (statusStr.includes('ACCEPT') || stateStr.includes('ACCEPT')) {
+        accepted++;
+      } else if (statusStr.includes('REMEDIAT') || stateStr.includes('REMEDIAT')) {
+        remediate++;
+      } else if (
+        statusStr.includes('RESOLV') ||
+        statusStr.includes('CLOSE') ||
+        stateStr.includes('RESOLV') ||
+        stateStr.includes('CLOSE') ||
+        isClosed
+      ) {
+        resolved++;
+      } else {
+        assigned++;
+      }
+    }
+
+    return { assigned, accepted, remediate, resolved };
+  }
+
   /**
    * Saves a raw Oracle control definition object into PostgreSQL using atomic UPSERT.
+   * Accurately preserves and normalizes ACTIVE vs INACTIVE control status.
    */
   public async saveRawControl(controlId: string, rawControl: any): Promise<void> {
     if (!rawControl || typeof rawControl !== 'object') return;
@@ -73,7 +145,15 @@ export class ControlRawDbService {
     const cleanId = String(controlId).trim();
     const name = rawControl.Name ?? rawControl.name ?? null;
     const state = rawControl.StateCode ?? rawControl.State ?? rawControl.state ?? null;
-    const status = rawControl.StatusId !== undefined ? String(rawControl.StatusId) : (rawControl.Status ?? rawControl.status ?? null);
+
+    // Accurately normalize status to ACTIVE or INACTIVE
+    let status = rawControl.Status ?? rawControl.status ?? null;
+    if (rawControl.StatusId !== undefined && rawControl.StatusId !== null) {
+      status = Number(rawControl.StatusId) === 1 ? 'ACTIVE' : 'INACTIVE';
+    }
+    if (typeof status === 'string') {
+      status = status.toUpperCase();
+    }
 
     let lastRunDate: Date | null = null;
     if (rawControl.LastRunDate || rawControl.lastRunDate) {
@@ -160,6 +240,7 @@ export class ControlRawDbService {
     lastOracleUpdateDate?: Date | null
   ): Promise<number> {
     if (!Array.isArray(rawIncidents)) return 0;
+    await this.initSchema();
 
     const host = this.getHost();
     const cleanId = String(controlId).trim();
@@ -179,6 +260,7 @@ export class ControlRawDbService {
       }
     }
 
+    const breakdown = this.calculateIncidentBreakdown(rawIncidents);
     const rawJson = JSON.stringify(rawIncidents);
 
     const sql = `
@@ -191,9 +273,13 @@ export class ControlRawDbService {
         last_synced_at,
         sync_status,
         raw_incidents,
+        assigned_incidents,
+        accepted_incidents,
+        remediate_incidents,
+        resolved_incidents,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, NOW(), 'READY', $6::jsonb, NOW())
+      VALUES ($1, $2, $3, $4, $5, NOW(), 'READY', $6::jsonb, $7, $8, $9, $10, NOW())
       ON CONFLICT (environment_host, control_id)
       DO UPDATE SET
         control_name = COALESCE(EXCLUDED.control_name, oracle_control_incidents.control_name),
@@ -202,10 +288,33 @@ export class ControlRawDbService {
         last_synced_at = NOW(),
         sync_status = 'READY',
         raw_incidents = EXCLUDED.raw_incidents,
+        assigned_incidents = EXCLUDED.assigned_incidents,
+        accepted_incidents = EXCLUDED.accepted_incidents,
+        remediate_incidents = EXCLUDED.remediate_incidents,
+        resolved_incidents = EXCLUDED.resolved_incidents,
         updated_at = NOW()
     `;
 
-    await query(sql, [host, cleanId, controlName || null, total, maxDate, rawJson]);
+    await query(sql, [
+      host,
+      cleanId,
+      controlName || null,
+      total,
+      maxDate,
+      rawJson,
+      breakdown.assigned,
+      breakdown.accepted,
+      breakdown.remediate,
+      breakdown.resolved,
+    ]);
+
+    // Update fast incident count cache immediately with exact 4-status distribution
+    if (this.incidentCountCacheService && typeof this.incidentCountCacheService.setCount === 'function') {
+      try {
+        this.incidentCountCacheService.setCount(cleanId, total, 'READY', breakdown);
+      } catch (_) {}
+    }
+
     return rawIncidents.length;
   }
 
@@ -254,12 +363,39 @@ export class ControlRawDbService {
 
     let allItems: any[] = row.raw_incidents;
 
-    // Optional in-memory status filter
+    // In-memory status filter (supporting Oracle's 4 Lifecycle statuses: Accepted, Assigned, Remediate, Resolved)
     if (options.status && options.status !== 'ALL') {
-      const st = options.status.trim().toUpperCase();
-      allItems = allItems.filter(
-        (it) => String(it.Status || it.status || it.StatusId || '').toUpperCase() === st
-      );
+      const filterKey = options.status.trim().toUpperCase();
+      allItems = allItems.filter((it) => {
+        const itemStatus = String(it.Status || it.status || '').trim().toUpperCase();
+        const itemState = String(it.State || it.state || it.StateCode || '').trim().toUpperCase();
+        const isClosed = Boolean(it.ClosedDate || it.closedDate);
+
+        if (filterKey === 'ACCEPTED') {
+          return itemStatus.includes('ACCEPT') || itemState.includes('ACCEPT');
+        } else if (filterKey === 'REMEDIATE') {
+          return itemStatus.includes('REMEDIAT') || itemState.includes('REMEDIAT');
+        } else if (filterKey === 'RESOLVED') {
+          return (
+            itemStatus.includes('RESOLV') ||
+            itemStatus.includes('CLOSE') ||
+            itemState.includes('RESOLV') ||
+            itemState.includes('CLOSE') ||
+            isClosed
+          );
+        } else if (filterKey === 'ASSIGNED') {
+          const isAcc = itemStatus.includes('ACCEPT') || itemState.includes('ACCEPT');
+          const isRem = itemStatus.includes('REMEDIAT') || itemState.includes('REMEDIAT');
+          const isRes =
+            itemStatus.includes('RESOLV') ||
+            itemStatus.includes('CLOSE') ||
+            itemState.includes('RESOLV') ||
+            itemState.includes('CLOSE') ||
+            isClosed;
+          return !isAcc && !isRem && !isRes;
+        }
+        return itemStatus === filterKey || itemState === filterKey;
+      });
     }
 
     // Optional in-memory search filter
@@ -316,6 +452,10 @@ export class ControlRawDbService {
         updated_at as last_checked_at,
         sync_status,
         NULL as error_message,
+        COALESCE(assigned_incidents, 0) as assigned_incidents,
+        COALESCE(accepted_incidents, 0) as accepted_incidents,
+        COALESCE(remediate_incidents, 0) as remediate_incidents,
+        COALESCE(resolved_incidents, 0) as resolved_incidents,
         created_at,
         updated_at
        FROM oracle_control_incidents
@@ -410,6 +550,7 @@ export class ControlRawDbService {
         offset: 0,
         limit: 1,
         totalResults: true,
+        orderBy: 'LastUpdateDate:desc',
         timeout: 15000,
       });
 
@@ -448,7 +589,10 @@ export class ControlRawDbService {
         ? new Date(watermark.last_oracle_update_date).getTime()
         : 0;
 
-      const countMismatch = totalOracleCount > syncedDbCount;
+      // Status change detection:
+      // Even if total count did not change, if an incident changed status (e.g. to Accepted/Remediate/Resolved),
+      // oracleLatestTime will be newer than dbLatestTime!
+      const countMismatch = totalOracleCount !== syncedDbCount;
       const hasNewerTimestamp = oracleLatestTime > dbLatestTime + 1000;
       const hasUpdates = hasNewerTimestamp || countMismatch;
 
@@ -611,7 +755,7 @@ export class ControlRawDbService {
       let catalogControls: Array<{ id: string; name: string; raw?: any }> = [];
       try {
         if (oracleServiceOrClient && typeof oracleServiceOrClient.getControlCatalogService === 'function') {
-          const catalogRes = await oracleServiceOrClient.getControlCatalogService().getAllControls();
+          const catalogRes = await oracleServiceOrClient.getControlCatalogService().getAllControls(true);
           if (Array.isArray(catalogRes?.items)) {
             catalogControls = catalogRes.items.map((c: any) => ({
               id: String(c.id).trim(),
