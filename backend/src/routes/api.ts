@@ -2051,6 +2051,8 @@ apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (
     const pageNumber = req.query.pageNumber ? parseInt(req.query.pageNumber as string, 10) : undefined;
     const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string, 10) : undefined;
 
+    const source = req.query.source as 'live' | 'database' | undefined;
+
     const result = await oracleService.getAuditHistory({
       product,
       businessObjectType,
@@ -2059,7 +2061,8 @@ apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (
       username,
       action,
       pageNumber,
-      pageSize
+      pageSize,
+      source
     });
 
     res.json({
@@ -2089,7 +2092,8 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
       username,
       action,
       pageNumber,
-      pageSize
+      pageSize,
+      source
     } = req.body || {};
 
     const result = await oracleService.getAuditHistory({
@@ -2100,7 +2104,8 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
       username,
       action,
       pageNumber,
-      pageSize
+      pageSize,
+      source
     });
 
     res.json({

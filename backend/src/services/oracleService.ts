@@ -11,6 +11,7 @@ import { bipClient } from '../oracle/bipClient.js';
 import { userAccessReportService } from './userAccessReportService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { roleHierarchyService } from './roleHierarchyService.js';
+import { auditRawDbService } from './auditRawDbService.js';
 export { classifyRoleRecord };
 
 const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
@@ -1668,6 +1669,59 @@ class OracleService {
     return results;
   }
 
+  public mapRawAuditItem(a: any, idx: number, boDisplayName: string, restBusinessObjectType?: string): any {
+    const safeLower = (val: unknown): string => (val !== undefined && val !== null ? String(val).trim().toLowerCase() : '');
+    let identifier = a.identifier || a.objectIdentifier || '';
+    const rawAttrDetails = Array.isArray(a.attributeDetails) ? a.attributeDetails : [];
+    if (!identifier && a.description) {
+      const descMatch = String(a.description).match(/(?:Person ID|Person Number|ID|Number):\s*([0-9A-Za-z_-]+)/i);
+      if (descMatch) {
+        identifier = descMatch[0];
+      }
+    }
+    if (!identifier && rawAttrDetails.length > 0) {
+      const idAttr = rawAttrDetails.find((d: any) =>
+        d.attribute && (safeLower(d.attribute).includes('id') || safeLower(d.attribute).includes('name') || safeLower(d.attribute).includes('number'))
+      );
+      if (idAttr) {
+        identifier = `${idAttr.attribute}: ${idAttr.newValue || idAttr.oldValue || ''}`;
+      }
+    }
+    if (!identifier && a.userInternalName) {
+      identifier = `User:${a.userInternalName}`;
+    }
+    if (!identifier) {
+      identifier = `${a.businessObject || boDisplayName}:${idx + 1}`;
+    }
+
+    const attributeDetails = rawAttrDetails.map((ad: any) => ({
+      attribute: ad.attribute || ad.attributeInternalName || 'Attribute',
+      attributeInternalName: ad.attributeInternalName,
+      oldValue: ad.oldValue !== undefined && ad.oldValue !== null ? String(ad.oldValue) : undefined,
+      newValue: ad.newValue !== undefined && ad.newValue !== null ? String(ad.newValue) : undefined
+    }));
+
+    const eventName = a.eventType || a.action || 'Object Data Update';
+
+    return {
+      id: a.id || `aud_${(a.userName || 'sys').replace(/[^a-zA-Z0-9]/g, '_')}_${idx}_${Date.now()}`,
+      timestamp: a.date || a.timestamp || a.lastUpdateDate || new Date().toISOString(),
+      username: a.userName || a.userInternalName || a.userId || 'System',
+      userInternalName: a.userInternalName,
+      action: a.action || a.eventType || 'UPDATE',
+      event: eventName,
+      eventCategory: a.eventCategory,
+      businessObject: a.businessObject || boDisplayName,
+      qualifiedBusinessObject: a.qualifiedBusinessObject || restBusinessObjectType,
+      identifier,
+      details: a.description || (attributeDetails.length > 0 ? `Updated ${attributeDetails.length} attribute(s)` : `${eventName} on ${a.businessObject || boDisplayName}`),
+      attributeDetails: attributeDetails.length > 0 ? attributeDetails : undefined,
+      childObjects: a.childObjects || a.children || undefined,
+      impersonator: a.impersonator || undefined,
+      raw: a
+    };
+  }
+
   async getAuditHistory(params: {
     product?: string;
     businessObjectType?: string;
@@ -1677,6 +1731,7 @@ class OracleService {
     action?: string;
     pageNumber?: number;
     pageSize?: number;
+    source?: 'live' | 'database';
   } = {}): Promise<{
     success: boolean;
     notConfigured?: boolean;
@@ -1712,6 +1767,7 @@ class OracleService {
     let fromDateStr: string;
     let toDateStr: string;
 
+    let isWideRange = false;
     if (isIsoDate(params.fromDate) && isIsoDate(params.toDate)) {
       const fParts = params.fromDate!.trim().split('-').map(Number);
       const tParts = params.toDate!.trim().split('-').map(Number);
@@ -1723,8 +1779,8 @@ class OracleService {
         fromDateStr = params.fromDate!.trim();
         toDateStr = params.toDate!.trim();
       } else if (diffDays > 30) {
-        const clampedFrom = new Date(tDate.getTime() - 29 * 24 * 60 * 60 * 1000);
-        fromDateStr = formatDate(clampedFrom);
+        isWideRange = true;
+        fromDateStr = params.fromDate!.trim();
         toDateStr = params.toDate!.trim();
       } else {
         // Reversed dates: swap
@@ -1737,8 +1793,8 @@ class OracleService {
       let fromDateObj = params.fromDate ? new Date(params.fromDate) : new Date(toDateObj.getTime() - 9 * 24 * 60 * 60 * 1000);
       if (isNaN(fromDateObj.getTime())) fromDateObj = new Date(toDateObj.getTime() - 9 * 24 * 60 * 60 * 1000);
       const diffDays = (toDateObj.getTime() - fromDateObj.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays > 30 || diffDays < 0) {
-        fromDateObj = new Date(toDateObj.getTime() - 29 * 24 * 60 * 60 * 1000);
+      if (diffDays > 30) {
+        isWideRange = true;
       }
       fromDateStr = formatDate(fromDateObj);
       toDateStr = formatDate(toDateObj);
@@ -1752,15 +1808,9 @@ class OracleService {
       throw new Error(`Product "${productQuery}" is not recognized in the Oracle Fusion audit catalog.`);
     }
 
-    if (resolution.status === 'UNRESOLVED') {
-      throw new Error(resolution.message || 'Oracle Fusion requires a Business Object Type for this audit query.');
-    }
-
-    const productDisplayName = resolution.product?.displayName || productQuery;
-    const boDisplayName = resolution.businessObject?.displayName || (resolution.product?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events');
-
-    // Handle gracefully when user selects an additional business object from the instance that does not yet have a supplied payload
-    if (resolution.status === 'NOT_CONFIGURED') {
+    if (resolution.status === 'UNRESOLVED' || resolution.status === 'NOT_CONFIGURED') {
+      const pDisplayName = resolution.product?.displayName || productQuery;
+      const bDisplayName = resolution.businessObject?.displayName || (params.businessObjectType || 'Standard Object');
       return {
         success: false,
         notConfigured: true,
@@ -1770,13 +1820,16 @@ class OracleService {
         pageNumber,
         pageSize,
         product: resolution.product?.id,
-        productDisplayName,
+        productDisplayName: pDisplayName,
         businessObject: resolution.businessObject?.id,
-        businessObjectDisplayName: boDisplayName,
-        message: resolution.message || `Business Object Type "${boDisplayName}" is not yet configured for ${productDisplayName}.`,
-        dateRange: { fromDate: fromDateStr, toDate: toDateStr }
+        businessObjectDisplayName: bDisplayName,
+        message: resolution.message || `Business Object Type "${params.businessObjectType || ''}" is not configured for ${pDisplayName}.`
       };
     }
+
+    const productDisplayName = resolution.product?.displayName || productQuery;
+    const boDisplayName = resolution.businessObject?.displayName || (resolution.product?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events');
+
 
     const restProduct = resolution.product?.restProduct || resolution.product?.shortCodes?.[0] || productQuery;
     const isOpss = restProduct === 'OPSS' || resolution.product?.id === 'opss';
@@ -1813,6 +1866,46 @@ class OracleService {
         businessObjectDisplayName: boDisplayName,
         dateRange: { fromDate: fromDateStr, toDate: toDateStr }
       };
+    }
+
+    // Check if wide date range (> 30 days) or database source requested
+    const preferDb = params.source === 'database' || isWideRange;
+    if (preferDb && !this.isDemoMode()) {
+      try {
+        const queryPageSize = params.pageSize && params.pageSize > 50 ? params.pageSize : 500;
+        const dbResult = await auditRawDbService.getRawAuditRecords({
+          product: resolution.product?.productName || resolution.product?.displayName || productQuery,
+          businessObjectType: resolution.businessObject?.displayName || params.businessObjectType,
+          fromDate: fromDateStr,
+          toDate: toDateStr,
+          username: params.username,
+          action: params.action,
+          pageNumber,
+          pageSize: queryPageSize
+        });
+
+        if (dbResult.totalCount > 0 || isWideRange) {
+          const mappedLogs = dbResult.rawItems.map((a: any, idx: number) =>
+            this.mapRawAuditItem(a, idx, boDisplayName, restBusinessObjectType)
+          );
+
+          return {
+            success: true,
+            dataSource: 'PostgreSQL Database (Raw Oracle Fusion Data)',
+            logs: mappedLogs,
+            totalRecords: dbResult.totalCount,
+            pageNumber,
+            pageSize: queryPageSize,
+            product: resolution.product?.id,
+            productDisplayName,
+            businessObject: resolution.businessObject?.id,
+            businessObjectDisplayName: boDisplayName,
+            dateRange: { fromDate: fromDateStr, toDate: toDateStr }
+          };
+        }
+      } catch (err: any) {
+        console.warn('[Audit Raw DB Query]:', err.message);
+      }
     }
 
     // 3. Query Live Oracle Fusion Audit REST endpoint with tested product-specific payload
@@ -1911,58 +2004,17 @@ class OracleService {
         };
       }
 
-      let mappedLogs = audits.map((a: any, idx: number) => {
-        // Derive clean identifier from description, attributeDetails, or fields
-        let identifier = a.identifier || a.objectIdentifier || '';
-        const rawAttrDetails = Array.isArray(a.attributeDetails) ? a.attributeDetails : [];
-        if (!identifier && a.description) {
-          const descMatch = String(a.description).match(/(?:Person ID|Person Number|ID|Number):\s*([0-9A-Za-z_-]+)/i);
-          if (descMatch) {
-            identifier = descMatch[0];
-          }
-        }
-        if (!identifier && rawAttrDetails.length > 0) {
-          const idAttr = rawAttrDetails.find((d: any) =>
-            d.attribute && (safeLower(d.attribute).includes('id') || safeLower(d.attribute).includes('name') || safeLower(d.attribute).includes('number'))
-          );
-          if (idAttr) {
-            identifier = `${idAttr.attribute}: ${idAttr.newValue || idAttr.oldValue || ''}`;
-          }
-        }
-        if (!identifier && a.userInternalName) {
-          identifier = `User:${a.userInternalName}`;
-        }
-        if (!identifier) {
-          identifier = `${a.businessObject || boDisplayName}:${idx + 1}`;
-        }
+      if (audits.length > 0) {
+        auditRawDbService.saveRawAuditRecords(
+          resolution.product?.productName || resolution.product?.displayName || productQuery,
+          resolution.businessObject?.displayName || boDisplayName,
+          audits
+        ).catch(e => console.warn('[Audit Raw DB Auto-Save Error]:', e.message));
+      }
 
-        const attributeDetails = rawAttrDetails.map((ad: any) => ({
-          attribute: ad.attribute || ad.attributeInternalName || 'Attribute',
-          attributeInternalName: ad.attributeInternalName,
-          oldValue: ad.oldValue !== undefined && ad.oldValue !== null ? String(ad.oldValue) : undefined,
-          newValue: ad.newValue !== undefined && ad.newValue !== null ? String(ad.newValue) : undefined
-        }));
-
-        const eventName = a.eventType || a.action || 'Object Data Update';
-
-        return {
-          id: a.id || `aud_${(a.userName || 'sys').replace(/[^a-zA-Z0-9]/g, '_')}_${idx}_${Date.now()}`,
-          timestamp: a.date || a.timestamp || a.lastUpdateDate || new Date().toISOString(),
-          username: a.userName || a.userInternalName || a.userId || 'System',
-          userInternalName: a.userInternalName,
-          action: a.action || a.eventType || 'UPDATE',
-          event: eventName,
-          eventCategory: a.eventCategory,
-          businessObject: a.businessObject || boDisplayName,
-          qualifiedBusinessObject: a.qualifiedBusinessObject || restBusinessObjectType,
-          identifier,
-          details: a.description || (attributeDetails.length > 0 ? `Updated ${attributeDetails.length} attribute(s)` : `${eventName} on ${a.businessObject || boDisplayName}`),
-          attributeDetails: attributeDetails.length > 0 ? attributeDetails : undefined,
-          childObjects: a.childObjects || a.children || undefined,
-          impersonator: a.impersonator || undefined,
-          raw: a
-        };
-      });
+      let mappedLogs = audits.map((a: any, idx: number) =>
+        this.mapRawAuditItem(a, idx, boDisplayName, restBusinessObjectType)
+      );
 
       // Filter in memory if username or action filter specified
       if (params.username) {

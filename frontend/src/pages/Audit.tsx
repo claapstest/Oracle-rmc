@@ -9,7 +9,8 @@ import {
   ChevronRight, 
   Calendar, 
   AlertCircle, 
-  Layers 
+  Layers,
+  Database
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { TableExportControl } from '../components/TableExportControl';
@@ -158,29 +159,55 @@ export default function Audit({
     if (!prod.requiresBusinessObjectType || !prod.businessObjects || prod.businessObjects.length === 0) {
       setSelectedBOId('');
     } else {
-      const alreadyMatches = prod.businessObjects.some(b => b.id === selectedBOId);
+      const supportedBOs = prod.businessObjects.filter(b => b.isSupported !== false);
+      const alreadyMatches = supportedBOs.some(b => b.id === selectedBOId);
       if (!alreadyMatches) {
-        const firstSupported = prod.businessObjects.find(b => b.isSupported !== false);
-        setSelectedBOId(firstSupported ? firstSupported.id : (prod.businessObjects[0]?.id || ''));
+        setSelectedBOId(supportedBOs[0]?.id || '');
       }
     }
   }, [selectedProductId, products]);
 
-  // Date span validation (Oracle restricts audit queries to <= 30 days)
+  // Date span validation
+  const [isWideDateRange, setIsWideDateRange] = useState<boolean>(false);
   useEffect(() => {
     if (fromDate && toDate) {
       const fromMs = new Date(fromDate).getTime();
       const toMs = new Date(toDate).getTime();
       const diffDays = (toMs - fromMs) / (1000 * 60 * 60 * 24);
-      if (diffDays > 30) {
-        setDateWarning('Oracle Fusion limits audit history queries to a maximum 30-day time span.');
-      } else if (diffDays < 0) {
+      if (diffDays < 0) {
         setDateWarning('Date From cannot be after Date To.');
+        setIsWideDateRange(false);
+      } else if (diffDays > 30) {
+        setIsWideDateRange(true);
+        setDateWarning('Multi-month range selected: Historical audit records (> 30 days) are seamlessly served from your synchronized database repository.');
       } else {
+        setIsWideDateRange(false);
         setDateWarning('');
       }
     }
   }, [fromDate, toDate]);
+
+  // Quick range preset handler
+  const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd') => {
+    const todayStr = '2026-10-12';
+    if (range === 'today') {
+      setFromDate(todayStr);
+      setToDate(todayStr);
+    } else if (range === '7d') {
+      const d = new Date(todayStr);
+      d.setDate(d.getDate() - 7);
+      setFromDate(d.toISOString().split('T')[0]);
+      setToDate(todayStr);
+    } else if (range === '30d') {
+      const d = new Date(todayStr);
+      d.setDate(d.getDate() - 29);
+      setFromDate(d.toISOString().split('T')[0]);
+      setToDate(todayStr);
+    } else if (range === 'ytd') {
+      setFromDate('2026-01-01');
+      setToDate(todayStr);
+    }
+  };
 
   // Auto-run initial search once product catalog is loaded
   const [hasAutoSearched, setHasAutoSearched] = useState(false);
@@ -200,8 +227,8 @@ export default function Audit({
 
   // Execute Search
   const handleSearch = async (targetPage = 1, overrideProdId?: string, overrideBOId?: string) => {
-    if (dateWarning && (new Date(toDate).getTime() < new Date(fromDate).getTime())) {
-      setError('Please correct the date range before searching.');
+    if (new Date(toDate).getTime() < new Date(fromDate).getTime()) {
+      setError('Date From cannot be after Date To.');
       return;
     }
 
@@ -223,7 +250,8 @@ export default function Audit({
       setError('');
       setLogs([]);
       setTotalRecords(0);
-      setHasSearched(true);
+      setLastQuerySummary(null);
+      setHasSearched(false);
       setIsSearching(false);
       return;
     }
@@ -240,7 +268,6 @@ export default function Audit({
         pageSize
       });
 
-      setHasSearched(true);
       setCurrentPage(targetPage);
 
       if (res?.notConfigured) {
@@ -248,12 +275,17 @@ export default function Audit({
         setError('');
         setLogs([]);
         setTotalRecords(0);
+        setLastQuerySummary(null);
+        setHasSearched(false);
       } else if (res?.auditUnavailable) {
         setError(res.message || 'Unable to retrieve audit history from Oracle Fusion.');
         setConfigNotice('');
         setLogs([]);
         setTotalRecords(0);
+        setLastQuerySummary(null);
+        setHasSearched(false);
       } else if (res?.logs) {
+        setHasSearched(true);
         setError('');
         setConfigNotice('');
         console.log(`[Audit UI DEBUG]\nAPI records: ${res.logs.length}\nNormalized records: ${res.logs.length}\nDisplayed records: ${Math.min(res.logs.length, pageSize)}`);
@@ -391,7 +423,7 @@ export default function Audit({
             gap: '0.5rem'
           }}>
             <FileClock size={15} />
-            <span>{hasSearched ? `${totalRecords} Records Found` : `${dataSource || 'Live Oracle Fusion'} Connected`}</span>
+            <span>{hasSearched ? `${totalRecords} Records Found` : 'Oracle Fusion Connected'}</span>
           </div>
         </div>
       </div>
@@ -422,11 +454,20 @@ export default function Audit({
         </div>
       )}
 
-      {/* Date Span Warning */}
+      {/* Date Span Notice */}
       {dateWarning && (
-        <div className="glass-panel animate-fade-in" style={{ padding: '0.75rem 1.25rem', borderLeft: '4px solid var(--accent-gold)', marginBottom: '1.25rem', background: 'rgba(245, 158, 11, 0.05)' }}>
+        <div className="glass-panel animate-fade-in" style={{ 
+          padding: '0.75rem 1.25rem', 
+          borderLeft: isWideDateRange ? '4px solid var(--accent-blue)' : '4px solid var(--accent-gold)', 
+          marginBottom: '1.25rem', 
+          background: isWideDateRange ? 'rgba(37, 99, 235, 0.05)' : 'rgba(245, 158, 11, 0.05)' 
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <ShieldAlert size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+            {isWideDateRange ? (
+              <Database size={16} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+            ) : (
+              <ShieldAlert size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+            )}
             <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 500 }}>{dateWarning}</span>
           </div>
         </div>
@@ -479,33 +520,32 @@ export default function Audit({
             </label>
             <select
               className="form-select"
-              style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem', opacity: !requiresBO ? 0.7 : 1 }}
+              style={{ 
+                width: '100%', 
+                fontSize: '0.82rem', 
+                padding: '0.45rem 0.65rem', 
+                opacity: (!requiresBO || !currentProduct || (currentProduct.businessObjects || []).filter(b => b.isSupported !== false).length === 0) ? 0.7 : 1 
+              }}
               value={selectedBOId}
               onChange={(e) => {
                 const nextBOId = e.target.value;
                 setSelectedBOId(nextBOId);
-                const bo = currentProduct?.businessObjects.find(b => b.id === nextBOId);
-                if (bo && bo.isSupported === false) {
-                  const firstSupported = currentProduct?.businessObjects.find(b => b.isSupported !== false);
-                  setConfigNotice(
-                    `Business Object Type "${bo.displayName}" is available in the Oracle instance, but its payload template is not yet configured. Currently supported: "${firstSupported?.displayName || 'None'}".`
-                  );
-                } else {
-                  setConfigNotice('');
-                }
+                setConfigNotice('');
               }}
-              disabled={isSearching || !requiresBO}
+              disabled={isSearching || !requiresBO || !currentProduct || (currentProduct.businessObjects || []).filter(b => b.isSupported !== false).length === 0}
             >
               {!requiresBO ? (
                 <option value="">Not Required (Middleware Audit Events)</option>
-              ) : currentProduct && currentProduct.businessObjects.length > 0 ? (
-                currentProduct.businessObjects.map(bo => (
-                  <option key={bo.id} value={bo.id}>
-                    {bo.displayName}{bo.isSupported === false ? ' (Not Yet Configured)' : ''}
-                  </option>
-                ))
+              ) : currentProduct && (currentProduct.businessObjects || []).filter(b => b.isSupported !== false).length > 0 ? (
+                currentProduct.businessObjects
+                  .filter(bo => bo.isSupported !== false)
+                  .map(bo => (
+                    <option key={bo.id} value={bo.id}>
+                      {bo.displayName}
+                    </option>
+                  ))
               ) : (
-                <option value="">Standard Object</option>
+                <option value="">None Available in Instance</option>
               )}
             </select>
           </div>
@@ -636,6 +676,55 @@ export default function Audit({
           </div>
 
         </div>
+
+        {/* Quick Range Presets */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Quick Range Presets:</span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: '0.22rem 0.65rem', fontSize: '0.74rem', borderRadius: '9999px' }}
+            onClick={() => setQuickRange('today')}
+            disabled={isSearching}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: '0.22rem 0.65rem', fontSize: '0.74rem', borderRadius: '9999px' }}
+            onClick={() => setQuickRange('7d')}
+            disabled={isSearching}
+          >
+            Last 7 Days
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: '0.22rem 0.65rem', fontSize: '0.74rem', borderRadius: '9999px' }}
+            onClick={() => setQuickRange('30d')}
+            disabled={isSearching}
+          >
+            Last 30 Days (Live API)
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ 
+              padding: '0.22rem 0.75rem', 
+              fontSize: '0.74rem', 
+              borderRadius: '9999px',
+              border: '1px solid var(--accent-blue)',
+              color: 'var(--accent-blue)',
+              background: 'rgba(37, 99, 235, 0.08)',
+              fontWeight: 600
+            }}
+            onClick={() => setQuickRange('ytd')}
+            disabled={isSearching}
+          >
+            2026 Full Range (Jan 01 – Present)
+          </button>
+        </div>
       </div>
 
       {/* 3. Summary Area (Only displayed after a query has been performed) */}
@@ -692,9 +781,6 @@ export default function Audit({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              Source: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dataSource}</span>
-            </div>
             {logs.length > 0 && (
               <TableExportControl
                 filename="audit_history"
