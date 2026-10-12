@@ -129,28 +129,14 @@ export default function Dashboard({
       setLoading(true);
       setError('');
       try {
-        const [statResult, auditResult] = await Promise.allSettled([
-          api.getOverviewStats(),
-          api.getAuditLogs({ pageSize: 10 })
-        ]);
+        const statResult = await api.getOverviewStats();
 
         if (!isMounted) return;
 
-        if (statResult.status === 'fulfilled' && statResult.value?.data) {
-          setStats(statResult.value.data);
+        if (statResult?.data) {
+          setStats(statResult.data);
         } else {
-          setError('Dashboard metrics are unavailable. The backend could not retrieve live statistics.');
-        }
-
-        if (auditResult.status === 'fulfilled') {
-          const auditRes = auditResult.value;
-          if (auditRes?.auditUnavailable) {
-            setAuditUnavailable(true);
-            setRecentAudits([]);
-          } else if (auditRes?.logs && Array.isArray(auditRes.logs)) {
-            setRecentAudits(auditRes.logs.slice(0, 5));
-            setAuditUnavailable(false);
-          }
+          setError('Dashboard metrics are unavailable. The backend could not retrieve statistics.');
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
