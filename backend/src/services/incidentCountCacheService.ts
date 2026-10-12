@@ -15,6 +15,10 @@ export interface CachedCountEntry {
   updatedAt: string;
   status: 'READY' | 'CALCULATING' | 'ERROR';
   error?: string;
+  assigned?: number;
+  accepted?: number;
+  remediate?: number;
+  resolved?: number;
 }
 
 export type IncidentCountCache = Record<string, CachedCountEntry>;
@@ -126,13 +130,14 @@ export class IncidentCountCacheService {
     return obj;
   }
 
-  public setCount(controlId: string, count: number, status: 'READY' | 'ERROR' = 'READY'): CachedCountEntry {
+  public setCount(controlId: string, count: number, status: 'READY' | 'ERROR' = 'READY', breakdown?: { assigned?: number; accepted?: number; remediate?: number; resolved?: number }): CachedCountEntry {
     const cleanId = String(controlId).trim();
     const entry: CachedCountEntry = {
       controlId: cleanId,
       count,
       status,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      ...(breakdown || {})
     };
     this.memoryCache.set(cleanId, entry);
     this.saveToDisk();

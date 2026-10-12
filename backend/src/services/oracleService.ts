@@ -3205,7 +3205,44 @@ class OracleService {
   }
 
   getIncidentCounts() {
-    return this.controlCatalogService.getIncidentCountCacheService().getAllCounts();
+    const rawCounts = this.controlCatalogService.getIncidentCountCacheService().getAllCounts();
+    const incidentCacheService = this.controlCatalogService.getIncidentCacheService();
+    
+    for (const [id, entry] of Object.entries(rawCounts)) {
+      if (entry && typeof entry.count === 'number' && entry.assigned === undefined) {
+        const cachedInc = incidentCacheService.readCache(id);
+        if (cachedInc && Array.isArray(cachedInc.incidents) && cachedInc.incidents.length > 0) {
+          let assigned = 0, accepted = 0, remediate = 0, resolved = 0;
+          for (const inc of cachedInc.incidents) {
+            const st = (inc.status || '').toUpperCase();
+            const state = (inc.state || '').toUpperCase();
+            if (st.includes('ACCEPT') || state.includes('ACCEPT')) accepted++;
+            else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) remediate++;
+            else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE') || inc.closedDate) resolved++;
+            else assigned++;
+          }
+          const total = entry.count || cachedInc.totalResults || cachedInc.incidents.length;
+          if (total > cachedInc.incidents.length && cachedInc.incidents.length > 0) {
+            const scale = total / cachedInc.incidents.length;
+            entry.assigned = Math.round(assigned * scale);
+            entry.accepted = Math.round(accepted * scale);
+            entry.remediate = Math.round(remediate * scale);
+            entry.resolved = Math.max(0, total - (entry.assigned + entry.accepted + entry.remediate));
+          } else {
+            entry.assigned = assigned;
+            entry.accepted = accepted;
+            entry.remediate = remediate;
+            entry.resolved = resolved;
+          }
+        } else {
+          entry.assigned = entry.count;
+          entry.accepted = 0;
+          entry.remediate = 0;
+          entry.resolved = 0;
+        }
+      }
+    }
+    return rawCounts;
   }
 
   async getControlIncidentCount(controlId: string, forceRefresh?: boolean) {
