@@ -26,6 +26,12 @@ export interface AdvancedControlItem {
   lastUpdatedBy: string | null;
   scheduledBy: string | null;
   incidentCount?: number;
+  incidentBreakdown?: {
+    assigned: number;
+    accepted: number;
+    remediate: number;
+    resolved: number;
+  };
   incidents?: ControlIncidentItem[];
   raw?: any;
 }
@@ -36,6 +42,7 @@ export interface ControlIncidentItem {
   controlName?: string;
   globalUserId?: string | null;
   globalUserName?: string | null;
+  globalUser?: string | null;
   userFirstName?: string | null;
   userLastName?: string | null;
   priority?: string | null;
@@ -43,20 +50,31 @@ export interface ControlIncidentItem {
   conflictingRoles?: string | null;
   conflictingAccPointName?: string | null;
   entitlement?: string | null;
+  accessEntitlement?: string | null;
   accessPointName?: string | null;
+  accessPoint?: string | null;
   accessPointType?: string | null;
   state?: string | null;
   status?: string | null;
   creationDate?: string | null;
   createdBy?: string | null;
   lastUpdateDate?: string | null;
+  lastUpdatedDate?: string | null;
   lastUpdatedBy?: string | null;
+  lastRunDate?: string | null;
   closedDate?: string | null;
   closedBy?: string | null;
   resultInvestigator?: string | null;
+  investigator?: string | null;
   incidentInformation?: string | null;
+  incidentInformationCodes?: string | null;
   dataSource?: string | null;
   groupingValue?: string | null;
+  group?: string | null;
+  comments?: string | null;
+  attachments?: string | null;
+  controlType?: string | null;
+  incidentVersion?: string | null;
   raw?: any;
 }
 
@@ -240,7 +258,24 @@ export class ControlCatalogService {
     }
 
     if (isDemo) {
-      this.indexControls(DEMO_CONTROLS);
+      const demoItems = DEMO_CONTROLS.map(c => {
+        if (c.id === '114281') {
+          return {
+            ...c,
+            incidentBreakdown: { assigned: 17, accepted: 0, remediate: 1, resolved: 6 }
+          };
+        }
+        return {
+          ...c,
+          incidentBreakdown: {
+            assigned: c.incidentCount || 0,
+            accepted: 0,
+            remediate: 0,
+            resolved: 0
+          }
+        };
+      });
+      this.indexControls(demoItems);
       this.lastRefreshedAt = new Date().toISOString();
       return {
         success: true,
@@ -290,6 +325,43 @@ export class ControlCatalogService {
             }
           }
         }
+
+        // Attach authoritative incident lifecycle status breakdown
+        const cachedInc = this.incidentCacheService.readCache(ctrl.id);
+        if (cachedInc && Array.isArray(cachedInc.incidents) && cachedInc.incidents.length > 0) {
+          let assigned = 0, accepted = 0, remediate = 0, resolved = 0;
+          for (const inc of cachedInc.incidents) {
+            const st = (inc.status || '').toUpperCase();
+            const state = (inc.state || '').toUpperCase();
+            if (st.includes('ACCEPT') || state.includes('ACCEPT')) accepted++;
+            else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) remediate++;
+            else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE') || inc.closedDate) resolved++;
+            else assigned++;
+          }
+          const total = ctrl.incidentCount ?? cachedInc.totalResults ?? cachedInc.incidents.length;
+          if (total > cachedInc.incidents.length && cachedInc.incidents.length > 0) {
+            const scaledAssigned = Math.round((assigned / cachedInc.incidents.length) * total);
+            const scaledAccepted = Math.round((accepted / cachedInc.incidents.length) * total);
+            const scaledRemediate = Math.round((remediate / cachedInc.incidents.length) * total);
+            const scaledResolved = total - (scaledAssigned + scaledAccepted + scaledRemediate);
+            ctrl.incidentBreakdown = {
+              assigned: scaledAssigned,
+              accepted: scaledAccepted,
+              remediate: scaledRemediate,
+              resolved: Math.max(0, scaledResolved)
+            };
+          } else {
+            ctrl.incidentBreakdown = { assigned, accepted, remediate, resolved };
+          }
+        } else if (typeof ctrl.incidentCount === 'number') {
+          ctrl.incidentBreakdown = {
+            assigned: ctrl.incidentCount,
+            accepted: 0,
+            remediate: 0,
+            resolved: 0
+          };
+        }
+
         return ctrl;
       });
       this.indexControls(normalized);
@@ -558,34 +630,46 @@ export class ControlCatalogService {
    * Normalizes raw Oracle incident into ControlIncidentItem
    */
   public normalizeIncident(raw: any, controlId: string, controlName?: string): ControlIncidentItem {
-    const id = String(raw.Id ?? raw.id ?? raw.IncidentId ?? `INC-${controlId}-${Math.random().toString(36).substring(2, 8)}`).trim();
+    const id = String(raw.Id ?? raw.id ?? raw.IncidentId ?? raw.ResultId ?? raw.resultId ?? `INC-${controlId}-${Math.random().toString(36).substring(2, 8)}`).trim();
     return {
       id,
       controlId: String(raw.ControlId ?? raw.controlId ?? controlId),
       controlName: raw.ControlName ?? raw.controlName ?? controlName,
-      globalUserId: raw.GlobalUserId !== undefined && raw.GlobalUserId !== null ? String(raw.GlobalUserId) : null,
-      globalUserName: raw.GlobalUserName ?? raw.globalUserName ?? null,
+      globalUserId: raw.GlobalUserId !== undefined && raw.GlobalUserId !== null ? String(raw.GlobalUserId) : (raw.globalUserId !== undefined && raw.globalUserId !== null ? String(raw.globalUserId) : null),
+      globalUserName: raw.GlobalUserName ?? raw.globalUserName ?? raw.GlobalUser ?? raw.globalUser ?? null,
+      globalUser: raw.GlobalUser ?? raw.globalUser ?? raw.GlobalUserName ?? raw.globalUserName ?? null,
       userFirstName: raw.UserFirstName ?? raw.userFirstName ?? null,
       userLastName: raw.UserLastName ?? raw.userLastName ?? null,
-      priority: raw.Priority !== undefined && raw.Priority !== null ? String(raw.Priority) : null,
+      priority: raw.Priority !== undefined && raw.Priority !== null ? String(raw.Priority) : (raw.priority !== undefined && raw.priority !== null ? String(raw.priority) : null),
       role: raw.Role ?? raw.role ?? null,
       conflictingRoles: raw.ConflictingRoles ?? raw.conflictingRoles ?? null,
       conflictingAccPointName: raw.ConflictingAccPointName ?? raw.conflictingAccPointName ?? null,
-      entitlement: raw.Entitlement ?? raw.entitlement ?? null,
-      accessPointName: raw.AccessPointName ?? raw.accessPointName ?? null,
+      entitlement: raw.Entitlement ?? raw.entitlement ?? raw.AccessEntitlement ?? raw.accessEntitlement ?? null,
+      accessEntitlement: raw.AccessEntitlement ?? raw.accessEntitlement ?? raw.Entitlement ?? raw.entitlement ?? null,
+      accessPointName: raw.AccessPointName ?? raw.accessPointName ?? raw.AccessPoint ?? raw.accessPoint ?? null,
+      accessPoint: raw.AccessPoint ?? raw.accessPoint ?? raw.AccessPointName ?? raw.accessPointName ?? null,
       accessPointType: raw.AccessPointType ?? raw.accessPointType ?? null,
       state: raw.State ?? raw.state ?? raw.StateCode ?? null,
       status: raw.Status ?? raw.status ?? raw.StatusId ?? null,
       creationDate: raw.CreationDate ?? raw.creationDate ?? null,
       createdBy: raw.CreatedBy ?? raw.createdBy ?? null,
-      lastUpdateDate: raw.LastUpdateDate ?? raw.lastUpdateDate ?? null,
+      lastUpdateDate: raw.LastUpdateDate ?? raw.lastUpdateDate ?? raw.LastUpdatedDate ?? raw.lastUpdatedDate ?? null,
+      lastUpdatedDate: raw.LastUpdatedDate ?? raw.lastUpdatedDate ?? raw.LastUpdateDate ?? raw.lastUpdateDate ?? null,
       lastUpdatedBy: raw.LastUpdatedBy ?? raw.lastUpdatedBy ?? null,
+      lastRunDate: raw.LastRunDate ?? raw.lastRunDate ?? null,
       closedDate: raw.ClosedDate ?? raw.closedDate ?? null,
       closedBy: raw.ClosedBy ?? raw.closedBy ?? null,
-      resultInvestigator: raw.ResultInvestigator ?? raw.resultInvestigator ?? null,
-      incidentInformation: raw.IncidentInformation ?? raw.incidentInformation ?? raw.Description ?? null,
-      dataSource: raw.DataSource ?? raw.dataSource ?? 'Oracle Fusion FSCM',
-      groupingValue: raw.GroupingValue ?? raw.groupingValue ?? null,
+      resultInvestigator: raw.ResultInvestigator ?? raw.resultInvestigator ?? raw.Investigator ?? raw.investigator ?? null,
+      investigator: raw.Investigator ?? raw.investigator ?? raw.ResultInvestigator ?? raw.resultInvestigator ?? null,
+      incidentInformation: raw.IncidentInformation ?? raw.incidentInformation ?? raw.Description ?? raw.description ?? null,
+      incidentInformationCodes: raw.IncidentInformationCodes ?? raw.incidentInformationCodes ?? raw.IncidentCodes ?? raw.incidentCodes ?? null,
+      dataSource: raw.DataSource ?? raw.dataSource ?? 'Oracle Cloud',
+      groupingValue: raw.GroupingValue ?? raw.groupingValue ?? raw.Group ?? raw.group ?? raw.GroupName ?? raw.groupName ?? null,
+      group: raw.Group ?? raw.group ?? raw.GroupName ?? raw.groupName ?? raw.GroupingValue ?? raw.groupingValue ?? null,
+      comments: raw.Comments ?? raw.comments ?? raw.IncidentComments ?? raw.incidentComments ?? null,
+      attachments: raw.Attachments ?? raw.attachments ?? null,
+      controlType: raw.ControlType ?? raw.controlType ?? null,
+      incidentVersion: raw.IncidentVersion ?? raw.incidentVersion ?? null,
       raw
     };
   }
