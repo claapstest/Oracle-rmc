@@ -58,7 +58,7 @@ interface AuditLogItem {
 }
 
 export const MIN_ALLOWED_AUDIT_DATE = '2026-01-01';
-export const MAX_ALLOWED_AUDIT_DATE = '2026-10-12';
+export const MAX_ALLOWED_AUDIT_DATE = '2026-10-13';
 
 export interface AuditProps {
   initialBOId?: string;
@@ -76,7 +76,7 @@ export default function Audit({
 
   // Filter state - restricted strictly to year 2026 up to October
   const [fromDate, setFromDate] = useState<string>('2026-10-03');
-  const [toDate, setToDate] = useState<string>('2026-10-12');
+  const [toDate, setToDate] = useState<string>('2026-10-13');
   const [userQuery, setUserQuery] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
 
@@ -221,7 +221,7 @@ export default function Audit({
 
   // Quick range preset handler
   const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd') => {
-    const todayStr = '2026-10-12';
+    const todayStr = '2026-10-13';
     if (range === 'today') {
       setFromDate(todayStr);
       setToDate(todayStr);
