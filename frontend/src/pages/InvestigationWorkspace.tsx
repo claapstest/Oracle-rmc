@@ -665,7 +665,7 @@ export default function InvestigationWorkspace({
             { 
               id: 'PRIVILEGES', 
               label: isRole 
-                ? `Privileges Matrix (${privilegeLoading ? '...' : (privilegeData?.privileges?.length || 138)})`
+                ? `Privileges Matrix (${privilegeLoading ? '...' : (privilegeData?.privileges?.length || hierarchyData?.privileges?.length || 0)})`
                 : 'Privileges Matrix', 
               show: true 
             },
@@ -746,7 +746,7 @@ export default function InvestigationWorkspace({
                       {hierarchyLoading ? (
                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>...</span>
                       ) : (
-                        hierarchyData?.hierarchy?.children?.length || 0
+                        hierarchyData?.hierarchy?.children?.length ?? hierarchyData?.childrenTree?.length ?? 0
                       )}
                     </div>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Direct Inheritances</span>
@@ -774,14 +774,14 @@ export default function InvestigationWorkspace({
                       {privilegeLoading ? (
                         <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <RefreshCw size={14} className="animate-spin" />
-                          <span>Analyzing...</span>
+                          <span>Loading...</span>
                         </span>
                       ) : (
-                        privilegeData?.privileges?.length || (isRole ? 138 : 0)
+                        privilegeData?.privileges?.length || (isRole ? (hierarchyData?.privileges?.length || 0) : 0)
                       )}
                     </div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                      {privilegeLoading ? 'Aggregating security graph...' : `View all ${privilegeData?.privileges?.length || 138} permissions →`}
+                      {privilegeLoading ? 'Loading from database...' : `View all ${privilegeData?.privileges?.length || hierarchyData?.privileges?.length || 0} permissions →`}
                     </span>
                   </div>
                 </div>
@@ -1282,7 +1282,14 @@ export default function InvestigationWorkspace({
           {/* Tab 4: Role Hierarchy */}
           {activeTab === 'HIERARCHY' && (
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Inherited Role Hierarchy Tree</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Inherited Role Hierarchy Tree</h3>
+                {hierarchyData?.dataSource && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', fontWeight: 600 }}>
+                    {hierarchyData.dataSource}
+                  </span>
+                )}
+              </div>
 
               {hierarchyData?.integrationRequired ? (
                 <div style={{
@@ -1332,15 +1339,22 @@ export default function InvestigationWorkspace({
                     <KeyRound size={18} style={{ color: 'var(--accent-green)' }} />
                     <span>
                       {isRole 
-                        ? `Functional Privileges — ${privilegeLoading && allPrivileges.length === 0 ? 'Analyzing...' : allPrivileges.length}`
+                        ? `Functional Privileges — ${privilegeLoading && allPrivileges.length === 0 ? 'Loading...' : allPrivileges.length}`
                         : 'Permissions Inherited by User'}
                     </span>
                   </h3>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
-                    {isRole 
-                      ? `Complete security permission catalog authorized for role ${entity.name}`
-                      : `Permissions aggregated across active duty hierarchies for ${entity.name}`}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                      {isRole 
+                        ? `Complete security permission catalog authorized for role ${entity.name}`
+                        : `Permissions aggregated across active duty hierarchies for ${entity.name}`}
+                    </p>
+                    {privilegeData?.dataSource && (
+                      <span className="badge badge-blue" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', fontWeight: 600 }}>
+                        {privilegeData.dataSource}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1364,10 +1378,10 @@ export default function InvestigationWorkspace({
                   <RefreshCw size={18} className="animate-spin" style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Analyzing Oracle Fusion Security Graph...
+                      Loading Privileges from Database...
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Retrieving and extracting all functional permissions for {entity.name}. Response will be stored in instant cache.
+                      Retrieving functional permissions from database role hierarchy report.
                     </div>
                   </div>
                 </div>

@@ -2116,7 +2116,7 @@ class OracleService {
       const tree = await roleHierarchyService.getRoleHierarchyTree(roleName);
       return {
         success: true,
-        dataSource: 'Live Oracle Fusion (BIP)',
+        dataSource: 'Oracle Database (Role Hierarchy Report)',
         roleName: tree.roleName,
         roleCode: tree.roleCode,
         category: tree.category,
@@ -2339,6 +2339,57 @@ class OracleService {
     }
 
     const t0 = Date.now();
+
+    // 1. FAST DATABASE LOOKUP: Query Role Hierarchy report from PostgreSQL/Cache first (<5ms)
+    try {
+      const tree = await roleHierarchyService.getRoleHierarchyTree(roleName);
+      if (tree && tree.privileges && tree.privileges.length > 0) {
+        console.log(`[Role Privileges] Instantly retrieved ${tree.privileges.length} authoritative privileges from Database (Role Hierarchy) for "${tree.roleName}" in ${Date.now() - t0}ms`);
+        const privilegesList = tree.privileges.map((p: any) => ({
+          name: p.name || p.code,
+          code: p.code,
+          description: p.description || '',
+          inheritedFrom: tree.roleName
+        }));
+
+        const responsePayload = {
+          success: true,
+          dataSource: 'Oracle Database (Role Hierarchy Report)',
+          roleName: tree.roleName,
+          roleCode: tree.roleCode,
+          role: {
+            name: tree.roleName,
+            code: tree.roleCode,
+            category: tree.category
+          },
+          privileges: privilegesList,
+          inheritedPrivileges: [],
+          entitlements: [],
+          summary: {
+            totalPrivileges: privilegesList.length,
+            directPrivileges: privilegesList.length,
+            inheritedPrivileges: 0
+          },
+          briefingRaw: {
+            roleSummary: `Security role "${tree.roleName}" (${tree.roleCode}) with ${privilegesList.length} functional privileges retrieved from authoritative database role hierarchy.`,
+            roleUsage: `${tree.childrenTree?.length || 0} inherited child duty roles`,
+            privileges: ''
+          },
+          message: `Security role "${tree.roleName}" with ${privilegesList.length} functional privileges retrieved directly from database role hierarchy.`
+        };
+
+        const codeCacheKey = `role_privileges:${(tree.roleCode || '').trim().toLowerCase()}`;
+        this.setInCache(cacheKey, responsePayload, 30 * 60 * 1000);
+        this.setInCache(codeCacheKey, responsePayload, 30 * 60 * 1000);
+        this.savePersistentPrivilege(cacheKey, responsePayload);
+        this.savePersistentPrivilege(codeCacheKey, responsePayload);
+
+        return responsePayload;
+      }
+    } catch (dbPrivErr: any) {
+      console.warn('[Role Privileges] Database role hierarchy lookup failed, falling back:', dbPrivErr.message);
+    }
+
     let roleCode = '';
     let displayName = '';
     let category = 'Job';

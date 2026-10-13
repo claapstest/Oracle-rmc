@@ -537,6 +537,7 @@ export class RoleHierarchyService {
 
   /**
    * Constructs an interactive multi-level hierarchy tree for a given role name.
+   * Pulls authoritative duty role inheritances and functional privileges directly from the database role hierarchy.
    */
   public async getRoleHierarchyTree(roleName: string): Promise<RoleHierarchyTreeResult> {
     const report = await this.getHierarchyReport();
@@ -544,12 +545,60 @@ export class RoleHierarchyService {
     const target = roleName.trim();
     const targetLower = target.toLowerCase();
 
-    // 1. Find direct parents (roles that grant/contain this role)
+    // Find direct match or canonical record
+    const directMatch = items.find(
+      i =>
+        i.roleName.toLowerCase() === targetLower ||
+        i.childRole.toLowerCase() === targetLower ||
+        (i.roleCode && i.roleCode.toLowerCase() === targetLower) ||
+        i.parentRole.toLowerCase() === targetLower
+    );
+
+    const canonicalName = directMatch
+      ? (directMatch.childRole.toLowerCase() === targetLower || (directMatch.roleCode && directMatch.roleCode.toLowerCase() === targetLower)
+          ? directMatch.childRole
+          : (directMatch.roleName.toLowerCase() === targetLower ? directMatch.roleName : directMatch.parentRole))
+      : target;
+    const canonicalLower = canonicalName.toLowerCase();
+    const roleCode = directMatch?.roleCode || `ORA_${canonicalName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`;
+
+    // 1. Gather all unique functional privileges across ALL matching records for this role in the database
+    const privMap = new Map<string, { code: string; name: string; description?: string }>();
+    items.forEach(item => {
+      const match =
+        item.childRole.toLowerCase() === canonicalLower ||
+        item.roleName.toLowerCase() === canonicalLower ||
+        (item.roleCode && item.roleCode.toLowerCase() === targetLower) ||
+        item.parentRole.toLowerCase() === canonicalLower;
+
+      if (match && item.privileges && item.privileges.length > 0) {
+        item.privileges.forEach(p => {
+          if (p.code && !privMap.has(p.code.toUpperCase())) {
+            privMap.set(p.code.toUpperCase(), {
+              code: p.code,
+              name: p.name || p.code,
+              description: p.description || ''
+            });
+          }
+        });
+      }
+    });
+
+    let rootPrivs = Array.from(privMap.values());
+    if (rootPrivs.length === 0) {
+      const rootPrivResult = rolePrivilegeCatalogService.getPrivilegesByRole(canonicalName);
+      rootPrivs = (rootPrivResult?.privileges || []).map(p =>
+        typeof p === 'string'
+          ? { code: p, name: p, description: '' }
+          : { code: (p as any).code || '', name: (p as any).name || (p as any).code || '', description: (p as any).description || '' }
+      );
+    }
+
+    // 2. Parents: Roles containing or granting this role
     const parents: Array<{ name: string; type: string }> = [];
     const parentSet = new Set<string>();
-
     items.forEach(item => {
-      if (item.childRole.toLowerCase() === targetLower) {
+      if (item.childRole.toLowerCase() === canonicalLower && item.parentRole.toLowerCase() !== canonicalLower) {
         if (!parentSet.has(item.parentRole)) {
           parentSet.add(item.parentRole);
           parents.push({ name: item.parentRole, type: item.parentRoleType });
@@ -557,42 +606,72 @@ export class RoleHierarchyService {
       }
     });
 
-    // 2. Build recursive child inheritance tree
+    // 3. Child Inherited Hierarchy Tree:
+    // In Oracle BIP hierarchy report:
+    // A Job Role is granted Duty roles (item.parentRole = Duty Role, item.childRole = Job Role)
+    // AND a parent role can grant sub-roles (item.parentRole = Parent, item.childRole = Child)
     const visited = new Set<string>();
-    visited.add(targetLower);
+    visited.add(canonicalLower);
 
     const buildChildren = (currentName: string, depth = 1): RoleHierarchyTreeNode[] => {
-      if (depth > 4) return []; // prevent infinite recursion
-
+      if (depth > 4) return [];
       const cLower = currentName.toLowerCase();
       const directChildren: RoleHierarchyTreeNode[] = [];
+      const childNames = new Set<string>();
 
       items.forEach(item => {
-        // In our mapping, PARENT_ROLE grants CHILD_ROLE
-        // When checking for children of currentName, if item.parentRole === currentName
+        // Condition 1: item.parentRole is currentName -> item.childRole is child
         if (item.parentRole.toLowerCase() === cLower) {
-          const childKey = item.childRole.toLowerCase();
-          if (!visited.has(childKey)) {
-            visited.add(childKey);
+          const cName = item.childRole;
+          const cKey = cName.toLowerCase();
+          if (!visited.has(cKey) && !childNames.has(cKey)) {
+            visited.add(cKey);
+            childNames.add(cKey);
 
-            // Use live privileges from item if available, else fallback to static catalog
             let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
               ? item.privileges
               : [];
-
             if (privs.length === 0) {
-              const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(item.childRole);
+              const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(cName);
               privs = (privResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
             }
 
             directChildren.push({
-              name: item.childRole,
-              code: item.roleCode,
-              type: item.childRoleType,
-              category: item.category,
-              relationship: item.relationshipType,
+              name: cName,
+              code: item.roleCode || `ORA_${cName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`,
+              type: item.childRoleType || 'DUTY',
+              category: item.category || 'Duty',
+              relationship: item.relationshipType || `${item.parentRoleType} grants ${item.childRoleType}`,
               privileges: privs,
-              children: buildChildren(item.childRole, depth + 1),
+              children: buildChildren(cName, depth + 1)
+            });
+          }
+        }
+        // Condition 2: item.childRole is currentName and item.parentRole is DUTY
+        // (In Oracle BIP, a Job Role inherits its Duty roles via item.parentRole)
+        else if (item.childRole.toLowerCase() === cLower && (depth === 1 || item.parentRoleType === 'DUTY')) {
+          const dName = item.parentRole;
+          const dKey = dName.toLowerCase();
+          if (!visited.has(dKey) && !childNames.has(dKey)) {
+            visited.add(dKey);
+            childNames.add(dKey);
+
+            let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
+              ? item.privileges
+              : [];
+            if (privs.length === 0) {
+              const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(dName);
+              privs = (privResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
+            }
+
+            directChildren.push({
+              name: dName,
+              code: `ORA_${dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`,
+              type: item.parentRoleType || 'DUTY',
+              category: 'Duty',
+              relationship: item.relationshipType || `${item.parentRoleType} granted to ${item.childRoleType}`,
+              privileges: privs,
+              children: buildChildren(dName, depth + 1)
             });
           }
         }
@@ -601,32 +680,17 @@ export class RoleHierarchyService {
       return directChildren;
     };
 
-    const childrenTree = buildChildren(target, 1);
-
-    // Privileges for the top role itself
-    const rootItem = items.find(i => i.roleName.toLowerCase() === targetLower || i.childRole.toLowerCase() === targetLower);
-    let rootPrivs: Array<{ code: string; name: string; description?: string }> = rootItem?.privileges && rootItem.privileges.length > 0
-      ? rootItem.privileges
-      : [];
-
-    if (rootPrivs.length === 0) {
-      const rootPrivResult = rolePrivilegeCatalogService.getPrivilegesByRole(target);
-      rootPrivs = (rootPrivResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
-    }
-
-    // Derive category
-    const directMatch = items.find(i => i.roleName.toLowerCase() === targetLower || i.childRole.toLowerCase() === targetLower || i.parentRole.toLowerCase() === targetLower);
-    const category = directMatch?.category || (parents.length > 0 ? 'Duty' : 'Job');
-    const roleCode = directMatch?.roleCode || `ORA_${target.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`;
+    const childrenTree = buildChildren(canonicalName, 1);
+    const category = directMatch?.category || (directMatch?.childRoleType === 'JOB' ? 'Job' : (parents.length > 0 ? 'Duty' : 'Job'));
 
     return {
-      roleName: target,
+      roleName: canonicalName,
       roleCode,
       category,
       parents,
       childrenTree,
       privileges: rootPrivs,
-      totalDescendants: visited.size - 1,
+      totalDescendants: childrenTree.length,
     };
   }
 
