@@ -15,7 +15,10 @@ import {
   Filter,
   RefreshCw,
   TrendingUp,
-  Activity
+  Activity,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2
 } from 'lucide-react';
 
 /* ==========================================================
@@ -1551,8 +1554,12 @@ interface ProductActivityMonitorProps {
 }
 
 export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonitorProps) {
-  const [timeframe, setTimeframe] = React.useState<string>('today');
+  const [timeframe, setTimeframe] = React.useState<string>('24h');
   const [loading, setLoading] = React.useState<boolean>(false);
+  const [syncingProduct, setSyncingProduct] = React.useState<string | null>(null);
+  const [syncFeedback, setSyncFeedback] = React.useState<string | null>(null);
+  const [expandedProducts, setExpandedProducts] = React.useState<Set<string>>(new Set());
+
   const [data, setData] = React.useState<{
     timeframe: string;
     effectiveDateLabel: string;
@@ -1564,13 +1571,22 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
       updates: number;
       deletes: number;
       latestEventTime: string | null;
+      lastSyncedAt?: string | null;
+      businessObjects?: Array<{
+        businessObject: string;
+        totalRecords: number;
+        inserts: number;
+        updates: number;
+        deletes: number;
+        latestEventTime: string | null;
+      }>;
     }>;
     totalActiveProducts: number;
     totalRecordsAcrossProducts: number;
   }>({
-    timeframe: 'today',
-    effectiveDateLabel: 'Today (2026-10-12)',
-    targetDate: '2026-10-12',
+    timeframe: '24h',
+    effectiveDateLabel: 'Last 24 Hours (Daily Sync Window)',
+    targetDate: '',
     products: [],
     totalActiveProducts: 0,
     totalRecordsAcrossProducts: 0
@@ -1594,12 +1610,60 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     loadData(timeframe);
   }, [timeframe, loadData]);
 
+  const handleSyncProduct = async (productName: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSyncingProduct(productName);
+    setSyncFeedback(null);
+    try {
+      const res = await api.syncProductActivity(productName);
+      if (res?.success) {
+        setSyncFeedback(`Successfully synchronized ${productName} (${res.savedCount || 0} new records persisted).`);
+        await loadData(timeframe);
+      } else {
+        setSyncFeedback(`Sync note: ${res?.message || 'Completed'}`);
+      }
+    } catch (err: any) {
+      console.error('Failed to sync product:', err);
+      setSyncFeedback(`Failed to sync ${productName}: ${err.message || 'Error'}`);
+    } finally {
+      setSyncingProduct(null);
+      setTimeout(() => setSyncFeedback(null), 5000);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    setSyncingProduct('__ALL__');
+    setSyncFeedback(null);
+    try {
+      const res = await api.syncAuditTrail();
+      if (res?.success) {
+        setSyncFeedback(`Audit sync complete: ${res.syncedCount || 0} records fetched (${res.savedCount || 0} newly saved).`);
+        await loadData(timeframe);
+      }
+    } catch (err: any) {
+      setSyncFeedback(`Sync failed: ${err.message}`);
+    } finally {
+      setSyncingProduct(null);
+      setTimeout(() => setSyncFeedback(null), 5000);
+    }
+  };
+
+  const toggleExpand = (prodName: string) => {
+    setExpandedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(prodName)) next.delete(prodName);
+      else next.add(prodName);
+      return next;
+    });
+  };
+
   const totalInserts = data.products.reduce((acc, p) => acc + p.inserts, 0);
   const totalUpdates = data.products.reduce((acc, p) => acc + p.updates, 0);
   const totalDeletes = data.products.reduce((acc, p) => acc + p.deletes, 0);
 
   const getProductCategory = (prodName: string) => {
     const p = prodName.toLowerCase();
+    if (p.includes('risk') || p.includes('racm') || p.includes('rmc')) return { category: 'RMC', color: '#059669', bg: '#ECFDF5' };
     if (p.includes('human') || p.includes('hcm') || p.includes('profile')) return { category: 'HCM', color: '#10B981', bg: '#ECFDF5' };
     if (p.includes('ledger') || p.includes('payables') || p.includes('receivables') || p.includes('financial')) return { category: 'FIN', color: '#2563EB', bg: '#EFF6FF' };
     if (p.includes('crm') || p.includes('service') || p.includes('sales')) return { category: 'CRM', color: '#8B5CF6', bg: '#F5F3FF' };
@@ -1607,6 +1671,9 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     if (p.includes('inventory') || p.includes('procurement')) return { category: 'SCM', color: '#F59E0B', bg: '#FFFBEB' };
     return { category: 'COMMON', color: '#64748B', bg: '#F8FAFC' };
   };
+
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const yesterdayDateStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   return (
     <div className="glass-panel" style={{ padding: '1.4rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -1632,12 +1699,12 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
             {loading && <RefreshCw style={{ width: 14, height: 14, color: '#64748B', animation: 'spin 1s linear infinite' }} />}
           </div>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-            Oracle Fusion applications with recorded transactions, security changes, and event volume
+            Oracle Fusion applications with recorded transactions, security changes, and synchronized event volume
           </p>
         </div>
 
-        {/* Right Controls: Timeframe Selector & Export & Audit Trail Link */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        {/* Right Controls: Timeframe Selector, Sync All, Export & Audit Trail Link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           {/* Timeframe Dropdown */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
@@ -1658,13 +1725,38 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                 outline: 'none'
               }}
             >
-              <option value="today">Today (2026-10-12)</option>
-              <option value="yesterday">Yesterday (2026-10-11)</option>
-              <option value="previous_active">Previous Active Day (2026-10-09)</option>
+              <option value="24h">Last 24 Hours (Daily Sync Window)</option>
+              <option value="today">Today ({todayDateStr})</option>
+              <option value="yesterday">Yesterday ({yesterdayDateStr})</option>
+              <option value="previous_active">Previous Active Day</option>
               <option value="7d">Last 7 Days</option>
               <option value="30d">Last 30 Days</option>
             </select>
           </div>
+
+          {/* Sync All Button */}
+          <button
+            onClick={handleSyncAll}
+            disabled={syncingProduct === '__ALL__'}
+            title="Synchronize audit trail for all active products from Oracle Fusion"
+            style={{
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              backgroundColor: '#EFF6FF',
+              color: '#1E40AF',
+              border: '1px solid #BFDBFE',
+              borderRadius: '6px',
+              padding: '0.28rem 0.65rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              cursor: syncingProduct === '__ALL__' ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <RefreshCw style={{ width: 13, height: 13, animation: syncingProduct === '__ALL__' ? 'spin 1s linear infinite' : 'none', color: '#2563EB' }} />
+            {syncingProduct === '__ALL__' ? 'Syncing...' : 'Sync All'}
+          </button>
 
           {data.products.length > 0 && (
             <TableExportControl
@@ -1677,7 +1769,8 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                 { key: 'inserts', label: 'Inserts / Additions' },
                 { key: 'updates', label: 'Updates' },
                 { key: 'deletes', label: 'Deletions' },
-                { key: 'latestEventTime', label: 'Latest Event', getValue: (p: any) => p.latestEventTime ? new Date(p.latestEventTime).toLocaleString() : '' }
+                { key: 'latestEventTime', label: 'Latest Event', getValue: (p: any) => p.latestEventTime ? new Date(p.latestEventTime).toLocaleString() : '' },
+                { key: 'lastSyncedAt', label: 'Last Synced', getValue: (p: any) => p.lastSyncedAt ? new Date(p.lastSyncedAt).toLocaleString() : 'N/A' }
               ]}
             />
           )}
@@ -1690,6 +1783,24 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
           </span>
         </div>
       </div>
+
+      {/* Sync Feedback Toast */}
+      {syncFeedback && (
+        <div style={{
+          fontSize: '0.78rem',
+          backgroundColor: '#F0FDF4',
+          border: '1px solid #BBF7D0',
+          color: '#166534',
+          padding: '0.35rem 0.8rem',
+          borderRadius: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem'
+        }}>
+          <CheckCircle2 style={{ width: 15, height: 15, color: '#16A34A' }} />
+          <span>{syncFeedback}</span>
+        </div>
+      )}
 
       {/* Summary KPI Chips */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -1780,9 +1891,9 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
               <th>Oracle Product</th>
               <th style={{ textAlign: 'center' }}>Total Records</th>
               <th>Event Types Breakdown</th>
-              <th>Latest Recorded Event</th>
+              <th>Latest Event &amp; Sync Status</th>
               <th style={{ textAlign: 'right' }}>Activity Level</th>
-              <th style={{ textAlign: 'right' }}>Action</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1794,11 +1905,11 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                       No audit records logged for this timeframe ({data.effectiveDateLabel}).
                     </span>
                     <span style={{ fontSize: '0.78rem', color: '#64748B' }}>
-                      (e.g., non-working weekend day in Oracle Fusion).
+                      Try selecting the Daily Sync Interval or Yesterday, or trigger an on-demand sync above.
                     </span>
                     <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem' }}>
                       <button
-                        onClick={() => setTimeframe('today')}
+                        onClick={() => setTimeframe('24h')}
                         style={{
                           fontSize: '0.75rem',
                           fontWeight: 600,
@@ -1810,10 +1921,10 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                           cursor: 'pointer'
                         }}
                       >
-                        View Today (2026-10-12)
+                        View Daily Sync Interval (Last 24h)
                       </button>
                       <button
-                        onClick={() => setTimeframe('previous_active')}
+                        onClick={() => setTimeframe('yesterday')}
                         style={{
                           fontSize: '0.75rem',
                           fontWeight: 600,
@@ -1825,7 +1936,7 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                           cursor: 'pointer'
                         }}
                       >
-                        View Previous Active Day (2026-10-09)
+                        View Yesterday ({yesterdayDateStr})
                       </button>
                     </div>
                   </div>
@@ -1836,122 +1947,245 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                 const cat = getProductCategory(p.product);
                 const isHigh = p.totalRecords > 30;
                 const isMed = p.totalRecords > 5;
+                const isExpanded = expandedProducts.has(p.product);
+                const hasBOs = Array.isArray(p.businessObjects) && p.businessObjects.length > 0;
+                const isSyncingThis = syncingProduct === p.product;
 
                 return (
-                  <tr key={idx}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                        <span style={{
-                          fontSize: '0.68rem',
+                  <React.Fragment key={idx}>
+                    <tr>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          {hasBOs ? (
+                            <button
+                              onClick={() => toggleExpand(p.product)}
+                              title={isExpanded ? 'Collapse business objects' : 'Expand business objects'}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#64748B'
+                              }}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown style={{ width: 16, height: 16 }} />
+                              ) : (
+                                <ChevronRight style={{ width: 16, height: 16 }} />
+                              )}
+                            </button>
+                          ) : (
+                            <span style={{ width: 16 }} />
+                          )}
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            backgroundColor: cat.bg,
+                            color: cat.color,
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: '4px',
+                            border: `1px solid ${cat.color}30`
+                          }}>
+                            {cat.category}
+                          </span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+                            {p.product}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{ 
+                          display: 'inline-block',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '6px',
+                          backgroundColor: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
                           fontWeight: 700,
-                          backgroundColor: cat.bg,
-                          color: cat.color,
-                          padding: '0.12rem 0.45rem',
-                          borderRadius: '4px',
-                          border: `1px solid ${cat.color}30`
+                          color: '#0F172A',
+                          fontSize: '0.85rem'
                         }}>
-                          {cat.category}
+                          {p.totalRecords.toLocaleString()}
                         </span>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
-                          {p.product}
+                      </td>
+
+                      {/* Event Types Breakdown: Clean badges */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                          {p.inserts > 0 && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: '#DC2626',
+                              backgroundColor: '#FEF2F2',
+                              border: '1px solid #FECACA',
+                              padding: '0.12rem 0.45rem',
+                              borderRadius: '5px'
+                            }}>
+                              🔴 {p.inserts} Inserts
+                            </span>
+                          )}
+                          {p.updates > 0 && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: '#2563EB',
+                              backgroundColor: '#EFF6FF',
+                              border: '1px solid #BFDBFE',
+                              padding: '0.12rem 0.45rem',
+                              borderRadius: '5px'
+                            }}>
+                              🔵 {p.updates} Updates
+                            </span>
+                          )}
+                          {p.deletes > 0 && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: '#7C3AED',
+                              backgroundColor: '#F5F3FF',
+                              border: '1px solid #DDD6FE',
+                              padding: '0.12rem 0.45rem',
+                              borderRadius: '5px'
+                            }}>
+                              🟣 {p.deletes} Deletes
+                            </span>
+                          )}
+                          {p.inserts === 0 && p.updates === 0 && p.deletes === 0 && (
+                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Standard Logs</span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        <div>
+                          <strong>{p.latestEventTime ? new Date(p.latestEventTime).toLocaleString() : 'N/A'}</strong>
+                        </div>
+                        {p.lastSyncedAt && (
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.15rem' }}>
+                            Synced: {new Date(p.lastSyncedAt).toLocaleString()}
+                          </div>
+                        )}
+                      </td>
+
+                      <td style={{ textAlign: 'right' }}>
+                        <span className={
+                          isHigh
+                            ? 'badge badge-level-high'
+                            : isMed
+                            ? 'badge badge-level-med'
+                            : 'badge badge-level-low'
+                        }>
+                          {isHigh ? 'High Activity' : isMed ? 'Moderate' : 'Low Activity'}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td style={{ textAlign: 'center' }}>
-                      <span style={{ 
-                        display: 'inline-block',
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '6px',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        fontWeight: 700,
-                        color: '#0F172A',
-                        fontSize: '0.85rem'
-                      }}>
-                        {p.totalRecords.toLocaleString()}
-                      </span>
-                    </td>
+                      {/* Actions: Sync Button + Inspect */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                          <button
+                            onClick={(e) => handleSyncProduct(p.product, e)}
+                            disabled={isSyncingThis}
+                            title={`Sync audit records for ${p.product} on-demand`}
+                            style={{
+                              fontSize: '0.73rem',
+                              fontWeight: 600,
+                              color: '#2563EB',
+                              backgroundColor: '#EFF6FF',
+                              border: '1px solid #BFDBFE',
+                              borderRadius: '5px',
+                              padding: '0.18rem 0.5rem',
+                              cursor: isSyncingThis ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
+                            }}
+                          >
+                            <RefreshCw style={{ width: 11, height: 11, animation: isSyncingThis ? 'spin 1s linear infinite' : 'none' }} />
+                            {isSyncingThis ? 'Syncing...' : 'Sync'}
+                          </button>
 
-                    {/* Event Types Breakdown: Clean badges */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                        {p.inserts > 0 && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            color: '#DC2626',
-                            backgroundColor: '#FEF2F2',
-                            border: '1px solid #FECACA',
-                            padding: '0.12rem 0.45rem',
-                            borderRadius: '5px'
-                          }}>
-                            🔴 {p.inserts} Inserts
+                          <span
+                            onClick={() => onNavigatePage?.('audit')}
+                            style={{
+                              fontSize: '0.78rem',
+                              color: 'var(--accent-blue)',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              textDecoration: 'none'
+                            }}
+                          >
+                            Inspect &rarr;
                           </span>
-                        )}
-                        {p.updates > 0 && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            color: '#2563EB',
-                            backgroundColor: '#EFF6FF',
-                            border: '1px solid #BFDBFE',
-                            padding: '0.12rem 0.45rem',
-                            borderRadius: '5px'
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expandable Business Object Breakdown Sub-Row */}
+                    {isExpanded && hasBOs && (
+                      <tr style={{ backgroundColor: '#F8FAFC' }}>
+                        <td colSpan={6} style={{ padding: '0.75rem 1.2rem 0.75rem 2.8rem' }}>
+                          <div style={{
+                            borderLeft: '3px solid #2563EB',
+                            paddingLeft: '0.85rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.45rem'
                           }}>
-                            🔵 {p.updates} Updates
-                          </span>
-                        )}
-                        {p.deletes > 0 && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            color: '#7C3AED',
-                            backgroundColor: '#F5F3FF',
-                            border: '1px solid #DDD6FE',
-                            padding: '0.12rem 0.45rem',
-                            borderRadius: '5px'
-                          }}>
-                            🟣 {p.deletes} Deletes
-                          </span>
-                        )}
-                        {p.inserts === 0 && p.updates === 0 && p.deletes === 0 && (
-                          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Standard Logs</span>
-                        )}
-                      </div>
-                    </td>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+                              Business Objects Activity Breakdown for {p.product}:
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                              {p.businessObjects!.map((bo, boIdx) => (
+                                <div
+                                  key={boIdx}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    backgroundColor: '#FFFFFF',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '6px',
+                                    padding: '0.35rem 0.75rem',
+                                    fontSize: '0.78rem'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 600, color: '#0F172A' }}>
+                                      {bo.businessObject}
+                                    </span>
+                                    <span style={{
+                                      fontSize: '0.7rem',
+                                      backgroundColor: '#F1F5F9',
+                                      color: '#475569',
+                                      padding: '0.1rem 0.4rem',
+                                      borderRadius: '4px',
+                                      fontWeight: 600
+                                    }}>
+                                      {bo.totalRecords} records
+                                    </span>
+                                  </div>
 
-                    <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                      {p.latestEventTime ? new Date(p.latestEventTime).toLocaleString() : 'N/A'}
-                    </td>
-
-                    <td style={{ textAlign: 'right' }}>
-                      <span className={
-                        isHigh
-                          ? 'badge badge-level-high'
-                          : isMed
-                          ? 'badge badge-level-med'
-                          : 'badge badge-level-low'
-                      }>
-                        {isHigh ? 'High Activity' : isMed ? 'Moderate' : 'Low Activity'}
-                      </span>
-                    </td>
-
-                    <td style={{ textAlign: 'right' }}>
-                      <span
-                        onClick={() => onNavigatePage?.('audit')}
-                        style={{
-                          fontSize: '0.78rem',
-                          color: 'var(--accent-blue)',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          textDecoration: 'none'
-                        }}
-                      >
-                        Inspect &rarr;
-                      </span>
-                    </td>
-                  </tr>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {bo.inserts > 0 && <span style={{ color: '#DC2626', fontSize: '0.72rem', fontWeight: 600 }}>{bo.inserts} Inserts</span>}
+                                    {bo.updates > 0 && <span style={{ color: '#2563EB', fontSize: '0.72rem', fontWeight: 600 }}>{bo.updates} Updates</span>}
+                                    {bo.deletes > 0 && <span style={{ color: '#7C3AED', fontSize: '0.72rem', fontWeight: 600 }}>{bo.deletes} Deletes</span>}
+                                    {bo.latestEventTime && (
+                                      <span style={{ color: '#64748B', fontSize: '0.7rem', marginLeft: '0.5rem' }}>
+                                        Latest: {new Date(bo.latestEventTime).toLocaleTimeString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })
             )}

@@ -1,8 +1,8 @@
 {
-  "syncedAt": "2026-10-13T11:59:13.684Z",
-  "totalResults": 706,
+  "syncedAt": "2026-10-13T15:47:20.994Z",
+  "totalResults": 707,
   "counts": {
-    "Job": 510,
+    "Job": 511,
     "Duty": 2,
     "Data": 48,
     "Abstract": 107,
@@ -72048,6 +72048,26 @@
       "roleCode": "CLAAPS_ACCOUNTS_PAYABLE_SPECIALIST",
       "category": "Job",
       "description": "Financials- AP",
+      "members": [
+        {
+          "value": "925970D6C2AA47F984FCE887340DDB7C",
+          "display": ""
+        },
+        {
+          "value": "0ABCDC24BC654C4ABF31DFF4B2FF864A",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "9EFC2F8C74694597AEC26B66ACFAD893",
+      "displayName": "TEST_Hiring manager",
+      "roleCode": "TEST_HIRING_MANAGER",
+      "category": "Job",
+      "description": "For Hiring the new employee based on business requirements",
       "members": [
         {
           "value": "925970D6C2AA47F984FCE887340DDB7C",

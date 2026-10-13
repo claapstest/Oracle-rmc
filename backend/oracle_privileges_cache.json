@@ -1712,5 +1712,267 @@
       "message": "<b>Highlights</b><ul><li><i>Supplier Manager</i> (<i>ORA_POZ_SUPPLIER_MANAGER_ABSTRACT</i>)  grants access to a wide range of functionalities related to supplier management and collaboration. It allows users to view and manage supplier qualifications, assessments, and match results. The privilege enables updates to supplier contacts, profiles, and business relationships. Additionally, it provides access to collaboration messaging, including viewing and managing messages, documents, and setup data.  also facilitates the management of external partners, trading partners, and service providers. Users can update tax profiles, fiscal classifications, and location of final discharge. The privilege grants access to various work areas, such as suppliers and collaboration messaging, and allows the monitoring and reprocessing of messages. Furthermore, it enables the management of file import and export, collaboration message logging, and collaboration document data access. With this privilege, users can also search and merge suppliers, as well as manage payment instrument assignments and external payee payment details.</li></ul>Generated from Oracle security information.\nGenerated from Oracle security information."
     },
     "timestamp": 1788895375593
+  },
+  "role_privileges:pricing manager": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Pricing Manager",
+      "roleCode": "ORA_QP_PRICING_MANAGER_JOB",
+      "role": {
+        "name": "Pricing Manager",
+        "code": "ORA_QP_PRICING_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Activate Pricing Promotions",
+          "code": "QP_APPROVE_PRICING_PROMOTIONS_PRIV",
+          "description": "View and activate pricing promotions.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Cost Lists",
+          "code": "QP_APPROVE_COST_LISTS_PRIV",
+          "description": "Allows viewing and approval of cost lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Currency Conversion Lists",
+          "code": "QP_APPROVE_CURRENCY_CONVERSION_LISTS_PRIV",
+          "description": "Allows viewing and approval of currency conversion lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Discount Lists",
+          "code": "QP_APPROVE_DISCOUNT_LISTS_PRIV",
+          "description": "Allows viewing and approval of discount lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Price Lists",
+          "code": "QP_APPROVE_PRICE_LISTS_PRIV",
+          "description": "Allows viewing and approval of price lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Pricing Guidelines",
+          "code": "QP_APPROVE_PRICING_GUIDELINES_PRIV",
+          "description": "Allows viewing and approval of pricing guidelines.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Pricing Strategies",
+          "code": "QP_APPROVE_PRICING_STRATEGIES_PRIV",
+          "description": "Allows viewing and approval of pricing strategies.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Returns Price Lists",
+          "code": "QP_APPROVE_RETURNS_PRICE_LISTS_PRIV",
+          "description": "Allows viewing and approval of price lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Charge Lists",
+          "code": "QP_APPROVE_SHIPPING_CHARGE_LISTS_PRIV",
+          "description": "Allows viewing and approval of shipping charge lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Cost Lists",
+          "code": "QP_APPROVE_SHIPPING_COST_LISTS_PRIV",
+          "description": "Allows viewing and approval of shipping cost lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Discount Lists",
+          "code": "QP_APPROVE_SHIPPING_DISCOUNT_LISTS_PRIV",
+          "description": "Allows viewing and approval of shipping discount lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Guidelines",
+          "code": "QP_APPROVE_SHIPPING_GUIDELINES_PRIV",
+          "description": "Allows viewing and approval of shipping guidelines.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Import Approved Cost Lists",
+          "code": "QP_COST_LIST_APPROVED_IMPORT_PRIV",
+          "description": "Import approved cost lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Import Approved Discount Lists",
+          "code": "QP_DISCOUNT_LIST_APPROVED_IMPORT_PRIV",
+          "description": "Ability to import approved discount lists into the Pricing application.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Import Approved Price Lists",
+          "code": "QP_PRICE_LIST_APPROVED_IMPORT_PRIV",
+          "description": "Ability to import approved price lists into the Pricing application.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Manage Pricing Administration Work Area",
+          "code": "QP_MANAGE_PRICING_ADMINISTRATION_WORKAREA_PRIV",
+          "description": "Allows access to pricing administration work area",
+          "inheritedFrom": "Pricing Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 17,
+        "directPrivileges": 17,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Pricing Manager\" (ORA_QP_PRICING_MANAGER_JOB) with 17 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "5 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Pricing Manager\" with 17 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1791903793937
+  },
+  "role_privileges:ora_qp_pricing_manager_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Pricing Manager",
+      "roleCode": "ORA_QP_PRICING_MANAGER_JOB",
+      "role": {
+        "name": "Pricing Manager",
+        "code": "ORA_QP_PRICING_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Activate Pricing Promotions",
+          "code": "QP_APPROVE_PRICING_PROMOTIONS_PRIV",
+          "description": "View and activate pricing promotions.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Cost Lists",
+          "code": "QP_APPROVE_COST_LISTS_PRIV",
+          "description": "Allows viewing and approval of cost lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Currency Conversion Lists",
+          "code": "QP_APPROVE_CURRENCY_CONVERSION_LISTS_PRIV",
+          "description": "Allows viewing and approval of currency conversion lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Discount Lists",
+          "code": "QP_APPROVE_DISCOUNT_LISTS_PRIV",
+          "description": "Allows viewing and approval of discount lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Price Lists",
+          "code": "QP_APPROVE_PRICE_LISTS_PRIV",
+          "description": "Allows viewing and approval of price lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Pricing Guidelines",
+          "code": "QP_APPROVE_PRICING_GUIDELINES_PRIV",
+          "description": "Allows viewing and approval of pricing guidelines.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Pricing Strategies",
+          "code": "QP_APPROVE_PRICING_STRATEGIES_PRIV",
+          "description": "Allows viewing and approval of pricing strategies.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Returns Price Lists",
+          "code": "QP_APPROVE_RETURNS_PRICE_LISTS_PRIV",
+          "description": "Allows viewing and approval of price lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Charge Lists",
+          "code": "QP_APPROVE_SHIPPING_CHARGE_LISTS_PRIV",
+          "description": "Allows viewing and approval of shipping charge lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Cost Lists",
+          "code": "QP_APPROVE_SHIPPING_COST_LISTS_PRIV",
+          "description": "Allows viewing and approval of shipping cost lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Discount Lists",
+          "code": "QP_APPROVE_SHIPPING_DISCOUNT_LISTS_PRIV",
+          "description": "Allows viewing and approval of shipping discount lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Approve Shipping Guidelines",
+          "code": "QP_APPROVE_SHIPPING_GUIDELINES_PRIV",
+          "description": "Allows viewing and approval of shipping guidelines.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Import Approved Cost Lists",
+          "code": "QP_COST_LIST_APPROVED_IMPORT_PRIV",
+          "description": "Import approved cost lists.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Import Approved Discount Lists",
+          "code": "QP_DISCOUNT_LIST_APPROVED_IMPORT_PRIV",
+          "description": "Ability to import approved discount lists into the Pricing application.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Import Approved Price Lists",
+          "code": "QP_PRICE_LIST_APPROVED_IMPORT_PRIV",
+          "description": "Ability to import approved price lists into the Pricing application.",
+          "inheritedFrom": "Pricing Manager"
+        },
+        {
+          "name": "Manage Pricing Administration Work Area",
+          "code": "QP_MANAGE_PRICING_ADMINISTRATION_WORKAREA_PRIV",
+          "description": "Allows access to pricing administration work area",
+          "inheritedFrom": "Pricing Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 17,
+        "directPrivileges": 17,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Pricing Manager\" (ORA_QP_PRICING_MANAGER_JOB) with 17 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "5 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Pricing Manager\" with 17 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1791903793940
   }
 }

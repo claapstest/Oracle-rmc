@@ -222,6 +222,14 @@ export const api = {
     return apiRequest(`/dashboard/product-activity${query}`);
   },
 
+  // On-demand Product-Level Audit Sync
+  async syncProductActivity(product: string) {
+    return apiRequest('/audit/sync/product', {
+      method: 'POST',
+      body: JSON.stringify({ product })
+    });
+  },
+
   // Audit Supervisor Dashboard Metrics (Mock Screen 5: Active Risks, Open Issues, Reports Generated)
   // Backend scopes rows to the caller's permissions; 401/403 surfaces here for AC6/AC7 handling.
   async getAuditSupervisorMetrics(options?: { refresh?: boolean }) {

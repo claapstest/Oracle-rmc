@@ -61,15 +61,97 @@ export class AuditRawDbService {
 
       CREATE INDEX IF NOT EXISTS idx_raw_audit_user
       ON oracle_raw_audit_records(environment_host, username);
+
+      CREATE TABLE IF NOT EXISTS oracle_audit_sync_state (
+        environment_host VARCHAR(255) NOT NULL,
+        product VARCHAR(150) NOT NULL,
+        last_synced_at TIMESTAMPTZ NOT NULL,
+        records_synced INT DEFAULT 0,
+        sync_status VARCHAR(50) DEFAULT 'SUCCESS',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        CONSTRAINT uq_audit_sync_state UNIQUE(environment_host, product)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_audit_sync_state_host
+      ON oracle_audit_sync_state(environment_host);
     `;
 
     try {
       await query(ddl);
       this.isInitialized = true;
-      console.log('[AuditRawDbService] Database table oracle_raw_audit_records ready.');
+      console.log('[AuditRawDbService] Database tables oracle_raw_audit_records & oracle_audit_sync_state ready.');
     } catch (err: any) {
       console.error('[AuditRawDbService] Failed to initialize table:', err.message);
       throw err;
+    }
+  }
+
+  /**
+   * Normalizes Oracle product names to ensure consistent aggregation across tables.
+   */
+  public normalizeProductName(rawName?: string): string {
+    if (!rawName) return 'Oracle Fusion';
+    const s = String(rawName).trim();
+    const lower = s.toLowerCase();
+    if (lower.includes('risk') || lower.includes('racm') || lower.includes('rmc')) {
+      return 'Risks and Controls (RACM / RMC)';
+    }
+    if (lower.includes('human') || lower.includes('hcm') || lower.includes('per')) {
+      return 'Global Human Resources (PER / HCM)';
+    }
+    if (lower.includes('security services') || lower.includes('opss') || lower === 'oracle platform security services') {
+      return 'Oracle Platform Security Services';
+    }
+    return s;
+  }
+
+  /**
+   * Retrieves the last successful sync timestamp for a product (or __GLOBAL__).
+   * If none exists, defaults to 24 hours ago.
+   */
+  public async getLastSyncTime(product = '__GLOBAL__'): Promise<Date> {
+    await this.initTable();
+    const host = this.getHost();
+    const normalizedProduct = product === '__GLOBAL__' ? '__GLOBAL__' : this.normalizeProductName(product);
+    try {
+      const res = await query<{ last_synced_at: Date }>(
+        `SELECT last_synced_at FROM oracle_audit_sync_state WHERE environment_host = $1 AND product = $2 LIMIT 1`,
+        [host, normalizedProduct]
+      );
+      if (res.rows.length > 0 && res.rows[0].last_synced_at) {
+        return new Date(res.rows[0].last_synced_at);
+      }
+    } catch (err: any) {
+      console.warn('[AuditRawDbService] getLastSyncTime error:', err.message);
+    }
+    // Default fallback: exactly 24 hours ago
+    return new Date(Date.now() - 24 * 60 * 60 * 1000);
+  }
+
+  /**
+   * Updates or inserts the sync timestamp watermark for a product or globally.
+   */
+  public async updateSyncState(product: string, recordsSynced = 0, syncStatus = 'SUCCESS'): Promise<void> {
+    await this.initTable();
+    const host = this.getHost();
+    const normalizedProduct = product === '__GLOBAL__' ? '__GLOBAL__' : this.normalizeProductName(product);
+    const sql = `
+      INSERT INTO oracle_audit_sync_state (
+        environment_host, product, last_synced_at, records_synced, sync_status, updated_at
+      )
+      VALUES ($1, $2, NOW(), $3, $4, NOW())
+      ON CONFLICT (environment_host, product)
+      DO UPDATE SET
+        last_synced_at = NOW(),
+        records_synced = EXCLUDED.records_synced,
+        sync_status = EXCLUDED.sync_status,
+        updated_at = NOW();
+    `;
+    try {
+      await query(sql, [host, normalizedProduct, recordsSynced, syncStatus]);
+    } catch (err: any) {
+      console.error('[AuditRawDbService] updateSyncState error:', err.message);
     }
   }
 
@@ -99,6 +181,7 @@ export class AuditRawDbService {
     await this.initTable();
 
     const host = this.getHost();
+    const normalizedProduct = this.normalizeProductName(product);
     let insertedCount = 0;
 
     for (const item of rawItems) {
@@ -136,7 +219,7 @@ export class AuditRawDbService {
       try {
         const res = await query(sql, [
           host,
-          product,
+          normalizedProduct,
           businessObject,
           hash,
           eventDate,
@@ -435,6 +518,9 @@ export class AuditRawDbService {
   /**
    * Aggregates active products that have audit records for today, yesterday, previous active day, or last 7/30 days.
    */
+  /**
+   * Aggregates active products that have audit records for 24h sync window, today, yesterday, previous active day, or last 7/30 days.
+   */
   public async getProductActivitySummary(filter: {
     timeframe?: string;
   } = {}): Promise<{
@@ -448,6 +534,15 @@ export class AuditRawDbService {
       updates: number;
       deletes: number;
       latestEventTime: string | null;
+      lastSyncedAt: string | null;
+      businessObjects: Array<{
+        businessObject: string;
+        totalRecords: number;
+        inserts: number;
+        updates: number;
+        deletes: number;
+        latestEventTime: string | null;
+      }>;
     }>;
     totalActiveProducts: number;
     totalRecordsAcrossProducts: number;
@@ -459,13 +554,22 @@ export class AuditRawDbService {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    const timeframe = filter.timeframe || 'today';
+    const timeframe = filter.timeframe || '24h';
     let whereClause = 'environment_host = $1 AND event_timestamp IS NOT NULL';
     const values: any[] = [host];
-    let effectiveDateLabel = 'Today';
+    let effectiveDateLabel = 'Last 24 Hours (Daily Sync Window)';
     let targetDate = todayStr;
 
-    if (timeframe === 'today') {
+    if (timeframe === '24h' || timeframe === 'rolling_24h') {
+      const lastSyncTime = await this.getLastSyncTime('__GLOBAL__');
+      const cutoff = lastSyncTime.getTime() > now.getTime() - 48 * 60 * 60 * 1000
+        ? lastSyncTime
+        : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      whereClause += ` AND event_timestamp >= $2::timestamptz`;
+      values.push(cutoff.toISOString());
+      effectiveDateLabel = `Daily Sync Interval (Since ${cutoff.toLocaleDateString()} ${cutoff.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+      targetDate = todayStr;
+    } else if (timeframe === 'today') {
       whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
       values.push(todayStr);
       effectiveDateLabel = `Today (${todayStr})`;
@@ -505,30 +609,112 @@ export class AuditRawDbService {
       effectiveDateLabel = 'All Time';
     }
 
-    const sql = `
+    // 1. Aggregate at product level with normalized names
+    const sqlProducts = `
+      WITH norm AS (
+        SELECT 
+          CASE 
+            WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls (RACM / RMC)'
+            WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources (PER / HCM)'
+            WHEN product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' THEN 'Oracle Platform Security Services'
+            ELSE product 
+          END as norm_product,
+          business_object,
+          event_type,
+          event_timestamp
+        FROM oracle_raw_audit_records
+        WHERE ${whereClause}
+      )
       SELECT 
-        product,
+        norm_product as product,
         COUNT(*)::int as total_records,
         COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
         COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
         COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
         MAX(event_timestamp) as latest_event_time
-      FROM oracle_raw_audit_records
-      WHERE ${whereClause}
-      GROUP BY product
+      FROM norm
+      GROUP BY norm_product
       HAVING COUNT(*) > 0
-      ORDER BY total_records DESC
+      ORDER BY total_records DESC;
     `;
 
-    const res = await query<any>(sql, values);
-    const products = res.rows.map(r => ({
-      product: r.product,
-      totalRecords: Number(r.total_records || 0),
-      inserts: Number(r.inserts || 0),
-      updates: Number(r.updates || 0),
-      deletes: Number(r.deletes || 0),
-      latestEventTime: r.latest_event_time ? new Date(r.latest_event_time).toISOString() : null
-    }));
+    // 2. Aggregate at business object level with normalized names
+    const sqlBO = `
+      WITH norm AS (
+        SELECT 
+          CASE 
+            WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls (RACM / RMC)'
+            WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources (PER / HCM)'
+            WHEN product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' THEN 'Oracle Platform Security Services'
+            ELSE product 
+          END as norm_product,
+          business_object,
+          event_type,
+          event_timestamp
+        FROM oracle_raw_audit_records
+        WHERE ${whereClause}
+      )
+      SELECT 
+        norm_product as product,
+        business_object,
+        COUNT(*)::int as total_records,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
+        COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
+        MAX(event_timestamp) as latest_event_time
+      FROM norm
+      GROUP BY norm_product, business_object
+      ORDER BY norm_product, total_records DESC;
+    `;
+
+    // 3. Query sync states
+    const sqlSync = `
+      SELECT product, last_synced_at, sync_status 
+      FROM oracle_audit_sync_state 
+      WHERE environment_host = $1;
+    `;
+
+    const [resProducts, resBO, resSync] = await Promise.all([
+      query<any>(sqlProducts, values),
+      query<any>(sqlBO, values),
+      query<any>(sqlSync, [host]).catch(() => ({ rows: [] }))
+    ]);
+
+    const syncMap = new Map<string, string>();
+    for (const s of resSync.rows) {
+      if (s.last_synced_at) {
+        syncMap.set(s.product, new Date(s.last_synced_at).toISOString());
+      }
+    }
+
+    const boMap = new Map<string, any[]>();
+    for (const b of resBO.rows) {
+      const p = b.product;
+      if (!boMap.has(p)) boMap.set(p, []);
+      boMap.get(p)!.push({
+        businessObject: b.business_object,
+        totalRecords: Number(b.total_records || 0),
+        inserts: Number(b.inserts || 0),
+        updates: Number(b.updates || 0),
+        deletes: Number(b.deletes || 0),
+        latestEventTime: b.latest_event_time ? new Date(b.latest_event_time).toISOString() : null
+      });
+    }
+
+    const products = resProducts.rows.map(r => {
+      const prodName = r.product;
+      const lastSync = syncMap.get(prodName) || syncMap.get('__GLOBAL__') || null;
+      return {
+        product: prodName,
+        totalRecords: Number(r.total_records || 0),
+        inserts: Number(r.inserts || 0),
+        updates: Number(r.updates || 0),
+        deletes: Number(r.deletes || 0),
+        latestEventTime: r.latest_event_time ? new Date(r.latest_event_time).toISOString() : null,
+        lastSyncedAt: lastSync,
+        businessObjects: boMap.get(prodName) || []
+      };
+    });
 
     const totalRecordsAcrossProducts = products.reduce((sum, p) => sum + p.totalRecords, 0);
 
@@ -545,24 +731,135 @@ export class AuditRawDbService {
   private schedulerTimer: NodeJS.Timeout | null = null;
 
   /**
-   * Performs an incremental sync of the previous 48 hours for active products.
+   * Synchronizes audit trail records for a specific product on-demand.
+   * Uses rolling window from the product's last_synced_at to now.
+   */
+  public async syncProduct(
+    productName: string,
+    oracleClient?: any,
+    catalogService?: any
+  ): Promise<{
+    product: string;
+    syncedCount: number;
+    savedCount: number;
+    lastSyncedAt: string;
+  }> {
+    const normalizedProduct = this.normalizeProductName(productName);
+    console.log(`[AuditRawDbService] Starting product-level sync for ${normalizedProduct}...`);
+
+    const now = new Date();
+    const lastSync = await this.getLastSyncTime(normalizedProduct);
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    const fromDateStr = formatDate(lastSync);
+    const toDateStr = formatDate(now);
+
+    const client = oracleClient;
+    if (!client) {
+      throw new Error('Oracle Fusion client is not initialized.');
+    }
+
+    const allProducts = catalogService?.getAllProducts?.() || [];
+    const prodDef = allProducts.find((p: any) =>
+      p.displayName === normalizedProduct ||
+      p.productName === normalizedProduct ||
+      p.displayName === productName ||
+      p.productName === productName ||
+      (p.aliases && p.aliases.includes(productName))
+    );
+
+    let businessObjectsToSync: Array<{ businessObject?: string }> = [];
+    if (prodDef && Array.isArray(prodDef.businessObjects) && prodDef.businessObjects.length > 0) {
+      businessObjectsToSync = prodDef.businessObjects
+        .filter((b: any) => b.isSupported !== false)
+        .map((b: any) => ({ businessObject: b.displayName }));
+    } else {
+      businessObjectsToSync = [{ businessObject: undefined }];
+    }
+
+    let totalSynced = 0;
+    let totalSaved = 0;
+
+    for (const boItem of businessObjectsToSync) {
+      try {
+        const resolution = catalogService?.resolveAuditRequest(normalizedProduct, boItem.businessObject);
+        if (!resolution || resolution.status !== 'CONFIRMED') continue;
+
+        const template = resolution.businessObject?.payloadTemplate || resolution.product?.defaultPayloadTemplate;
+        const restProduct = resolution.product?.restProduct || resolution.product?.shortCodes?.[0] || normalizedProduct;
+        const restBO = resolution.businessObject?.restBusinessObjectType || resolution.businessObject?.restValue;
+
+        const payload: any = {
+          fromDate: fromDateStr,
+          toDate: toDateStr,
+          eventType: 'ALL'
+        };
+
+        if (template?.productId) payload.productId = template.productId;
+        else if (resolution.product?.productId) payload.productId = resolution.product.productId;
+
+        if (template?.product) payload.product = template.product;
+        else if (!payload.productId && restProduct) payload.product = restProduct;
+
+        if (template?.businessObjectType) payload.businessObjectType = template.businessObjectType;
+        else if (restBO) payload.businessObjectType = restBO;
+
+        if (template?.timeZone) payload.timeZone = template.timeZone;
+
+        const resp = await client.getAuditHistory(payload, { pageNumber: 1, pageSize: 500 });
+        const rawItems = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
+        totalSynced += rawItems.length;
+
+        if (rawItems.length > 0) {
+          const inserted = await this.saveRawAuditRecords(
+            normalizedProduct,
+            boItem.businessObject || 'All Platform Events',
+            rawItems
+          );
+          totalSaved += inserted;
+        }
+      } catch (err: any) {
+        console.warn(`[Product Sync Warning] Failed for ${normalizedProduct} -> ${boItem.businessObject}:`, err.message);
+      }
+    }
+
+    await this.updateSyncState(normalizedProduct, totalSaved, 'SUCCESS');
+    return {
+      product: normalizedProduct,
+      syncedCount: totalSynced,
+      savedCount: totalSaved,
+      lastSyncedAt: now.toISOString()
+    };
+  }
+
+  /**
+   * Performs an incremental sync of active products from the last sync timestamp up to current time.
    */
   public async runDailyIncrementalSync(oracleClient?: any, catalogService?: any): Promise<number> {
     console.log('[AuditRawDbService] Starting automated daily audit incremental sync...');
     const now = new Date();
-    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    const fromDateStr = twoDaysAgo.toISOString().split('T')[0];
+    const lastSync = await this.getLastSyncTime('__GLOBAL__');
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    const fromDateStr = formatDate(lastSync);
     const toDateStr = now.toISOString().split('T')[0];
 
+    console.log(`[Audit Daily Sync Window] Retrieving records from ${fromDateStr} (${lastSync.toISOString()}) to ${toDateStr} (${now.toISOString()})`);
+
     const targets = [
-      // 1. Audit Policies
+      // 1. Risks and Controls (RACM / RMC)
+      { product: 'Risks and Controls', businessObject: 'Advanced Controls' },
+      { product: 'Risks and Controls', businessObject: 'Entitlements' },
+      { product: 'Risks and Controls', businessObject: 'Global Conditions' },
+      { product: 'Risks and Controls', businessObject: 'Global Users' },
+      { product: 'Risks and Controls', businessObject: 'User Groups' },
+      { product: 'Risks and Controls', businessObject: 'Business Object Security' },
+      // 2. Audit Policies
       { product: 'Audit Policies', businessObject: 'Oracle Fusion business objects and attributes' },
       { product: 'Audit Policies', businessObject: 'Oracle Platform Security Services' },
-      // 2. Common CRM
+      // 3. Common CRM
       { product: 'Common CRM', businessObject: 'Household' },
       { product: 'Common CRM', businessObject: 'Account' },
       { product: 'Common CRM', businessObject: 'Sales Account' },
-      // 3. General Ledger
+      // 4. General Ledger
       { product: 'General Ledger', businessObject: 'Accounting Calendar Setup' },
       { product: 'General Ledger', businessObject: 'Period Status' },
       { product: 'General Ledger', businessObject: 'Period Details' },
@@ -571,17 +868,17 @@ export class AuditRawDbService {
       { product: 'General Ledger', businessObject: 'Journal Line' },
       { product: 'General Ledger', businessObject: 'Chart of Accounts Options Setup' },
       { product: 'General Ledger', businessObject: 'Combination Set' },
-      // 4. Global Human Resources
+      // 5. Global Human Resources
       { product: 'Global Human Resources', businessObject: 'Document Records' },
-      // 5. HCM Common Architecture
+      // 6. HCM Common Architecture
       { product: 'HCM Common Architecture', businessObject: 'Configure HCM Data Loader Parameters' },
       { product: 'HCM Common Architecture', businessObject: 'HCM Data Loader Business Objects Access' },
-      // 6. Inventory Management
+      // 7. Inventory Management
       { product: 'Inventory Management', businessObject: 'Interorganization Parameter' },
       { product: 'Inventory Management', businessObject: 'Subinventory' },
       { product: 'Inventory Management', businessObject: 'Lot' },
       { product: 'Inventory Management', businessObject: 'Serial Number' },
-      // 7. Payables
+      // 8. Payables
       { product: 'Payables', businessObject: 'Invoice' },
       { product: 'Payables', businessObject: 'Aging Periods' },
       { product: 'Payables', businessObject: 'Aging Period Details' },
@@ -601,15 +898,15 @@ export class AuditRawDbService {
       { product: 'Payables', businessObject: 'General Payables Options' },
       { product: 'Payables', businessObject: 'Period Information' },
       { product: 'Payables', businessObject: 'Payables Calendars' },
-      // 8. Profile Management
+      // 9. Profile Management
       { product: 'Profile Management', businessObject: 'Model Certification Profile Items' },
       { product: 'Profile Management', businessObject: 'Person Certification Profile Items' },
       { product: 'Profile Management', businessObject: 'Person Skill Profile Items' },
-      // 9. Public Sector Common Components
+      // 10. Public Sector Common Components
       { product: 'Public Sector Common Components', businessObject: 'Trading Community Customer Billing Account' },
       { product: 'Public Sector Common Components', businessObject: 'Household' },
       { product: 'Public Sector Common Components', businessObject: 'Account' },
-      // 10. Quality Issue and Action Management
+      // 11. Quality Issue and Action Management
       { product: 'Quality Issue and Action Management', businessObject: 'Quality Action Affected Object' },
       { product: 'Quality Issue and Action Management', businessObject: 'Quality Action Attachment' },
       { product: 'Quality Issue and Action Management', businessObject: 'Source Quality Action' },
@@ -618,7 +915,7 @@ export class AuditRawDbService {
       { product: 'Quality Issue and Action Management', businessObject: 'Quality Issue Attachment' },
       { product: 'Quality Issue and Action Management', businessObject: 'Destination Quality Issue' },
       { product: 'Quality Issue and Action Management', businessObject: 'Quality Issue' },
-      // 11. Receivables
+      // 12. Receivables
       { product: 'Receivables', businessObject: 'Trading Community Customer Billing Account' },
       { product: 'Receivables', businessObject: 'Receivables Customer Profile Class Amount' },
       { product: 'Receivables', businessObject: 'Receivables Customer Profile Class' },
@@ -626,7 +923,7 @@ export class AuditRawDbService {
       { product: 'Receivables', businessObject: 'Customer Profile' },
       { product: 'Receivables', businessObject: 'Receivables User Approval Limit' },
       { product: 'Receivables', businessObject: 'Payment Terms' },
-      // 12. Service
+      // 13. Service
       { product: 'Service', businessObject: 'Service Request' },
       { product: 'Service', businessObject: 'Category' },
       { product: 'Service', businessObject: 'Service Request Reference' },
@@ -672,12 +969,14 @@ export class AuditRawDbService {
           const inserted = await this.saveRawAuditRecords(t.product, t.businessObject || 'All Platform Events', rawItems);
           totalNew += inserted;
           console.log(`[Audit Daily Sync] ${t.product}: fetched ${rawItems.length}, saved ${inserted} new records.`);
+          await this.updateSyncState(t.product, inserted, 'SUCCESS');
         }
       } catch (err: any) {
         console.warn(`[Audit Daily Sync Warning] Failed for ${t.product}:`, err.message);
       }
     }
 
+    await this.updateSyncState('__GLOBAL__', totalNew, 'SUCCESS');
     console.log(`[AuditRawDbService] Incremental sync complete. Total new records inserted: ${totalNew}`);
     return totalNew;
   }
@@ -688,7 +987,7 @@ export class AuditRawDbService {
   public startDailyScheduler(oracleClient: any, catalogService: any, intervalHours = 24): void {
     if (this.schedulerTimer) return;
     const intervalMs = intervalHours * 60 * 60 * 1000;
-    console.log(`[AuditRawDbService] Automated daily sync scheduler started (every ${intervalHours} hours).`);
+    console.log(`[AuditRawDbService] Automated daily sync scheduler active (every ${intervalHours} hours). Next run scheduled.`);
 
     this.schedulerTimer = setInterval(() => {
       this.runDailyIncrementalSync(oracleClient, catalogService).catch(e => {

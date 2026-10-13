@@ -888,7 +888,7 @@ apiRouter.get('/dashboard/risk-trend', requireAuditManagerDashboard, async (req:
 // GET /api/dashboard/product-activity - Products with recent audit records (today, yesterday, etc.)
 apiRouter.get('/dashboard/product-activity', requireAuditManagerDashboard, async (req: Request, res: Response) => {
   try {
-    const timeframe = req.query.timeframe ? String(req.query.timeframe) : 'today';
+    const timeframe = req.query.timeframe ? String(req.query.timeframe) : '24h';
     const result = await auditRawDbService.getProductActivitySummary({ timeframe });
 
     return res.status(200).json({
@@ -2186,12 +2186,23 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
     const currentUser = res.locals.email || 'SYSTEM';
     logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered live audit trail sync for product: ${product || 'All'}, BO: ${businessObjectType || 'Default'}`);
 
+    // If dates are not explicitly supplied, compute from the exact last sync watermark up to now
+    let queryFrom = fromDate;
+    let queryTo = toDate;
+    if (!queryFrom) {
+      const lastSync = await auditRawDbService.getLastSyncTime(product || '__GLOBAL__');
+      queryFrom = lastSync.toISOString().split('T')[0];
+    }
+    if (!queryTo) {
+      queryTo = new Date().toISOString().split('T')[0];
+    }
+
     // Query live Oracle Fusion API
     const result = await oracleService.getAuditHistory({
       product,
       businessObjectType,
-      fromDate,
-      toDate,
+      fromDate: queryFrom,
+      toDate: queryTo,
       source: 'live',
       pageSize: 500
     });
@@ -2206,15 +2217,18 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
           result.businessObjectDisplayName || businessObjectType || 'All Events',
           rawPayloads
         );
+        await auditRawDbService.updateSyncState(product || '__GLOBAL__', savedCount, 'SUCCESS');
       } catch (dbErr: any) {
         console.warn('[Audit Sync] Could not persist raw audit records:', dbErr.message);
       }
+    } else {
+      await auditRawDbService.updateSyncState(product || '__GLOBAL__', 0, 'SUCCESS');
     }
 
     res.json({
       ...oracleService.getModeInfo(),
       success: true,
-      message: `Audit Trail successfully synchronized from Oracle Fusion. Retrieved ${result.logs?.length || 0} records (${savedCount} newly persisted to database).`,
+      message: `Audit Trail successfully synchronized from Oracle Fusion (${queryFrom} to ${queryTo}). Retrieved ${result.logs?.length || 0} records (${savedCount} newly persisted to database).`,
       syncedCount: result.logs?.length || 0,
       savedCount,
       totalRecords: result.totalRecords || result.logs?.length || 0,
@@ -2227,6 +2241,39 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
     res.json({
       success: false,
       message: (err as Error).message || 'Failed to sync audit trail from Oracle Fusion',
+      ...oracleService.getModeInfo()
+    });
+  }
+});
+
+// POST /api/audit/sync/product - Product-level audit synchronization on-demand
+apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+  try {
+    const { product } = req.body || {};
+    if (!product) {
+      return res.status(400).json({ success: false, message: 'Product parameter is required.' });
+    }
+
+    const currentUser = res.locals.email || 'SYSTEM';
+    logAudit(currentUser, 'PRODUCT_AUDIT_SYNC', `Triggered product-level audit sync for: ${product}`);
+
+    const syncResult = await auditRawDbService.syncProduct(
+      product,
+      (oracleService as any).client,
+      auditProductCatalogService
+    );
+
+    res.json({
+      ...oracleService.getModeInfo(),
+      success: true,
+      message: `Audit records for ${syncResult.product} successfully synchronized. Synced ${syncResult.syncedCount} records (${syncResult.savedCount} newly saved).`,
+      ...syncResult
+    });
+  } catch (err: any) {
+    console.error('[API Router] Product audit sync failed:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to sync product audit records',
       ...oracleService.getModeInfo()
     });
   }
