@@ -672,7 +672,7 @@ export default function InvestigationWorkspace({
             { 
               id: 'AUDIT', 
               label: `Audit Timeline ${auditLoading ? '(Loading...)' : auditData.length > 0 ? `(${auditData.length})` : ''}`, 
-              show: true 
+              show: !isRole 
             },
             { id: 'AI', label: 'AI Investigation Panel', show: true }
           ].map(tab => {
@@ -1738,7 +1738,7 @@ export default function InvestigationWorkspace({
           )}
 
           {/* Tab 6: Audit History */}
-          {activeTab === 'AUDIT' && (
+          {activeTab === 'AUDIT' && !isRole && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Security Configuration Logs</h3>

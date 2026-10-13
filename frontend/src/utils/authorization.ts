@@ -19,7 +19,6 @@ const PAGE_PRIVILEGES: Record<string, string[]> = {
   // Group shell needs the group's own privilege (a REPORTS-only role may still
   // open risk-certificates directly, matching the backend's per-page grants).
   risk: ['RISK_MANAGEMENT', 'RISK_READ'],
-  'risk-access-requests': ['RISK_MANAGEMENT', 'RISK_READ'],
   'risk-controls': ['RISK_MANAGEMENT', 'RISK_READ'],
   'risk-certificates': ['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL'],
   reports: ['REPORTS', 'REPORTS_READ'],

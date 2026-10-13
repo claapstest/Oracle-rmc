@@ -29,7 +29,6 @@ import UsersPage from './pages/Users';
 import UserManagementPage from './pages/UserManagement';
 import RolesPage from './pages/Roles';
 import AuditPage from './pages/Audit';
-import AdvancedAccessRequestsPage from './pages/AdvancedAccessRequests';
 import AdvancedControlsPage from './pages/AdvancedControls';
 import AccessCertificatesPage from './pages/AccessCertificates';
 import ReportsPage from './pages/Reports';
@@ -53,7 +52,6 @@ interface RiskChildNavItem {
 }
 
 const RISK_CHILDREN: RiskChildNavItem[] = [
-  { id: 'risk-access-requests', label: 'Advanced Access Requests', icon: FileText },
   { id: 'risk-controls', label: 'Advanced Controls', icon: Scale },
   { id: 'risk-certificates', label: 'Access Certificates', icon: Award }
 ];
@@ -80,8 +78,8 @@ function resolveStoredPage(): string {
       return urlPage;
     }
     const stored = sessionStorage.getItem('activePage') || 'dashboard';
-    // Migrate the retired Risk Management landing-page route to its first child
-    if (stored === 'risk') return 'risk-access-requests';
+    // Migrate retired Risk routes to Advanced Controls
+    if (stored === 'risk' || stored === 'risk-access-requests') return 'risk-controls';
     // Migrate the retired Overview route to Dashboard
     if (stored === 'overview') return 'dashboard';
     if (TOP_LEVEL_PAGE_IDS.has(stored) || RISK_CHILD_IDS.has(stored)) return stored;
@@ -1048,11 +1046,6 @@ export default function App() {
           {visitedPages.has('audit') && (
             <div style={{ display: currentPage === 'audit' ? 'block' : 'none', height: '100%' }}>
               <AuditPage initialBOId={initialAuditBO} />
-            </div>
-          )}
-          {visitedPages.has('risk-access-requests') && (
-            <div style={{ display: currentPage === 'risk-access-requests' ? 'block' : 'none', height: '100%' }}>
-              <AdvancedAccessRequestsPage environmentMode={environmentMode} />
             </div>
           )}
           {visitedPages.has('risk-controls') && (

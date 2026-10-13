@@ -455,7 +455,7 @@ export default function Dashboard({
 
   // Mock Screen 5 — Audit Supervisor dashboard (AC1-AC7). No Ask Veyra entry point anywhere in this branch.
   if (isSupervisor) {
-    const riskTarget = ['risk-access-requests', 'risk-controls', 'risk-certificates'].find((p) => can(p));
+    const riskTarget = ['risk-controls', 'risk-certificates'].find((p) => can(p));
     const metricValue = (v: unknown) => (typeof v === 'number' ? v.toLocaleString() : '—');
     if (supLoading && !supMetrics) {
       return (
@@ -529,7 +529,7 @@ export default function Dashboard({
         icon: <ShieldCheck size={22} />,
         tileBg: '#F3E8FF',
         tileColor: '#7C3AED',
-        target: can('risk-controls') ? 'risk-controls' : 'risk-access-requests',
+        target: can('risk-controls') ? 'risk-controls' : 'risk-certificates',
         cta: 'Review Controls'
       }] : []),
       ...(can('audit') ? [{
@@ -554,16 +554,16 @@ export default function Dashboard({
         target: 'reports',
         cta: 'Open Reports'
       }] : []),
-      ...(can('risk-access-requests') || can('risk-certificates') ? [{
+      ...(can('risk-certificates') ? [{
         key: 'access-governance',
-        title: 'Access Governance',
-        subtitle: 'Audit user access requests and certification reviews.',
-        status: 'Access governance workflows',
+        title: 'Access Certificates',
+        subtitle: 'Audit user certification worksheets and review records.',
+        status: 'Certification reviews active',
         icon: <Scale size={22} />,
         tileBg: '#FFFBEB',
         tileColor: '#D97706',
-        target: can('risk-access-requests') ? 'risk-access-requests' : 'risk-certificates',
-        cta: 'Review Requests'
+        target: 'risk-certificates',
+        cta: 'Review Certificates'
       }] : [])
     ];
 
