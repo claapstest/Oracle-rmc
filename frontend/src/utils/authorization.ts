@@ -22,7 +22,6 @@ const PAGE_PRIVILEGES: Record<string, string[]> = {
   'risk-access-requests': ['RISK_MANAGEMENT', 'RISK_READ'],
   'risk-controls': ['RISK_MANAGEMENT', 'RISK_READ'],
   'risk-certificates': ['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL'],
-  'incident-analytics': ['RISK_MANAGEMENT', 'RISK_READ'],
   reports: ['REPORTS', 'REPORTS_READ'],
   settings: ['ORACLE_INTEGRATION'],
   'command-center': ['ORACLE_API_CONSOLE']

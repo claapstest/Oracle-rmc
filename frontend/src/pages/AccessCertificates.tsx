@@ -37,7 +37,7 @@ export const WORKSHEET_COLUMNS: WorksheetColumn[] = [
   { header: 'USER NAME', keys: ['userName', 'User Name', 'ownerName', 'Owner Name', 'USER_NAME'] },
   { header: 'COMMENT', keys: ['comment', 'Comment', 'comments', 'Comments', 'COMMENTS', 'COMMENT'] },
   { header: 'ACTION', keys: ['action', 'Action', 'certificationAction', 'ACTION'] },
-  { header: 'USER-ROLE BUSINESS UNIT', keys: ['userRoleBusinessUnit', 'User-Role Business Unit', 'userBusinessUnit', 'businessUnit', 'Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'BUSINESS_UNIT'] },
+  { header: 'USER BUSINESS UNIT', keys: ['userBusinessUnit', 'User Business Unit', 'USER_BUSINESS_UNIT', 'userRoleBusinessUnit', 'User-Role Business Unit', 'businessUnit', 'Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'BUSINESS_UNIT'] },
   { header: 'USER POSITION NAME', keys: ['userPositionName', 'User Position Name', 'positionName', 'Position Name', 'USER_POSITION_NAME', 'POSITION_NAME'] },
   { header: 'USER MANAGER NAME', keys: ['userManagerName', 'User Manager Name', 'managerName', 'Manager Name', 'certifiedManager', 'Certified Manager', 'directManager', 'Direct Manager', 'USER_MANAGER_NAME', 'MANAGER_NAME'] },
   { header: 'USER JOB NAME', keys: ['userJobName', 'User Job Name', 'jobName', 'Job Name', 'USER_JOB_NAME', 'JOB_NAME'] },

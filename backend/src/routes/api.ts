@@ -2506,7 +2506,12 @@ apiRouter.get('/risk/incidents', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ
   try {
     const controlId = req.query.controlId as string | undefined;
     const forceRefresh = req.query.refresh === 'true';
-    const result = await oracleService.getRiskIncidents({ controlId, forceRefresh });
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const search = req.query.search as string | undefined;
+    const status = req.query.status as string | undefined;
+    const state = req.query.state as string | undefined;
+    const result = await oracleService.getRiskIncidents({ controlId, forceRefresh, page, limit, search, status, state });
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
@@ -2522,11 +2527,11 @@ apiRouter.get('/risk/sod', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), a
   }
 });
 
-// Incident Analytics aggregations (KARTHIK: added for the Incident Analytics
-// page — Srikar, keep/replace. Rank cached Oracle incidents in SQL.)
+// Incident Analytics aggregations (embedded in the Advanced Controls
+// Incident Status card; optionally scoped to a comma-separated control list).
 apiRouter.get('/risk/incidents/top-users', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
-    const result = await incidentAnalyticsService.topIncidentUsers(req.query.limit);
+    const result = await incidentAnalyticsService.topIncidentUsers(req.query.limit, req.query.controls);
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
@@ -2535,7 +2540,7 @@ apiRouter.get('/risk/incidents/top-users', requirePrivilege(['RISK_MANAGEMENT', 
 
 apiRouter.get('/risk/incidents/top-roles', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
-    const result = await incidentAnalyticsService.topIncidentRoles(req.query.limit);
+    const result = await incidentAnalyticsService.topIncidentRoles(req.query.limit, req.query.controls);
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });

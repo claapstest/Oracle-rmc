@@ -1282,13 +1282,13 @@ export class BipClient {
 
   /**
    * Normalizes a raw Certifier Worksheet row into the standardized CertifierWorksheetRow format.
-   * Maps actual BIP column names directly:
-   *  - Role Name: row['Role Name'] || row['Job Role Name'] || 'Access Certification Certifier'
+   * Maps actual BIP column names directly (live-only: blank cells stay blank, no invented defaults):
+   *  - Role Name: row['Role Name'] || row['Job Role Name']
    *  - User Name: row['Owner Name'] || row['User Name']
    *  - Certified Manager: row['Manager Name'] || row['Certifier Name']
    *  - Certification Name: row['Certification Name']
    *  - Certification ID: row['Certification ID']
-   *  - User Business Unit: row['User Business Unit'] || row['Business Unit'] || 'Corporate'
+   *  - User Business Unit: row['User Business Unit'] || row['Business Unit']
    *  - User Manager: row['Manager Name'] || row['User Manager']
    */
   public normalizeCertifierRow(row: Record<string, any>, certIdDefault = ''): CertifierWorksheetRow {
@@ -1300,23 +1300,13 @@ export class BipClient {
       ''
     ).trim();
 
-    const canonicalCertNames: Record<string, string> = {
-      '35006': 'CLAAPS_Access_Certification1',
-      '36006': 'CLPS_Access_Certification2',
-      '36007': 'FY26_QTR3_Claaps Access certification',
-      '35007': 'CLPS_Access_Certification3'
-    };
-
+    // Live-only: certification name comes strictly from the worksheet row.
     let certName = String(
       row['Certification Name'] ??
       row['certificationName'] ??
       row['CERTIFICATION_NAME'] ??
       ''
     ).trim();
-
-    if (!certName && canonicalCertNames[certId]) {
-      certName = canonicalCertNames[certId];
-    }
 
     const owner = String(
       row['Owner Name'] ??
@@ -1350,11 +1340,8 @@ export class BipClient {
       row['jobRoleName'] ??
       ''
     ).trim();
-    const role =
-      rawRole ||
-      (certName.includes('Analyst') || certName.includes('Manager')
-        ? certName.replace(/^FY\d+_[A-Za-z0-9]+_CLAAPS\s*/i, '')
-        : 'Access Certification Certifier');
+    // Live-only: no invented role names. Blank stays blank.
+    const role = rawRole;
 
     const bu = String(
       row['User Business Unit'] ??
@@ -1362,7 +1349,7 @@ export class BipClient {
       row['Business Unit'] ??
       row['businessUnit'] ??
       row['BUSINESS_UNIT'] ??
-      'Corporate'
+      ''
     ).trim();
 
     let completion = 0;
@@ -1389,7 +1376,7 @@ export class BipClient {
     const position = String(row['User Position Name'] ?? row['userPositionName'] ?? row['Position Name'] ?? row['positionName'] ?? '').trim();
     const userJob = String(row['User Job Name'] ?? row['userJobName'] ?? row['Job Name'] ?? row['jobName'] ?? '').trim();
     const loc = String(row['User Location'] ?? row['userLocation'] ?? row['Location'] ?? row['location'] ?? '').trim();
-    const userRoleBu = String(row['User-Role Business Unit'] ?? row['userRoleBusinessUnit'] ?? bu).trim();
+    const userRoleBu = String(row['User Business Unit'] ?? row['USER_BUSINESS_UNIT'] ?? row['User-Role Business Unit'] ?? row['userRoleBusinessUnit'] ?? bu).trim();
     const userMgrName = String(row['User Manager Name'] ?? row['userManagerName'] ?? manager).trim();
     const commentVal = String(row['Comment'] ?? row['comment'] ?? row['Comments'] ?? row['comments'] ?? '').trim();
 
@@ -1419,13 +1406,13 @@ export class BipClient {
       userLocation: loc,
       location: loc,
       department: row['Department'] || row['department'] || '',
-      status: String(row['Status'] ?? row['status'] ?? 'Active'),
-      type: String(row['Type'] ?? row['type'] ?? 'Standard'),
+      status: String(row['Status'] ?? row['status'] ?? ''),
+      type: String(row['Type'] ?? row['type'] ?? ''),
       completionPercent: completion,
       dueDate: String(row['Due Date'] ?? row['dueDate'] ?? ''),
       creationDate: String(row['Creation Date'] ?? row['creationDate'] ?? ''),
       createdBy: String(row['Created By'] ?? row['createdBy'] ?? ''),
-      action: row['Action'] || row['action'] || 'Pending',
+      action: row['Action'] || row['action'] || '',
       comment: commentVal,
       comments: commentVal,
       followUpStatus: row['Follow-Up'] || row['followUpStatus'] || '',

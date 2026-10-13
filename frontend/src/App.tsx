@@ -18,8 +18,7 @@ import {
   Scale,
   ChevronDown,
   ChevronRight,
-  ArrowLeft,
-  BarChart3
+  ArrowLeft
 } from 'lucide-react';
 
 // Pages
@@ -33,7 +32,6 @@ import AuditPage from './pages/Audit';
 import AdvancedAccessRequestsPage from './pages/AdvancedAccessRequests';
 import AdvancedControlsPage from './pages/AdvancedControls';
 import AccessCertificatesPage from './pages/AccessCertificates';
-import IncidentAnalyticsPage from './pages/IncidentAnalytics';
 import ReportsPage from './pages/Reports';
 import SettingsPage from './pages/Settings';
 import CommandCenter from './pages/CommandCenter';
@@ -57,8 +55,7 @@ interface RiskChildNavItem {
 const RISK_CHILDREN: RiskChildNavItem[] = [
   { id: 'risk-access-requests', label: 'Advanced Access Requests', icon: FileText },
   { id: 'risk-controls', label: 'Advanced Controls', icon: Scale },
-  { id: 'risk-certificates', label: 'Access Certificates', icon: Award },
-  { id: 'incident-analytics', label: 'Incident Analytics', icon: BarChart3 }
+  { id: 'risk-certificates', label: 'Access Certificates', icon: Award }
 ];
 
 const RISK_CHILD_IDS = new Set(RISK_CHILDREN.map(c => c.id));
@@ -1066,11 +1063,6 @@ export default function App() {
           {visitedPages.has('risk-certificates') && (
             <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
               <AccessCertificatesPage environmentMode={environmentMode} />
-            </div>
-          )}
-          {visitedPages.has('incident-analytics') && (
-            <div style={{ display: currentPage === 'incident-analytics' ? 'block' : 'none', height: '100%' }}>
-              <IncidentAnalyticsPage environmentMode={environmentMode} />
             </div>
           )}
           {visitedPages.has('reports') && (
