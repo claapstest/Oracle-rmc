@@ -24,45 +24,45 @@
     "deletes": 0
   },
   "2026-10-06": {
-    "count": 242,
-    "inserts": 242,
+    "count": 264,
+    "inserts": 264,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-07": {
-    "count": 228,
-    "inserts": 228,
+    "count": 234,
+    "inserts": 234,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-12": {
-    "count": 2022,
-    "inserts": 1618,
-    "updates": 328,
-    "deletes": 76
+    "count": 2856,
+    "inserts": 2055,
+    "updates": 657,
+    "deletes": 144
   },
   "2026-10-09": {
-    "count": 24,
-    "inserts": 23,
+    "count": 47,
+    "inserts": 46,
     "updates": 1,
     "deletes": 0
   },
   "2026-10-08": {
-    "count": 28,
-    "inserts": 28,
+    "count": 56,
+    "inserts": 56,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-05": {
-    "count": 10,
-    "inserts": 10,
+    "count": 20,
+    "inserts": 20,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-13": {
-    "count": 8,
-    "inserts": 5,
+    "count": 223,
+    "inserts": 202,
     "updates": 0,
-    "deletes": 3
+    "deletes": 21
   }
 }

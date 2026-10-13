@@ -1870,8 +1870,9 @@ class OracleService {
       };
     }
 
-    // Check if wide date range (> 30 days) or database source requested
-    const preferDb = params.source === 'database' || isWideRange;
+    // Check if wide date range (> 30 days) or database source requested or historical year (< 2026)
+    const isHistorical = Boolean((fromDateStr && fromDateStr < '2026-01-01') || (toDateStr && toDateStr < '2026-01-01'));
+    const preferDb = params.source === 'database' || isWideRange || isHistorical;
     if (preferDb && !this.isDemoMode()) {
       try {
         const queryPageSize = params.pageSize && params.pageSize > 50 ? params.pageSize : 500;
@@ -1886,7 +1887,7 @@ class OracleService {
           pageSize: queryPageSize
         });
 
-        if (dbResult.totalCount > 0 || isWideRange) {
+        if (dbResult.totalCount > 0 || isWideRange || isHistorical) {
           const mappedLogs = dbResult.rawItems.map((a: any, idx: number) =>
             this.mapRawAuditItem(a, idx, boDisplayName, restBusinessObjectType)
           );

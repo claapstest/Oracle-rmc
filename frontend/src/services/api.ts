@@ -357,6 +357,18 @@ export const api = {
     return apiRequest(`/audit${query}`);
   },
 
+  async syncAuditTrail(payload?: {
+    product?: string;
+    businessObjectType?: string;
+    fromDate?: string;
+    toDate?: string;
+  }) {
+    return apiRequest('/audit/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload || {})
+    });
+  },
+
   // GRC / Risk Management
   async getAdvancedAccessRequests(options?: { limit?: number; offset?: number; status?: string; user?: string }) {
     const params = new URLSearchParams();

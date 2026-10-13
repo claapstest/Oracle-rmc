@@ -2114,9 +2114,9 @@ apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (
     });
 
     res.json({
+      ...oracleService.getModeInfo(),
       ...result,
-      auditUnavailable: false,
-      ...oracleService.getModeInfo()
+      auditUnavailable: false
     });
   } catch (err) {
     console.error('[API Router] Audit logs failed:', err);
@@ -2157,9 +2157,9 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
     });
 
     res.json({
+      ...oracleService.getModeInfo(),
       ...result,
-      auditUnavailable: false,
-      ...oracleService.getModeInfo()
+      auditUnavailable: false
     });
   } catch (err) {
     console.error('[API Router] Audit query failed:', err);
@@ -2168,6 +2168,65 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
       logs: [],
       auditUnavailable: true,
       message: (err as Error).message || String(err),
+      ...oracleService.getModeInfo()
+    });
+  }
+});
+
+// POST /api/audit/sync - On-demand synchronization of audit trail records from Oracle Fusion
+apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+  try {
+    const {
+      product,
+      businessObjectType,
+      fromDate,
+      toDate
+    } = req.body || {};
+
+    const currentUser = res.locals.email || 'SYSTEM';
+    logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered live audit trail sync for product: ${product || 'All'}, BO: ${businessObjectType || 'Default'}`);
+
+    // Query live Oracle Fusion API
+    const result = await oracleService.getAuditHistory({
+      product,
+      businessObjectType,
+      fromDate,
+      toDate,
+      source: 'live',
+      pageSize: 500
+    });
+
+    // Save live retrieved records to PostgreSQL database
+    let savedCount = 0;
+    if (result.logs && result.logs.length > 0 && Array.isArray(result.logs)) {
+      const rawPayloads = result.logs.map((l: any) => l.raw || l);
+      try {
+        savedCount = await auditRawDbService.saveRawAuditRecords(
+          result.productDisplayName || product || 'Oracle Fusion',
+          result.businessObjectDisplayName || businessObjectType || 'All Events',
+          rawPayloads
+        );
+      } catch (dbErr: any) {
+        console.warn('[Audit Sync] Could not persist raw audit records:', dbErr.message);
+      }
+    }
+
+    res.json({
+      ...oracleService.getModeInfo(),
+      success: true,
+      message: `Audit Trail successfully synchronized from Oracle Fusion. Retrieved ${result.logs?.length || 0} records (${savedCount} newly persisted to database).`,
+      syncedCount: result.logs?.length || 0,
+      savedCount,
+      totalRecords: result.totalRecords || result.logs?.length || 0,
+      lastSynced: new Date().toISOString(),
+      dataSource: result.dataSource || 'Live Oracle Fusion API',
+      logs: result.logs
+    });
+  } catch (err) {
+    console.error('[API Router] Audit sync failed:', err);
+    res.json({
+      success: false,
+      message: (err as Error).message || 'Failed to sync audit trail from Oracle Fusion',
       ...oracleService.getModeInfo()
     });
   }
