@@ -132,6 +132,11 @@ export default function Audit({
   const [configNotice, setConfigNotice] = useState<string>('');
   const [dateWarning, setDateWarning] = useState<string>('');
 
+  // Sync Audit Trail state
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
+  const [syncNotice, setSyncNotice] = useState<string>('');
+
   // Summary State of last successful search
   const [lastQuerySummary, setLastQuerySummary] = useState<{
     productDisplayName: string;
@@ -402,6 +407,51 @@ export default function Audit({
     handleSearch(1, targetProdId, targetBOId, '2026-10-03', '2026-10-13', 'ALL', '');
   };
 
+  // Synchronize Audit Trail on-demand from Oracle Fusion
+  const handleSyncAudit = async () => {
+    setIsSyncing(true);
+    setSyncNotice('');
+    setError('');
+    try {
+      const prod = products.find(p => p.id === selectedProductId);
+      const selectedBO = prod?.businessObjects.find(b => b.id === selectedBOId);
+
+      const res = await api.syncAuditTrail({
+        product: prod?.productName || prod?.displayName || selectedProductId,
+        businessObjectType: selectedBO?.displayName || selectedBOId || undefined,
+        fromDate,
+        toDate
+      });
+
+      if (res?.success) {
+        setLastSyncedTime(new Date().toLocaleTimeString());
+        setSyncNotice(res.message || 'Audit trail successfully synchronized with Oracle Fusion.');
+        if (res.logs && Array.isArray(res.logs) && res.logs.length > 0) {
+          setHasSearched(true);
+          setLogs(res.logs);
+          setTotalRecords(res.totalRecords || res.logs.length);
+          setDataSource(res.dataSource || 'Live Oracle Fusion API');
+          setLastQuerySummary({
+            productDisplayName: prod?.displayName || 'Oracle Fusion',
+            businessObjectDisplayName: selectedBO?.displayName || 'Standard Object',
+            fromDate: res.dateRange?.fromDate || fromDate,
+            toDate: res.dateRange?.toDate || toDate,
+            count: res.totalRecords || res.logs.length
+          });
+        } else {
+          await handleSearch(1);
+        }
+      } else {
+        setError(res?.message || 'Sync completed with warnings.');
+      }
+    } catch (err: any) {
+      console.error('Audit sync error:', err);
+      setError(err?.message || 'Failed to sync audit trail from Oracle Fusion.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Toggle Row Expansion
   const toggleRowExpansion = (id: string) => {
     setExpandedRowIds(prev => {
@@ -467,7 +517,7 @@ export default function Audit({
             View and investigate audit history from Oracle Fusion applications.
           </p>
         </div>
-        <div style={{ position: 'relative', zIndex: 2 }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           <div style={{
             padding: '0.45rem 1rem',
             fontSize: '0.8rem',
@@ -484,8 +534,44 @@ export default function Audit({
             <FileClock size={15} />
             <span>{hasSearched ? `${totalRecords} Records Found` : 'Oracle Fusion Connected'}</span>
           </div>
+
+          <button
+            id="btn-sync-audit-trail"
+            onClick={handleSyncAudit}
+            disabled={isSyncing}
+            className="btn btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              fontSize: '0.82rem',
+              padding: '0.45rem 1rem',
+              borderRadius: '8px',
+              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              backgroundColor: '#1d4ed8',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
+              color: '#ffffff',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Fetch latest audit records live from Oracle Fusion"
+          >
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Audit Trail'}</span>
+          </button>
         </div>
       </div>
+
+      {/* Sync Success Notice */}
+      {syncNotice && (
+        <div className="glass-panel animate-fade-in" style={{ padding: '0.85rem 1.25rem', borderLeft: '4px solid #10b981', marginBottom: '1.25rem', background: 'rgba(16, 185, 129, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <RefreshCw size={16} style={{ color: '#10b981', flexShrink: 0 }} />
+            <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', fontWeight: 500 }}>{syncNotice}</div>
+          </div>
+        </div>
+      )}
 
       {/* Error Alert */}
       {error && (
@@ -530,9 +616,16 @@ export default function Audit({
 
       {/* 2. Filter / Search Area */}
       <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '1.5rem', borderRadius: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.9rem' }}>
-          <Filter size={16} style={{ color: 'var(--accent-blue)' }} />
-          <span>Audit Filters &amp; Scope</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.9rem' }}>
+            <Filter size={16} style={{ color: 'var(--accent-blue)' }} />
+            <span>Audit Filters &amp; Scope</span>
+          </div>
+          {lastSyncedTime && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              Audit synced: <strong style={{ color: 'var(--accent-blue)' }}>{lastSyncedTime}</strong>
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
