@@ -11,6 +11,19 @@ import { rolePrivilegeCatalogService } from './rolePrivilegeCatalogService.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CACHE_FILE_PATH = path.join(__dirname, '../../oracle_role_hierarchy_cache.json');
+function getSeedFilePath(): string {
+  const candidates = [
+    path.join(__dirname, '../config/role_hierarchy_seed.json'),
+    path.resolve(__dirname, '../../src/config/role_hierarchy_seed.json'),
+    path.resolve(process.cwd(), 'src/config/role_hierarchy_seed.json'),
+    path.resolve(process.cwd(), 'backend/src/config/role_hierarchy_seed.json'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+const SEED_FILE_PATH = getSeedFilePath();
 
 export interface RoleHierarchyItem {
   id: number | string;
@@ -72,14 +85,27 @@ export class RoleHierarchyService {
       if (fs.existsSync(CACHE_FILE_PATH)) {
         const raw = fs.readFileSync(CACHE_FILE_PATH, 'utf8');
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.items)) {
+        if (Array.isArray(parsed.items) && parsed.items.length > 0) {
           this.memoryCache = parsed.items;
           this.lastSyncedAt = parsed.lastSyncedAt || null;
           console.log(`[RoleHierarchyService] Loaded ${this.memoryCache?.length || 0} cached hierarchy relationships from disk.`);
+          return;
+        }
+      }
+
+      // Fallback: load bundled bootstrap seed (for new checkouts / teammates)
+      if (fs.existsSync(SEED_FILE_PATH)) {
+        const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
+        const parsedSeed = JSON.parse(rawSeed);
+        if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
+          this.memoryCache = parsedSeed.items;
+          this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
+          console.log(`[RoleHierarchyService] Loaded ${this.memoryCache?.length || 0} hierarchy relationships from bundled bootstrap seed.`);
+          this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
         }
       }
     } catch (err) {
-      console.warn('[RoleHierarchyService] Failed to load disk cache:', (err as Error).message);
+      console.warn('[RoleHierarchyService] Failed to load disk cache or seed:', (err as Error).message);
     }
   }
 
@@ -398,15 +424,37 @@ export class RoleHierarchyService {
     totalCount: number;
     lastSyncedAt: string | null;
   }> {
-    if (options?.forceRefresh || (!this.memoryCache && !(await this.hasDbRecords()))) {
+    if (options?.forceRefresh) {
       try {
         await this.syncFromBip();
       } catch (err) {
         console.warn('[RoleHierarchyService] Live sync failed on demand, using cached records if available:', (err as Error).message);
       }
+    } else if (!this.memoryCache || this.memoryCache.length === 0) {
+      const hasDb = await this.hasDbRecords();
+      if (!hasDb) {
+        // Fallback to seed file before attempting live BIP sync if credentials might not exist
+        if (fs.existsSync(SEED_FILE_PATH)) {
+          try {
+            const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
+            const parsedSeed = JSON.parse(rawSeed);
+            if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
+              this.memoryCache = parsedSeed.items;
+              this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
+              this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
+            }
+          } catch (_) {}
+        } else {
+          try {
+            await this.syncFromBip();
+          } catch (err) {
+            console.warn('[RoleHierarchyService] Live sync failed on demand, using cached records if available:', (err as Error).message);
+          }
+        }
+      }
     }
 
-    // Try loading from DB if memory is empty
+    // Try loading from DB if memory is still empty
     if (!this.memoryCache || this.memoryCache.length === 0) {
       const host = this.getHost();
       try {
@@ -438,6 +486,21 @@ export class RoleHierarchyService {
         }
       } catch (err) {
         console.warn('[RoleHierarchyService] DB load error:', (err as Error).message);
+      }
+    }
+
+    // Still empty? Fallback directly to seed
+    if (!this.memoryCache || this.memoryCache.length === 0) {
+      if (fs.existsSync(SEED_FILE_PATH)) {
+        try {
+          const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
+          const parsedSeed = JSON.parse(rawSeed);
+          if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
+            this.memoryCache = parsedSeed.items;
+            this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
+            this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
+          }
+        } catch (_) {}
       }
     }
 
@@ -573,6 +636,71 @@ export class RoleHierarchyService {
       return (res.rowCount || 0) > 0;
     } catch {
       return false;
+    }
+  }
+
+  public async seedDatabaseIfEmpty(items: RoleHierarchyItem[]): Promise<void> {
+    try {
+      const hasRecords = await this.hasDbRecords();
+      if (hasRecords || !items || items.length === 0) return;
+
+      const host = this.getHost();
+      console.log(`[RoleHierarchyService] Database table oracle_raw_role_hierarchy is empty. Auto-seeding ${items.length} records...`);
+
+      // Ensure table exists
+      await query(`
+        CREATE TABLE IF NOT EXISTS oracle_raw_role_hierarchy (
+          id SERIAL PRIMARY KEY,
+          environment_host VARCHAR(255) NOT NULL,
+          parent_role_name VARCHAR(500) NOT NULL,
+          parent_role_type VARCHAR(100),
+          child_role_name VARCHAR(500) NOT NULL,
+          child_role_type VARCHAR(100),
+          role_code VARCHAR(255),
+          category VARCHAR(100),
+          relationship_type VARCHAR(255),
+          raw_record JSONB,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          CONSTRAINT uq_raw_hierarchy_env_parent_child UNIQUE (environment_host, parent_role_name, child_role_name)
+        );
+      `);
+
+      const batchSize = 100;
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const valueClauses: string[] = [];
+        const values: any[] = [];
+        let pIndex = 1;
+
+        for (const item of batch) {
+          valueClauses.push(
+            `($${pIndex}, $${pIndex + 1}, $${pIndex + 2}, $${pIndex + 3}, $${pIndex + 4}, $${pIndex + 5}, $${pIndex + 6}, $${pIndex + 7})`
+          );
+          values.push(
+            host,
+            item.parentRole,
+            item.parentRoleType,
+            item.childRole,
+            item.childRoleType,
+            item.roleCode,
+            item.category,
+            JSON.stringify(item)
+          );
+          pIndex += 8;
+        }
+
+        const sql = `
+          INSERT INTO oracle_raw_role_hierarchy 
+            (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, raw_record)
+          VALUES ${valueClauses.join(', ')}
+          ON CONFLICT (environment_host, parent_role_name, child_role_name) DO NOTHING;
+        `;
+        await query(sql, values);
+      }
+      console.log(`[RoleHierarchyService] Successfully auto-seeded ${items.length} records into oracle_raw_role_hierarchy.`);
+    } catch (err) {
+      console.warn('[RoleHierarchyService] Auto-seed DB failed (continuing with in-memory seed):', (err as Error).message);
     }
   }
 }
