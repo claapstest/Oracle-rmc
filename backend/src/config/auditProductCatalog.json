@@ -3150,11 +3150,48 @@
     ],
     "instanceProductName": "RMC",
     "restProduct": "RMC",
-    "productId": null,
+    "productId": "ACB976486A76EF21E0401490D3C5320F",
     "mappingStatus": "CONFIRMED",
-    "requiresBusinessObjectType": false,
-    "businessObjects": [],
-    "defaultPayloadTemplate": null
+    "requiresBusinessObjectType": true,
+    "businessObjects": [
+      {
+        "id": "advanced_controls",
+        "displayName": "Advanced Controls",
+        "isSupported": true,
+        "status": "SUPPORTED",
+        "restBusinessObjectType": "oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO",
+        "restValue": "oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO",
+        "payloadTemplate": {
+          "productId": "ACB976486A76EF21E0401490D3C5320F",
+          "businessObjectType": "oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO",
+          "eventType": "ALL",
+          "timeZone": "UTC",
+          "includeChildObjects": "true",
+          "includeImpersonator": "false",
+          "includeExtendedObjectIdentiferColumns": "true",
+          "includeAttributes": "true",
+          "attributeDetailMode": "true"
+        },
+        "aliases": [
+          "Advanced Controls",
+          "advanced_controls",
+          "Advanced Control",
+          "AuditAdvancedControlVO",
+          "oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO"
+        ]
+      }
+    ],
+    "defaultPayloadTemplate": {
+      "productId": "ACB976486A76EF21E0401490D3C5320F",
+      "businessObjectType": "oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO",
+      "eventType": "ALL",
+      "timeZone": "UTC",
+      "includeChildObjects": "true",
+      "includeImpersonator": "false",
+      "includeExtendedObjectIdentiferColumns": "true",
+      "includeAttributes": "true",
+      "attributeDetailMode": "true"
+    }
   },
   {
     "sno": 59,

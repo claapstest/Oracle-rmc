@@ -501,6 +501,23 @@ const updates = [
         isSupported: true
       }
     ]
+  },
+
+  // 18. Risks and Controls (RACM / RMC)
+  {
+    targetId: 'risks_and_controls',
+    productId: 'ACB976486A76EF21E0401490D3C5320F',
+    instanceProductName: 'RMC',
+    restProduct: 'RMC',
+    requiresBusinessObjectType: true,
+    businessObjects: [
+      {
+        displayName: 'Advanced Controls',
+        productId: 'ACB976486A76EF21E0401490D3C5320F',
+        businessObjectType: 'oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO',
+        isSupported: true
+      }
+    ]
   }
 ];
 
@@ -518,6 +535,7 @@ updates.forEach(u => {
   if (u.productId !== undefined && u.productId !== null) prod.productId = u.productId;
   if (u.instanceProductName) prod.instanceProductName = u.instanceProductName;
   if (u.restProduct) prod.restProduct = u.restProduct;
+  if (u.requiresBusinessObjectType !== undefined) prod.requiresBusinessObjectType = u.requiresBusinessObjectType;
 
   if (!prod.businessObjects) prod.businessObjects = [];
 

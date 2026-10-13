@@ -87,6 +87,13 @@ async function runAuditTestSuite() {
   assert(polRes.businessObject?.payloadTemplate?.product === 'ORA_FND_AUDIT_POLICY', 'Audit Policies uses product: "ORA_FND_AUDIT_POLICY"');
   assert(polRes.businessObject?.payloadTemplate?.businessObjectType === 'ORA_FND_FA_BO', 'Audit Policies uses businessObjectType: "ORA_FND_FA_BO"');
 
+  // TEST 8b: Risks and Controls (RACM) - Advanced Controls
+  const racmRes = auditProductCatalogService.resolveAuditRequest('Risks and Controls', 'Advanced Controls');
+  assert(racmRes.status === 'CONFIRMED', 'Risks and Controls Advanced Controls resolves');
+  assert(racmRes.businessObject?.displayName === 'Advanced Controls', 'RACM businessObject is "Advanced Controls"');
+  assert(racmRes.businessObject?.payloadTemplate?.productId === 'ACB976486A76EF21E0401490D3C5320F', 'RACM payloadTemplate contains productId');
+  assert(racmRes.businessObject?.payloadTemplate?.businessObjectType === 'oracle.apps.gtg.ac.uiModel.control.protectedModel.view.AuditAdvancedControlVO', 'RACM uses AuditAdvancedControlVO');
+
   // TEST 9: oracleService.getAuditHistory handles NOT_CONFIGURED gracefully
   const notConfiguredResult = await oracleService.getAuditHistory({
     product: 'Applications Common Components',

@@ -1142,6 +1142,7 @@ export default function Assistant({
                   columns={[
                     { key: 'name', label: 'Privilege Name' },
                     { key: 'code', label: 'Code' },
+                    { key: 'description', label: 'Description' },
                     { key: 'inheritedFrom', label: 'Inherited From' }
                   ]}
                 />
@@ -1151,6 +1152,7 @@ export default function Assistant({
                   <tr>
                     <th>Privilege Name</th>
                     <th>Code</th>
+                    <th>Description</th>
                     <th>Inherited From</th>
                   </tr>
                 </thead>
@@ -1159,12 +1161,15 @@ export default function Assistant({
                     <tr key={idx}>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
                       <td><code>{p.code}</code></td>
+                      <td style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '280px' }}>
+                        {p.description || '—'}
+                      </td>
                       <td style={{ color: 'var(--text-secondary)' }}>{p.inheritedFrom}</td>
                     </tr>
                   ))}
                   {data.privileges.length > 15 && (
                     <tr>
-                      <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                         Showing first 15 of {data.privileges.length} privileges.
                       </td>
                     </tr>

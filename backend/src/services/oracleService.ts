@@ -2567,7 +2567,20 @@ class OracleService {
       console.log(`  - Oracle Briefing API: ${tBriefing}ms`);
       console.log(`  - Parsing & Normalization: ${tParse}ms`);
       console.log(`  - Privileges Extracted: ${privilegesList.length}`);
-      console.log(`  - Total Server Time: ${tTotal}ms`);
+      // Enrich privileges with descriptions from roleHierarchyService if available
+      try {
+        const tree = await roleHierarchyService.getRoleHierarchyTree(displayName || roleName);
+        if (tree?.privileges && tree.privileges.length > 0) {
+          const descMap = new Map<string, string>();
+          tree.privileges.forEach((p: any) => {
+            if (p.code && p.description) descMap.set(p.code.toUpperCase(), p.description);
+          });
+          privilegesList = privilegesList.map(p => ({
+            ...p,
+            description: p.description || descMap.get(String(p.code || '').toUpperCase()) || ''
+          }));
+        }
+      } catch (_) {}
 
       const responsePayload = {
         success: true,
@@ -2615,10 +2628,24 @@ class OracleService {
         status = 'FORBIDDEN';
       }
 
+      // Check role hierarchy tree for live privileges and descriptions as primary fallback
+      let fallbackPrivs: any[] = [];
+      try {
+        const tree = await roleHierarchyService.getRoleHierarchyTree(displayName || roleName);
+        if (tree?.privileges && tree.privileges.length > 0) {
+          fallbackPrivs = tree.privileges.map((p: any) => ({
+            name: p.name || p.code,
+            code: p.code,
+            description: p.description || '',
+            inheritedFrom: displayName || roleName
+          }));
+        }
+      } catch (_) {}
+
       // Return a graceful payload with core role information so the workspace never breaks
       return {
         success: true,
-        dataSource: 'Oracle Fusion Security Catalog',
+        dataSource: fallbackPrivs.length > 0 ? 'Live Oracle Fusion Hierarchy (BIP)' : 'Oracle Fusion Security Catalog',
         roleName: displayName || roleName,
         roleCode: roleCode || roleName,
         role: {
@@ -2626,18 +2653,20 @@ class OracleService {
           code: roleCode || roleName,
           category
         },
-        privileges: [],
+        privileges: fallbackPrivs,
         inheritedPrivileges: [],
         entitlements: [],
         summary: {
-          totalPrivileges: 0,
-          directPrivileges: 0,
+          totalPrivileges: fallbackPrivs.length,
+          directPrivileges: fallbackPrivs.length,
           inheritedPrivileges: 0
         },
         briefingRaw: null,
-        briefingUnavailable: true,
+        briefingUnavailable: fallbackPrivs.length === 0,
         status,
-        message: localizedMessage
+        message: fallbackPrivs.length > 0
+          ? `Security catalog loaded ${fallbackPrivs.length} privileges from Oracle Fusion hierarchy.`
+          : localizedMessage
       };
     }
   }
