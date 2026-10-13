@@ -606,81 +606,68 @@ export class RoleHierarchyService {
       }
     });
 
-    // 3. Child Inherited Hierarchy Tree:
-    // In Oracle BIP hierarchy report:
-    // A Job Role is granted Duty roles (item.parentRole = Duty Role, item.childRole = Job Role)
-    // AND a parent role can grant sub-roles (item.parentRole = Parent, item.childRole = Child)
-    const visited = new Set<string>();
-    visited.add(canonicalLower);
+    // 3. Direct Child Inherited Roles:
+    // Show only direct child roles (direct duty inheritances) belonging to this role.
+    const directChildren: RoleHierarchyTreeNode[] = [];
+    const childNames = new Set<string>();
 
-    const buildChildren = (currentName: string, depth = 1): RoleHierarchyTreeNode[] => {
-      if (depth > 4) return [];
-      const cLower = currentName.toLowerCase();
-      const directChildren: RoleHierarchyTreeNode[] = [];
-      const childNames = new Set<string>();
+    items.forEach(item => {
+      // Condition 1: item.parentRole is canonicalName -> item.childRole is a direct child role
+      if (item.parentRole.toLowerCase() === canonicalLower) {
+        const cName = item.childRole;
+        const cKey = cName.toLowerCase();
+        if (cKey !== canonicalLower && !childNames.has(cKey)) {
+          childNames.add(cKey);
 
-      items.forEach(item => {
-        // Condition 1: item.parentRole is currentName -> item.childRole is child
-        if (item.parentRole.toLowerCase() === cLower) {
-          const cName = item.childRole;
-          const cKey = cName.toLowerCase();
-          if (!visited.has(cKey) && !childNames.has(cKey)) {
-            visited.add(cKey);
-            childNames.add(cKey);
-
-            let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
-              ? item.privileges
-              : [];
-            if (privs.length === 0) {
-              const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(cName);
-              privs = (privResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
-            }
-
-            directChildren.push({
-              name: cName,
-              code: item.roleCode || `ORA_${cName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`,
-              type: item.childRoleType || 'DUTY',
-              category: item.category || 'Duty',
-              relationship: item.relationshipType || `${item.parentRoleType} grants ${item.childRoleType}`,
-              privileges: privs,
-              children: buildChildren(cName, depth + 1)
-            });
+          let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
+            ? item.privileges
+            : [];
+          if (privs.length === 0) {
+            const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(cName);
+            privs = (privResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
           }
+
+          directChildren.push({
+            name: cName,
+            code: item.roleCode || `ORA_${cName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`,
+            type: item.childRoleType || 'DUTY',
+            category: item.category || 'Duty',
+            relationship: item.relationshipType || `${item.parentRoleType} grants ${item.childRoleType}`,
+            privileges: privs,
+            children: [] // Direct child roles only
+          });
         }
-        // Condition 2: item.childRole is currentName and item.parentRole is DUTY
-        // (In Oracle BIP, a Job Role inherits its Duty roles via item.parentRole)
-        else if (item.childRole.toLowerCase() === cLower && (depth === 1 || item.parentRoleType === 'DUTY')) {
-          const dName = item.parentRole;
-          const dKey = dName.toLowerCase();
-          if (!visited.has(dKey) && !childNames.has(dKey)) {
-            visited.add(dKey);
-            childNames.add(dKey);
+      }
+      // Condition 2: item.childRole is canonicalName and item.parentRole is DUTY
+      // (In Oracle BIP, a Job Role inherits its direct Duty roles via item.parentRole)
+      else if (item.childRole.toLowerCase() === canonicalLower && item.parentRoleType === 'DUTY') {
+        const dName = item.parentRole;
+        const dKey = dName.toLowerCase();
+        if (dKey !== canonicalLower && !childNames.has(dKey)) {
+          childNames.add(dKey);
 
-            let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
-              ? item.privileges
-              : [];
-            if (privs.length === 0) {
-              const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(dName);
-              privs = (privResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
-            }
-
-            directChildren.push({
-              name: dName,
-              code: `ORA_${dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`,
-              type: item.parentRoleType || 'DUTY',
-              category: 'Duty',
-              relationship: item.relationshipType || `${item.parentRoleType} granted to ${item.childRoleType}`,
-              privileges: privs,
-              children: buildChildren(dName, depth + 1)
-            });
+          let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
+            ? item.privileges
+            : [];
+          if (privs.length === 0) {
+            const privResult = rolePrivilegeCatalogService.getPrivilegesByRole(dName);
+            privs = (privResult?.privileges || []).map(p => typeof p === 'string' ? { code: p, name: p } : { code: (p as any).code || '', name: (p as any).name || '' });
           }
+
+          directChildren.push({
+            name: dName,
+            code: `ORA_${dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`,
+            type: item.parentRoleType || 'DUTY',
+            category: 'Duty',
+            relationship: item.relationshipType || `${item.parentRoleType} granted to ${item.childRoleType}`,
+            privileges: privs,
+            children: [] // Direct child roles only
+          });
         }
-      });
+      }
+    });
 
-      return directChildren;
-    };
-
-    const childrenTree = buildChildren(canonicalName, 1);
+    const childrenTree = directChildren;
     const category = directMatch?.category || (directMatch?.childRoleType === 'JOB' ? 'Job' : (parents.length > 0 ? 'Duty' : 'Job'));
 
     return {
