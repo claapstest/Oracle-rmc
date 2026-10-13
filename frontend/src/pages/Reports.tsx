@@ -189,7 +189,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   const [incidentsLoading, setIncidentsLoading] = useState<boolean>(false);
   const [incidentsError, setIncidentsError] = useState<string>('');
   const [incidentsSearch, setIncidentsSearch] = useState<string>('');
-  const [selectedIncidentsControlId, setSelectedIncidentsControlId] = useState<string>('114281');
+  const [selectedIncidentsControlId, setSelectedIncidentsControlId] = useState<string>('ALL');
   const [availableIncidentControls, setAvailableIncidentControls] = useState<any[]>([]);
   const [incidentsStatusFilter, setIncidentsStatusFilter] = useState<string>('ALL');
   const [incidentsStateFilter, setIncidentsStateFilter] = useState<string>('ALL');
@@ -202,6 +202,8 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   }>({ cacheStatus: 'NOT_CACHED' });
   const [incidentsKpis, setIncidentsKpis] = useState<{
     total?: number;
+    assigned?: number;
+    inRemediation?: number;
     openOrActive?: number;
     accepted?: number;
     closedOrResolved?: number;
@@ -423,6 +425,11 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       const res = await api.getRiskIncidents({ controlId, refresh: forceRefresh });
       if (res && res.success) {
         setIncidentsData(res.items || []);
+        // Backend resolves ALL / unknown IDs to the top live control:
+        // keep the dropdown in sync with what is actually displayed.
+        if (res.selectedControlId && res.selectedControlId !== 'ALL' && res.selectedControlId !== controlId) {
+          setSelectedIncidentsControlId(res.selectedControlId);
+        }
         if (Array.isArray(res.availableControls)) {
           setAvailableIncidentControls(res.availableControls);
         }
@@ -2045,42 +2052,56 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                 </div>
               </div>
 
-              {/* KPI 2: Open / Active Incidents */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-red)' }}>
+              {/* KPI 2: Assigned Incidents */}
+              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <ShieldAlert size={16} style={{ color: 'var(--accent-red)' }} />
-                  Open / Active Incidents
+                  <ShieldAlert size={16} style={{ color: 'var(--accent-blue)' }} />
+                  Assigned
                 </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.openOrActive || 0) > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
-                  {incidentsKpis.openOrActive !== undefined ? incidentsKpis.openOrActive.toLocaleString() : (incidentsLoading ? 'Calculating...' : 'Not available')}
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.assigned || 0) > 0 ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                  {incidentsKpis.assigned !== undefined ? incidentsKpis.assigned.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  In investigation & assigned
+                  Awaiting investigation
                 </div>
               </div>
 
-              {/* KPI 3: Accepted */}
+              {/* KPI 3: In Remediation Incidents */}
+              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-red)' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <ShieldAlert size={16} style={{ color: 'var(--accent-red)' }} />
+                  In Remediation
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.inRemediation || 0) > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
+                  {incidentsKpis.inRemediation !== undefined ? incidentsKpis.inRemediation.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Actively being remediated
+                </div>
+              </div>
+
+              {/* KPI 4: Accepted */}
               <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #F59E0B' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <CheckCircle2 size={16} style={{ color: '#F59E0B' }} />
                   Accepted Exceptions
                 </div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {incidentsKpis.accepted !== undefined ? incidentsKpis.accepted.toLocaleString() : '0'}
+                  {incidentsKpis.accepted !== undefined ? incidentsKpis.accepted.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   Policy exception accepted
                 </div>
               </div>
 
-              {/* KPI 4: Closed / Resolved */}
+              {/* KPI 5: Closed / Resolved */}
               <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-green)' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <ShieldCheck size={16} style={{ color: 'var(--accent-green)' }} />
                   Closed / Resolved
                 </div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {incidentsKpis.closedOrResolved !== undefined ? incidentsKpis.closedOrResolved.toLocaleString() : '0'}
+                  {incidentsKpis.closedOrResolved !== undefined ? incidentsKpis.closedOrResolved.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   Remediated compliance records
@@ -2138,16 +2159,9 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                       #{c.id} - {c.name ? c.name.substring(0, 32) : 'Control'}{c.incidentCount !== undefined ? ` (${c.incidentCount.toLocaleString()})` : ''}
                     </option>
                   ))}
-                  {/* Fallback if available controls list not yet populated */}
+                  {/* Placeholder while the live control list loads */}
                   {availableIncidentControls.length === 0 && (
-                    <>
-                      <option value="114281">#114281 - Manage HSDL Templates (2,552)</option>
-                      <option value="114285">#114285 - Sensitive Time & Labor (3,121)</option>
-                      <option value="114305">#114305 - Approve Payables Invoices (35,118)</option>
-                      <option value="114313">#114313 - Payables & Payments (19,700)</option>
-                      <option value="114269">#114269 - Position & Time Labor (72,701)</option>
-                      <option value="113308">#113308 - Contract Purchase (0 incidents)</option>
-                    </>
+                    <option value="ALL" disabled>Loading live controls…</option>
                   )}
                 </select>
               </div>

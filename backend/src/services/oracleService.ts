@@ -2642,6 +2642,50 @@ class OracleService {
     }
   }
 
+  /**
+   * Splits incidents into Assigned / In Remediation / Accepted / Closed-or-Resolved.
+   * Mapping mirrors ControlSummaryService: closed signals win, then accepted,
+   * then explicit remediation states; every other open record counts as assigned.
+   */
+  private categorizeRiskIncidents(incidents: any[]): {
+    assigned: number;
+    inRemediation: number;
+    accepted: number;
+    closedOrResolved: number;
+    openOrActive: number;
+    total: number;
+  } {
+    let assigned = 0;
+    let inRemediation = 0;
+    let accepted = 0;
+    let closedOrResolved = 0;
+
+    for (const inc of incidents || []) {
+      const status = String(inc.status ?? '').toUpperCase();
+      const state = String(inc.state ?? '').toUpperCase();
+      const isClosed = inc.closedDate !== null && inc.closedDate !== undefined;
+
+      if (status === 'CLOSED' || status === 'RESOLVED' || state === 'CLOSED' || isClosed) {
+        closedOrResolved++;
+      } else if (state === 'ACCEPTED' || status === 'ACCEPTED') {
+        accepted++;
+      } else if (status === 'IN_REMEDIATION' || status === 'REMEDIATION' || state === 'IN_REMEDIATION' || state === 'REMEDIATION') {
+        inRemediation++;
+      } else {
+        assigned++;
+      }
+    }
+
+    return {
+      assigned,
+      inRemediation,
+      accepted,
+      closedOrResolved,
+      openOrActive: assigned + inRemediation,
+      total: (incidents || []).length
+    };
+  }
+
   async getRiskIncidents(options?: { controlId?: string; forceRefresh?: boolean; limit?: number; offset?: number }): Promise<any> {
     const isDemo = this.isDemoMode();
     const catalogRes = await this.controlCatalogService.getAllControls(options?.forceRefresh);
@@ -2659,6 +2703,7 @@ class OracleService {
       const selectedId = options?.controlId || '114281';
       const detail = await this.controlCatalogService.getControlDetail(selectedId, { forceRefresh: options?.forceRefresh });
       const items = detail.incidents || [];
+      const demoCats = this.categorizeRiskIncidents(items);
       return {
         success: true,
         dataSource: 'Sample Data',
@@ -2671,9 +2716,11 @@ class OracleService {
         availableControls,
         kpis: {
           total: detail.incidentCount || items.length,
-          openOrActive: items.filter(i => (i.status || '').toUpperCase() === 'ASSIGNED' || (i.state || '').toUpperCase() === 'IN_INVESTIGATION').length,
-          accepted: items.filter(i => (i.state || '').toUpperCase() === 'ACCEPTED').length,
-          closedOrResolved: items.filter(i => (i.status || '').toUpperCase() === 'CLOSED' || (i.status || '').toUpperCase() === 'RESOLVED' || i.closedDate !== null).length,
+          assigned: demoCats.assigned,
+          inRemediation: demoCats.inRemediation,
+          openOrActive: demoCats.openOrActive,
+          accepted: demoCats.accepted,
+          closedOrResolved: demoCats.closedOrResolved,
           status: 'READY'
         }
       };
@@ -2682,6 +2729,14 @@ class OracleService {
     // Live Oracle Mode
     const incidentCacheService = this.controlCatalogService.getIncidentCacheService();
     let targetControlId = options?.controlId;
+
+    // Resolve a real live default: top control by incident count.
+    // (The legacy '114281' default only exists in demo sample data.)
+    const controlsByIncidents = [...availableControls].sort(
+      (a, b) => (b.incidentCount || 0) - (a.incidentCount || 0)
+    );
+    const topLiveControlId = controlsByIncidents.find(c => (c.incidentCount || 0) > 0)?.id
+      || controlsByIncidents[0]?.id;
 
     if (!targetControlId || targetControlId === 'ALL') {
       // Find controls that currently have cached incident files
@@ -2701,9 +2756,7 @@ class OracleService {
           }
         });
 
-        const openOrActive = allItems.filter(i => (i.status || '').toUpperCase() === 'ASSIGNED' || (i.state || '').toUpperCase() === 'IN_INVESTIGATION').length;
-        const accepted = allItems.filter(i => (i.state || '').toUpperCase() === 'ACCEPTED').length;
-        const closedOrResolved = allItems.filter(i => (i.status || '').toUpperCase() === 'CLOSED' || (i.status || '').toUpperCase() === 'RESOLVED' || i.closedDate !== null).length;
+        const cats = this.categorizeRiskIncidents(allItems);
 
         return {
           success: true,
@@ -2718,60 +2771,149 @@ class OracleService {
           availableControls,
           kpis: {
             total: totalCount,
-            openOrActive,
-            accepted,
-            closedOrResolved,
+            assigned: cats.assigned,
+            inRemediation: cats.inRemediation,
+            openOrActive: cats.openOrActive,
+            accepted: cats.accepted,
+            closedOrResolved: cats.closedOrResolved,
             status: 'READY'
           }
         };
       } else {
-        // Default to primary control with incidents: 114281
-        targetControlId = '114281';
+        // No full caches yet: fall through to the top live control with
+        // incidents so the page fetches from the instance instead of a
+        // demo-only control ID.
+        targetControlId = topLiveControlId;
       }
+    } else if (!availableControls.some(c => c.id === targetControlId)) {
+      // Unknown control in this live instance (e.g. stale demo default):
+      // resolve to the top live control with incidents.
+      targetControlId = topLiveControlId;
+    }
+
+    if (!targetControlId) {
+      return {
+        success: true,
+        dataSource: 'Live Oracle Fusion API',
+        selectedControlId: null,
+        selectedControl: null,
+        items: [],
+        totalCount: 0,
+        cacheStatus: 'READY',
+        fetchedCount: 0,
+        lastSyncedAt: new Date().toISOString(),
+        availableControls,
+        kpis: {
+          total: 0,
+          assigned: 0,
+          inRemediation: 0,
+          openOrActive: 0,
+          accepted: 0,
+          closedOrResolved: 0,
+          status: 'READY'
+        },
+        message: 'No controls were returned by the Oracle Fusion instance.'
+      };
     }
 
     // Query specific target control
     const detail = await this.controlCatalogService.getControlDetail(targetControlId, { forceRefresh: options?.forceRefresh });
+    if (!detail.control) {
+      return {
+        success: false,
+        dataSource: 'Live Oracle Fusion API',
+        selectedControlId: targetControlId,
+        selectedControl: null,
+        items: [],
+        totalCount: 0,
+        cacheStatus: 'ERROR',
+        fetchedCount: 0,
+        lastSyncedAt: new Date().toISOString(),
+        availableControls,
+        kpis: {
+          total: 0,
+          assigned: 0,
+          inRemediation: 0,
+          openOrActive: 0,
+          accepted: 0,
+          closedOrResolved: 0,
+          status: 'NOT_AVAILABLE'
+        },
+        message: detail.message || `Control "${targetControlId}" was not found in Oracle Fusion.`
+      };
+    }
+
     const items = detail.incidents || [];
     const totalCount = detail.incidentCount !== undefined ? detail.incidentCount : (detail.totalCount || items.length);
 
-    let kpiStatus: 'READY' | 'CALCULATING' | 'PARTIAL' | 'NOT_AVAILABLE' = 'READY';
-    if (detail.cacheStatus === 'SYNCING') {
-      kpiStatus = 'CALCULATING';
-    } else if (detail.cacheStatus === 'PARTIAL') {
-      kpiStatus = 'PARTIAL';
-    } else if (detail.cacheStatus === 'ERROR') {
-      kpiStatus = 'NOT_AVAILABLE';
+    // 1. Full disk cache HIT: exact 4-way breakdown across every incident.
+    const fullCache = incidentCacheService.readCache(targetControlId);
+    if (fullCache && fullCache.complete) {
+      const cats = this.categorizeRiskIncidents(fullCache.incidents);
+      return {
+        success: true,
+        dataSource: 'Live Oracle Fusion API',
+        selectedControlId: targetControlId,
+        selectedControl: detail.control,
+        items: fullCache.incidents,
+        totalCount: fullCache.totalResults,
+        cacheStatus: 'READY',
+        fetchedCount: fullCache.incidents.length,
+        lastSyncedAt: fullCache.fetchedAt,
+        message: detail.message,
+        availableControls,
+        kpis: {
+          total: fullCache.totalResults,
+          assigned: cats.assigned,
+          inRemediation: cats.inRemediation,
+          openOrActive: cats.openOrActive,
+          accepted: cats.accepted,
+          closedOrResolved: cats.closedOrResolved,
+          status: 'READY'
+        }
+      };
     }
 
-    const openOrActive = detail.cacheStatus === 'READY'
-      ? items.filter(i => (i.status || '').toUpperCase() === 'ASSIGNED' || (i.state || '').toUpperCase() === 'IN_INVESTIGATION').length
-      : totalCount;
-    const accepted = detail.cacheStatus === 'READY'
-      ? items.filter(i => (i.state || '').toUpperCase() === 'ACCEPTED').length
-      : 0;
-    const closedOrResolved = detail.cacheStatus === 'READY'
-      ? items.filter(i => (i.status || '').toUpperCase() === 'CLOSED' || (i.status || '').toUpperCase() === 'RESOLVED' || i.closedDate !== null).length
-      : 0;
+    // 2. Cache incomplete: start the background full-incident sync (singleton
+    // per control) and serve the first live page immediately so the table
+    // populates while counts stream in. The UI polls until READY.
+    const sync = incidentCacheService.getOrStartSync(targetControlId, {
+      forceRefresh: options?.forceRefresh,
+      controlName: detail.control?.name
+    });
+
+    let firstPageItems: any[] = [];
+    try {
+      const page = await this.controlCatalogService.getControlIncidentsPage(targetControlId, {
+        page: 1,
+        limit: 25,
+        forceRefresh: options?.forceRefresh
+      });
+      firstPageItems = page.items || [];
+    } catch (pageErr: any) {
+      console.warn(`[getRiskIncidents] First-page fetch failed for control ${targetControlId}:`, pageErr.message);
+    }
 
     return {
       success: true,
       dataSource: 'Live Oracle Fusion API',
       selectedControlId: targetControlId,
       selectedControl: detail.control,
-      items,
+      items: firstPageItems,
       totalCount,
-      cacheStatus: detail.cacheStatus,
-      fetchedCount: detail.fetchedCount || items.length,
+      cacheStatus: 'SYNCING',
+      fetchedCount: sync.fetchedCount || firstPageItems.length,
       lastSyncedAt: detail.control?.lastUpdateDate || new Date().toISOString(),
-      message: detail.message,
+      message: sync.message || `Synchronizing ${totalCount.toLocaleString()} incidents from Oracle Fusion in the background...`,
       availableControls,
       kpis: {
         total: totalCount,
-        openOrActive,
-        accepted,
-        closedOrResolved,
-        status: kpiStatus
+        assigned: undefined,
+        inRemediation: undefined,
+        openOrActive: undefined,
+        accepted: undefined,
+        closedOrResolved: undefined,
+        status: 'CALCULATING'
       }
     };
   }
