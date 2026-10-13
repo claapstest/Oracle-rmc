@@ -14,6 +14,7 @@ import { auditDashboardService } from '../services/auditDashboardService.js';
 import { supervisorDashboardDbService } from '../services/supervisorDashboardDbService.js';
 import { reportDbService } from '../services/reportDbService.js';
 import { controlRawDbService } from '../services/controlRawDbService.js';
+import * as incidentAnalyticsService from '../services/incidentAnalyticsService.js';
 import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import fs from 'fs';
@@ -2459,6 +2460,26 @@ apiRouter.get('/risk/sod', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), a
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// Incident Analytics aggregations (KARTHIK: added for the Incident Analytics
+// page — Srikar, keep/replace. Rank cached Oracle incidents in SQL.)
+apiRouter.get('/risk/incidents/top-users', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const result = await incidentAnalyticsService.topIncidentUsers(req.query.limit);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+apiRouter.get('/risk/incidents/top-roles', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const result = await incidentAnalyticsService.topIncidentRoles(req.query.limit);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 
