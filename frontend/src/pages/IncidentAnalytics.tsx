@@ -18,27 +18,54 @@ export function topNByCount(rows: any[], labelKey: string, valueKey: string, n: 
   return mapped.slice(0, Math.max(n, 0)).map((m) => ({ label: m.label, value: Math.max(m.value, 0) }));
 }
 
+function niceCeil(v: number): number {
+  if (v <= 0) return 1;
+  const exp = Math.floor(Math.log10(v));
+  const base = Math.pow(10, exp);
+  const n = v / base;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return nice * base;
+}
+
 function RankedBars({ title, subtitle, items, color }: { title: string; subtitle: string; items: RankedItem[]; color: string }) {
   const max = Math.max(...items.map((i) => i.value), 1);
+  const axisMax = niceCeil(max);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(axisMax * f));
+  const rowH = 34;
+  const labelW = 190;
+  const chartW = 460;
+  const height = items.length * rowH + 34;
+  const x = (v: number) => labelW + (v / axisMax) * chartW;
   return (
     <div className="glass-panel" style={{ padding: '1.5rem 1.6rem' }}>
       <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: '#0F172A' }}>{title}</h3>
-      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1.25rem 0' }}>{subtitle}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-        {items.map((item, idx) => (
-          <div key={`${item.label}_${idx}`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
-              <span style={{ fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }} title={item.label}>
-                {idx + 1}. {item.label}
-              </span>
-              <span style={{ fontWeight: 800, color }}>{item.value.toLocaleString()}</span>
-            </div>
-            <div style={{ height: '8px', backgroundColor: '#E2E8F0', borderRadius: '9999px', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(Math.max((item.value / max) * 100, 0), 100)}%`, height: '100%', backgroundColor: color, borderRadius: '9999px' }} />
-            </div>
-          </div>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>{subtitle}</p>
+      <svg viewBox={`0 0 ${labelW + chartW + 70} ${height}`} width="100%" role="img" aria-label={title}>
+        {ticks.map((t) => (
+          <g key={t}>
+            <line x1={x(t)} y1={0} x2={x(t)} y2={items.length * rowH} stroke="#E2E8F0" strokeWidth={1} />
+            <text x={x(t)} y={items.length * rowH + 16} textAnchor="middle" fontSize="10" fill="#94A3B8">{t >= 1000 ? `${t / 1000}K` : t}</text>
+          </g>
         ))}
-      </div>
+        {items.map((item, idx) => {
+          const y = idx * rowH;
+          const bw = Math.max((item.value / axisMax) * chartW, item.value > 0 ? 3 : 0);
+          return (
+            <g key={`${item.label}_${idx}`}>
+              <text x={labelW - 10} y={y + 15} textAnchor="end" fontSize="11" fontWeight={600} fill="#0F172A">
+                {item.label.length > 26 ? `${item.label.slice(0, 25)}…` : item.label}
+                <title>{item.label}</title>
+              </text>
+              <rect x={labelW} y={y + 2} width={bw} height={18} rx={3} fill={color} opacity={0.92}>
+                <title>{`${item.label}: ${item.value.toLocaleString()}`}</title>
+              </rect>
+              <text x={labelW + bw + 6} y={y + 16} fontSize="11" fontWeight={800} fill={color}>
+                {item.value >= 1000 ? `${(item.value / 1000).toFixed(item.value >= 10000 ? 0 : 1)}K` : item.value.toLocaleString()}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
