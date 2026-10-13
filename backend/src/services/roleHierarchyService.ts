@@ -22,7 +22,7 @@ export interface RoleHierarchyItem {
   childRole: string;
   childRoleType: string;
   relationshipType: string;
-  privileges?: Array<{ code: string; name: string }>;
+  privileges?: Array<{ code: string; name: string; description?: string }>;
   privilegeCount?: number;
 }
 
@@ -33,7 +33,7 @@ export interface RoleHierarchyTreeNode {
   category: string;
   relationship?: string;
   children?: RoleHierarchyTreeNode[];
-  privileges?: Array<{ code: string; name: string }>;
+  privileges?: Array<{ code: string; name: string; description?: string }>;
 }
 
 export interface RoleHierarchyTreeResult {
@@ -42,7 +42,7 @@ export interface RoleHierarchyTreeResult {
   category: string;
   parents: Array<{ name: string; type: string }>;
   childrenTree: RoleHierarchyTreeNode[];
-  privileges: Array<{ code: string; name: string }>;
+  privileges: Array<{ code: string; name: string; description?: string }>;
   totalDescendants: number;
 }
 
@@ -117,63 +117,142 @@ export class RoleHierarchyService {
       const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
       const soapEnvelope = this.bipClient.generateRunReportEnvelope(reportPath, 'xml', -1);
 
+      const tempSoapFile = path.join(__dirname, `../../temp_bip_soap_${Date.now()}.xml`);
+      const tempXmlFile = path.join(__dirname, `../../temp_bip_hierarchy_${Date.now()}.xml`);
+
+      console.log(`[RoleHierarchyService] Downloading live report via HTTP stream to "${tempSoapFile}"...`);
+
       const response = await axios.post(endpoint, soapEnvelope, {
         headers: {
           'Content-Type': 'application/soap+xml; charset=UTF-8',
           'Action': 'runReport',
         },
-        responseType: 'text',
-        timeout: 180000,
+        responseType: 'stream',
+        timeout: 300000,
       });
 
-      const parsedSoap: any = await xml2js.parseStringPromise(response.data, {
-        explicitArray: false,
-        ignoreAttrs: true,
-        tagNameProcessors: [xml2js.processors.stripPrefix],
+      // Stream HTTP response directly to temporary file on disk (never creates a 512MB string)
+      await new Promise<void>((resolve, reject) => {
+        const writer = fs.createWriteStream(tempSoapFile);
+        response.data.pipe(writer);
+        writer.on('finish', () => resolve());
+        writer.on('error', (err) => reject(err));
       });
 
-      const runReturn = (this.bipClient as any).findFieldRecursively(parsedSoap, 'runReportReturn');
-      const reportBytes = runReturn?.reportBytes;
+      const soapSize = fs.statSync(tempSoapFile).size;
+      console.log(`[RoleHierarchyService] Downloaded ${(soapSize / (1024 * 1024)).toFixed(2)} MB SOAP envelope. Stream-decoding base64 reportBytes...`);
 
-      if (!reportBytes) {
-        throw new Error('No reportBytes received from Oracle BI Publisher ExternalReportWSSService.');
-      }
+      // Stream decode base64 between <reportBytes> and </reportBytes> (with optional namespace prefixes like pub: or ns2:) directly to XML file
+      const soapStream = fs.createReadStream(tempSoapFile, { encoding: 'utf8', highWaterMark: 64 * 1024 });
+      const xmlWriter = fs.createWriteStream(tempXmlFile);
+      let inBytes = false;
+      let leftover = '';
 
-      const rawXml = Buffer.from(reportBytes, 'base64').toString('utf8');
-      console.log(`[RoleHierarchyService] Successfully decoded ${(rawXml.length / (1024 * 1024)).toFixed(2)} MB of raw XML data.`);
+      const startRegex = /<([a-zA-Z0-9_-]+:)?reportBytes[^>]*>/;
+      const endRegex = /<\/([a-zA-Z0-9_-]+:)?reportBytes>/;
 
-      // Stream extract <G_1> or <ROW> items with regex (avoids out-of-memory on large XML payloads)
-      const g1Regex = /<(?:G_1|ROW)>([\s\S]*?)<\/(?:G_1|ROW)>/g;
-      let match;
-      const privMap = new Map<string, Array<{ code: string; name: string }>>();
-      const seenPrivKeys = new Set<string>();
-      const rawRows: Array<{ parent: string; child: string; parentType: string; childType: string; roleCode: string }> = [];
+      for await (const chunk of soapStream) {
+        let text = leftover + chunk;
+        leftover = '';
 
-      while ((match = g1Regex.exec(rawXml)) !== null) {
-        const block = match[1];
-        const parent = block.match(/<(?:PARENT_ROLE|PARENT_ROLE_NAME)>([\s\S]*?)<\/(?:PARENT_ROLE|PARENT_ROLE_NAME)>/)?.[1]?.trim() || '';
-        const child = block.match(/<(?:CHILD_ROLE|CHILD_ROLE_NAME)>([\s\S]*?)<\/(?:CHILD_ROLE|CHILD_ROLE_NAME)>/)?.[1]?.trim() || '';
-        const parentType = block.match(/<PARENT_ROLE_TYPE>([\s\S]*?)<\/PARENT_ROLE_TYPE>/)?.[1]?.trim() || 'DUTY';
-        const childType = block.match(/<CHILD_ROLE_TYPE>([\s\S]*?)<\/CHILD_ROLE_TYPE>/)?.[1]?.trim() || 'JOB';
-        const roleCode = block.match(/<(?:CHILD_ROLE_CODE|ROLE_CODE)>([\s\S]*?)<\/(?:CHILD_ROLE_CODE|ROLE_CODE)>/)?.[1]?.trim() || '';
-        const priv = block.match(/<PRIVILEGE>([\s\S]*?)<\/PRIVILEGE>/)?.[1]?.trim() || '';
-        const privName = block.match(/<PRIVILEGE_DISPLAY_NAME>([\s\S]*?)<\/PRIVILEGE_DISPLAY_NAME>/)?.[1]?.trim() || '';
-
-        if (!parent || !child) continue;
-
-        const dedupeKey = `${parent.toLowerCase()}|||${child.toLowerCase()}`;
-        if (priv || privName) {
-          const privKey = `${dedupeKey}|||${priv.toLowerCase()}`;
-          if (!seenPrivKeys.has(privKey)) {
-            seenPrivKeys.add(privKey);
-            if (!privMap.has(dedupeKey)) {
-              privMap.set(dedupeKey, []);
-            }
-            privMap.get(dedupeKey)!.push({ code: priv, name: privName || priv });
+        if (!inBytes) {
+          const match = text.match(startRegex);
+          if (match && match.index !== undefined) {
+            inBytes = true;
+            text = text.slice(match.index + match[0].length);
+          } else {
+            leftover = text.slice(-50);
+            continue;
           }
         }
 
-        rawRows.push({ parent, child, parentType, childType, roleCode });
+        if (inBytes) {
+          const endMatch = text.match(endRegex);
+          let b64Part = '';
+          if (endMatch && endMatch.index !== undefined) {
+            b64Part = text.slice(0, endMatch.index).replace(/[\r\n\s]/g, '');
+            inBytes = false;
+          } else {
+            const stripped = text.replace(/[\r\n\s]/g, '');
+            const validLen = stripped.length - (stripped.length % 4);
+            b64Part = stripped.slice(0, validLen);
+            leftover = stripped.slice(validLen);
+          }
+          if (b64Part.length > 0) {
+            xmlWriter.write(Buffer.from(b64Part, 'base64'));
+          }
+          if (!inBytes) break;
+        }
+      }
+      await new Promise<void>((resolve) => xmlWriter.end(() => resolve()));
+
+      // Clean up SOAP file immediately
+      try {
+        if (fs.existsSync(tempSoapFile)) fs.unlinkSync(tempSoapFile);
+      } catch (_) {}
+
+      const xmlSize = fs.statSync(tempXmlFile).size;
+      console.log(`[RoleHierarchyService] Decoded ${(xmlSize / (1024 * 1024)).toFixed(2)} MB raw XML payload. Extracting hierarchy records...`);
+
+      // Stream extract <G_1> or <ROW> items in 128KB chunks
+      const privMap = new Map<string, Array<{ code: string; name: string; description?: string }>>();
+      const seenPrivKeys = new Set<string>();
+      const rawRows: Array<{ parent: string; child: string; parentType: string; childType: string; roleCode: string }> = [];
+
+      try {
+        const stream = fs.createReadStream(tempXmlFile, { encoding: 'utf8', highWaterMark: 128 * 1024 });
+        let buffer = '';
+        const rowRegex = /<(?:G_1|ROW)>([\s\S]*?)<\/(?:G_1|ROW)>/;
+
+        for await (const chunk of stream) {
+          buffer += chunk;
+          let match;
+          while ((match = rowRegex.exec(buffer)) !== null) {
+            const block = match[1];
+            buffer = buffer.slice(match.index + match[0].length);
+
+            const parent = block.match(/<(?:PARENT_ROLE|PARENT_ROLE_NAME)>([\s\S]*?)<\/(?:PARENT_ROLE|PARENT_ROLE_NAME)>/)?.[1]?.trim() || '';
+            const child = block.match(/<(?:CHILD_ROLE|CHILD_ROLE_NAME)>([\s\S]*?)<\/(?:CHILD_ROLE|CHILD_ROLE_NAME)>/)?.[1]?.trim() || '';
+            const parentType = block.match(/<PARENT_ROLE_TYPE>([\s\S]*?)<\/PARENT_ROLE_TYPE>/)?.[1]?.trim() || 'DUTY';
+            const childType = block.match(/<CHILD_ROLE_TYPE>([\s\S]*?)<\/CHILD_ROLE_TYPE>/)?.[1]?.trim() || 'JOB';
+            const roleCode = block.match(/<(?:CHILD_ROLE_CODE|ROLE_CODE)>([\s\S]*?)<\/(?:CHILD_ROLE_CODE|ROLE_CODE)>/)?.[1]?.trim() || '';
+            const priv = block.match(/<PRIVILEGE>([\s\S]*?)<\/PRIVILEGE>/)?.[1]?.trim() || '';
+            const privName = block.match(/<PRIVILEGE_DISPLAY_NAME>([\s\S]*?)<\/PRIVILEGE_DISPLAY_NAME>/)?.[1]?.trim() || '';
+            const privDesc = block.match(/<(?:PRIVILEGE_DESCRIPTION|PRIVILEGE_DESC|DESCRIPTION)>([\s\S]*?)<\/(?:PRIVILEGE_DESCRIPTION|PRIVILEGE_DESC|DESCRIPTION)>/)?.[1]?.trim() || '';
+
+            if (!parent || !child) continue;
+
+            const dedupeKey = `${parent.toLowerCase()}|||${child.toLowerCase()}`;
+            if (priv || privName) {
+              const privKey = `${dedupeKey}|||${priv.toLowerCase()}`;
+              if (!seenPrivKeys.has(privKey)) {
+                seenPrivKeys.add(privKey);
+                if (!privMap.has(dedupeKey)) {
+                  privMap.set(dedupeKey, []);
+                }
+                privMap.get(dedupeKey)!.push({
+                  code: priv,
+                  name: privName || priv,
+                  description: privDesc || undefined
+                });
+              }
+            }
+
+            rawRows.push({ parent, child, parentType, childType, roleCode });
+          }
+
+          // Keep buffer lean by dropping garbage before next open tag
+          const nextOpen = buffer.search(/<(?:G_1|ROW)>/);
+          if (nextOpen > 0) {
+            buffer = buffer.slice(nextOpen);
+          }
+        }
+      } finally {
+        try {
+          if (fs.existsSync(tempXmlFile)) {
+            fs.unlinkSync(tempXmlFile);
+          }
+        } catch (_) {}
       }
 
       console.log(`[RoleHierarchyService] Extracted ${rawRows.length.toLocaleString()} raw hierarchy rows and ${privMap.size.toLocaleString()} unique privilege groups.`);
@@ -434,7 +513,7 @@ export class RoleHierarchyService {
             visited.add(childKey);
 
             // Use live privileges from item if available, else fallback to static catalog
-            let privs: Array<{ code: string; name: string }> = item.privileges && item.privileges.length > 0
+            let privs: Array<{ code: string; name: string; description?: string }> = item.privileges && item.privileges.length > 0
               ? item.privileges
               : [];
 
@@ -463,7 +542,7 @@ export class RoleHierarchyService {
 
     // Privileges for the top role itself
     const rootItem = items.find(i => i.roleName.toLowerCase() === targetLower || i.childRole.toLowerCase() === targetLower);
-    let rootPrivs: Array<{ code: string; name: string }> = rootItem?.privileges && rootItem.privileges.length > 0
+    let rootPrivs: Array<{ code: string; name: string; description?: string }> = rootItem?.privileges && rootItem.privileges.length > 0
       ? rootItem.privileges
       : [];
 

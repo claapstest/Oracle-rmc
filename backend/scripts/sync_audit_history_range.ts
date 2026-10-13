@@ -177,7 +177,7 @@ async function runBackfill() {
         else if (resolution.product?.productId) payload.productId = resolution.product.productId;
 
         if (template?.product) payload.product = template.product;
-        else if (restProduct) payload.product = restProduct;
+        else if (!payload.productId && restProduct) payload.product = restProduct;
 
         if (template?.businessObjectType) payload.businessObjectType = template.businessObjectType;
         else if (restBO) payload.businessObjectType = restBO;

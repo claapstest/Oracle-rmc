@@ -6,33 +6,63 @@
     "deletes": 0
   },
   "2026-09-30": {
-    "count": 146,
-    "inserts": 146,
+    "count": 147,
+    "inserts": 147,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-01": {
-    "count": 294,
-    "inserts": 294,
+    "count": 296,
+    "inserts": 296,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-02": {
-    "count": 148,
-    "inserts": 148,
+    "count": 149,
+    "inserts": 149,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-06": {
-    "count": 217,
-    "inserts": 217,
+    "count": 242,
+    "inserts": 242,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-07": {
-    "count": 219,
-    "inserts": 219,
+    "count": 228,
+    "inserts": 228,
     "updates": 0,
     "deletes": 0
+  },
+  "2026-10-12": {
+    "count": 2022,
+    "inserts": 1618,
+    "updates": 328,
+    "deletes": 76
+  },
+  "2026-10-09": {
+    "count": 24,
+    "inserts": 23,
+    "updates": 1,
+    "deletes": 0
+  },
+  "2026-10-08": {
+    "count": 28,
+    "inserts": 28,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-10-05": {
+    "count": 10,
+    "inserts": 10,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-10-13": {
+    "count": 8,
+    "inserts": 5,
+    "updates": 0,
+    "deletes": 3
   }
 }

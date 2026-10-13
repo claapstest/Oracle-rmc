@@ -239,6 +239,9 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   const [rhExpandedNodes, setRhExpandedNodes] = useState<Set<string>>(new Set());
   const [rhExpandedPrivileges, setRhExpandedPrivileges] = useState<Set<string>>(new Set());
   const [rhSyncing, setRhSyncing] = useState<boolean>(false);
+  const [rhPrivModalOpen, setRhPrivModalOpen] = useState<boolean>(false);
+  const [rhSelectedPrivItem, setRhSelectedPrivItem] = useState<any | null>(null);
+  const [rhPrivSearch, setRhPrivSearch] = useState<string>('');
 
   // -------------------------------------------------------------
   // 5. AUDIT HISTORY REPORT STATE
@@ -789,6 +792,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               {node.privileges.map((p: any, idx: number) => (
                 <span
                   key={`p-${node.name}-${idx}`}
+                  title={p.description ? `${p.name || p.code} (${p.code})\n\nDescription: ${p.description}` : `${p.name || p.code} (${p.code})`}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -798,7 +802,8 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                     padding: '0.2rem 0.5rem',
                     borderRadius: '4px',
                     border: '1px solid var(--border-color)',
-                    color: 'var(--text-secondary)'
+                    color: 'var(--text-secondary)',
+                    cursor: p.description ? 'help' : 'default'
                   }}
                 >
                   <code style={{ fontSize: '0.7rem', color: 'var(--text-primary)' }}>{p.code || p.name}</code>
@@ -1170,6 +1175,18 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       return matchesSearch && matchesCat;
     });
   }, [hierarchyData, rhSearch, rhCategoryFilter]);
+
+  // 4b. Role Privileges Modal Filtered
+  const filteredRolePrivileges = useMemo(() => {
+    if (!rhSelectedPrivItem || !Array.isArray(rhSelectedPrivItem.privileges)) return [];
+    if (!rhPrivSearch.trim()) return rhSelectedPrivItem.privileges;
+    const q = rhPrivSearch.toLowerCase().trim();
+    return rhSelectedPrivItem.privileges.filter((p: any) =>
+      (p.name && String(p.name).toLowerCase().includes(q)) ||
+      (p.code && String(p.code).toLowerCase().includes(q)) ||
+      (p.description && String(p.description).toLowerCase().includes(q))
+    );
+  }, [rhSelectedPrivItem, rhPrivSearch]);
 
   // 5. Audit History Filtered
   const filteredAuditLogs = useMemo(() => {
@@ -3366,7 +3383,11 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                             {item.privileges && item.privileges.length > 0 ? (
                               <button
                                 type="button"
-                                onClick={() => handleOpenTreeModal(item.roleName || item.childRole)}
+                                onClick={() => {
+                                  setRhSelectedPrivItem(item);
+                                  setRhPrivSearch('');
+                                  setRhPrivModalOpen(true);
+                                }}
                                 className="badge badge-blue"
                                 style={{
                                   fontSize: '0.7rem',
@@ -3380,7 +3401,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                                   padding: '3px 8px',
                                   borderRadius: '6px'
                                 }}
-                                title={item.privileges.slice(0, 8).map((p: any) => `• ${p.name || p.code} (${p.code})`).join('\n') + (item.privileges.length > 8 ? `\n...and ${item.privileges.length - 8} more privileges` : '')}
+                                title="Click to view all privileges and descriptions"
                               >
                                 <Key size={11} style={{ flexShrink: 0 }} />
                                 <span>{item.privileges.length} Privileges</span>
@@ -4122,6 +4143,185 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             {/* Modal Body */}
             <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
               {renderHierarchyTreeContent(true)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------------------------------------------------
+          8. ROLE FUNCTIONAL PRIVILEGES MODAL
+          ------------------------------------------------------------- */}
+      {rhPrivModalOpen && rhSelectedPrivItem && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '1050px',
+            maxHeight: '88vh',
+            backgroundColor: 'var(--bg-primary)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.35)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.15rem 1.4rem',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                  color: 'var(--accent-blue)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Key size={20} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {rhSelectedPrivItem.roleName || rhSelectedPrivItem.childRole}
+                    </h3>
+                    <code style={{ fontSize: '0.78rem', padding: '2px 8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', color: 'var(--accent-blue)' }}>
+                      {rhSelectedPrivItem.roleCode}
+                    </code>
+                    <span className={`badge ${rhSelectedPrivItem.category === 'Job' ? 'badge-primary' : rhSelectedPrivItem.category === 'Duty' ? 'badge-gold' : 'badge-neutral'}`} style={{ fontSize: '0.68rem' }}>
+                      {rhSelectedPrivItem.category}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Parent Duty Role: <strong style={{ color: 'var(--text-primary)' }}>{rhSelectedPrivItem.parentRole}</strong>
+                    {' '}&bull; Relationship: <span style={{ color: 'var(--text-muted)' }}>{rhSelectedPrivItem.relationshipType}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setRhPrivModalOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem' }}
+                  title="Close modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Search and Counts Filter Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '280px', maxWidth: '460px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search privileges by name, code, or description..."
+                    value={rhPrivSearch}
+                    onChange={(e) => setRhPrivSearch(e.target.value)}
+                    className="form-control"
+                    style={{ paddingLeft: '2.2rem', fontSize: '0.82rem', width: '100%' }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Showing <strong style={{ color: 'var(--text-primary)' }}>{filteredRolePrivileges.length}</strong> of{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>{(rhSelectedPrivItem.privileges || []).length}</strong> granted privileges
+                </div>
+              </div>
+
+              {/* Privileges Table */}
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-primary)' }}>
+                <table className="enterprise-table" style={{ margin: 0 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '28%' }}>Privilege Display Name</th>
+                      <th style={{ width: '28%' }}>Privilege Code</th>
+                      <th style={{ width: '44%' }}>Privilege Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRolePrivileges.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                          {rhPrivSearch ? `No privileges match "${rhPrivSearch}"` : 'No functional privileges found for this role.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredRolePrivileges.map((p: any, idx: number) => (
+                        <tr key={`priv-${idx}`}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)', verticalAlign: 'top' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
+                              <Key size={13} style={{ color: 'var(--accent-blue)', marginTop: '3px', flexShrink: 0 }} />
+                              <span style={{ fontSize: '0.82rem' }}>{p.name || p.code}</span>
+                            </div>
+                          </td>
+                          <td style={{ verticalAlign: 'top' }}>
+                            <code style={{ fontSize: '0.76rem', color: 'var(--accent-purple)', wordBreak: 'break-all' }}>
+                              {p.code}
+                            </code>
+                          </td>
+                          <td style={{ verticalAlign: 'top', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            {p.description ? (
+                              <span>{p.description}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                Operational privilege granted directly through role assignment.
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '0.85rem 1.4rem',
+              borderTop: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Role privilege mappings sourced from Oracle Fusion BIP Security Catalog
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setRhPrivModalOpen(false)}
+                style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem' }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
