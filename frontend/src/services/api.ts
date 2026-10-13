@@ -442,6 +442,19 @@ export const api = {
     return apiRequest('/risk/sod');
   },
 
+  // Incident Analytics: top-N aggregation endpoints (backend contract below).
+  // GET /api/risk/incidents/top-users?limit=10
+  //   -> { success, items: [{ user, incidents }] }
+  // GET /api/risk/incidents/top-roles?limit=10
+  //   -> { success, items: [{ role, incidents }] }
+  async getTopIncidentUsers(limit = 10) {
+    return apiRequest(`/risk/incidents/top-users?limit=${limit}`);
+  },
+
+  async getTopIncidentRoles(limit = 10) {
+    return apiRequest(`/risk/incidents/top-roles?limit=${limit}`);
+  },
+
   async getAccessCertifications(forceRefresh = false) {
     const query = forceRefresh ? `?t=${Date.now()}` : '';
     return apiRequest(`/access-certifications${query}`);
