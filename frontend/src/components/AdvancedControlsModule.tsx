@@ -110,6 +110,47 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'scheduledBy', label: 'Scheduled By', defaultVisible: false, minWidth: '140px' },
 ];
 
+interface IncidentColumnDef {
+  key: string;
+  label: string;
+  defaultVisible: boolean;
+  minWidth?: string;
+  stickyLeft?: boolean;
+}
+
+// Continuous Monitoring Incidents columns — labels match the Oracle payload
+// fields resolved by getIncidentAttr; Action stays fixed outside the toggle set.
+const ALL_INCIDENT_COLUMNS: IncidentColumnDef[] = [
+  { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px', stickyLeft: true },
+  { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '240px' },
+  { key: 'accessPointType', label: 'Access Point Type', defaultVisible: true, minWidth: '150px' },
+  { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '90px' },
+  { key: 'globalUser', label: 'Global User', defaultVisible: true, minWidth: '150px' },
+  { key: 'userFirstName', label: 'User First Name', defaultVisible: true, minWidth: '130px' },
+  { key: 'userLastName', label: 'User Last Name', defaultVisible: true, minWidth: '130px' },
+  { key: 'role', label: 'Role', defaultVisible: true, minWidth: '180px' },
+  { key: 'accessEntitlement', label: 'Access Entitlement', defaultVisible: true, minWidth: '180px' },
+  { key: 'accessPoint', label: 'Access Point', defaultVisible: true, minWidth: '160px' },
+  { key: 'incidentInformation', label: 'Incident Information', defaultVisible: true, minWidth: '240px' },
+  { key: 'conflictingRoles', label: 'Conflicting Roles', defaultVisible: true, minWidth: '200px' },
+  { key: 'group', label: 'Group', defaultVisible: true, minWidth: '140px' },
+  { key: 'investigator', label: 'Investigator', defaultVisible: true, minWidth: '140px' },
+  { key: 'comments', label: 'Comments', defaultVisible: true, minWidth: '120px' },
+  { key: 'attachments', label: 'Attachments', defaultVisible: true, minWidth: '110px' },
+  { key: 'globalUserId', label: 'Global User ID', defaultVisible: true, minWidth: '130px' },
+  { key: 'dataSource', label: 'Data Source', defaultVisible: true, minWidth: '130px' },
+  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: true, minWidth: '130px' },
+  { key: 'incidentInformationCodes', label: 'Incident Information Codes', defaultVisible: true, minWidth: '240px' },
+  { key: 'lastUpdatedDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '130px' },
+  { key: 'createdBy', label: 'Created By', defaultVisible: true, minWidth: '130px' },
+  { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
+  { key: 'state', label: 'State', defaultVisible: true, minWidth: '130px' },
+  { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '120px' },
+  { key: 'closedDate', label: 'Closed Date', defaultVisible: true, minWidth: '120px' },
+  { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '120px' },
+  { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '120px' },
+];
+
 export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   controls = [],
   environmentMode,
@@ -135,6 +176,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   );
   const [isColumnsDropdownOpen, setIsColumnsDropdownOpen] = useState(false);
   const columnsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Incident column visibility state (same functionality as the controls table)
+  const [visibleIncidentKeys, setVisibleIncidentKeys] = useState<Set<string>>(
+    () => new Set(ALL_INCIDENT_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
+  );
+  const [isIncidentColumnsOpen, setIsIncidentColumnsOpen] = useState(false);
+  const incidentColumnsRef = useRef<HTMLDivElement>(null);
 
   // Sorting state
   const [sortField, setSortField] = useState<SortField>('id');
@@ -249,18 +297,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     return () => clearInterval(timer);
   }, [incidentCounts]);
 
-  // Close columns dropdown on outside click
+  // Close columns dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (columnsDropdownRef.current && !columnsDropdownRef.current.contains(e.target as Node)) {
         setIsColumnsDropdownOpen(false);
       }
+      if (incidentColumnsRef.current && !incidentColumnsRef.current.contains(e.target as Node)) {
+        setIsIncidentColumnsOpen(false);
+      }
     }
-    if (isColumnsDropdownOpen) {
+    if (isColumnsDropdownOpen || isIncidentColumnsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isColumnsDropdownOpen]);
+  }, [isColumnsDropdownOpen, isIncidentColumnsOpen]);
 
   // Reset pagination when subsection, search, filters, or page size change
   useEffect(() => {
@@ -1145,6 +1196,36 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     setVisibleColumnKeys(new Set(ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key)));
   };
 
+  // Incident columns toggle functions (same functionality as the controls table)
+  const toggleIncidentColumn = (key: string) => {
+    setVisibleIncidentKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        if (next.size > 1) { // Prevent deselecting all
+          next.delete(key);
+        }
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const selectAllIncidentColumns = () => {
+    setVisibleIncidentKeys(new Set(ALL_INCIDENT_COLUMNS.map(c => c.key)));
+  };
+
+  const clearAllIncidentColumns = () => {
+    // Keep at least Result ID for minimum legibility
+    setVisibleIncidentKeys(new Set(['resultId']));
+  };
+
+  const resetIncidentColumns = () => {
+    setVisibleIncidentKeys(new Set(ALL_INCIDENT_COLUMNS.filter(c => c.defaultVisible).map(c => c.key)));
+  };
+
+  const showInc = (key: string) => visibleIncidentKeys.has(key);
+
   // Build columns definition for EnterpriseExportControl
   const exportColumns: EnterpriseExportColumn<AdvancedControlRecord>[] = useMemo(() => {
     return [
@@ -1725,6 +1806,95 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       <RefreshCw size={13} className={incidentsLoading || incidentsCountLoading ? 'animate-spin' : ''} />
                       Refresh Incidents
                     </button>
+
+                    {/* Incidents Columns Customizer Dropdown (same functionality as controls table) */}
+                    <div style={{ position: 'relative' }} ref={incidentColumnsRef}>
+                      <button
+                        onClick={() => setIsIncidentColumnsOpen(prev => !prev)}
+                        className="btn btn-secondary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+                        title="Customize incidents table columns"
+                      >
+                        <Columns size={14} />
+                        <span>Columns</span>
+                        <ChevronDown size={13} />
+                      </button>
+
+                      {isIncidentColumnsOpen && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '110%',
+                            width: '260px',
+                            backgroundColor: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
+                            padding: '0.75rem',
+                            zIndex: 50
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              Visible Columns ({visibleIncidentKeys.size}/{ALL_INCIDENT_COLUMNS.length})
+                            </span>
+                            <button
+                              onClick={resetIncidentColumns}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
+                              title="Reset to default columns"
+                            >
+                              Reset
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                            <button
+                              onClick={selectAllIncidentColumns}
+                              style={{ flex: 1, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.72rem', padding: '0.25rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                            >
+                              Select All
+                            </button>
+                            <button
+                              onClick={clearAllIncidentColumns}
+                              style={{ flex: 1, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.72rem', padding: '0.25rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                            >
+                              Clear All
+                            </button>
+                          </div>
+
+                          <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            {ALL_INCIDENT_COLUMNS.map(col => {
+                              const isChecked = visibleIncidentKeys.has(col.key);
+                              return (
+                                <label
+                                  key={col.key}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.8rem',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    padding: '0.25rem 0.35rem',
+                                    borderRadius: '4px',
+                                    backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.08)' : 'transparent'
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => toggleIncidentColumn(col.key)}
+                                    style={{ accentColor: 'var(--accent-blue)' }}
+                                  />
+                                  <span>{col.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2055,41 +2225,23 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       <table className="enterprise-table" style={{ minWidth: '3200px' }}>
                         <thead>
                           <tr>
-                            <th style={{ position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '130px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}>Result ID</th>
-                            <th style={{ minWidth: '240px' }}>Control Name</th>
-                            <th style={{ minWidth: '150px' }}>Access Point Type</th>
-                            <th style={{ minWidth: '90px', textAlign: 'center' }}>Priority</th>
-                            <th style={{ minWidth: '150px' }}>Global User</th>
-                            <th style={{ minWidth: '130px' }}>User First Name</th>
-                            <th style={{ minWidth: '130px' }}>User Last Name</th>
-                            <th style={{ minWidth: '180px' }}>Role</th>
-                            <th style={{ minWidth: '180px' }}>Access Entitlement</th>
-                            <th style={{ minWidth: '160px' }}>Access Point</th>
-                            <th style={{ minWidth: '240px' }}>Incident Information</th>
-                            <th style={{ minWidth: '180px' }}>Conflicting Roles</th>
-                            <th style={{ minWidth: '140px' }}>Group</th>
-                            <th style={{ minWidth: '140px' }}>Investigator</th>
-                            <th style={{ minWidth: '120px' }}>Comments</th>
-                            <th style={{ minWidth: '110px' }}>Attachments</th>
-                            <th style={{ minWidth: '130px' }}>Global User ID</th>
-                            <th style={{ minWidth: '130px' }}>Data Source</th>
-                            <th style={{ minWidth: '130px' }}>Last Updated By</th>
-                            <th style={{ minWidth: '240px' }}>Incident Information Codes</th>
-                            <th style={{ minWidth: '130px' }}>Last Updated Date</th>
-                            <th style={{ minWidth: '130px' }}>Created By</th>
-                            <th style={{ minWidth: '110px' }}>Status</th>
-                            <th style={{ minWidth: '130px' }}>State</th>
-                            <th style={{ minWidth: '120px' }}>Last Run Date</th>
-                            <th style={{ minWidth: '120px' }}>Closed Date</th>
-                            <th style={{ minWidth: '120px' }}>Creation Date</th>
-                            <th style={{ minWidth: '120px' }}>Control Type</th>
+                            {ALL_INCIDENT_COLUMNS.filter(c => showInc(c.key)).map(c => (
+                              <th
+                                key={c.key}
+                                style={c.stickyLeft
+                                  ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth, boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }
+                                  : { minWidth: c.minWidth, ...(c.key === 'priority' ? { textAlign: 'center' as const } : {}) }}
+                              >
+                                {c.label.toUpperCase()}
+                              </th>
+                            ))}
                             <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '95px', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {filteredIncidents.length === 0 ? (
                             <tr>
-                              <td colSpan={30} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                              <td colSpan={visibleIncidentKeys.size + 1} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                                   <AlertCircle size={24} style={{ color: 'var(--accent-gold)' }} />
                                   <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -2142,12 +2294,17 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                             return (
                               <tr key={inc.id || idx}>
+                                {showInc('resultId') && (
                                 <td style={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}>
                                   <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{resultId}</span>
                                 </td>
+                                )}
+                                {showInc('controlName') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(controlName || '')}>
                                   {renderFieldVal(controlName)}
                                 </td>
+                                )}
+                                {showInc('accessPointType') && (
                                 <td style={{ fontSize: '0.85rem' }}>
                                   {accessPointType ? (
                                     <span 
@@ -2166,67 +2323,98 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                     renderFieldVal(null)
                                   )}
                                 </td>
+                                )}
+                                {showInc('priority') && (
                                 <td style={{ fontSize: '0.85rem', textAlign: 'center' }}>
                                   <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
                                     {renderFieldVal(priority)}
                                   </span>
                                 </td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(globalUser)}</td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(userFirstName)}</td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(userLastName)}</td>
+                                )}
+                                {showInc('globalUser') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(globalUser)}</td>)}
+                                {showInc('userFirstName') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(userFirstName)}</td>)}
+                                {showInc('userLastName') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(userLastName)}</td>)}
+                                {showInc('role') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(roleVal || '')}>
                                   {renderFieldVal(roleVal)}
                                 </td>
+                                )}
+                                {showInc('accessEntitlement') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(accessEntitlement || '')}>
                                   {renderFieldVal(accessEntitlement)}
                                 </td>
+                                )}
+                                {showInc('accessPoint') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(accessPoint || '')}>
                                   {renderFieldVal(accessPoint)}
                                 </td>
+                                )}
+                                {showInc('incidentInformation') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(incidentInfo || '')}>
                                   {renderFieldVal(incidentInfo)}
                                 </td>
+                                )}
+                                {showInc('conflictingRoles') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(conflictingRoles || '')}>
                                   {renderFieldVal(conflictingRoles)}
                                 </td>
+                                )}
+                                {showInc('group') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(groupVal || '')}>
                                   {renderFieldVal(groupVal)}
                                 </td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(investigator)}</td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(comments)}</td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(attachments)}</td>
+                                )}
+                                {showInc('investigator') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(investigator)}</td>)}
+                                {showInc('comments') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(comments)}</td>)}
+                                {showInc('attachments') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(attachments)}</td>)}
+                                {showInc('globalUserId') && (
                                 <td style={{ fontSize: '0.85rem' }}>
                                   <code>{renderFieldVal(globalUserId)}</code>
                                 </td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(dataSource)}</td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(lastUpdatedBy)}</td>
+                                )}
+                                {showInc('dataSource') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(dataSource)}</td>)}
+                                {showInc('lastUpdatedBy') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(lastUpdatedBy)}</td>)}
+                                {showInc('incidentInformationCodes') && (
                                 <td style={{ fontSize: '0.85rem', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(incidentCodes || '')}>
                                   <code>{renderFieldVal(incidentCodes)}</code>
                                 </td>
+                                )}
+                                {showInc('lastUpdatedDate') && (
                                 <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                   {formatOracleDate(lastUpdatedDate)}
                                 </td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(createdBy)}</td>
+                                )}
+                                {showInc('createdBy') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(createdBy)}</td>)}
+                                {showInc('status') && (
                                 <td>
                                   <span className="badge" style={{ fontSize: '0.72rem' }}>
                                     {statusVal}
                                   </span>
                                 </td>
+                                )}
+                                {showInc('state') && (
                                 <td>
                                   <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
                                     {stateVal}
                                   </span>
                                 </td>
+                                )}
+                                {showInc('lastRunDate') && (
                                 <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                   {formatOracleDate(lastRunDate)}
                                 </td>
+                                )}
+                                {showInc('closedDate') && (
                                 <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                   {formatOracleDate(closedDate)}
                                 </td>
+                                )}
+                                {showInc('creationDate') && (
                                 <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                   {formatOracleDate(creationDate)}
                                 </td>
-                                <td style={{ fontSize: '0.85rem' }}>{renderFieldVal(controlType)}</td>
+                                )}
+                                {showInc('controlType') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(controlType)}</td>)}
                                 <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>
                                   <button
                                     onClick={() => setViewingIncident(inc)}
