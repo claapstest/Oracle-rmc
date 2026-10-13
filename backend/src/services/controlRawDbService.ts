@@ -415,6 +415,144 @@ export class ControlRawDbService {
   }
 
   /**
+   * Lifecycle predicates shared by cross-control coverage + reads.
+   * Mirrors calculateIncidentBreakdown / getRawIncidents contains-logic in SQL.
+   */
+  private lifecycleCondition(alias = 'el'): { accepted: string; remediate: string; resolved: string } {
+    const st = `UPPER(COALESCE(${alias}->>'Status',''))`;
+    const se = `UPPER(COALESCE(${alias}->>'State',${alias}->>'StateCode',''))`;
+    const accepted = `(${st} LIKE '%ACCEPT%' OR ${se} LIKE '%ACCEPT%')`;
+    const remediate = `(NOT ${accepted} AND (${st} LIKE '%REMEDIAT%' OR ${se} LIKE '%REMEDIAT%'))`;
+    const closedDt = `NULLIF(TRIM(COALESCE(${alias}->>'ClosedDate',${alias}->>'closedDate','')),'') IS NOT NULL`;
+    const resolved = `(NOT ${accepted} AND NOT (${st} LIKE '%REMEDIAT%' OR ${se} LIKE '%REMEDIAT%') AND (${st} LIKE '%RESOLV%' OR ${st} LIKE '%CLOSE%' OR ${se} LIKE '%RESOLV%' OR ${se} LIKE '%CLOSE%' OR ${closedDt}))`;
+    return { accepted, remediate, resolved };
+  }
+
+  /**
+   * Exact 4-way lifecycle coverage across a set of controls, computed in a
+   * single SQL pass over the synced raw_incidents payloads.
+   */
+  public async getIncidentCoverage(controlIds: string[]): Promise<{
+    controls: number;
+    synced: number;
+    assigned: number;
+    accepted: number;
+    remediate: number;
+    resolved: number;
+  }> {
+    const host = this.getHost();
+    const ids = (controlIds || []).map((s) => String(s).trim()).filter(Boolean);
+    if (ids.length === 0) {
+      return { controls: 0, synced: 0, assigned: 0, accepted: 0, remediate: 0, resolved: 0 };
+    }
+    const lc = this.lifecycleCondition('el');
+    const res = await query<{
+      controls: string;
+      synced: string;
+      accepted: string;
+      remediate: string;
+      resolved: string;
+    }>(
+      `SELECT COUNT(DISTINCT t.control_id)::int AS controls,
+              COUNT(el)::int AS synced,
+              COALESCE(SUM(CASE WHEN ${lc.accepted} THEN 1 ELSE 0 END),0)::int AS accepted,
+              COALESCE(SUM(CASE WHEN ${lc.remediate} THEN 1 ELSE 0 END),0)::int AS remediate,
+              COALESCE(SUM(CASE WHEN ${lc.resolved} THEN 1 ELSE 0 END),0)::int AS resolved
+       FROM oracle_control_incidents t
+       LEFT JOIN LATERAL jsonb_array_elements(COALESCE(t.raw_incidents,'[]'::jsonb)) AS el ON true
+       WHERE t.environment_host = $1 AND t.control_id = ANY($2)`,
+      [host, ids]
+    );
+    const row = res.rows[0] as any;
+    const synced = Number(row?.synced || 0);
+    const accepted = Number(row?.accepted || 0);
+    const remediate = Number(row?.remediate || 0);
+    const resolved = Number(row?.resolved || 0);
+    return {
+      controls: Number(row?.controls || 0),
+      synced,
+      accepted,
+      remediate,
+      resolved,
+      assigned: Math.max(0, synced - accepted - remediate - resolved)
+    };
+  }
+
+  /**
+   * Cross-control paginated incident read (for "All controls" views).
+   * Filters + total are computed in SQL so 60K+ rows never hit Node/V8.
+   */
+  public async getAllRawIncidentsAcrossControls(options: {
+    controlIds: string[];
+    offset?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    state?: string;
+  }): Promise<{
+    filteredTotal: number;
+    rows: Array<{ control_id: string; control_name: string | null; raw: any }>;
+  }> {
+    const host = this.getHost();
+    const ids = (options.controlIds || []).map((s) => String(s).trim()).filter(Boolean);
+    if (ids.length === 0) return { filteredTotal: 0, rows: [] };
+    const limit = Math.min(100, Math.max(1, options.limit || 25));
+    const offset = Math.max(0, options.offset || 0);
+
+    const conds: string[] = [];
+    const params: any[] = [host, ids];
+    let p = 3;
+
+    const statusKey = (options.status || 'ALL').trim().toUpperCase();
+    if (statusKey && statusKey !== 'ALL') {
+      const lc = this.lifecycleCondition('el');
+      if (statusKey === 'ACCEPTED') conds.push(`(${lc.accepted})`);
+      else if (statusKey === 'REMEDIATE' || statusKey === 'IN_REMEDIATION') conds.push(`(${lc.remediate})`);
+      else if (statusKey === 'RESOLVED' || statusKey === 'CLOSED') conds.push(`(${lc.resolved})`);
+      else if (statusKey === 'ASSIGNED') conds.push(`(NOT (${lc.accepted} OR ${lc.remediate} OR ${lc.resolved}))`);
+      else {
+        conds.push(`(UPPER(COALESCE(el->>'Status','')) = $${p} OR UPPER(COALESCE(el->>'State',el->>'StateCode','')) = $${p})`);
+        params.push(statusKey);
+        p++;
+      }
+    }
+
+    const stateKey = (options.state || 'ALL').trim();
+    if (stateKey && stateKey.toUpperCase() !== 'ALL') {
+      conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) = UPPER($${p}))`);
+      params.push(stateKey);
+      p++;
+    }
+
+    const q = (options.search || '').trim().toLowerCase();
+    if (q) {
+      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserFirstName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserLastName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(t.control_name,'')) LIKE $${p} OR LOWER(t.control_id) LIKE $${p})`);
+      params.push(`%${q}%`);
+      p++;
+    }
+
+    const whereExtra = conds.length > 0 ? `AND ${conds.join(' AND ')}` : '';
+    const res = await query<{
+      control_id: string;
+      control_name: string | null;
+      raw: any;
+      filtered_total: string;
+    }>(
+      `SELECT t.control_id, t.control_name, el AS raw, COUNT(*) OVER() AS filtered_total
+       FROM oracle_control_incidents t,
+            LATERAL jsonb_array_elements(COALESCE(t.raw_incidents,'[]'::jsonb)) AS el
+       WHERE t.environment_host = $1 AND t.control_id = ANY($2) ${whereExtra}
+       ORDER BY t.control_id, COALESCE(el->>'Id',el->>'id','')
+       LIMIT $${p} OFFSET $${p + 1}`,
+      [...params, limit, offset]
+    );
+    return {
+      filteredTotal: Number(res.rows[0]?.filtered_total || 0),
+      rows: res.rows.map((r) => ({ control_id: r.control_id, control_name: r.control_name, raw: r.raw }))
+    };
+  }
+
+  /**
    * Retrieves the raw incidents array directly in its exact raw form as returned from Oracle Fusion.
    */
   public async getAllRawIncidentsForControl(controlId: string): Promise<any[]> {

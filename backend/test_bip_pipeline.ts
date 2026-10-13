@@ -202,8 +202,8 @@ async function runBipPipelineTests() {
   assert(String(wRow1.certificationId) === '35006', 'Row 1 certificationId matches 35006');
   assert(wRow1.userName === 'Karthika.Claaps', 'Row 1 userName mapped from Owner Name');
   assert(wRow1.certifiedManager === 'Karthika.Claaps', 'Row 1 certifiedManager mapped from Manager Name');
-  assert(wRow1.roleName === 'Access Certification Certifier', 'Row 1 roleName defaulted appropriately');
-  assert(wRow1.userBusinessUnit === 'Corporate', 'Row 1 userBusinessUnit mapped');
+  assert(wRow1.roleName === '', 'Row 1 roleName stays blank when worksheet has no role cell (live-only, no invented defaults)');
+  assert(wRow1.userBusinessUnit === '', 'Row 1 userBusinessUnit stays blank when worksheet has no BU cell (live-only, no invented defaults)');
 
   const wRow2 = worksheetDetails.data[1];
   assert(wRow2.userName === 'Test1 user.claaps', 'Row 2 userName matches Test1 user.claaps');

@@ -430,10 +430,15 @@ export const api = {
     return apiRequest('/risk/capabilities');
   },
 
-  async getRiskIncidents(options?: { controlId?: string; refresh?: boolean }) {
+  async getRiskIncidents(options?: { controlId?: string; refresh?: boolean; page?: number; limit?: number; search?: string; status?: string; state?: string }) {
     const params = new URLSearchParams();
     if (options?.controlId) params.append('controlId', options.controlId);
     if (options?.refresh) params.append('refresh', 'true');
+    if (options?.page) params.append('page', String(options.page));
+    if (options?.limit) params.append('limit', String(options.limit));
+    if (options?.search && options.search.trim()) params.append('search', options.search.trim());
+    if (options?.status && options.status !== 'ALL') params.append('status', options.status);
+    if (options?.state && options.state !== 'ALL') params.append('state', options.state);
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/risk/incidents${query}`);
   },
@@ -443,16 +448,21 @@ export const api = {
   },
 
   // Incident Analytics: top-N aggregation endpoints (backend contract below).
-  // GET /api/risk/incidents/top-users?limit=10
+  // GET /api/risk/incidents/top-users?limit=10&controls=11005,11067
   //   -> { success, items: [{ user, incidents }] }
-  // GET /api/risk/incidents/top-roles?limit=10
+  // GET /api/risk/incidents/top-roles?limit=10&controls=11005,11067
   //   -> { success, items: [{ role, incidents }] }
-  async getTopIncidentUsers(limit = 10) {
-    return apiRequest(`/risk/incidents/top-users?limit=${limit}`);
+  // `controls` is optional; omitted = all controls in the active environment.
+  async getTopIncidentUsers(limit = 10, controls?: string[]) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (controls && controls.length > 0) params.append('controls', controls.join(','));
+    return apiRequest(`/risk/incidents/top-users?${params.toString()}`);
   },
 
-  async getTopIncidentRoles(limit = 10) {
-    return apiRequest(`/risk/incidents/top-roles?limit=${limit}`);
+  async getTopIncidentRoles(limit = 10, controls?: string[]) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (controls && controls.length > 0) params.append('controls', controls.join(','));
+    return apiRequest(`/risk/incidents/top-roles?${params.toString()}`);
   },
 
   async getAccessCertifications(forceRefresh = false) {

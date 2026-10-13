@@ -4,7 +4,7 @@ import { WORKSHEET_COLUMNS, wsVal } from './AccessCertificates.js';
 // (Title Case + camelCase + UPPER_SNAKE tolerant mapping).
 const expected = [
   'CERTIFICATION NAME', 'JOB ROLE NAME', 'ROLE CODE', 'USER NAME', 'COMMENT',
-  'ACTION', 'USER-ROLE BUSINESS UNIT', 'USER POSITION NAME', 'USER MANAGER NAME',
+  'ACTION', 'USER BUSINESS UNIT', 'USER POSITION NAME', 'USER MANAGER NAME',
   'USER JOB NAME', 'USER LOCATION'
 ];
 

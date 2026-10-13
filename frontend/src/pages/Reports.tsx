@@ -82,7 +82,7 @@ const REPORT_DEFINITIONS: ReportMeta[] = [
     id: 'INCIDENTS_DETAILED',
     section: 'RISK',
     title: 'Incidents Detailed',
-    subtitle: 'Detailed continuous monitoring incidents and segregation-of-duties conflicts.',
+    subtitle: 'Detailed continuous monitoring incidents across all controls and domains (Access + Transaction).',
     badge: 'Risk Management',
     icon: ShieldAlert
   },
@@ -209,6 +209,10 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     closedOrResolved?: number;
     status?: string;
   }>({});
+  // Server-side paging state for the ALL-controls incidents view (60K+ rows
+  // stay in Postgres; the UI only ever holds one page).
+  const [incidentsServerTotal, setIncidentsServerTotal] = useState<number>(0);
+  const incidentsPageReloadGuard = useRef(false);
   const [selectedIncidentDetail, setSelectedIncidentDetail] = useState<any | null>(null);
   const incidentsPollingRef = useRef<any>(null);
 
@@ -421,17 +425,31 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   };
 
   // Loader 2: Incidents Detailed Report (Operational & Live)
-  const loadRiskIncidents = async (controlId = selectedIncidentsControlId, forceRefresh = false) => {
+  // In ALL-controls mode the backend pages/filters server-side (60K+ rows);
+  // single-control mode keeps the existing full-download + client filtering.
+  const loadRiskIncidents = async (controlId = selectedIncidentsControlId, forceRefresh = false, pageOverride?: number, limitOverride?: number) => {
     setIncidentsLoading(true);
     setIncidentsError('');
     try {
-      const res = await api.getRiskIncidents({ controlId, refresh: forceRefresh });
+      const serverMode = (controlId || '') === 'ALL';
+      const res = await api.getRiskIncidents({
+        controlId,
+        refresh: forceRefresh,
+        page: serverMode ? (pageOverride ?? currentPage) : undefined,
+        limit: serverMode ? (limitOverride ?? pageSize) : undefined,
+        search: serverMode ? incidentsSearch : undefined,
+        status: serverMode ? incidentsStatusFilter : undefined,
+        state: serverMode ? incidentsStateFilter : undefined
+      });
       if (res && res.success) {
         setIncidentsData(res.items || []);
-        // Backend resolves ALL / unknown IDs to the top live control:
+        // Backend resolves unknown IDs to the top live control:
         // keep the dropdown in sync with what is actually displayed.
         if (res.selectedControlId && res.selectedControlId !== 'ALL' && res.selectedControlId !== controlId) {
           setSelectedIncidentsControlId(res.selectedControlId);
+        }
+        if (serverMode && typeof (res.filteredCount ?? res.totalCount) === 'number') {
+          setIncidentsServerTotal(res.filteredCount ?? res.totalCount);
         }
         if (Array.isArray(res.availableControls)) {
           setAvailableIncidentControls(res.availableControls);
@@ -1042,6 +1060,35 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     }
   }, [activeReportId]);
 
+  // Server-mode incidents paging: shared pager drives backend page fetches.
+  // Skips the first load (covered by the initial loader) and loads triggered
+  // directly with an explicit page (guarded via incidentsPageReloadGuard).
+  useEffect(() => {
+    if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
+    if (incidentsData.length === 0) return;
+    if (incidentsPageReloadGuard.current) {
+      incidentsPageReloadGuard.current = false;
+      return;
+    }
+    loadRiskIncidents('ALL', false, currentPage, pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize]);
+
+  // Server-mode incidents search/filters (debounced): reset to page 1 and refetch.
+  useEffect(() => {
+    if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
+    if (incidentsData.length === 0 && incidentsServerTotal === 0) return;
+    const t = setTimeout(() => {
+      if (currentPage !== 1) {
+        incidentsPageReloadGuard.current = true;
+        setCurrentPage(1);
+      }
+      loadRiskIncidents('ALL', false, 1, pageSize);
+    }, 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
+
   // Load role tree when tree view mode is active
   useEffect(() => {
     if (activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' && rhSelectedRoleForTree && !rhTreeData && !rhTreeLoading) {
@@ -1115,6 +1162,8 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
   // 2. Incidents Detailed Filtered
   const filteredIncidents = useMemo(() => {
+    // ALL-controls mode is already filtered + paged server-side.
+    if (selectedIncidentsControlId === 'ALL') return incidentsData;
     return incidentsData.filter(item => {
       const q = incidentsSearch.toLowerCase().trim();
       const matchesSearch = !q ||
@@ -1300,13 +1349,15 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     setCurrentPage(1);
   };
 
-  // Active pagination slice
-  const totalRows = currentDataset.length;
+  // Active pagination slice (server-driven for ALL-controls incidents)
+  const isIncidentsServerPaging = activeReportId === 'INCIDENTS_DETAILED' && selectedIncidentsControlId === 'ALL';
+  const totalRows = isIncidentsServerPaging ? incidentsServerTotal : currentDataset.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const paginatedSlice = useMemo(() => {
+    if (isIncidentsServerPaging) return incidentsData;
     const start = (currentPage - 1) * pageSize;
     return currentDataset.slice(start, start + pageSize);
-  }, [currentDataset, currentPage, pageSize]);
+  }, [currentDataset, currentPage, pageSize, isIncidentsServerPaging, incidentsData]);
 
   const activeMeta = activeReportId ? REPORT_DEFINITIONS.find(r => r.id === activeReportId) : undefined;
 
@@ -2165,8 +2216,11 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                   onChange={(e) => {
                     const newId = e.target.value;
                     setSelectedIncidentsControlId(newId);
-                    setCurrentPage(1);
-                    loadRiskIncidents(newId);
+                    if (currentPage !== 1) {
+                      incidentsPageReloadGuard.current = true;
+                      setCurrentPage(1);
+                    }
+                    loadRiskIncidents(newId, false, 1, pageSize);
                   }}
                   style={{ width: '280px', fontSize: '0.82rem' }}
                 >

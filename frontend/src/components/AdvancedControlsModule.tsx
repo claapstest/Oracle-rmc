@@ -20,16 +20,19 @@ import {
   ChevronRight,
   X,
   User,
+  Users,
   Key,
   FileText,
   Clock,
   PieChart,
+  BarChart3,
   CheckCircle,
   Wrench,
   ShieldCheck,
   UserCheck
 } from 'lucide-react';
 import { api } from '../services/api.js';
+import { RankedBars, useIncidentRankings } from './IncidentRankingPanels';
 import { EnterpriseExportControl, type EnterpriseExportColumn } from './EnterpriseExportControl';
 import { 
   isAccessControl, 
@@ -223,6 +226,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const [domainIncidentLifecycleFilter, setDomainIncidentLifecycleFilter] = useState<'ALL' | 'ASSIGNED' | 'ACCEPTED' | 'REMEDIATE' | 'RESOLVED'>('ALL');
   const [hoveredDomainLifecycleKey, setHoveredDomainLifecycleKey] = useState<string | null>(null);
   const [hoveredControlStatusKey, setHoveredControlStatusKey] = useState<string | null>(null);
+  // Domain card chart view: lifecycle donut vs embedded top-violators bar analytics
+  const [domainChartView, setDomainChartView] = useState<'LIFECYCLE' | 'ANALYTICS'>('LIFECYCLE');
 
   const [incidentSyncState, setIncidentSyncState] = useState<{
     cacheStatus: 'NOT_CACHED' | 'SYNCING' | 'READY' | 'PARTIAL' | 'ERROR';
@@ -256,6 +261,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     setIncidentSyncState({ cacheStatus: 'NOT_CACHED' });
     setDomainIncidentLifecycleFilter('ALL');
     setHoveredDomainLifecycleKey(null);
+    setDomainChartView('LIFECYCLE');
     setActiveSubSection(subSection);
   };
 
@@ -354,6 +360,10 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       };
     });
   }, [activeSubSection, accessControls, transactionControls, incidentCounts]);
+
+  // Domain top-violators analytics (follows the active domain tab)
+  const domainRankings = useIncidentRankings(activeSubsectionControls.map((c) => c.id));
+  const domainScopeCaption = `${activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} domain · ${activeSubsectionControls.length} controls`;
 
   // Extract unique filter options present in backend data for current subsection
   const availableStatuses = useMemo(() => {
@@ -2766,11 +2776,47 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               </div>
             </div>
 
-            {lastRefreshed && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Catalog synced: {lastRefreshed}
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div role="tablist" aria-label="Domain analytics view" style={{ display: 'inline-flex', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={domainChartView === 'LIFECYCLE'}
+                  onClick={() => setDomainChartView('LIFECYCLE')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                    fontSize: '0.76rem', fontWeight: 700, padding: '0.35rem 0.8rem',
+                    borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    backgroundColor: domainChartView === 'LIFECYCLE' ? '#2563EB' : 'transparent',
+                    color: domainChartView === 'LIFECYCLE' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                  title="Show lifecycle donut charts"
+                >
+                  <PieChart size={13} /> Lifecycle View
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={domainChartView === 'ANALYTICS'}
+                  onClick={() => setDomainChartView('ANALYTICS')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                    fontSize: '0.76rem', fontWeight: 700, padding: '0.35rem 0.8rem',
+                    borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    backgroundColor: domainChartView === 'ANALYTICS' ? '#2563EB' : 'transparent',
+                    color: domainChartView === 'ANALYTICS' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                  title="Show top violators bar charts for this domain"
+                >
+                  <BarChart3 size={13} /> Incident Analytics
+                </button>
+              </div>
+              {lastRefreshed && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Catalog synced: {lastRefreshed}
+                </span>
+              )}
+            </div>
           </div>          {/* 3. Dual Analytics Cards: Left = Controls Posture (Active vs Inactive Donut & KPI Cards), Right = Incident Lifecycle (Donut & Status Cards) */}
           <div 
             style={{ 
@@ -2780,6 +2826,85 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               marginBottom: '1.75rem' 
             }}
           >
+          {domainChartView === 'ANALYTICS' ? (
+            <>
+            {/* Analytics Card: Top 10 Users (replaces Posture donut) */}
+            <div
+              className="glass-panel"
+              style={{
+                padding: '1.25rem 1.4rem',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={17} style={{ color: '#1D4ED8' }} />
+                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                  Top 10 Users with Most Incidents
+                </h4>
+                <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(29, 78, 216, 0.1)', color: '#1D4ED8', border: '1px solid rgba(29, 78, 216, 0.25)', fontWeight: 600 }}>
+                  Top Violators
+                </span>
+              </div>
+              <p style={{ margin: '0.2rem 0 1rem 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                Ranked by incident count · {domainScopeCaption}.
+              </p>
+              {domainRankings.loading ? (
+                <div style={{ height: '300px', borderRadius: '10px' }} className="skeleton" />
+              ) : domainRankings.error || !domainRankings.users ? (
+                <div role="alert" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>
+                    {domainRankings.error || 'No data.'}
+                  </p>
+                  <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.4rem 1rem' }} onClick={domainRankings.retry}>
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <RankedBars bare title="Top 10 Users with Most Incidents" subtitle="" items={domainRankings.users} color="#1D4ED8" />
+              )}
+            </div>
+            {/* Analytics Card: Top 10 Roles (replaces Incident Status donut) */}
+            <div
+              className="glass-panel"
+              style={{
+                padding: '1.25rem 1.4rem',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Key size={17} style={{ color: '#7C3AED' }} />
+                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                  Top 10 Roles with Most Incidents
+                </h4>
+                <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(124, 58, 237, 0.1)', color: '#7C3AED', border: '1px solid rgba(124, 58, 237, 0.25)', fontWeight: 600 }}>
+                  Top Violators
+                </span>
+              </div>
+              <p style={{ margin: '0.2rem 0 1rem 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                Ranked by incident count · {domainScopeCaption}.
+              </p>
+              {domainRankings.loading ? (
+                <div style={{ height: '300px', borderRadius: '10px' }} className="skeleton" />
+              ) : domainRankings.error || !domainRankings.roles ? (
+                <div role="alert" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>
+                    {domainRankings.error || 'No data.'}
+                  </p>
+                  <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.4rem 1rem' }} onClick={domainRankings.retry}>
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <RankedBars bare title="Top 10 Roles with Most Incidents" subtitle="" items={domainRankings.roles} color="#7C3AED" />
+              )}
+            </div>
+            </>
+          ) : (
+            <>
             {/* Left Card: Controls Posture (Active vs Inactive Controls) */}
             <div 
               className="glass-panel" 
@@ -3268,6 +3393,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                 </div>
               )}
             </div>
+            </>
+            )}
           </div>
 
           {/* 4. Toolbar: Search, Filters, Columns Customizer, Enterprise Export */}

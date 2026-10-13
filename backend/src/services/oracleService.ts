@@ -2715,7 +2715,7 @@ class OracleService {
     };
   }
 
-  async getRiskIncidents(options?: { controlId?: string; forceRefresh?: boolean; limit?: number; offset?: number }): Promise<any> {
+  async getRiskIncidents(options?: { controlId?: string; forceRefresh?: boolean; limit?: number; offset?: number; page?: number; search?: string; status?: string; state?: string }): Promise<any> {
     const isDemo = this.isDemoMode();
     const catalogRes = await this.controlCatalogService.getAllControls(options?.forceRefresh);
     const availableControls = (catalogRes.items || []).map(c => ({
@@ -2768,52 +2768,60 @@ class OracleService {
       || controlsByIncidents[0]?.id;
 
     if (!targetControlId || targetControlId === 'ALL') {
-      // Find controls that currently have cached incident files
-      const cachedControls = availableControls.filter(c => {
-        const cache = incidentCacheService.readCache(c.id);
-        return cache && cache.complete && cache.incidents.length > 0;
-      });
+      // ALL-controls view: aggregate across every control from PostgreSQL
+      // (single-cell raw payloads synced by the background workers) instead of
+      // only the freshly-downloaded disk caches. Authoritative total comes from
+      // the lightweight per-control counts; the 4-way split is computed exactly
+      // in SQL over the synced rows.
+      const scopeIds = availableControls.map(c => c.id);
+      const scopeNames = new Map(availableControls.map(c => [c.id, c.name]));
+      const authoritativeTotal = availableControls.reduce((s, c) => s + (c.incidentCount || 0), 0);
 
-      if (cachedControls.length > 0) {
-        const allItems: any[] = [];
-        let totalCount = 0;
-        cachedControls.forEach(c => {
-          const cache = incidentCacheService.readCache(c.id);
-          if (cache) {
-            allItems.push(...cache.incidents);
-            totalCount += cache.totalResults;
-          }
+      if (scopeIds.length > 0) {
+        const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
+        const pageSize = Math.min(100, Math.max(1, options?.limit || 25));
+        const page = Math.max(1, options?.page || (options?.offset ? Math.floor(options.offset / pageSize) + 1 : 1));
+        const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
+          controlIds: scopeIds,
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+          search: options?.search,
+          status: options?.status,
+          state: options?.state
         });
-
-        const cats = this.categorizeRiskIncidents(allItems);
-
+        const items = pg.rows.map(r =>
+          this.controlCatalogService.normalizeIncident(r.raw, r.control_id, scopeNames.get(r.control_id))
+        );
+        const openOrActive = coverage.assigned + coverage.remediate;
+        const fullySynced = coverage.synced >= authoritativeTotal && authoritativeTotal > 0;
         return {
           success: true,
           dataSource: 'Live Oracle Fusion API',
           selectedControlId: 'ALL',
           selectedControl: null,
-          items: allItems,
-          totalCount,
-          cacheStatus: 'READY',
-          fetchedCount: allItems.length,
+          items,
+          totalCount: authoritativeTotal,
+          filteredCount: pg.filteredTotal,
+          page,
+          pageSize,
+          cacheStatus: fullySynced ? 'READY' : 'PARTIAL',
+          fetchedCount: coverage.synced,
           lastSyncedAt: new Date().toISOString(),
           availableControls,
+          message: `Aggregated ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls (authoritative total ${authoritativeTotal.toLocaleString()}).`,
           kpis: {
-            total: totalCount,
-            assigned: cats.assigned,
-            inRemediation: cats.inRemediation,
-            openOrActive: cats.openOrActive,
-            accepted: cats.accepted,
-            closedOrResolved: cats.closedOrResolved,
+            total: authoritativeTotal,
+            assigned: coverage.assigned,
+            inRemediation: coverage.remediate,
+            openOrActive,
+            accepted: coverage.accepted,
+            closedOrResolved: coverage.resolved,
             status: 'READY'
           }
         };
-      } else {
-        // No full caches yet: fall through to the top live control with
-        // incidents so the page fetches from the instance instead of a
-        // demo-only control ID.
-        targetControlId = topLiveControlId;
       }
+      // No controls in scope: fall through to the top live control.
+      targetControlId = topLiveControlId;
     } else if (!availableControls.some(c => c.id === targetControlId)) {
       // Unknown control in this live instance (e.g. stale demo default):
       // resolve to the top live control with incidents.
@@ -3016,36 +3024,32 @@ class OracleService {
       }
     }
 
-    // 3. If BIP returned genuine multi-row user worksheet data, preserve ALL rows and enrich with HCM Direct Manager
+    // 3. If BIP returned genuine multi-row user worksheet data, preserve ALL rows and enrich with HCM Direct Manager.
+    // Live-only detection: a genuine worksheet carries user + role identity on its rows.
+    // (Header-only/campaign rows have neither and fall through to the honest empty result.)
+    const firstBipRow = bipResult?.data?.[0];
+    const hasUserWorksheetRow = Boolean(
+      (firstBipRow?.userName || firstBipRow?.ownerName) &&
+      (firstBipRow?.roleName || firstBipRow?.jobRoleName) &&
+      firstBipRow?.roleName !== 'Standard'
+    );
     const isRealBipWorksheet =
       bipResult &&
       bipResult.success &&
       Array.isArray(bipResult.data) &&
       (bipResult.data.length > 1 ||
-        (bipResult.data.length === 1 &&
-          bipResult.data[0].roleName &&
-          bipResult.data[0].roleName !== 'Access Certification Certifier' &&
-          bipResult.data[0].roleName !== 'Standard' &&
-          Boolean(bipResult.data[0].action)));
+        (bipResult.data.length === 1 && hasUserWorksheetRow));
 
     if (isRealBipWorksheet) {
-      const canonicalCertNames: Record<string, string> = {
-        '1': 'FY26_QTR3_ Claaps Advanced Access control Certification',
-        '2': 'FY26_QTR3_CLAAPS IT Security Manager Certification',
-        '3': 'FY26_QTR3_CLAAPS Accounts Payable Manager Certification',
-        '35006': 'CLAAPS_Access_Certification1',
-        '36006': 'CLPS_Access_Certification2',
-        '36007': 'FY26_QTR3_Claaps Access certification',
-        '35007': 'CLPS_Access_Certification3'
-      };
-
-      const mappedName = bipResult.data[0]?.certificationName || bipResult.data[0]?.name || canonicalCertNames[cleanCertId] || `Certification ${cleanCertId}`;
+      // Live-only: certification name comes from the worksheet row itself.
+      const mappedName = bipResult.data[0]?.certificationName || bipResult.data[0]?.name || `Certification ${cleanCertId}`;
       const numId = Number(cleanCertId) || cleanCertId;
 
       const enrichedData = bipResult.data.map((row: any) => {
         const uName = (row.userName || row.ownerName || '').toUpperCase();
         const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
-        const bu = row.businessUnit || userBuMap.get(uName) || 'Corporate';
+        // Live-only: HCM enrichment fills blanks with real HCM values; otherwise blank stays blank.
+        const bu = row.businessUnit || userBuMap.get(uName) || '';
         const dept = row.department || userDeptMap.get(uName) || '';
         return {
           ...row,
@@ -3067,277 +3071,18 @@ class OracleService {
       };
     }
 
-    // 4. Multi-Row Certifier Worksheet Generation
-    // When BIP returns only the campaign header or BIP is unavailable, dynamically map
-    // the users holding the certified role(s) from the authoritative user access dataset
-    const certSpecs: Record<string, {
-      name: string;
-      roleKeywords: string[];
-      certifier: string;
-      manager: string;
-      owner: string;
-      dueDate: string;
-      creationDate: string;
-      limit: number;
-    }> = {
-      '1': {
-        name: 'FY26_QTR3_ Claaps Advanced Access control Certification',
-        roleKeywords: ['Risk Administrator', 'Application Implementation Consultant', 'Financial Compliance Manager', 'Risk Manager'],
-        certifier: 'Kavya.claaps',
-        manager: 'Karthika.Claaps',
-        owner: 'Test1.Claaps',
-        dueDate: '2026-10-30',
-        creationDate: '2026-10-04 15:53',
-        limit: 150
-      },
-      '2': {
-        name: 'FY26_QTR3_CLAAPS IT Security Manager Certification',
-        roleKeywords: ['IT Security Manager'],
-        certifier: 'Abhishek.Claaps',
-        manager: 'Test1.Claaps',
-        owner: 'Karthika.Claaps',
-        dueDate: '2026-10-27',
-        creationDate: '2026-10-04 15:31',
-        limit: 150
-      },
-      '3': {
-        name: 'FY26_QTR3_CLAAPS Accounts Payable Manager Certification',
-        roleKeywords: ['Accounts Payable Manager', 'Accounts Payable Specialist'],
-        certifier: 'Abhishek.Claaps',
-        manager: 'Kavya.claaps',
-        owner: 'Test1.Claaps',
-        dueDate: '2026-10-23',
-        creationDate: '2026-10-04 16:22',
-        limit: 150
-      },
-      '35007': {
-        name: 'CLPS_Access_Certification3',
-        roleKeywords: ['Accounts Receivable Manager'],
-        certifier: 'Kavya.Claaps',
-        manager: 'Test1 user.claaps',
-        owner: 'Kavya.Claaps',
-        dueDate: '2026-10-13',
-        creationDate: '2026-09-21 16:32',
-        limit: 485
-      },
-      '35006': {
-        name: 'CLAAPS_Access_Certification1',
-        roleKeywords: ['Human Resource Specialist', 'HR Specialist - View All'],
-        certifier: 'Karthika.Claaps',
-        manager: 'Karthika.Claaps',
-        owner: 'Karthika.Claaps',
-        dueDate: '2026-10-21',
-        creationDate: '2026-09-21 12:13',
-        limit: 200
-      },
-      '36006': {
-        name: 'CLPS_Access_Certification2',
-        roleKeywords: ['General Accountant', 'Financial Analyst'],
-        certifier: 'Test1 user.claaps',
-        manager: 'Kavya.Claaps',
-        owner: 'Test1 user.claaps',
-        dueDate: '2026-09-30',
-        creationDate: '2026-09-21 14:43',
-        limit: 200
-      },
-      '36007': {
-        name: 'FY26_QTR3_Claaps Access certification',
-        roleKeywords: ['IT Security Manager', 'Application Implementation Consultant'],
-        certifier: 'Karthika.Claaps',
-        manager: 'Karthika.Claaps',
-        owner: 'Karthika.Claaps',
-        dueDate: '2026-09-30',
-        creationDate: '2026-09-21 15:14',
-        limit: 200
-      }
-    };
-
-    // Look up spec or derive dynamically from BIP campaign summary
-    let spec = certSpecs[cleanCertId];
-    if (!spec) {
-      // Find campaign from BIP result or cached certifications
-      let candidateCamp = bipResult?.data?.[0];
-      if (!candidateCamp || !candidateCamp.certificationName) {
-        try {
-          const allCerts = await this.getAccessCertifications();
-          if (allCerts?.success && Array.isArray(allCerts.data)) {
-            candidateCamp = allCerts.data.find(
-              (c: any) => String(c.certificationId ?? c.id ?? '').trim() === cleanCertId
-            );
-          }
-        } catch (_) {}
-      }
-
-      const campName = candidateCamp?.certificationName || candidateCamp?.name || `Certification ${cleanCertId}`;
-      const lower = campName.toLowerCase();
-      let roleKeywords = ['IT Security Manager'];
-
-      if (lower.includes('it security')) {
-        roleKeywords = ['IT Security Manager'];
-      } else if (lower.includes('accounts payable') || lower.includes('payable')) {
-        roleKeywords = ['Accounts Payable Manager', 'Accounts Payable Specialist'];
-      } else if (lower.includes('advanced access') || lower.includes('access control') || lower.includes('risk')) {
-        roleKeywords = ['Risk Administrator', 'Application Implementation Consultant', 'Financial Compliance Manager', 'Risk Manager'];
-      } else if (lower.includes('accounts receivable') || lower.includes('receivable')) {
-        roleKeywords = ['Accounts Receivable Manager'];
-      } else if (lower.includes('human resource') || lower.includes('hr')) {
-        roleKeywords = ['Human Resource Specialist', 'HR Specialist - View All'];
-      } else if (lower.includes('accountant') || lower.includes('financial analyst')) {
-        roleKeywords = ['General Accountant', 'Financial Analyst'];
-      }
-
-      spec = {
-        name: campName,
-        roleKeywords,
-        certifier: candidateCamp?.certifierName || candidateCamp?.managerName || 'Abhishek.Claaps',
-        manager: candidateCamp?.managerName || 'Karthika.Claaps',
-        owner: candidateCamp?.ownerName || 'Test1.Claaps',
-        dueDate: candidateCamp?.dueDate || '2026-10-30',
-        creationDate: candidateCamp?.creationDate || '2026-10-04 15:00',
-        limit: 150
-      };
-    }
-
-    if (spec && userReport && Array.isArray(userReport.data)) {
-      let matchingRows = userReport.data.filter((r: any) =>
-        r.roleName && spec.roleKeywords.some((kw) => r.roleName.toLowerCase().includes(kw.toLowerCase()))
-      );
-
-      if (matchingRows.length === 0) {
-        matchingRows = userReport.data.slice(0, spec.limit);
-      }
-
-      // Priority reference users from Oracle Fusion worksheet view
-      const priorityNames = [
-        'fas88 student',
-        'ppm66 student',
-        'ppm73 student',
-        'mahinder mittal',
-        'mae jadin',
-        'hcm_impl',
-        'fin_impl',
-        'karthika',
-        'test1'
-      ];
-
-      const priorityRows: any[] = [];
-      const otherRows: any[] = [];
-
-      for (const r of matchingRows) {
-        const dName = (r.displayName || '').toLowerCase();
-        const uName = (r.username || '').toLowerCase();
-        const isPri = priorityNames.some((p) => dName.includes(p) || uName.includes(p));
-        if (isPri) {
-          priorityRows.push(r);
-        } else {
-          otherRows.push(r);
-        }
-      }
-
-      priorityRows.sort((a, b) => {
-        const nameA = (a.displayName || a.username || '').toLowerCase();
-        const nameB = (b.displayName || b.username || '').toLowerCase();
-        const idxA = priorityNames.findIndex((p) => nameA.includes(p));
-        const idxB = priorityNames.findIndex((p) => nameB.includes(p));
-        return idxA - idxB;
-      });
-
-      const combined = [...priorityRows, ...otherRows].slice(0, spec.limit);
-      const numId = Number(cleanCertId) || cleanCertId;
-
-      const actions = ['Certified', 'Approved', 'Pending Review', 'Certified', 'Approved'];
-      const commentsList = [
-        'Access reviewed and certified for FY26 QTR3 compliance audit.',
-        'Job duties verified by direct manager; access required for operational responsibilities.',
-        'User entitlement approved based on business justification.',
-        'Annual segregation of duties (SoD) review completed without conflicts.',
-        'Privileged user role confirmed and re-authorized by department head.'
-      ];
-
-      const fullWorksheetData = combined.map((r: any, idx: number) => {
-        const uname = r.username || '';
-        const dname = r.displayName || uname;
-        const directMgr = r.manager || userManagerMap.get(uname.toUpperCase()) || userManagerMap.get(dname.toUpperCase()) || spec.manager || 'Karthika.Claaps';
-        const roleName = r.roleName || spec.roleKeywords[0];
-        const roleCode = r.roleCode || '';
-        const bu = r.businessUnit || userBuMap.get(uname.toUpperCase()) || 'US1 Business Unit';
-        const dept = r.department || userDeptMap.get(uname.toUpperCase()) || '';
-        const job = r.job || `${roleName} - Lead`;
-        const loc = r.location || 'San Jose HQ';
-        const action = actions[idx % actions.length];
-        const comment = commentsList[idx % commentsList.length];
-
-        let roleDesc = 'Standard business operations role within the enterprise ERP suite.';
-        if (/security/i.test(roleName)) {
-          roleDesc = 'Administers security policies, identity lifecycles, and privileged system access.';
-        } else if (/payable/i.test(roleName)) {
-          roleDesc = 'Manages supplier disbursements, AP invoice matching, and payment authorizations.';
-        } else if (/receivable/i.test(roleName)) {
-          roleDesc = 'Manages customer billing, receipt applications, and credit collections.';
-        } else if (/risk|access control/i.test(roleName)) {
-          roleDesc = 'Configures and monitors segregation of duties (SoD) rules and risk control models.';
-        } else if (/human resource|hr/i.test(roleName)) {
-          roleDesc = 'Manages workforce records, compensation structures, and personnel assignments.';
-        } else if (/accountant/i.test(roleName)) {
-          roleDesc = 'Maintains general ledger accounts, journal entries, and financial statements.';
-        }
-
-        return {
-          id: numId,
-          certificationId: numId,
-          name: spec.name,
-          certificationName: spec.name,
-          userName: dname,
-          ownerName: dname,
-          roleName: roleName,
-          roleCode: roleCode,
-          roleDescription: roleDesc,
-          directManager: directMgr,
-          certifiedManager: spec.manager,
-          certifierName: spec.certifier,
-          certifierId: '',
-          action: action,
-          attachments: 0,
-          comments: comment,
-          followUp: 'None',
-          followUpStatus: action === 'Pending Review' ? 'Pending' : 'Completed',
-          businessUnit: bu,
-          userBusinessUnit: bu,
-          userRoleBusinessUnit: bu,
-          department: dept,
-          jobName: job,
-          positionName: `${job} Position`,
-          location: loc,
-          createdBy: spec.owner,
-          creationDate: spec.creationDate,
-          lastDecisionBy: spec.certifier,
-          lastDecisionDate: spec.creationDate ? spec.creationDate.split(' ')[0] : '2026-10-05',
-          lastUpdatedDate: spec.creationDate ? spec.creationDate.split(' ')[0] : '2026-10-05',
-          pendingSubmission: action === 'Pending Review' ? 'Yes' : 'No',
-          selfCertified: 'No',
-          updatedBy: spec.certifier,
-          status: 'Active',
-          type: 'Standard',
-          completionPercent: 0,
-          dueDate: spec.dueDate
-        };
-      });
-
-      return {
-        success: true,
-        certificationId: numId,
-        count: fullWorksheetData.length,
-        data: fullWorksheetData
-      };
-    }
-
-    // 5. Fallback for non-canonical or zero-row certifications
+    // 4. Live-only: when BIP returns no genuine worksheet rows, report it honestly.
+    // No hardcoded specs, invented users, actions, or comments — the UI renders
+    // an empty state (report ran) or the error message (report failed).
+    const worksheetRanOk = Boolean(bipResult && bipResult.success);
     return {
-      success: true,
+      success: worksheetRanOk,
       certificationId: Number(cleanCertId) || cleanCertId,
       count: 0,
       data: [],
-      message: 'No user access details found for this certification.'
+      message: worksheetRanOk
+        ? 'No user access details found for this certification.'
+        : (bipResult?.message || 'Unable to retrieve Access Certification details from Oracle Fusion.')
     };
   }
 
