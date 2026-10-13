@@ -57,7 +57,7 @@ interface AuditLogItem {
   impersonator?: string;
 }
 
-export const MIN_ALLOWED_AUDIT_DATE = '2026-01-01';
+export const MIN_ALLOWED_AUDIT_DATE = '2025-01-01';
 export const MAX_ALLOWED_AUDIT_DATE = '2026-10-13';
 
 export interface AuditProps {
@@ -74,20 +74,20 @@ export default function Audit({
   const [selectedProductId, setSelectedProductId] = useState<string>(initialProductId || 'hcm');
   const [selectedBOId, setSelectedBOId] = useState<string>(initialBOId || 'document_records');
 
-  // Filter state - restricted strictly to year 2026 up to October
+  // Filter state - supports 2025 through 2026
   const [fromDate, setFromDate] = useState<string>('2026-10-03');
   const [toDate, setToDate] = useState<string>('2026-10-13');
   const [userQuery, setUserQuery] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
 
-  // Strict Calendar year & October bound handlers
+  // Calendar year 2025-2026 bound handlers
   const handleFromDateChange = (val: string) => {
     if (!val) {
       setFromDate('');
       return;
     }
     if (val < MIN_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Audit records are only available for calendar year 2026. Prior years are not supported.');
+      setDateWarning('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
       setFromDate(MIN_ALLOWED_AUDIT_DATE);
     } else if (val > MAX_ALLOWED_AUDIT_DATE) {
       setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
@@ -104,7 +104,7 @@ export default function Audit({
       return;
     }
     if (val < MIN_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Audit records are only available for calendar year 2026. Prior years are not supported.');
+      setDateWarning('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
       setToDate(MIN_ALLOWED_AUDIT_DATE);
     } else if (val > MAX_ALLOWED_AUDIT_DATE) {
       setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
@@ -220,7 +220,7 @@ export default function Audit({
   }, [fromDate, toDate]);
 
   // Quick range preset handler
-  const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd') => {
+  const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd' | '2025') => {
     const todayStr = '2026-10-13';
     if (range === 'today') {
       setFromDate(todayStr);
@@ -238,6 +238,9 @@ export default function Audit({
     } else if (range === 'ytd') {
       setFromDate('2026-01-01');
       setToDate(todayStr);
+    } else if (range === '2025') {
+      setFromDate('2025-01-01');
+      setToDate('2025-12-31');
     }
   };
 
@@ -260,7 +263,7 @@ export default function Audit({
   // Execute Search
   const handleSearch = async (targetPage = 1, overrideProdId?: string, overrideBOId?: string) => {
     if (fromDate && fromDate < MIN_ALLOWED_AUDIT_DATE) {
-      setError('Audit records are only available for calendar year 2026. Prior years are not supported.');
+      setError('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
       return;
     }
 
@@ -593,7 +596,7 @@ export default function Audit({
           {/* C. Date From */}
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              Date From (2026)
+              Date From (2025 – 2026)
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -608,14 +611,14 @@ export default function Audit({
               />
             </div>
             <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Allowed: Jan 01, 2026 – Oct 12, 2026
+              Allowed: Jan 01, 2025 – Oct 13, 2026
             </span>
           </div>
 
           {/* D. Date To */}
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              Date To (2026)
+              Date To (2025 – 2026)
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -630,7 +633,7 @@ export default function Audit({
               />
             </div>
             <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Allowed: Jan 01, 2026 – Oct 12, 2026
+              Allowed: Jan 01, 2025 – Oct 13, 2026
             </span>
           </div>
 
@@ -773,6 +776,23 @@ export default function Audit({
             disabled={isSearching}
           >
             2026 Full Range (Jan 01 – Present)
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ 
+              padding: '0.22rem 0.75rem', 
+              fontSize: '0.74rem', 
+              borderRadius: '9999px',
+              border: '1px solid #10b981',
+              color: '#059669',
+              background: 'rgba(16, 185, 129, 0.08)',
+              fontWeight: 600
+            }}
+            onClick={() => setQuickRange('2025')}
+            disabled={isSearching}
+          >
+            2025 Full Year (All 12 Months)
           </button>
         </div>
       </div>

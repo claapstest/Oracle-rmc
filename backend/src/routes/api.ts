@@ -2114,9 +2114,9 @@ apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (
     });
 
     res.json({
+      ...oracleService.getModeInfo(),
       ...result,
-      auditUnavailable: false,
-      ...oracleService.getModeInfo()
+      auditUnavailable: false
     });
   } catch (err) {
     console.error('[API Router] Audit logs failed:', err);
@@ -2157,9 +2157,9 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
     });
 
     res.json({
+      ...oracleService.getModeInfo(),
       ...result,
-      auditUnavailable: false,
-      ...oracleService.getModeInfo()
+      auditUnavailable: false
     });
   } catch (err) {
     console.error('[API Router] Audit query failed:', err);
