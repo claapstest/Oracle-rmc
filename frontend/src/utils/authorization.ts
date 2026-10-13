@@ -50,21 +50,22 @@ export function canAccessPage(pageId: string, auth: AuthContext | null): boolean
 
   const normalizedRole = (auth.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
   const perms = normalizePrivileges(auth.permissions);
+
+  // Backend parity (requirePrivilege): isAdmin or ALL grants every known page.
+  // Must precede the SITE_ADMIN scoping below — admin@admin.com carries ALL.
+  if (auth.isAdmin === true || perms.includes('ALL')) return true;
+
   const effectivePerms = new Set(perms);
 
-  // Map Site Admin canonical privileges if not explicitly present
+  // Requirement 7 fallback: a SITE_ADMIN session without ALL/isAdmin keeps
+  // only its canonical modules (backend always sets isAdmin/ALL in practice).
   if (normalizedRole === 'SITE_ADMIN') {
     effectivePerms.add('USER_MANAGEMENT');
     effectivePerms.add('ORACLE_INTEGRATION');
     effectivePerms.add('ORACLE_API_CONSOLE');
-    // Site Admin sees only the modules corresponding to its authorized privileges per Requirement 7
-    return required.some((p) =>
-      ['USER_MANAGEMENT', 'ORACLE_INTEGRATION', 'ORACLE_API_CONSOLE'].includes(p)
-    );
   }
 
-  // If a non-Site Admin has 'ALL', allow
-  if (perms.includes('ALL')) return true;
-
   return required.some((p) => effectivePerms.has(p));
+
+  // Map Site Admin canonical privileges if not explicitly present
 }
