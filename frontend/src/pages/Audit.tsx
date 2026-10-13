@@ -9,8 +9,7 @@ import {
   ChevronRight, 
   Calendar, 
   AlertCircle, 
-  Layers,
-  Database
+  Layers
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { TableExportControl } from '../components/TableExportControl';
@@ -86,15 +85,19 @@ export default function Audit({
       setFromDate('');
       return;
     }
+    let validVal = val;
     if (val < MIN_ALLOWED_AUDIT_DATE) {
       setDateWarning('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
-      setFromDate(MIN_ALLOWED_AUDIT_DATE);
+      validVal = MIN_ALLOWED_AUDIT_DATE;
     } else if (val > MAX_ALLOWED_AUDIT_DATE) {
       setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
-      setFromDate(MAX_ALLOWED_AUDIT_DATE);
+      validVal = MAX_ALLOWED_AUDIT_DATE;
     } else {
       setDateWarning('');
-      setFromDate(val);
+    }
+    setFromDate(validVal);
+    if (toDate && validVal <= toDate) {
+      handleSearch(1, selectedProductId, selectedBOId, validVal, toDate);
     }
   };
 
@@ -103,15 +106,19 @@ export default function Audit({
       setToDate('');
       return;
     }
+    let validVal = val;
     if (val < MIN_ALLOWED_AUDIT_DATE) {
       setDateWarning('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
-      setToDate(MIN_ALLOWED_AUDIT_DATE);
+      validVal = MIN_ALLOWED_AUDIT_DATE;
     } else if (val > MAX_ALLOWED_AUDIT_DATE) {
       setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
-      setToDate(MAX_ALLOWED_AUDIT_DATE);
+      validVal = MAX_ALLOWED_AUDIT_DATE;
     } else {
       setDateWarning('');
-      setToDate(val);
+    }
+    setToDate(validVal);
+    if (fromDate && fromDate <= validVal) {
+      handleSearch(1, selectedProductId, selectedBOId, fromDate, validVal);
     }
   };
 
@@ -200,7 +207,6 @@ export default function Audit({
   }, [selectedProductId, products]);
 
   // Date span validation
-  const [isWideDateRange, setIsWideDateRange] = useState<boolean>(false);
   useEffect(() => {
     if (fromDate && toDate) {
       const fromMs = new Date(fromDate).getTime();
@@ -208,40 +214,41 @@ export default function Audit({
       const diffDays = (toMs - fromMs) / (1000 * 60 * 60 * 24);
       if (diffDays < 0) {
         setDateWarning('Date From cannot be after Date To.');
-        setIsWideDateRange(false);
-      } else if (diffDays > 30) {
-        setIsWideDateRange(true);
-        setDateWarning('Multi-month range selected: Historical audit records (> 30 days) are seamlessly served from your synchronized database repository.');
       } else {
-        setIsWideDateRange(false);
         setDateWarning('');
       }
     }
   }, [fromDate, toDate]);
 
-  // Quick range preset handler
+  // Quick range preset handler - updates dates AND triggers immediate search
   const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd' | '2025') => {
     const todayStr = '2026-10-13';
+    let newFrom = fromDate;
+    let newTo = toDate;
     if (range === 'today') {
-      setFromDate(todayStr);
-      setToDate(todayStr);
+      newFrom = todayStr;
+      newTo = todayStr;
     } else if (range === '7d') {
       const d = new Date(todayStr);
       d.setDate(d.getDate() - 7);
-      setFromDate(d.toISOString().split('T')[0]);
-      setToDate(todayStr);
+      newFrom = d.toISOString().split('T')[0];
+      newTo = todayStr;
     } else if (range === '30d') {
       const d = new Date(todayStr);
       d.setDate(d.getDate() - 29);
-      setFromDate(d.toISOString().split('T')[0]);
-      setToDate(todayStr);
+      newFrom = d.toISOString().split('T')[0];
+      newTo = todayStr;
     } else if (range === 'ytd') {
-      setFromDate('2026-01-01');
-      setToDate(todayStr);
+      newFrom = '2026-01-01';
+      newTo = todayStr;
     } else if (range === '2025') {
-      setFromDate('2025-01-01');
-      setToDate('2025-12-31');
+      newFrom = '2025-01-01';
+      newTo = '2025-12-31';
     }
+    setFromDate(newFrom);
+    setToDate(newTo);
+    setDateWarning('');
+    handleSearch(1, selectedProductId, selectedBOId, newFrom, newTo);
   };
 
   // Auto-run initial search once product catalog is loaded
@@ -261,18 +268,31 @@ export default function Audit({
   }, [selectedProductId, selectedBOId]);
 
   // Execute Search
-  const handleSearch = async (targetPage = 1, overrideProdId?: string, overrideBOId?: string) => {
-    if (fromDate && fromDate < MIN_ALLOWED_AUDIT_DATE) {
+  const handleSearch = async (
+    targetPage = 1,
+    overrideProdId?: string,
+    overrideBOId?: string,
+    overrideFromDate?: string,
+    overrideToDate?: string,
+    overrideAction?: string,
+    overrideUser?: string
+  ) => {
+    const qFrom = overrideFromDate !== undefined ? overrideFromDate : fromDate;
+    const qTo = overrideToDate !== undefined ? overrideToDate : toDate;
+    const qAction = overrideAction !== undefined ? overrideAction : actionFilter;
+    const qUser = overrideUser !== undefined ? overrideUser : userQuery;
+
+    if (qFrom && qFrom < MIN_ALLOWED_AUDIT_DATE) {
       setError('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
       return;
     }
 
-    if (toDate && toDate > MAX_ALLOWED_AUDIT_DATE) {
+    if (qTo && qTo > MAX_ALLOWED_AUDIT_DATE) {
       setError('Audit records beyond October 2026 are not supported in this Oracle Fusion instance.');
       return;
     }
 
-    if (new Date(toDate).getTime() < new Date(fromDate).getTime()) {
+    if (new Date(qTo).getTime() < new Date(qFrom).getTime()) {
       setError('Date From cannot be after Date To.');
       return;
     }
@@ -305,10 +325,10 @@ export default function Audit({
       const res = await api.getAuditLogs({
         product: prod?.productName || prod?.displayName || currentProdId,
         businessObjectType: selectedBO?.displayName || currentBOId || undefined,
-        fromDate,
-        toDate,
-        username: userQuery.trim() || undefined,
-        action: actionFilter !== 'ALL' ? actionFilter : undefined,
+        fromDate: qFrom,
+        toDate: qTo,
+        username: qUser.trim() || undefined,
+        action: qAction !== 'ALL' ? qAction : undefined,
         pageNumber: targetPage,
         pageSize
       });
@@ -340,8 +360,8 @@ export default function Audit({
         setLastQuerySummary({
           productDisplayName: res.productDisplayName || prod?.displayName || 'Oracle Fusion',
           businessObjectDisplayName: res.businessObjectDisplayName || selectedBO?.displayName || (prod?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events'),
-          fromDate: res.dateRange?.fromDate || fromDate,
-          toDate: res.dateRange?.toDate || toDate,
+          fromDate: res.dateRange?.fromDate || qFrom,
+          toDate: res.dateRange?.toDate || qTo,
           count: res.totalRecords !== undefined ? res.totalRecords : res.logs.length
         });
       } else {
@@ -366,24 +386,20 @@ export default function Audit({
   // Clear filters
   const handleClearFilters = () => {
     const hcm = products.find(p => p.id === 'hcm');
-    if (hcm) {
-      setSelectedProductId('hcm');
-      const firstSupported = (hcm.businessObjects || []).find(b => b.isSupported !== false);
-      setSelectedBOId(firstSupported ? firstSupported.id : (hcm.businessObjects[0]?.id || 'person'));
-    }
+    const targetProdId = hcm ? 'hcm' : (products[0]?.id || 'hcm');
+    const firstSupported = (hcm?.businessObjects || []).find(b => b.isSupported !== false);
+    const targetBOId = firstSupported ? firstSupported.id : (hcm?.businessObjects?.[0]?.id || 'person');
+
+    setSelectedProductId(targetProdId);
+    setSelectedBOId(targetBOId);
     setFromDate('2026-10-03');
-    setToDate('2026-10-12');
+    setToDate('2026-10-13');
     setUserQuery('');
     setActionFilter('ALL');
     setError('');
     setConfigNotice('');
     setDateWarning('');
-    setHasSearched(false);
-    setLogs([]);
-    setTotalRecords(0);
-    setLastQuerySummary(null);
-    setCurrentPage(1);
-    setExpandedRowIds(new Set());
+    handleSearch(1, targetProdId, targetBOId, '2026-10-03', '2026-10-13', 'ALL', '');
   };
 
   // Toggle Row Expansion
@@ -497,20 +513,16 @@ export default function Audit({
         </div>
       )}
 
-      {/* Date Span Notice */}
+      {/* Date Span Warning */}
       {dateWarning && (
         <div className="glass-panel animate-fade-in" style={{ 
           padding: '0.75rem 1.25rem', 
-          borderLeft: isWideDateRange ? '4px solid var(--accent-blue)' : '4px solid var(--accent-gold)', 
+          borderLeft: '4px solid var(--accent-gold)', 
           marginBottom: '1.25rem', 
-          background: isWideDateRange ? 'rgba(37, 99, 235, 0.05)' : 'rgba(245, 158, 11, 0.05)' 
+          background: 'rgba(245, 158, 11, 0.05)' 
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            {isWideDateRange ? (
-              <Database size={16} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-            ) : (
-              <ShieldAlert size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
-            )}
+            <ShieldAlert size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
             <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 500 }}>{dateWarning}</span>
           </div>
         </div>
@@ -647,12 +659,14 @@ export default function Audit({
                 type="text"
                 className="form-input"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
-                placeholder="Search by username..."
+                placeholder="Search by username (press Enter)..."
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
                 disabled={isSearching}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSearch(1);
+                  if (e.key === 'Enter') {
+                    handleSearch(1, selectedProductId, selectedBOId, fromDate, toDate, actionFilter, userQuery);
+                  }
                 }}
               />
             </div>
@@ -667,7 +681,11 @@ export default function Audit({
               className="form-select"
               style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
               value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
+              onChange={(e) => {
+                const nextAction = e.target.value;
+                setActionFilter(nextAction);
+                handleSearch(1, selectedProductId, selectedBOId, fromDate, toDate, nextAction);
+              }}
               disabled={isSearching}
             >
               <option value="ALL">All Events</option>
