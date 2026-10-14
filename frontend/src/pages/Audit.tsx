@@ -41,23 +41,33 @@ interface AttributeDetail {
 
 interface AuditLogItem {
   id: string;
+  date?: string;
   timestamp: string;
+  user?: string;
+  userId?: string;
   username: string;
   userInternalName?: string;
+  eventType?: string;
   event: string;
   action?: string;
   eventCategory?: string;
+  businessObjectType?: string;
   businessObject: string;
   qualifiedBusinessObject?: string;
+  description?: string;
   identifier: string;
+  attribute?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
   details: string;
   attributeDetails?: AttributeDetail[];
   childObjects?: any[];
   impersonator?: string;
 }
 
-export const MIN_ALLOWED_AUDIT_DATE = '2025-01-01';
-export const MAX_ALLOWED_AUDIT_DATE = '2026-10-13';
+const MIN_ALLOWED_AUDIT_DATE = '2025-01-01';
+const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
+const MAX_ALLOWED_AUDIT_DATE = getTodayIsoDate();
 
 export interface AuditProps {
   initialBOId?: string;
@@ -73,25 +83,26 @@ export default function Audit({
   const [selectedProductId, setSelectedProductId] = useState<string>(initialProductId || 'hcm');
   const [selectedBOId, setSelectedBOId] = useState<string>(initialBOId || 'document_records');
 
-  // Filter state - supports 2025 through 2026
-  const [fromDate, setFromDate] = useState<string>('2026-10-03');
-  const [toDate, setToDate] = useState<string>('2026-10-13');
+  // Filter state - supports 2025 through current date
+  const [fromDate, setFromDate] = useState<string>('2025-01-01');
+  const [toDate, setToDate] = useState<string>(getTodayIsoDate);
   const [userQuery, setUserQuery] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
 
-  // Calendar year 2025-2026 bound handlers
+  // Calendar year 2025-present bound handlers
   const handleFromDateChange = (val: string) => {
     if (!val) {
       setFromDate('');
       return;
     }
+    const maxDate = getTodayIsoDate();
     let validVal = val;
     if (val < MIN_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
+      setDateWarning('Audit records are available from 01 Jan 2025 to present. Prior years are not supported.');
       validVal = MIN_ALLOWED_AUDIT_DATE;
-    } else if (val > MAX_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
-      validVal = MAX_ALLOWED_AUDIT_DATE;
+    } else if (val > maxDate) {
+      setDateWarning('Future dates beyond the current date are not supported.');
+      validVal = maxDate;
     } else {
       setDateWarning('');
     }
@@ -106,13 +117,14 @@ export default function Audit({
       setToDate('');
       return;
     }
+    const maxDate = getTodayIsoDate();
     let validVal = val;
     if (val < MIN_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
+      setDateWarning('Audit records are available from 01 Jan 2025 to present. Prior years are not supported.');
       validVal = MIN_ALLOWED_AUDIT_DATE;
-    } else if (val > MAX_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Future dates beyond October 2026 are not supported in this Oracle Fusion instance.');
-      validVal = MAX_ALLOWED_AUDIT_DATE;
+    } else if (val > maxDate) {
+      setDateWarning('Future dates beyond the current date are not supported.');
+      validVal = maxDate;
     } else {
       setDateWarning('');
     }
@@ -968,12 +980,15 @@ export default function Audit({
                 data={logs}
                 totalCount={totalRecords || logs.length}
                 columns={[
-                  { key: 'timestamp', label: 'Timestamp' },
-                  { key: 'username', label: 'User' },
-                  { key: 'event', label: 'Event' },
-                  { key: 'businessObject', label: 'Business Object' },
-                  { key: 'identifier', label: 'Identifier' },
-                  { key: 'details', label: 'Details' }
+                  { key: 'date', label: 'Date' },
+                  { key: 'user', label: 'User' },
+                  { key: 'userId', label: 'User ID' },
+                  { key: 'eventType', label: 'Event Type' },
+                  { key: 'businessObjectType', label: 'Business Object Type' },
+                  { key: 'description', label: 'Description' },
+                  { key: 'attribute', label: 'Attribute' },
+                  { key: 'oldValue', label: 'Old Value' },
+                  { key: 'newValue', label: 'New Value' }
                 ]}
               />
             )}
@@ -982,24 +997,27 @@ export default function Audit({
       )}
 
       {/* 4. Audit Results Table */}
-      <div className="table-container" style={{ margin: 0, borderRadius: '10px', overflow: 'hidden' }}>
-        <table className="enterprise-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-container" style={{ margin: 0, borderRadius: '10px', overflowX: 'auto' }}>
+        <table className="enterprise-table" style={{ width: '100%', minWidth: '1350px', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
               <th style={{ width: '30px' }}></th>
-              <th style={{ width: '160px' }}>TIMESTAMP</th>
-              <th style={{ width: '150px' }}>USER</th>
-              <th style={{ width: '180px' }}>EVENT</th>
-              <th style={{ width: '180px' }}>BUSINESS OBJECT</th>
-              <th style={{ width: '220px' }}>IDENTIFIER</th>
-              <th>DETAILS</th>
+              <th style={{ minWidth: '120px' }}>DATE</th>
+              <th style={{ minWidth: '130px' }}>USER</th>
+              <th style={{ minWidth: '140px' }}>USER ID</th>
+              <th style={{ minWidth: '130px' }}>EVENT TYPE</th>
+              <th style={{ minWidth: '160px' }}>BUSINESS OBJECT TYPE</th>
+              <th style={{ minWidth: '220px' }}>DESCRIPTION</th>
+              <th style={{ minWidth: '130px' }}>ATTRIBUTE</th>
+              <th style={{ minWidth: '240px' }}>OLD VALUE</th>
+              <th style={{ minWidth: '240px' }}>NEW VALUE</th>
             </tr>
           </thead>
           <tbody>
             {/* Loading State */}
             {isSearching ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                     <RefreshCw size={26} className="animate-spin" style={{ color: 'var(--accent-blue)' }} />
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
@@ -1014,7 +1032,7 @@ export default function Audit({
             ) : !hasSearched ? (
               /* Before Search Empty State */
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '4rem 1.5rem', color: 'var(--text-muted)' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '4rem 1.5rem', color: 'var(--text-muted)' }}>
                   <div style={{ maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ 
                       width: '48px', 
@@ -1041,7 +1059,7 @@ export default function Audit({
             ) : logs.length === 0 ? (
               /* After Search 0 Records Empty State */
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-muted)' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-muted)' }}>
                   <div style={{ maxWidth: '450px', margin: '0 auto' }}>
                     <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                       No audit records found for the selected filters.
@@ -1076,67 +1094,58 @@ export default function Audit({
                         {isExpanded ? <ChevronDown size={15} style={{ color: 'var(--accent-blue)' }} /> : <ChevronRight size={15} />}
                       </td>
 
-                      {/* Timestamp */}
+                      {/* Date */}
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        {log.timestamp}
+                        {log.date || log.timestamp}
                       </td>
 
                       {/* User */}
-                      <td style={{ fontWeight: 600 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <code>{log.username}</code>
-                        </div>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {log.user || log.username || '—'}
                       </td>
 
-                      {/* Event Badge */}
+                      {/* User ID */}
+                      <td style={{ fontSize: '0.8rem', color: 'var(--accent-blue)' }}>
+                        <code>{log.userId || log.userInternalName || '—'}</code>
+                      </td>
+
+                      {/* Event Type */}
                       <td>
-                        <span className={`badge ${getEventBadgeClass(log.event || log.action)}`} style={{ fontSize: '0.72rem', letterSpacing: '0.02em' }}>
-                          {log.event || log.action || 'Audit Event'}
+                        <span className={`badge ${getEventBadgeClass(log.eventType || log.event || log.action)}`} style={{ fontSize: '0.72rem', letterSpacing: '0.02em' }}>
+                          {log.eventType || log.event || log.action || 'Audit Event'}
                         </span>
                       </td>
 
-                      {/* Business Object */}
+                      {/* Business Object Type */}
                       <td style={{ fontSize: '0.83rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                        {log.businessObject}
+                        {log.businessObjectType || log.businessObject}
                       </td>
 
-                      {/* Identifier */}
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        <code style={{ fontSize: '0.75rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                          {log.identifier}
-                        </code>
+                      {/* Description */}
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: '200px', maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }} title={log.description || log.identifier}>
+                        {log.description || log.identifier || '—'}
                       </td>
 
-                      {/* Details / Expand Action */}
-                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis', 
-                            whiteSpace: 'nowrap', 
-                            maxWidth: '350px' 
-                          }}>
-                            {log.details}
-                          </span>
-                          <span style={{ 
-                            fontSize: '0.72rem', 
-                            fontWeight: 600, 
-                            color: 'var(--accent-blue)', 
-                            whiteSpace: 'nowrap',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.2rem'
-                          }}>
-                            {isExpanded ? 'Hide' : hasAttributes ? 'View Changes' : 'Details'}
-                          </span>
-                        </div>
+                      {/* Attribute */}
+                      <td style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                        {log.attribute !== null && log.attribute !== undefined ? log.attribute : '—'}
+                      </td>
+
+                      {/* Old Value */}
+                      <td style={{ fontSize: '0.78rem', color: log.oldValue ? 'var(--accent-red)' : 'var(--text-muted)', fontFamily: log.oldValue ? 'monospace' : 'inherit', minWidth: '220px', maxWidth: '380px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }} title={log.oldValue ?? ''}>
+                        {log.oldValue !== null && log.oldValue !== undefined ? log.oldValue : 'null'}
+                      </td>
+
+                      {/* New Value */}
+                      <td style={{ fontSize: '0.78rem', color: log.newValue ? 'var(--accent-green, #10B981)' : 'var(--text-muted)', fontFamily: log.newValue ? 'monospace' : 'inherit', minWidth: '220px', maxWidth: '380px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }} title={log.newValue ?? ''}>
+                        {log.newValue !== null && log.newValue !== undefined ? log.newValue : 'null'}
                       </td>
                     </tr>
 
                     {/* 5. Expandable Details Panel */}
                     {isExpanded && (
                       <tr style={{ backgroundColor: 'rgba(37, 99, 235, 0.03)' }}>
-                        <td colSpan={7} style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                        <td colSpan={10} style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
                           <div className="animate-fade-in">
                             
                             {/* Metadata Grid */}

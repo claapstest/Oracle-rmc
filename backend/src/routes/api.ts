@@ -1736,6 +1736,7 @@ apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Respon
     if (source === 'oracle' || source === 'scim') {
       const filter = (req.query.filter || req.query.search || req.query.q) as string | undefined;
       const category = (req.query.category || req.query.insight || req.query.initialFilter) as string | undefined;
+      const status = (req.query.status || req.query.userStatus) as string | undefined;
       const startIndex = req.query.startIndex
         ? parseInt(req.query.startIndex as string, 10)
         : (req.query.page && req.query.limit
@@ -1744,7 +1745,7 @@ apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Respon
       const count = req.query.count
         ? parseInt(req.query.count as string, 10)
         : (req.query.pageSize || req.query.limit ? parseInt((req.query.pageSize || req.query.limit) as string, 10) : 50);
-      const result = await oracleService.getUsers({ filterText: filter, category, startIndex, count });
+      const result = await oracleService.getUsers({ filterText: filter, category, status, startIndex, count });
       return res.json({ ...result, ...oracleService.getModeInfo() });
     }
 

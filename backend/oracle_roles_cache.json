@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-10-13T15:47:20.994Z",
+  "syncedAt": "2026-10-14T14:21:08.781Z",
   "totalResults": 707,
   "counts": {
     "Job": 511,
@@ -5234,6 +5234,10 @@
         },
         {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
+          "display": ""
+        },
+        {
+          "value": "5462FFB05654349FE063B9131CAC132E",
           "display": ""
         },
         {
@@ -17139,10 +17143,6 @@
         {
           "value": "5176A38C683E2EE7E063B9131CACB9D6",
           "display": ""
-        },
-        {
-          "value": "D016B910F39645D2A7DDD2483C34904E",
-          "display": ""
         }
       ],
       "parentRoles": [],
@@ -22487,6 +22487,10 @@
         },
         {
           "value": "B194EFACBCBC477CB20694AECF72E091",
+          "display": ""
+        },
+        {
+          "value": "5462FFB05654349FE063B9131CAC132E",
           "display": ""
         },
         {
@@ -29771,6 +29775,10 @@
         },
         {
           "value": "F9E9874834D547CEA098292DD717AB3E",
+          "display": ""
+        },
+        {
+          "value": "5462FFB05654349FE063B9131CAC132E",
           "display": ""
         },
         {
@@ -56309,10 +56317,6 @@
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
           "display": ""
-        },
-        {
-          "value": "EBCC8AEB02E84FA387C3B21B90A112BB",
-          "display": ""
         }
       ],
       "parentRoles": [],
@@ -61849,12 +61853,7 @@
       "roleCode": "ORA_CPQ_ADMINISTRATOR_JOB",
       "category": "Job",
       "description": "Individual responsible for implementing and managing the CPQ application. Can set up users, quoting processes, product catalog, and product pricing. Can also tailor the application as required by the business.",
-      "members": [
-        {
-          "value": "D016B910F39645D2A7DDD2483C34904E",
-          "display": ""
-        }
-      ],
+      "members": [],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []
@@ -61928,12 +61927,7 @@
       "roleCode": "ORA_CPQ_PARTNER_ADMINISTRATOR_JOB",
       "category": "Job",
       "description": "This role is intended to be provisioned to an elevated employee of a partner company that can resell products. Can manage the sales agents and groups that are members of their partner company.",
-      "members": [
-        {
-          "value": "D016B910F39645D2A7DDD2483C34904E",
-          "display": ""
-        }
-      ],
+      "members": [],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []
@@ -68321,10 +68315,6 @@
         },
         {
           "value": "6C45649893354B0393450316FA30C565",
-          "display": ""
-        },
-        {
-          "value": "EBCC8AEB02E84FA387C3B21B90A112BB",
           "display": ""
         },
         {

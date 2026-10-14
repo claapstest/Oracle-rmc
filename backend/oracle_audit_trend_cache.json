@@ -6,39 +6,39 @@
     "deletes": 0
   },
   "2026-09-30": {
-    "count": 147,
-    "inserts": 147,
+    "count": 152,
+    "inserts": 152,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-01": {
-    "count": 296,
-    "inserts": 296,
+    "count": 308,
+    "inserts": 308,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-02": {
-    "count": 149,
-    "inserts": 149,
+    "count": 155,
+    "inserts": 155,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-06": {
-    "count": 272,
-    "inserts": 272,
+    "count": 281,
+    "inserts": 281,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-07": {
-    "count": 242,
-    "inserts": 242,
+    "count": 251,
+    "inserts": 251,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-12": {
-    "count": 2862,
-    "inserts": 2060,
-    "updates": 658,
+    "count": 2868,
+    "inserts": 2065,
+    "updates": 659,
     "deletes": 144
   },
   "2026-10-09": {
@@ -64,5 +64,59 @@
     "inserts": 202,
     "updates": 0,
     "deletes": 21
+  },
+  "2026-09-12": {
+    "count": 57,
+    "inserts": 26,
+    "updates": 31,
+    "deletes": 0
+  },
+  "2026-09-11": {
+    "count": 229,
+    "inserts": 224,
+    "updates": 3,
+    "deletes": 2
+  },
+  "2026-09-10": {
+    "count": 149,
+    "inserts": 149,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-09-09": {
+    "count": 65,
+    "inserts": 3,
+    "updates": 62,
+    "deletes": 0
+  },
+  "2026-09-22": {
+    "count": 267,
+    "inserts": 255,
+    "updates": 12,
+    "deletes": 0
+  },
+  "2026-09-21": {
+    "count": 75,
+    "inserts": 37,
+    "updates": 4,
+    "deletes": 34
+  },
+  "2026-09-20": {
+    "count": 67,
+    "inserts": 58,
+    "updates": 9,
+    "deletes": 0
+  },
+  "2026-09-19": {
+    "count": 60,
+    "inserts": 58,
+    "updates": 2,
+    "deletes": 0
+  },
+  "2026-09-18": {
+    "count": 31,
+    "inserts": 6,
+    "updates": 25,
+    "deletes": 0
   }
 }

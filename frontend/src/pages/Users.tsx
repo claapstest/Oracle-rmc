@@ -24,6 +24,9 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalResults, setTotalResults] = useState(0);
+  const [directoryTotal, setDirectoryTotal] = useState(0);
+  const [activeCount, setActiveCount] = useState<number | null>(null);
+  const [inactiveCount, setInactiveCount] = useState<number | null>(null);
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState(initialFilter);
 
@@ -56,11 +59,15 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             searchTerm || undefined,
             startIndex,
             pageSize,
-            activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined
+            activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
+            statusFilter !== 'ALL' ? statusFilter : undefined
           );
           if (res?.users) {
             setUsers(res.users);
             setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
+            if (res.directoryTotal) setDirectoryTotal(res.directoryTotal);
+            if (res.activeCount !== undefined) setActiveCount(res.activeCount);
+            if (res.inactiveCount !== undefined) setInactiveCount(res.inactiveCount);
             setDataSource(res.dataSource || 'Oracle Fusion SCIM API');
           }
         } catch (err) {
@@ -74,7 +81,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     }, delay);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentPage, pageSize, activeCategoryFilter]);
+  }, [searchTerm, currentPage, pageSize, activeCategoryFilter, statusFilter]);
 
   // Client-side filtering on current page items for status/insight tags if applicable
   const filteredUsers = useMemo(() => {
@@ -107,7 +114,15 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
     });
   }, [users, statusFilter, activeCategoryFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
+  const displayCount = filteredUsers.length;
+  const startItem = displayCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endItem = displayCount > 0 ? (currentPage - 1) * pageSize + displayCount : 0;
+  // If first page has fewer results than pageSize and totalResults was not returned or 0, fallback to displayCount
+  const effectiveTotal = (currentPage === 1 && displayCount < pageSize && (totalResults === 0 || totalResults < pageSize))
+    ? displayCount
+    : totalResults;
+
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / pageSize));
 
   // Live-only pagination guard: if total shrinks below current page (e.g. instance switch), reset to page 1
   useEffect(() => {
@@ -327,7 +342,11 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
               color: '#ffffff',
               backdropFilter: 'blur(8px)'
             }}>
-              {totalResults > 0 ? `${totalResults.toLocaleString()} Users in Directory` : 'Loading directory...'}
+              {directoryTotal > 0
+                ? `${directoryTotal.toLocaleString()} Users in Directory`
+                : totalResults > 0
+                  ? `${totalResults.toLocaleString()} Users in Directory`
+                  : 'Loading directory...'}
             </div>
           </div>
         </div>
@@ -372,24 +391,24 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            style={{ width: '160px' }}
+            style={{ minWidth: '185px' }}
           >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active Users</option>
-            <option value="INACTIVE">Inactive Users</option>
+            <option value="ALL">All Statuses {directoryTotal > 0 ? `(${directoryTotal.toLocaleString()})` : ''}</option>
+            <option value="ACTIVE">Active Users {activeCount !== null ? `(${activeCount.toLocaleString()})` : ''}</option>
+            <option value="INACTIVE">Inactive Users {inactiveCount !== null ? `(${inactiveCount.toLocaleString()})` : ''}</option>
           </select>
 
           {/* Enterprise Export Control */}
           <EnterpriseExportControl
-            filename="users_directory"
+            filename={statusFilter === 'INACTIVE' ? 'inactive_users_directory' : statusFilter === 'ACTIVE' ? 'active_users_directory' : 'users_directory'}
             sheetName="Users Directory"
-            reportTitle="Oracle Fusion Identity & Access Management Directory"
+            reportTitle={`Oracle Fusion Identity & Access Management Directory${statusFilter === 'INACTIVE' ? ' (Inactive Users)' : statusFilter === 'ACTIVE' ? ' (Active Users)' : ''}`}
             dataSource={dataSource}
             entityName="Users"
             buttonText="Export Users"
             currentPageData={filteredUsers}
-            filteredCount={totalResults}
-            totalCount={totalResults}
+            filteredCount={effectiveTotal}
+            totalCount={directoryTotal || effectiveTotal}
             appliedFilters={activeFilters}
             availableColumns={[
               { key: 'userName', label: 'Username', defaultSelected: true },
@@ -415,12 +434,14 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
             onFetchScopeData={async (scope) => {
               if (scope === 'PAGE') return filteredUsers;
               const countToFetch = scope === 'FILTERED'
-                ? Math.min(totalResults || 5000, 5000)
-                : Math.min(totalResults || 5000, 5000);
+                ? Math.min(effectiveTotal || 5000, 5000)
+                : Math.min(directoryTotal || 5000, 5000);
               const res = await api.getUsers(
                 scope === 'FILTERED' ? (searchTerm || undefined) : undefined,
                 1,
-                countToFetch
+                countToFetch,
+                scope === 'FILTERED' && activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
+                scope === 'FILTERED' && statusFilter !== 'ALL' ? statusFilter : undefined
               );
               return res?.users || [];
             }}
@@ -439,7 +460,13 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           gap: '0.75rem'
         }}>
           <div>
-            Showing <strong>{totalResults > 0 ? ((currentPage - 1) * pageSize + 1).toLocaleString() : 0}</strong>–<strong>{Math.min(currentPage * pageSize, totalResults).toLocaleString()}</strong> of <strong>{totalResults.toLocaleString()}</strong> users
+            {displayCount === 0 && !loading ? (
+              <span>Showing <strong>0</strong> users</span>
+            ) : (
+              <span>
+                Showing <strong>{startItem.toLocaleString()}</strong>–<strong>{endItem.toLocaleString()}</strong> of <strong>{effectiveTotal.toLocaleString()}</strong> {statusFilter === 'INACTIVE' ? 'inactive ' : statusFilter === 'ACTIVE' ? 'active ' : ''}users
+              </span>
+            )}
             {loading && <span style={{ marginLeft: '0.5rem', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>(updating...)</span>}
           </div>
 
@@ -556,7 +583,7 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({totalResults.toLocaleString()} total users)
+                Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({effectiveTotal.toLocaleString()} {statusFilter === 'INACTIVE' ? 'inactive ' : statusFilter === 'ACTIVE' ? 'active ' : ''}users)
               </div>
               {renderRowsPerPageSelect()}
             </div>
