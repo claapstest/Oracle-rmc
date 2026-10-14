@@ -52,10 +52,167 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     }
   }
 
+  // -1. Access Certification intents (live Oracle BIP data). First: the 'certif'
+  // root never overlaps user/role/privilege/audit matchers. Incident-flavored
+  // questions without worksheet context fall through to the controls block.
+  if (clean.includes('certif') && !(/\bincidents?\b/.test(clean) && !clean.includes('worksheet'))) {
+    const stripPunct = (s: string) => s.replace(/[\?\.\!,;:\(\)"']+$/g, '').replace(/^["']+/, '').trim();
+
+    const certIdKw = clean.match(/(?:certification|cert)\s+#?(?:id\s+)?(\d{1,7})\b/);
+    const certIdBare = clean.match(/\b(\d{5,7})\b/);
+    const certId = (certIdKw && certIdKw[1]) || (certIdBare && certIdBare[1]) || '';
+    const quoted = clean.match(/"([^"]{2,80})"/);
+    const underName = clean.match(/\b([A-Za-z0-9]*_[A-Za-z0-9_]+)\b/);
+    const certName = (quoted && stripPunct(quoted[1])) || (underName && underName[1]) || '';
+
+    const emailM = clean.match(/\b([a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,})\b/);
+    let username = emailM ? emailM[1] : '';
+    if (!username) {
+      const um = clean.match(/(?:\buser\s+|\busername\s+|\bfor\s+|\bby\s+)([a-z0-9_\.\@\-]+)/);
+      const stopU = new Set(['certification', 'cert', 'worksheet', 'role', 'roles', 'status', 'the', 'all', 'show', 'list', 'being', 'under', 'with', 'and']);
+      if (um && um[1]) {
+        const tok = stripPunct(um[1]).split(/\s+/)[0] || '';
+        if (tok && !stopU.has(tok) && (tok.includes('.') || tok.includes('_') || tok.includes('@'))) username = tok;
+      }
+    }
+
+    let role = '';
+    const roleCodeM = clean.match(/\b(ORA_[A-Z0-9_]+)\b/);
+    const roleCode = roleCodeM ? roleCodeM[1] : '';
+    if (!roleCode) {
+      const rm = clean.match(/roles?\s+(?:being\s+certified\s+(?:for\s+)?|for\s+|of\s+)?([a-zA-Z][^'"]*)/);
+      if (rm && rm[1]) {
+        let v = stripPunct(rm[1].split(/\s+(?:was|were|during|in|under|for|with|and|or)\b.*$/)[0]);
+        v = stripPunct(v.replace(/^(for|of|being|user|certified|in)\s+/i, '').replace(/\s+(being|certified|for|user|with|and|status|state|all|show|list)\b.*$/i, ''));
+        if (v && !/^(all|any|assigned|show|list|being|certified|user)$/i.test(v)) role = v;
+      }
+    }
+
+    let manager = '';
+    const mgrM = clean.match(/(?:under\s+)?manager\s+([a-z0-9._@\-' ]+?)(?:\s+who|\?|$)/) || clean.match(/(?:employees?|users?)\s+under\s+([a-z0-9._@\-']+)/);
+    if (mgrM && mgrM[1]) {
+      const v = stripPunct(mgrM[1]).split(/\s+/).slice(0, 2).join(' ');
+      if (v && !/^(all|any|name)$/i.test(v)) manager = v;
+    }
+
+    let businessUnit = '';
+    const buM = clean.match(/business unit\s+([a-z0-9][^?.,;]*)/i) || clean.match(/for the\s+['"]?([a-z0-9][^?.,;]*?)['"]?\s+business unit/i);
+    if (buM && buM[1]) {
+      const v = stripPunct(buM[1].split(/\s+who\s+/i)[0]);
+      if (v) businessUnit = v;
+    }
+
+    let location = '';
+    const locM = clean.match(/location\s+([a-z0-9][^?.,;]*)/i);
+    if (locM && locM[1]) {
+      const v = stripPunct(locM[1]);
+      if (v) location = v;
+    }
+
+    let action = '';
+    if (clean.includes('remove access')) action = 'REMOVE';
+    else if (clean.includes('keep access')) action = 'KEEP';
+    else if (clean.includes('revok')) action = 'REVOKED';
+    else if (clean.includes('approv')) action = 'APPROVED';
+    else if (/been certified|have been certified/.test(clean)) action = 'CERTIFIED';
+    else if (clean.includes('pending')) action = 'PENDING';
+
+    let dueMonth = '';
+    const monthMap: Record<string, string> = { january: '01', february: '02', march: '03', april: '04', may: '05', june: '06', july: '07', august: '08', september: '09', october: '10', november: '11', december: '12' };
+    const dmM = clean.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(20\d{2})/);
+    if (dmM) dueMonth = `${dmM[2]}-${monthMap[dmM[1]]}`;
+
+    let campStatus = '';
+    if (clean.includes('in progress')) campStatus = 'In Progress';
+    else if (clean.includes('completed')) campStatus = 'Completed';
+    else if (clean.includes('closed')) campStatus = 'Closed';
+    else if (clean.includes('active')) campStatus = 'Active';
+
+    let aggregate = '';
+    if (/which users and roles|users and roles are included|roles are included/.test(clean)) aggregate = 'users-roles';
+    else if (/most.*business unit|business units.*most|most users/.test(clean) && /business unit/.test(clean)) aggregate = 'units';
+    else if (/most.*location|locations.*most/.test(clean)) aggregate = 'locations';
+
+    const hasRowSignal = username !== '' || role !== '' || roleCode !== '' || manager !== '' ||
+      businessUnit !== '' || location !== '' || action !== '' || aggregate !== '' ||
+      clean.includes('worksheet') || clean.includes('line item');
+    const hasCertRef = certId !== '' || certName !== '';
+
+    // A. Worksheet drill-down / row-level questions
+    if (hasRowSignal) {
+      const params: any = {};
+      if (certId) params.certificationId = certId;
+      if (certName) params.certificationName = certName;
+      if (username) params.username = username;
+      if (role) params.role = role;
+      if (roleCode) params.roleCode = roleCode;
+      if (manager) params.manager = manager;
+      if (businessUnit) params.businessUnit = businessUnit;
+      if (location) params.location = location;
+      if (action) params.action = action;
+      if (aggregate) params.aggregate = aggregate;
+      const limM = clean.match(/(?:top|first)\s+(\d{1,2})\b/);
+      params.limit = limM ? Math.min(Math.max(parseInt(limM[1], 10), 1), 50) : 25;
+      return {
+        intent: 'CERTIFIER_WORKSHEET',
+        parameters: params,
+        explanation: 'Detected request for certifier worksheet line items.'
+      };
+    }
+
+    // B. Single certification header questions
+    const headerAttrs = clean.includes('owner') || clean.includes('owns') || clean.includes('due') ||
+      clean.includes('status') || clean.includes('percent') || clean.includes('completion') ||
+      clean.includes('type') || clean.includes('creation') || clean.includes('manager') ||
+      clean.includes('find') || clean.includes('show');
+    if (hasCertRef && (headerAttrs || clean.includes('certification'))) {
+      // "Show the certifier worksheet details for certification 35006" stays a worksheet ask
+      if (clean.includes('worksheet')) {
+        return {
+          intent: 'CERTIFIER_WORKSHEET',
+          parameters: { ...(certId ? { certificationId: certId } : {}), ...(certName ? { certificationName: certName } : {}), limit: 25 },
+          explanation: 'Detected request for a full certifier worksheet.'
+        };
+      }
+      const params: any = {};
+      if (certId) params.certificationId = certId;
+      if (certName) params.certificationName = certName;
+      return {
+        intent: 'CERTIFICATION_DETAILS',
+        parameters: params,
+        explanation: 'Detected request for a specific access certification record.'
+      };
+    }
+
+    // C. Certification listings
+    if (clean.includes('list') || clean.includes('show') || clean.includes('all') || campStatus !== '' || dueMonth !== '') {
+      const params: any = {};
+      if (campStatus) params.status = campStatus;
+      if (dueMonth) params.dueMonth = dueMonth;
+      return {
+        intent: 'CERTIFICATIONS_LIST',
+        parameters: params,
+        explanation: 'Detected request to list access certifications.'
+      };
+    }
+
+    // D. Certification counts overview
+    return {
+      intent: 'CERTIFICATIONS_OVERVIEW',
+      parameters: {},
+      explanation: 'Detected request for access certification population counts.'
+    };
+  }
+
   // 0. Controls & Incidents conversational intents (live Oracle Fusion data).
   // Placed first so control/incident questions never fall into generic buckets.
+  // Role-subject guard: role names like "Access Controls Analyst" contain the
+  // substring "control" but are not control questions; role-listing questions
+  // ("which roles...", "roles with...") are not incident listings either.
+  // (Inline boolean gates only — no new blocks, by design.)
+  const isRoleSubjectQuestion = /access controls analyst|who has .*\broles?\b|roles? .* assigned|role hierarchy|which roles|roles with|roles having|roles containing/.test(clean);
   {
-    const hasControlWord = clean.includes('control') || clean.includes('controls') || clean.includes('algorithm');
+    const hasControlWord = !isRoleSubjectQuestion && (clean.includes('control') || clean.includes('controls') || clean.includes('algorithm'));
     const hasIncidentWord = clean.includes('incident') || clean.includes('incidents');
     const stripPunct = (s: string) => s.replace(/[\?\.\!,;:\(\)"']+$/g, '').replace(/^["']+/, '').trim();
 
@@ -163,7 +320,7 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       const statusF = extractLifecycleStatus();
       const stateF = extractState();
       const prioF = extractPriority();
-      const wantsIncidents = hasIncidentWord && (
+      const wantsIncidents = !isRoleSubjectQuestion && hasIncidentWord && (
         controlNumMatch || quotedMatch || /control\b/.test(clean) ||
         userF || roleF || apF || statusF || stateF || prioF ||
         clean.includes('how many') || clean.includes('count') || clean.includes('number of') ||
@@ -194,12 +351,18 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       }
 
       // 0c. Single control details (by id/name, or attribute questions)
+      // Skipped for audit-language questions (attribute changes, trails) so
+      // they reach the audit vault intent below instead of control details.
+      // Generic attribute phrases ("description ...", "status ...") are also
+      // not control names — those belong to audit as well.
+      const isAuditLanguage = /attribute|changed|modified|\baudit\b|history|old value|new value|who\s+(last\s+)?updated|updated\s+by/.test(clean);
       const detailVerbs = clean.includes('detail') || clean.includes('description') || clean.includes('enforcement') ||
         clean.includes('last run') || clean.includes('last updated') || clean.includes('created') ||
         clean.includes('scheduled') || clean.includes('job') || clean.includes('who') ||
         clean.includes('show') || clean.includes('find') || clean.includes('tell me') || clean.includes('what is');
       const cNameOnly = extractControlName();
-      if ((controlNumMatch && controlNumMatch[1]) || (quotedMatch && quotedMatch[1]) || (hasControlWord && (detailVerbs || cNameOnly))) {
+      const genericAttrName = !!cNameOnly && /^(description|status|priority|attributes?|name|job|enforcement|control description)\b/i.test(cNameOnly);
+      if (!isAuditLanguage && !genericAttrName && ((controlNumMatch && controlNumMatch[1]) || (quotedMatch && quotedMatch[1]) || (hasControlWord && (detailVerbs || cNameOnly)))) {
         const params: any = {};
         if (controlNumMatch && controlNumMatch[1]) {
           // Numeric control ID is authoritative; ignore name fragments.
@@ -221,10 +384,11 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       }
 
       // 0d. Control listing (active/inactive, access/transaction, top, search)
+      // Skipped for audit-language questions for the same reason as 0c above.
       const listVerbs = clean.includes('list') || clean.includes('show') || clean.includes('find') ||
         clean.includes('active') || clean.includes('inactive') || clean.includes('most') ||
         clean.includes('highest') || clean.includes('top') || clean.includes('which');
-      if (hasControlWord && (listVerbs || controlNumMatch)) {
+      if (!isAuditLanguage && hasControlWord && (listVerbs || controlNumMatch)) {
         const params: any = {};
         if (clean.includes('inactive')) params.status = 'INACTIVE';
         else if (clean.includes('active')) params.status = 'ACTIVE';
@@ -243,7 +407,7 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       }
 
       // 0e. Control counts overview ("how many access/transaction controls")
-      if (hasControlWord && (clean.includes('how many') || clean.includes('count') || clean.includes('number of') || clean.includes('total'))) {
+      if (!isAuditLanguage && hasControlWord && (clean.includes('how many') || clean.includes('count') || clean.includes('number of') || clean.includes('total'))) {
         return {
           intent: 'CONTROLS_OVERVIEW',
           parameters: {},
@@ -268,8 +432,11 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
-  // 1b. Advanced Controls & Control Incidents
+  // 1b. Advanced Controls & Control Incidents (skipped for audit-language
+  // questions so attribute/trail queries reach the audit vault intent)
+  const isAuditLanguage = /attribute|changed|modified|\baudit\b|history|old value|new value|who\s+(last\s+)?updated|updated\s+by/.test(clean);
   if (
+    !isAuditLanguage && (
     clean.includes('hsdl') ||
     clean.includes('spreadsheets templates') ||
     clean.includes('4096') ||
@@ -279,7 +446,7 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     clean.includes('114313') ||
     (clean.includes('control') && (clean.includes('detail') || clean.includes('incident') || clean.includes('show') || clean.includes('find') || clean.includes('what is') || clean.includes('tell me about') || clean.includes('under'))) ||
     ((clean.includes('incident') || clean.includes('incidents')) && (clean.includes('for') || clean.includes('of') || clean.includes('in') || clean.includes('under') || clean.includes('show') || clean.includes('list') || clean.includes('how many')))
-  ) {
+  )) {
     let controlQuery = '';
     const numMatch = clean.match(/\b(\d{4,6})\b/);
     if (numMatch && numMatch[1]) {
@@ -304,15 +471,16 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
-  // 2. Risk & SoD
+  // 2. Risk & SoD (skipped for audit-language questions so vault queries win)
   if (
-    clean.includes('risk') || 
-    clean.includes('sod') || 
-    clean.includes('segregation of duties') || 
-    clean.includes('conflict') || 
-    clean.includes('incident') || 
+    !isAuditLanguage && (
+    clean.includes('risk') ||
+    clean.includes('sod') ||
+    clean.includes('segregation of duties') ||
+    clean.includes('conflict') ||
+    clean.includes('incident') ||
     clean.includes('certification')
-  ) {
+  )) {
     return {
       intent: 'RISK_INFORMATION',
       parameters: {},
@@ -320,21 +488,39 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
-  // 3. Audit History
+  // 3. Audit History (upgraded vault: 9-column attribute-level schema, 2025-present)
+  const hasEmail = /\b[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}\b/.test(clean);
+  const hasAuditActionWords = /performed by|actions|activity|made|changes/.test(clean);
   if (
     clean.includes('audit') ||
     clean.includes('history') ||
     clean.includes('who modified') ||
     clean.includes('who changed') ||
     clean.includes('yesterday') ||
-    clean.includes('audit trail')
+    clean.includes('audit trail') ||
+    clean.includes('modified') ||
+    clean.includes('updat') ||
+    /\bchang(e|es|ed|ing)?\b/.test(clean) ||
+    clean.includes('attribute') ||
+    clean.includes('old value') ||
+    clean.includes('new value') ||
+    clean.includes('insert') ||
+    clean.includes('delet') ||
+    (hasEmail && hasAuditActionWords && !/\broles?\b/.test(clean))
   ) {
+    // User ID (internal username/email) is strictly separate from display name.
     let username = '';
-    const userMatch = clean.match(/(?:for\s+user|by\s+user|user|username)\s+([a-zA-Z0-9_]+)/i);
-    if (userMatch && userMatch[1]) {
-      username = userMatch[1].toUpperCase();
-    } else if (context && context.entityType === 'USER' && context.entityId) {
-      username = context.entityId.toUpperCase();
+    let userId = '';
+    const emailM = clean.match(/\b([a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,})\b/);
+    if (emailM && emailM[1]) {
+      userId = emailM[1];
+    } else {
+      const userMatch = clean.match(/(?:for\s+user|by\s+user|user|username)\s+['"]?([a-zA-Z0-9_\.@\-]+)/i);
+      if (userMatch && userMatch[1]) {
+        username = userMatch[1].toUpperCase();
+      } else if (context && context.entityType === 'USER' && context.entityId) {
+        username = context.entityId.toUpperCase();
+      }
     }
 
     // Resolve Product from natural language against authoritative catalog
@@ -347,7 +533,27 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     } else if (clean.includes('hcm') || clean.includes('global human resources') || clean.includes('human resources') || clean.includes('person')) {
       detectedProduct = 'Global Human Resources';
       detectedBO = 'Person';
-    } else {
+    } else if (clean.includes('racm') || clean.includes('risks and controls') || clean.includes('risk management')) {
+      detectedProduct = 'Risks and Controls';
+    } else if (clean.includes('general ledger') || /\bgl\b/.test(clean)) {
+      detectedProduct = 'General Ledger';
+    } else if (clean.includes('payables') || /\bap\b/.test(clean)) {
+      detectedProduct = 'Payables';
+    } else if (clean.includes('receivables') || /\bar\b/.test(clean)) {
+      detectedProduct = 'Receivables';
+    } else if (clean.includes('inventory')) {
+      detectedProduct = 'Inventory Management';
+    } else if (/control\s+(\d{3,7}|'[^']+'|"[^"]+")/.test(clean)) {
+      // Control-entity audit questions default to the RACM product catalog.
+      detectedProduct = 'Risks and Controls';
+      detectedBO = 'Advanced Controls';
+    } else if (clean.includes('advanced controls') || clean.includes('access controls')) {
+      detectedProduct = 'Risks and Controls';
+    } else if (/control|investigator/.test(clean)) {
+      // Control-flavored attribute questions default to the RACM catalog.
+      detectedProduct = 'Risks and Controls';
+      detectedBO = 'Advanced Controls';
+    } else if (/product|module|oracle|fusion|ledger|payable|receiv|inventory|risk|human|resource|audit|opss|hcm/.test(clean)) {
       const resolvedProduct = auditProductCatalogService.resolveProduct(clean);
       detectedProduct = resolvedProduct?.productName || resolvedProduct?.displayName;
       if (resolvedProduct && resolvedProduct.businessObjects) {
@@ -363,8 +569,127 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     // Default overrides for common keywords
     if (!detectedProduct && clean.includes('opss')) {
       detectedProduct = 'Oracle Platform Security Services';
-    } else if (!detectedProduct && clean.includes('gl')) {
-      detectedProduct = 'General Ledger';
+    }
+
+    // Known business-object aliases when the catalog loop misses them
+    if (detectedProduct && !detectedBO) {
+      const boAliases: Record<string, string[]> = {
+        'Risks and Controls': ['advanced controls', 'access controls', 'models', 'controls'],
+        'General Ledger': ['period details', 'journal batch', 'journal', 'ledger'],
+        'Payables': ['invoice', 'invoices'],
+        'Receivables': ['receipts', 'transactions'],
+        'Global Human Resources': ['document records', 'person']
+      };
+      const aliases = boAliases[detectedProduct] || [];
+      for (const a of aliases) {
+        if (clean.includes(a)) {
+          detectedBO = a.replace(/\b\w/g, c => c.toUpperCase());
+          break;
+        }
+      }
+    }
+
+    // Action synonyms -> canonical event families. Both insert- and delete-side
+    // words together means no action narrowing (return everything).
+    let detectedAction: string | undefined = undefined;
+    const hasInsert = clean.includes('insert') || clean.includes('creat');
+    const hasDelete = clean.includes('delet') || clean.includes('remov') || clean.includes('revok');
+    const hasUpdate = clean.includes('updat') || clean.includes('modif') || clean.includes('chang');
+    if ((hasInsert ? 1 : 0) + (hasDelete ? 1 : 0) + (hasUpdate ? 1 : 0) === 1) {
+      if (hasInsert) detectedAction = 'INSERT';
+      else if (hasDelete) detectedAction = 'DELETE';
+      else detectedAction = 'UPDATE';
+    }
+
+    // Attribute-level filters: explicit "attribute X" or known attribute phrases
+    const attrHits: string[] = [];
+    const attrM = clean.match(/attributes?\s+(?:of\s+)?([a-z][a-z ]+)/);
+    if (attrM && attrM[1]) {
+      let v = attrM[1].trim().split(/\s+/).slice(0, 4).join(' ');
+      v = v.replace(/^(of|the|control|controls)\b\s*/i, '').trim();
+      v = v.replace(/\s+(were|was|that|which|made|to|recently|for)$/i, '').trim();
+      if (v && !/^\d/.test(v) && !/\b(all|were|was|that|which|made|recently|changes?|control|controls|of|the|to)\b/i.test(v)) attrHits.push(v);
+    }
+    for (const known of ['result investigator', 'control description', 'status', 'priority', 'name']) {
+      if (clean.includes(known) && !attrHits.some(h => h.includes(known) || known.includes(h))) attrHits.push(known);
+    }
+    // "status or priority" style questions: keep both sides of the 'or'
+    const orAttrM = clean.match(/(status|priority|name)\s+or\s+(status|priority|name)/);
+    if (orAttrM) {
+      for (const side of [orAttrM[1], orAttrM[2]]) {
+        if (!attrHits.includes(side)) attrHits.push(side);
+      }
+    }
+    const detectedAttribute = attrHits.length > 0 ? [...new Set(attrHits)].join('|') : undefined;
+
+    // New-value assertions: "Status was changed to ACTIVE"
+    let detectedNewValue: string | undefined = undefined;
+    const nvM = clean.match(/(?:changed|updated|set)\s+to\s+([A-Za-z0-9_]+)/);
+    if (nvM && nvM[1] && !/^(active|inactive)$/i.test(nvM[1])) {
+      detectedNewValue = nvM[1];
+    } else if (nvM && nvM[1]) {
+      detectedNewValue = nvM[1].toUpperCase();
+    }
+
+    // Entity scoping: control IDs, quoted names (non-user tokens only — a
+    // quoted username/email belongs to the user filter, not the entity).
+    let detectedEntity: string | undefined = undefined;
+    const ctrlIdM = clean.match(/control\s+(\d{3,7})\b/);
+    const quotedM = clean.match(/"([^"]{2,80})"/) || clean.match(/'([^']{2,80})'/);
+    if (ctrlIdM && ctrlIdM[1]) detectedEntity = ctrlIdM[1];
+    else if (quotedM && quotedM[1] && !/^(active|inactive)$/i.test(quotedM[1])) {
+      const tok = quotedM[1].trim();
+      const looksLikeUser = tok.includes('@') || (/^[a-z0-9._\-]+$/i.test(tok) && tok.includes('.'));
+      if (!looksLikeUser) detectedEntity = tok;
+    }
+
+    // Date handling: year comparison, single year, explicit range, this week, recent
+    let yearCompare = false;
+    let fromDate: string | undefined = undefined;
+    let toDate: string | undefined = undefined;
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (/2025\s+vs\.?\s+2026|2026\s+vs\.?\s+2025|compare.*2025.*2026/.test(clean)) {
+      yearCompare = true;
+    } else {
+      const isoM = clean.match(/from\s+(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2}|now|today|present)/);
+      if (isoM) {
+        fromDate = isoM[1];
+        toDate = /^\d{4}-\d{2}-\d{2}$/.test(isoM[2]) ? isoM[2] : fmt(new Date());
+      } else {
+        const txtM = clean.match(/from\s+(.+?)\s+to\s+(now|today|present)/);
+        if (txtM) {
+          const f = new Date(txtM[1].trim());
+          if (!isNaN(f.getTime())) {
+            fromDate = fmt(f);
+            toDate = fmt(new Date());
+          }
+        }
+      }
+      if (!fromDate) {
+        const yearM = clean.match(/\b(20\d{2})\b/);
+        if (yearM && yearM[1] && !clean.includes('audit trail')) {
+          fromDate = `${yearM[1]}-01-01`;
+          toDate = `${yearM[1]}-12-31`;
+        } else {
+          const monthM = clean.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(20\d{2})/);
+          if (monthM) {
+            const mi = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'].indexOf(monthM[1]) + 1;
+            const lastDay = new Date(Number(monthM[2]), mi, 0).getDate();
+            fromDate = `${monthM[2]}-${String(mi).padStart(2, '0')}-01`;
+            toDate = `${monthM[2]}-${String(mi).padStart(2, '0')}-${lastDay}`;
+          } else if (clean.includes('this week')) {
+            const now = new Date();
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+            fromDate = fmt(monday);
+            toDate = fmt(now);
+          } else if (clean.includes('recent') || clean.includes('recently') || clean.includes('latest')) {
+            const d = new Date();
+            d.setDate(d.getDate() - 30);
+            fromDate = fmt(d);
+          }
+        }
+      }
     }
 
     return {
@@ -372,9 +697,17 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       parameters: {
         ...(detectedProduct ? { product: detectedProduct } : {}),
         ...(detectedBO ? { businessObjectType: detectedBO } : {}),
-        ...(username ? { username } : {})
+        ...(username ? { username } : {}),
+        ...(userId ? { userId } : {}),
+        ...(detectedAction ? { action: detectedAction } : {}),
+        ...(detectedAttribute ? { attribute: detectedAttribute } : {}),
+        ...(detectedEntity ? { entity: detectedEntity } : {}),
+        ...(detectedNewValue ? { newValue: detectedNewValue } : {}),
+        ...(yearCompare ? { yearCompare: true } : {}),
+        ...(fromDate ? { fromDate } : {}),
+        ...(toDate ? { toDate } : {})
       },
-      explanation: `Detected audit search${detectedProduct ? ` for product "${detectedProduct}"` : ''}${detectedBO ? ` and business object "${detectedBO}"` : ''}${username ? ` filtered by user "${username}"` : ''}.`
+      explanation: `Detected audit search${detectedProduct ? ` for product "${detectedProduct}"` : ''}${detectedBO ? ` and business object "${detectedBO}"` : ''}${username ? ` filtered by user "${username}"` : ''}${userId ? ` filtered by user ID "${userId}"` : ''}.`
     };
   }
 
@@ -713,14 +1046,26 @@ function generateFallbackExplanation(intent: string, parameters: any, toolResult
         }
         return `Unable to retrieve audit history from Oracle Fusion: ${toolResult.error || 'Unknown error'}`;
       }
+      if (data?.yearCompare) {
+        return `Audit events for **${data.product || 'Oracle Fusion'}**: **${data.y2025.total.toLocaleString()}** in 2025 vs **${data.y2026.total.toLocaleString()}** in ${new Date().getFullYear()} (${data.y2026.dataSource}).`;
+      }
       const logs = data?.logs || (Array.isArray(data) ? data : []);
       const pName = data?.productDisplayName || parameters.product || 'Oracle Fusion';
       const boName = data?.businessObjectDisplayName || parameters.businessObjectType;
-      const userFilter = parameters.username || '';
+      const whoFilter = parameters.username || parameters.userId || '';
+      const extraFilters = [
+        parameters.attribute ? `attribute "${parameters.attribute}"` : '',
+        parameters.entity ? `entity "${parameters.entity}"` : '',
+        parameters.newValue ? `new value "${parameters.newValue}"` : ''
+      ].filter(Boolean).join(', ');
+      const range = data?.dateRange ? ` (${data.dateRange.fromDate} to ${data.dateRange.toDate})` : '';
       if (!logs || logs.length === 0) {
-        return `No audit records were found for **${pName}**${boName ? ` (${boName})` : ''}${userFilter ? ` for user ${userFilter}` : ''} in the log.`;
+        const total = data?.authoritativeTotal || 0;
+        const scopedNote = total > 0 ? ` (${total} record(s) are in scope but were excluded by the active filters)` : ` (${total} record(s) in scope)`;
+        return `No audit records matched **${pName}**${boName ? ` (${boName})` : ''}${whoFilter ? ` for "${whoFilter}"` : ''}${extraFilters ? ` with ${extraFilters}` : ''}${range} in ${toolResult.dataSource}${scopedNote}. Try expanding the date range, checking the username spelling, or asking across all products.`;
       }
-      return `Retrieved **${logs.length}** audit record(s) from **${toolResult.dataSource}** for **${pName}**${boName ? ` (${boName})` : ''}${userFilter ? ` filtered by user "${userFilter}"` : ''}.`;
+      const total = data?.authoritativeTotal ?? data?.totalMatching ?? logs.length;
+      return `Retrieved **${logs.length}** audit change record(s) (of **${Number(total).toLocaleString()}** matching) from **${toolResult.dataSource}** for **${pName}**${boName ? ` (${boName})` : ''}${whoFilter ? ` filtered by "${whoFilter}"` : ''}${extraFilters ? ` with ${extraFilters}` : ''}${range}.`;
     }
 
     case 'ROLE_HIERARCHY':
@@ -854,6 +1199,53 @@ ${c.description ? `* Description: ${c.description}\n` : ''}${c.enforcement ? `* 
 ${i.info ? `* Violation: ${i.info}\n` : ''}${i.conflictingRoles ? `* Conflicting roles: ${i.conflictingRoles}\n` : ''}* Created: ${i.created || '—'}${i.closed ? ` · Closed: ${i.closed}` : ''}`;
     }
 
+    case 'CERTIFICATIONS_OVERVIEW': {
+      const parts = Object.entries(data.byStatus || {}).map(([s, n]) => `${s}: ${n}`);
+      return `Oracle Fusion access certifications (${toolResult.dataSource}):
+* **Total:** ${data.total}
+* By status — ${parts.length > 0 ? parts.join(' · ') : 'no status data'}
+* Due in October 2026: **${data.dueOct2026}**${data.avgComplete !== null && data.avgComplete !== undefined ? `\n* Average completion: **${data.avgComplete}%**` : ''}`;
+    }
+
+    case 'CERTIFICATIONS_LIST': {
+      if (data.totalMatching === 0) {
+        return `No access certifications matched the requested filters in ${toolResult.dataSource}.`;
+      }
+      return `Found **${data.totalMatching}** certification(s) out of **${data.total}** in ${toolResult.dataSource}.`;
+    }
+
+    case 'CERTIFICATION_DETAILS': {
+      if (data?.notFound) return data.message;
+      if (data?.ambiguous) {
+        return `${data.message} ${data.matches.map((m: any) => `**${m.name}** (\`${m.certificate}\`)`).join(', ')}.`;
+      }
+      const c = data.certification;
+      return `**${c.name}** (\`${c.certificate}\`)
+* Type: **${c.type || '—'}** · Status: **${c.status || '—'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'}**
+* Due: **${c.due || '—'}** · Created: **${c.created || '—'}**
+* Owner: **${c.owner || '—'}** · Manager: **${c.manager || '—'}**`;
+    }
+
+    case 'CERTIFIER_WORKSHEET': {
+      if (data?.notFound) return data.message;
+      if (data?.ambiguous) {
+        return `${data.message} ${data.matches.map((m: any) => `**${m.name}** (\`${m.certificate}\`)`).join(', ')}.`;
+      }
+      if (data.totalMatching === 0) {
+        return `No worksheet lines matched the requested filters for **${data.scopeLabel}** in ${toolResult.dataSource}.`;
+      }
+      let extra = '';
+      if (data.userCount !== undefined) {
+        extra += `\n* Distinct users: **${data.userCount}** · Distinct roles: **${data.roleCount}**`;
+      }
+      if (Array.isArray(data.ranking) && data.ranking.length > 0) {
+        const top = data.ranking.slice(0, 3).map((r: any) => `${r.name} (${r.count})`).join(', ');
+        extra += `\n* Top rows: ${top}`;
+      }
+      const certs = (data.certificationsQueried || []).map((c: any) => `\`${c.certificate}\``).join(', ');
+      return `**${data.totalMatching.toLocaleString()}** matching worksheet line(s) across ${data.certificationsQueried?.length || 0} certification(s) (${certs}) out of **${(data.totalRows || 0).toLocaleString()}** total lines. Showing ${data.returned}.${extra}`;
+    }
+
     default:
       return `Retrieved data matching your request from the ${toolResult.dataSource}. Please review the table below for the structured values.`;
   }
@@ -932,7 +1324,7 @@ async function callGroqCompletions(payload: any): Promise<any> {
             content: `You are the NLU intent classification engine for an Oracle Fusion Security Assistant. 
 Analyze the user query and output a strict JSON object mapping to:
 {
-  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "UNKNOWN",
+  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "CERTIFICATIONS_OVERVIEW" | "CERTIFICATIONS_LIST" | "CERTIFICATION_DETAILS" | "CERTIFIER_WORKSHEET" | "UNKNOWN",
   "parameters": {
     "roleName": "Extracted role display name or code (string, optional)",
     "privilegeName": "Extracted privilege name for reverse lookup (e.g. 'Maintain Supplier Contact', 'Create Purchase Order') (string, optional)",
@@ -940,6 +1332,12 @@ Analyze the user query and output a strict JSON object mapping to:
     "username": "Extracted audit username (string, optional)",
     "keyword": "Keyword for search (string, optional)",
     "action": "Audit action: CREATE, UPDATE, DELETE, etc. (string, optional)",
+    "attribute": "Audit attribute filter, '|' separated for several (e.g. 'Status|Priority') (string, optional)",
+    "entity": "Audit entity scope: control ID or quoted name (string, optional)",
+    "newValue": "Required new/changed-to value filter (string, optional)",
+    "yearCompare": "true for 2025-vs-current-year totals comparison (boolean, optional)",
+    "fromDate": "Audit range start YYYY-MM-DD (string, optional)",
+    "toDate": "Audit range end YYYY-MM-DD (string, optional)",
     "privilegeOrAccess": "Function name / privilege check: invoice creation, Accounts Payable (string, optional)",
     "filterType": "For LIST_USERS, extract: 'MULTIPLE_ROLES' (if query asks for users with multiple/more than one role), 'NO_ROLES' (if users without roles), 'ADMIN_ROLES' (if security admins), 'HIGH_RISK' (if high-risk access), or 'NONE' (string, optional)",
     "roleCategory": "When query asks for specific role type assigned to a user (e.g. 'Duty Roles', 'Abstract Roles', 'Job Roles', 'Data Roles'), extract: 'DUTY', 'ABSTRACT', 'JOB', 'DATA', or omit/'ALL' for general role queries (string, optional)",
@@ -955,7 +1353,16 @@ Analyze the user query and output a strict JSON object mapping to:
     "top": "true when asking for highest/most incidents (boolean, optional)",
     "limit": "Max rows for listings, 1-50 (number, optional)",
     "page": "Page number for incident listings (number, optional)",
-    "search": "Free-text control search (string, optional)"
+    "search": "Free-text control search (string, optional)",
+    "certificationId": "Access certification ID like '35006' (string, optional)",
+    "certificationName": "Access certification name (string, optional)",
+    "roleCode": "Oracle role code like 'ORA_AP_...' (string, optional)",
+    "manager": "Manager name for worksheet filtering (string, optional)",
+    "businessUnit": "Business unit for worksheet filtering (string, optional)",
+    "location": "Location for worksheet filtering (string, optional)",
+    "action": "Worksheet action: APPROVED, CERTIFIED, REVOKED, PENDING, KEEP, REMOVE (string, optional)",
+    "dueMonth": "Certification due month YYYY-MM (string, optional)",
+    "aggregate": "users-roles, units, or locations rollups (string, optional)"
   },
   "explanation": "Brief rationale for this mapping"
 }
@@ -972,7 +1379,7 @@ Intent definitions:
 - ROLE_PRIVILEGES: Show privileges assigned to a role.
 - ROLES_BY_PRIVILEGE: Find which roles grant or have a specific privilege (e.g. "Which roles have privilege Maintain Supplier Contact?", "Can you give me the roles which have privilege Create Purchase Order?").
 - USER_ACCESS: Find who can perform an action / has privilege (e.g. "Who has payroll access?", "Who can create invoices?").
-- AUDIT_HISTORY: Show audit trail (who modified role, who assigned role).
+ - AUDIT_HISTORY: Show audit trail across products and years — who changed what, attribute old/new values, inserts/deletes (e.g. "Who modified this role?", "Show recent audit activity for Advanced Controls", "Which attributes of control 31004 were modified?", "Show all inserts this week").
 - SECURITY_STATISTICS: Count of users, roles, statistics, dashboard cards.
 - RISK_INFORMATION: Incidents, Access certifications, Segregation of Duties conflicts.
 - ACCESS_REQUESTS: Advanced access requests list and approvals.
@@ -982,6 +1389,10 @@ Intent definitions:
 - CONTROL_DETAILS: Full record of one control by id or name — description, enforcement, last run/update, created/updated by (e.g. "Find control 11065", "When was control 11065 last run?").
 - INCIDENTS_LIST: Filtered incident listings — by control, user, role, access point, status, state, priority (e.g. "Show incidents for control 11065", "How many incidents does control 11065 have?", "Show incidents for user X", "Show incidents with status ASSIGNED", "Show high priority incidents").
 - INCIDENT_DETAILS: Full record of one incident by id like "11067:1" (e.g. "Show details of incident 11067:1", "Explain the conflicting roles in incident 11067:1").
+- CERTIFICATIONS_OVERVIEW: Access certification population counts and statuses (e.g. "How many access certifications are currently active?").
+- CERTIFICATIONS_LIST: Filtered certification listings — status, due month, search (e.g. "List all access certifications and their due dates", "Which certifications have a due date in October 2026?").
+- CERTIFICATION_DETAILS: One certification header by id or name — owner, manager, due, status, completion (e.g. "Find certification with ID 35006", "Who owns the certification 'CLAAPS_Access_Certification1'?").
+- CERTIFIER_WORKSHEET: Worksheet line items filtered by certification, user, role, manager, business unit, location, action — plus users/roles/BU/location rollups (e.g. "Show the certifier worksheet details for certification 35006", "Show all roles being certified for user 'Karthika.Claaps'", "Are there any users whose role access was revoked?").
 - UNKNOWN: Generic conversations or queries outside security boundaries.
 
 ${contextPrompt}
@@ -1022,7 +1433,10 @@ Only output valid JSON matching the schema. Do not include markdown formatting o
       intentData.parameters.product = 'Global Human Resources';
       intentData.parameters.businessObjectType = 'Person';
     } else {
-      if (!intentData.parameters.product) {
+      // Only fuzzy-match the catalog when the question actually names
+      // something product-like; otherwise resolveProduct() latches onto
+      // substrings (e.g. "AI" inside "Sai.claaps") and poisons the query.
+      if (!intentData.parameters.product && /product|module|oracle|fusion|ledger|payable|receiv|inventory|risk|human|resource|audit|opss|hcm/.test(clean)) {
         const resolved = auditProductCatalogService.resolveProduct(clean);
         if (resolved) {
           intentData.parameters.product = resolved.productName || resolved.displayName;
@@ -1555,19 +1969,22 @@ function buildStructuredResponse(
       const boName = data?.businessObjectDisplayName || parameters.businessObjectType;
       title = `Oracle Fusion Audit Trail: ${pName}${boName ? ` (${boName})` : ''}`;
       const logArray = data?.logs || (Array.isArray(data) ? data : []);
-      totalCount = data?.totalRecords !== undefined ? data.totalRecords : logArray.length;
-      matchingCount = logArray.length;
+      totalCount = data?.authoritativeTotal ?? data?.totalRecords ?? logArray.length;
+      matchingCount = data?.totalMatching ?? logArray.length;
       table = {
-        type: 'audit',
-        columns: ['TIMESTAMP', 'USER', 'EVENT', 'BUSINESS OBJECT', 'IDENTIFIER', 'DETAILS'],
-        rows: logArray.map((a: any) => ({
-          id: a.id || a.timestamp,
-          timestamp: a.timestamp,
-          username: a.username,
-          event: a.event,
-          businessObject: a.businessObject,
-          identifier: a.identifier,
-          details: a.details
+        type: 'audit_vault',
+        columns: ['Date', 'User', 'UserId', 'Event', 'Object', 'Description', 'Attribute', 'Old', 'New'],
+        rows: logArray.map((a: any, idx: number) => ({
+          id: a.id || `aud_${idx}`,
+          date: a.date || a.timestamp || '—',
+          user: a.user || a.username || '—',
+          userid: a.userid || a.userInternalName || '—',
+          event: a.event || a.action || '—',
+          object: a.object || a.businessObject || '—',
+          description: a.description || a.details || a.identifier || '—',
+          attribute: a.attribute || '—',
+          old: a.old ?? a.oldValue ?? '—',
+          new: a.new ?? a.newValue ?? '—'
         }))
       };
       actions = [
@@ -1732,6 +2149,135 @@ function buildStructuredResponse(
           { label: 'Open Controls Catalog', actionType: 'NAVIGATE', params: { page: 'risk' } }
         ];
       }
+      break;
+    }
+    case 'CERTIFICATIONS_OVERVIEW': {
+      title = 'Access Certifications Overview';
+      const overRows: any[] = [
+        ['Total Certifications', String(data.total)],
+        ...Object.entries(data.byStatus || {}).map(([s, n]) => [`Status: ${s}`, String(n)]),
+        ['Due in October 2026', String(data.dueOct2026)]
+      ];
+      if (data.avgComplete !== null && data.avgComplete !== undefined) {
+        overRows.push(['Average Completion', `${data.avgComplete}%`]);
+      }
+      table = {
+        type: 'general',
+        columns: ['Metric', 'Value'],
+        rows: overRows.map(([attribute, value], i) => ({ id: `c${i}`, attribute, value }))
+      };
+      totalCount = overRows.length;
+      matchingCount = overRows.length;
+      actions = [
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
+      break;
+    }
+
+    case 'CERTIFICATIONS_LIST': {
+      const cl = Array.isArray(data?.certifications) ? data.certifications : [];
+      title = `Access Certifications (${cl.length} matching)`;
+      totalCount = data?.total ?? cl.length;
+      matchingCount = data?.totalMatching ?? cl.length;
+      table = {
+        type: 'certifications',
+        columns: ['Certificate', 'Name', 'Type', 'Status', 'Complete', 'Due', 'Owner'],
+        rows: cl.map((c: any) => ({
+          id: c.certificate,
+          certificate: c.certificate,
+          name: c.name,
+          type: c.type || '—',
+          status: c.status || '—',
+          complete: c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—',
+          due: c.due || '—',
+          owner: c.owner || '—'
+        }))
+      };
+      actions = [
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
+      break;
+    }
+
+    case 'CERTIFICATION_DETAILS': {
+      if (data?.notFound || data?.ambiguous) {
+        title = data?.ambiguous ? 'Multiple Certifications Match' : 'Certification Not Found';
+        const amb = Array.isArray(data?.matches) ? data.matches : [];
+        if (amb.length > 0) {
+          table = {
+            type: 'certifications',
+            columns: ['Certificate', 'Name', 'Type', 'Status', 'Complete', 'Due', 'Owner'],
+            rows: amb.map((c: any) => ({
+              id: c.certificate, certificate: c.certificate, name: c.name,
+              type: c.type || '—', status: c.status || '—',
+              complete: c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—',
+              due: c.due || '—', owner: c.owner || '—'
+            }))
+          };
+        }
+        break;
+      }
+      const c = data.certification;
+      title = `Certification: ${c.name}`;
+      const cRows: any[] = [
+        ['Certification ID', c.certificate], ['Certification Name', c.name],
+        ['Type', c.type || '—'], ['Status', c.status || '—'],
+        ['Completion', c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'],
+        ['Due Date', c.due || '—'], ['Creation Date', c.created || '—'],
+        ['Owner', c.owner || '—'], ['Manager', c.manager || '—']
+      ];
+      table = {
+        type: 'general',
+        columns: ['Attribute', 'Value'],
+        rows: cRows.map(([attribute, value], i) => ({ id: `c${i}`, attribute, value }))
+      };
+      totalCount = cRows.length;
+      matchingCount = cRows.length;
+      actions = [
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
+      break;
+    }
+
+    case 'CERTIFIER_WORKSHEET': {
+      if (data?.notFound || data?.ambiguous) {
+        title = data?.ambiguous ? 'Multiple Certifications Match' : 'No Worksheet Lines Found';
+        const amb = Array.isArray(data?.matches) ? data.matches : [];
+        if (amb.length > 0) {
+          table = {
+            type: 'certifications',
+            columns: ['Certificate', 'Name', 'Type', 'Status', 'Complete', 'Due', 'Owner'],
+            rows: amb.map((c: any) => ({
+              id: c.certificate, certificate: c.certificate, name: c.name,
+              type: c.type || '—', status: c.status || '—',
+              complete: c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—',
+              due: c.due || '—', owner: c.owner || '—'
+            }))
+          };
+        }
+        break;
+      }
+      title = `Certifier Worksheet — ${data.scopeLabel} (${(data.totalMatching || 0).toLocaleString()} matching)`;
+      const wRows = Array.isArray(data?.rows) ? data.rows : [];
+      totalCount = data?.totalRows ?? wRows.length;
+      matchingCount = data?.totalMatching ?? wRows.length;
+      table = {
+        type: 'certifier_worksheet',
+        columns: ['Certificate', 'User', 'Role', 'Action', 'Manager', 'Unit', 'Comments'],
+        rows: wRows.map((r: any, idx: number) => ({
+          id: `${r.certificate}-${idx}`,
+          certificate: r.certificate || '—',
+          user: r.user || '—',
+          role: r.role || '—',
+          action: r.action || '—',
+          manager: r.manager || '—',
+          unit: r.unit || '—',
+          comments: r.comments || '—'
+        }))
+      };
+      actions = [
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
       break;
     }
   }

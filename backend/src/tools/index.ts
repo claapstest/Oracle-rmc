@@ -189,18 +189,129 @@ export async function getAuditHistoryTool(params: {
   product?: string;
   businessObjectType?: string;
   username?: string;
+  userId?: string;
   action?: string;
   fromDate?: string;
   toDate?: string;
+  attribute?: string;
+  entity?: string;
+  newValue?: string;
+  yearCompare?: boolean;
   pageNumber?: number;
   pageSize?: number;
 } = {}): Promise<ToolExecutionResult> {
   try {
-    const data = await oracleService.getAuditHistory(params);
-    return createResult('getAuditHistory', params, true, data);
+    // Year-over-year comparison (e.g. "2025 vs 2026"): two bounded queries,
+    // exact totals from each range plus a sample of rows.
+    if (params.yearCompare) {
+      const nowY = new Date().getFullYear();
+      const [r25, r26] = await Promise.all([
+        oracleService.getAuditHistory({ ...params, fromDate: '2025-01-01', toDate: '2025-12-31', pageNumber: 1, pageSize: 5, yearCompare: undefined } as any),
+        oracleService.getAuditHistory({ ...params, fromDate: `${nowY}-01-01`, toDate: new Date().toISOString().split('T')[0], pageNumber: 1, pageSize: 5 } as any)
+      ]);
+      return createResult('getAuditHistory', params, true, {
+        yearCompare: true,
+        y2025: { total: r25.totalRecords || 0, dataSource: r25.dataSource },
+        y2026: { total: r26.totalRecords || 0, dataSource: r26.dataSource },
+        sample: (r26.logs || []).flatMap(mapAuditLogToVaultRow).slice(0, 5),
+        product: r26.productDisplayName || r25.productDisplayName,
+        dateRange: { fromDate: '2025-01-01', toDate: new Date().toISOString().split('T')[0] }
+      });
+    }
+
+    const data = await oracleService.getAuditHistory({
+      product: params.product,
+      businessObjectType: params.businessObjectType,
+      username: params.username || params.userId,
+      action: params.action,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+      pageNumber: params.pageNumber || 1,
+      pageSize: 500
+    });
+
+    let logs = Array.isArray((data as any)?.logs) ? (data as any).logs : [];
+
+    // User ID (internal username/email) is matched separately from display name.
+    if (params.userId) {
+      const q = params.userId.trim().toLowerCase();
+      logs = logs.filter((l: any) =>
+        String(l.userInternalName || '').toLowerCase().includes(q) ||
+        String(l.username || '').toLowerCase().includes(q) ||
+        (l.raw && String(l.raw.userId || l.raw.userInternalName || '').toLowerCase().includes(q)));
+    }
+
+    // Entity filter: control id/name inside description or identifier.
+    if (params.entity) {
+      const q = params.entity.trim().toLowerCase();
+      logs = logs.filter((l: any) =>
+        String(l.identifier || '').toLowerCase().includes(q) ||
+        String(l.details || '').toLowerCase().includes(q) ||
+        String(l.businessObject || '').toLowerCase().includes(q));
+    }
+
+    // Attribute-level filter (+ optional new-value match) over attributeDetails.
+    if (params.attribute || params.newValue) {
+      const aq = (params.attribute || '').trim().toLowerCase();
+      const nq = (params.newValue || '').trim().toLowerCase();
+      logs = logs.filter((l: any) => {
+        const dets = Array.isArray(l.attributeDetails) ? l.attributeDetails : [];
+        if (dets.length === 0) return !aq;
+        return dets.some((d: any) => {
+          const aOk = !aq || String(d.attribute || '').toLowerCase().includes(aq);
+          const nOk = !nq || String(d.newValue ?? '').toLowerCase() === nq;
+          return aOk && nOk;
+        });
+      });
+    }
+
+    const flat = logs.flatMap(mapAuditLogToVaultRow);
+    const totalMatching = flat.length;
+    const authoritativeTotal = (data as any)?.totalRecords ?? logs.length;
+    const limit = clampChatLimit(params.pageSize, 25);
+    const page = Math.max(1, params.pageNumber || 1);
+    const rows = flat.slice((page - 1) * limit, page * limit);
+
+    return createResult('getAuditHistory', params, true, {
+      ...data,
+      logs: rows,
+      totalMatching,
+      authoritativeTotal,
+      page,
+      pageSize: limit,
+      filters: {
+        attribute: params.attribute || null,
+        entity: params.entity || null,
+        newValue: params.newValue || null,
+        userId: params.userId || null
+      }
+    });
   } catch (err) {
     return createResult('getAuditHistory', params, false, null, (err as Error).message);
   }
+};
+
+// Flattens one mapped audit log into 9-column vault rows (one per attribute).
+function mapAuditLogToVaultRow(l: any): any {
+  const base = {
+    date: l.timestamp || l.date || null,
+    user: l.username || null,
+    userid: l.userInternalName || (l.raw && (l.raw.userId || l.raw.userInternalName)) || null,
+    event: l.event || l.action || null,
+    object: l.businessObject || null,
+    description: l.identifier && l.details && l.identifier !== l.details
+      ? `${l.identifier} — ${l.details}` : (l.details || l.identifier || null)
+  };
+  const dets = Array.isArray(l.attributeDetails) ? l.attributeDetails : [];
+  if (dets.length === 0) {
+    return { ...base, attribute: null, old: null, new: null };
+  }
+  return dets.map((d: any) => ({
+    ...base,
+    attribute: d.attribute || null,
+    old: d.oldValue ?? null,
+    new: d.newValue ?? null
+  }));
 }
 
 export async function getRoleHierarchyTool(params: { roleName: string }): Promise<ToolExecutionResult> {
@@ -294,6 +405,309 @@ export async function getAdvancedControlsTool(params: { controlId?: string; cont
     return createResult('getAdvancedControls', params, data.success, data, data.message);
   } catch (err) {
     return createResult('getAdvancedControls', params, false, null, (err as Error).message);
+  }
+}
+
+// ── Access Certification conversational tools (live Oracle BIP data) ──
+// Short-TTL in-memory caches: BIP SOAP per certification is expensive, so chat
+// reuses rows for 10 minutes instead of re-running reports per question.
+const CERT_TTL_MS = 10 * 60 * 1000;
+let certListCache: { at: number; rows: any[] } | null = null;
+const certWorksheetCache = new Map<string, { at: number; rows: any[]; certName: string }>();
+
+function certCacheValid(at: number): boolean {
+  return Date.now() - at < CERT_TTL_MS;
+}
+
+async function getCertListCached(): Promise<any[]> {
+  if (certListCache && certCacheValid(certListCache.at)) return certListCache.rows;
+  const res = await oracleService.getAccessCertifications();
+  const rows = Array.isArray(res?.data) ? res.data : [];
+  certListCache = { at: Date.now(), rows };
+  return rows;
+}
+
+function canonCert(c: any): any {
+  return {
+    certificate: String(c.certificationId ?? c.id ?? ''),
+    name: c.certificationName || c.name || '',
+    type: c.type || '',
+    status: c.status || '',
+    complete: c.certificationPercentComplete ?? c.percentComplete ?? null,
+    due: c.dueDate || '',
+    created: c.creationDate || '',
+    owner: c.ownerName || '',
+    manager: c.managerName || c.certifiedManager || ''
+  };
+}
+
+function canonWorksheetRow(r: any): any {
+  return {
+    certificate: r.certificationName || r.name || '',
+    user: r.userName || r.ownerName || '',
+    role: r.jobRoleName || r.roleName || '',
+    roleCode: r.roleCode || '',
+    action: r.action || '',
+    comments: r.comment || r.comments || '',
+    unit: r.userBusinessUnit || r.businessUnit || '',
+    position: r.userPositionName || r.positionName || '',
+    manager: r.userManagerName || r.manager || r.certifiedManager || r.directManager || '',
+    job: r.userJobName || r.jobName || '',
+    location: r.userLocation || r.location || ''
+  };
+}
+
+async function getWorksheetCached(certId: string): Promise<{ rows: any[]; certName: string }> {
+  const key = String(certId).trim();
+  const hit = certWorksheetCache.get(key);
+  if (hit && certCacheValid(hit.at)) return hit;
+  const res = await oracleService.getAccessCertificationDetails(key);
+  const rows = (res && res.success && Array.isArray(res.data) ? res.data : []).map(canonWorksheetRow);
+  const certName = rows[0]?.certificate || '';
+  const entry = { rows, certName };
+  certWorksheetCache.set(key, { at: Date.now(), ...entry });
+  if (certWorksheetCache.size > 25) {
+    const oldest = [...certWorksheetCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+    if (oldest) certWorksheetCache.delete(oldest[0]);
+  }
+  return entry;
+}
+
+function resolveCertification(ref: string, list: any[]): { cert?: any; ambiguous?: any[] } {
+  const q = String(ref || '').trim();
+  if (!q) return {};
+  const byId = list.find(c => String(c.certificate) === q);
+  if (byId) return { cert: byId };
+  const stop = new Set(['certification', 'cert', 'worksheet', 'details', 'detail', 'the', 'for', 'with', 'id']);
+  const needle = q.toLowerCase().split(/[\s_]+/).filter(w => w && !stop.has(w)).join(' ');
+  const matches = list.filter(c => {
+    const n = String(c.name || '').toLowerCase();
+    if (!n) return false;
+    if (needle && n.includes(needle)) return true;
+    return q.length > 3 && n.replace(/[\s_]+/g, '').includes(q.toLowerCase().replace(/[\s_]+/g, ''));
+  });
+  if (matches.length === 1) return { cert: matches[0] };
+  if (matches.length > 1) return { ambiguous: matches.slice(0, 8) };
+  return {};
+}
+
+export async function getCertificationsOverviewTool(): Promise<ToolExecutionResult> {
+  try {
+    const list = (await getCertListCached()).map(canonCert);
+    const byStatus: Record<string, number> = {};
+    let dueOct2026 = 0;
+    let pctSum = 0;
+    let pctN = 0;
+    for (const c of list) {
+      const s = c.status || 'Unknown';
+      byStatus[s] = (byStatus[s] || 0) + 1;
+      if ((c.due || '').startsWith('2026-10')) dueOct2026++;
+      const p = typeof c.complete === 'number' ? c.complete : parseFloat(String(c.complete ?? ''));
+      if (!Number.isNaN(p)) { pctSum += p; pctN++; }
+    }
+    return createResult('getCertificationsOverview', {}, true, {
+      total: list.length, byStatus, dueOct2026,
+      avgComplete: pctN > 0 ? Math.round((pctSum / pctN) * 10) / 10 : null,
+      certifications: list.map(c => ({ certificate: c.certificate, name: c.name, status: c.status }))
+    });
+  } catch (err) {
+    return createResult('getCertificationsOverview', {}, false, null, (err as Error).message);
+  }
+}
+
+export async function listCertificationsTool(params: { status?: string; dueMonth?: string; search?: string } = {}): Promise<ToolExecutionResult> {
+  try {
+    let list = (await getCertListCached()).map(canonCert);
+    const total = list.length;
+    if (params.status) {
+      const s = params.status.trim().toLowerCase();
+      list = list.filter(c => (c.status || '').toLowerCase().includes(s));
+    }
+    if (params.dueMonth) {
+      const m = params.dueMonth.trim();
+      list = list.filter(c => (c.due || '').startsWith(m));
+    }
+    if (params.search) {
+      const q = params.search.trim().toLowerCase();
+      list = list.filter(c => c.certificate.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q));
+    }
+    return createResult('listCertifications', params, true, { certifications: list, total, totalMatching: list.length });
+  } catch (err) {
+    return createResult('listCertifications', params, false, null, (err as Error).message);
+  }
+}
+
+export async function getCertificationDetailsTool(params: { certificationId?: string; certificationName?: string } = {}): Promise<ToolExecutionResult> {
+  try {
+    const list = (await getCertListCached()).map(canonCert);
+    const ref = (params.certificationId || params.certificationName || '').trim();
+    if (!ref) {
+      return createResult('getCertificationDetails', params, false, null, 'Certification ID or name is required.');
+    }
+    const hit = resolveCertification(ref, list);
+    if (hit.ambiguous) {
+      return createResult('getCertificationDetails', params, true, {
+        ambiguous: true,
+        query: ref,
+        matches: hit.ambiguous,
+        message: `Multiple certifications match "${ref}".`
+      });
+    }
+    if (!hit.cert) {
+      return createResult('getCertificationDetails', params, true, {
+        notFound: true, query: ref,
+        message: `Certification "${ref}" was not found in the live Oracle access certification catalog.`
+      });
+    }
+    return createResult('getCertificationDetails', params, true, { certification: hit.cert });
+  } catch (err) {
+    return createResult('getCertificationDetails', params, false, null, (err as Error).message);
+  }
+}
+
+const WORKSHEET_ACTION_ALIASES: Record<string, string[]> = {
+  APPROVED: ['approv'],
+  CERTIFIED: ['certif'],
+  REVOKED: ['revok'],
+  PENDING: ['pend'],
+  KEEP: ['keep access'],
+  REMOVE: ['remove access']
+};
+
+function matchWorksheetAction(cell: string, wanted: string): boolean {
+  const v = String(cell || '').toLowerCase();
+  const w = String(wanted || '').trim().toUpperCase();
+  if (!w) return true;
+  if (w === 'KEEP') return v.includes('keep');
+  if (w === 'REMOVE') return v.includes('remove');
+  const keys = WORKSHEET_ACTION_ALIASES[w] || [w.toLowerCase()];
+  return keys.some(k => v.includes(k));
+}
+
+export async function getCertifierWorksheetTool(params: {
+  certificationId?: string; certificationName?: string; username?: string; userId?: string; role?: string;
+  roleCode?: string; manager?: string; businessUnit?: string; location?: string;
+  action?: string; aggregate?: string; limit?: number;
+} = {}): Promise<ToolExecutionResult> {
+  try {
+    // Accept Groq-style userId as a username alias.
+    if (!params.username && params.userId) params.username = params.userId;
+    const list = (await getCertListCached()).map(canonCert);
+    if (list.length === 0) {
+      return createResult('getCertifierWorksheet', params, true, {
+        notFound: true, totalMatching: 0, rows: [],
+        message: 'No access certifications were returned by the Oracle instance, so no worksheet rows could be retrieved.'
+      });
+    }
+
+    // Resolve scope: one certification or all.
+    let scope = list;
+    let scopeLabel = 'all certifications';
+    const ref = (params.certificationId || params.certificationName || '').trim();
+    if (ref) {
+      const hit = resolveCertification(ref, list);
+      if (hit.ambiguous) {
+        return createResult('getCertifierWorksheet', params, true, {
+          ambiguous: true, query: ref, matches: hit.ambiguous,
+          message: `Multiple certifications match "${ref}".`
+        });
+      }
+      if (hit.cert) {
+        scope = [hit.cert];
+        scopeLabel = `certification ${hit.cert.certificate} (${hit.cert.name})`;
+      } else if (/^\d{1,7}$/.test(ref)) {
+        // Numeric ID absent from the campaign list (e.g. a retired campaign ID):
+        // trust the live worksheet report itself before declaring not-found.
+        const live = await getWorksheetCached(ref);
+        if (live.rows.length > 0) {
+          scope = [{ certificate: ref, name: live.certName || `Certification ${ref}` }];
+          scopeLabel = `certification ${ref} (${scope[0].name})`;
+        } else {
+          return createResult('getCertifierWorksheet', params, true, {
+            notFound: true, query: ref, totalMatching: 0, rows: [],
+            message: `Certification "${ref}" was not found in the live Oracle access certification catalog.`
+          });
+        }
+      } else {
+        return createResult('getCertifierWorksheet', params, true, {
+          notFound: true, query: ref, totalMatching: 0, rows: [],
+          message: `Certification "${ref}" was not found in the live Oracle access certification catalog.`
+        });
+      }
+    }
+
+    const perCert = await Promise.all(scope.map(async (c) => {
+      const ws = await getWorksheetCached(c.certificate);
+      return { cert: c, rows: ws.rows };
+    }));
+
+    let rows = perCert.flatMap(p => p.rows.map(r => ({ ...r, certificate: r.certificate || p.cert.name })));
+    const totalRows = rows.length;
+
+    const has = (v: any) => v !== undefined && v !== null && String(v).trim() !== '';
+    if (has(params.username)) {
+      const q = String(params.username).toLowerCase();
+      rows = rows.filter(r => (r.user || '').toLowerCase().includes(q));
+    }
+    if (has(params.role)) {
+      const q = String(params.role).toLowerCase();
+      rows = rows.filter(r => (r.role || '').toLowerCase().includes(q));
+    }
+    if (has(params.roleCode)) {
+      const q = String(params.roleCode).toUpperCase();
+      rows = rows.filter(r => (r.roleCode || '').toUpperCase().includes(q));
+    }
+    if (has(params.manager)) {
+      const q = String(params.manager).toLowerCase();
+      rows = rows.filter(r => (r.manager || '').toLowerCase().includes(q));
+    }
+    if (has(params.businessUnit)) {
+      const q = String(params.businessUnit).toLowerCase();
+      rows = rows.filter(r => (r.unit || '').toLowerCase().includes(q));
+    }
+    if (has(params.location)) {
+      const q = String(params.location).toLowerCase();
+      rows = rows.filter(r => (r.location || '').toLowerCase().includes(q));
+    }
+    if (has(params.action)) {
+      rows = rows.filter(r => matchWorksheetAction(r.action, String(params.action)));
+    }
+
+    const payload: any = {
+      scopeLabel,
+      certificationsQueried: scope.map(c => ({ certificate: c.certificate, name: c.name })),
+      totalRows,
+      totalMatching: rows.length
+    };
+
+    const agg = (params.aggregate || '').toLowerCase();
+    if (agg === 'users-roles') {
+      const users = [...new Set(rows.map(r => r.user).filter(Boolean))].sort();
+      const roles = [...new Set(rows.map(r => r.role).filter(Boolean))].sort();
+      payload.users = users;
+      payload.roles = roles;
+      payload.userCount = users.length;
+      payload.roleCount = roles.length;
+    } else if (agg === 'units' || agg === 'locations') {
+      const key = agg === 'units' ? 'unit' : 'location';
+      const counts = new Map<string, number>();
+      for (const r of rows) {
+        const k = (r[key] || '').trim() || '(Blank)';
+        counts.set(k, (counts.get(k) || 0) + 1);
+      }
+      payload.ranking = [...counts.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15);
+    }
+
+    const limit = clampChatLimit(params.limit, 25);
+    payload.rows = rows.slice(0, limit);
+    payload.returned = payload.rows.length;
+    payload.limit = limit;
+    return createResult('getCertifierWorksheet', params, true, payload);
+  } catch (err) {
+    return createResult('getCertifierWorksheet', params, false, null, (err as Error).message);
   }
 }
 
@@ -587,6 +1001,10 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
   RISK_INFORMATION: getRiskIncidentsTool,
   ACCESS_REQUESTS: getAccessRequestsTool,
   ADVANCED_CONTROLS: getAdvancedControlsTool,
+  CERTIFICATIONS_OVERVIEW: getCertificationsOverviewTool,
+  CERTIFICATIONS_LIST: listCertificationsTool,
+  CERTIFICATION_DETAILS: getCertificationDetailsTool,
+  CERTIFIER_WORKSHEET: getCertifierWorksheetTool,
   CONTROLS_OVERVIEW: getControlsOverviewTool,
   CONTROLS_LIST: listControlsTool,
   CONTROL_DETAILS: getControlDetailsTool,
