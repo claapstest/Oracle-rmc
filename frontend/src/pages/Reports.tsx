@@ -105,7 +105,7 @@ const REPORT_DEFINITIONS: ReportMeta[] = [
   {
     id: 'USER_ACCESS',
     section: 'SECURITY',
-    title: 'User Access Report',
+    title: 'User Detail Report',
     subtitle: 'Complete Fusion user access, role and organizational information.',
     badge: 'Security',
     icon: Users
@@ -144,7 +144,7 @@ const REPORT_SELECTOR_NAMES: Record<ReportId, string> = {
   INCIDENTS_DETAILED: 'Incidents Detailed',
   USER_ROLE_MAPPING: 'User Role Mapping Report',
   ROLE_HIERARCHY: 'Role Hierarchy Report',
-  USER_ACCESS: 'User Access Report',
+  USER_ACCESS: 'User Detail Report',
   AUDIT_HISTORY: 'Audit History Report'
 };
 
@@ -267,7 +267,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   const [auditDateWarning, setAuditDateWarning] = useState<string>('');
 
   // -------------------------------------------------------------
-  // 6. USER ACCESS REPORT STATE
+  // 6. USER DETAIL REPORT STATE
   // -------------------------------------------------------------
   const [userAccessData, setUserAccessData] = useState<any[]>([]);
   const [userAccessSummary, setUserAccessSummary] = useState<{
@@ -286,6 +286,8 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   const [userAccessDeptFilter, setUserAccessDeptFilter] = useState<string>('ALL');
   const [userAccessManagerFilter, setUserAccessManagerFilter] = useState<string>('ALL');
   const [userAccessRoleFilter, setUserAccessRoleFilter] = useState<string>('ALL');
+  // KPI card drill-down filter for the User Detail table (ALL = no KPI filtering)
+  const [userAccessKpiFilter, setUserAccessKpiFilter] = useState<'ALL' | 'WITH_ROLES' | 'WITHOUT_ROLES' | 'ASSIGNMENTS' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   // Cleanup polling intervals on unmount
   useEffect(() => {
@@ -1021,7 +1023,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     }
   };
 
-  // Loader 6: User Access Report
+  // Loader 6: User Detail Report
   const loadUserAccessReport = async (forceRefresh = false) => {
     setUserAccessLoading(true);
     setUserAccessError('');
@@ -1037,7 +1039,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       }
     } catch (err: any) {
       console.error('Failed to load user access report:', err);
-      setUserAccessError(err.message || 'Unable to retrieve user access report from Oracle Fusion.');
+      setUserAccessError(err.message || 'Unable to retrieve user detail report from Oracle Fusion.');
     } finally {
       setUserAccessLoading(false);
     }
@@ -1245,14 +1247,27 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   // 6. User Access Filtered
   const filteredUserAccessData = useMemo(() => {
     return userAccessData.filter(row => {
+      // KPI card drill-down (AND-ed with the dropdown filters below)
+      if (userAccessKpiFilter === 'WITH_ROLES' || userAccessKpiFilter === 'ASSIGNMENTS') {
+        if (!row.roleName && !row.roleCode) return false;
+      } else if (userAccessKpiFilter === 'WITHOUT_ROLES') {
+        if (row.roleName || row.roleCode) return false;
+      } else if (userAccessKpiFilter === 'ACTIVE') {
+        if (!row.active) return false;
+      } else if (userAccessKpiFilter === 'INACTIVE') {
+        if (row.active) return false;
+      }
       if (userAccessSearch) {
         const term = userAccessSearch.toLowerCase().trim();
         const match =
           (row.username && String(row.username).toLowerCase().includes(term)) ||
           (row.displayName && String(row.displayName).toLowerCase().includes(term)) ||
+          (row.firstName && String(row.firstName).toLowerCase().includes(term)) ||
+          (row.lastName && String(row.lastName).toLowerCase().includes(term)) ||
           (row.email && String(row.email).toLowerCase().includes(term)) ||
           (row.roleName && String(row.roleName).toLowerCase().includes(term)) ||
           (row.roleCode && String(row.roleCode).toLowerCase().includes(term)) ||
+          (row.autoProvisioned && String(row.autoProvisioned).toLowerCase().includes(term)) ||
           (row.department && String(row.department).toLowerCase().includes(term)) ||
           (row.job && String(row.job).toLowerCase().includes(term)) ||
           (row.businessUnit && String(row.businessUnit).toLowerCase().includes(term)) ||
@@ -1279,7 +1294,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       }
       return true;
     });
-  }, [userAccessData, userAccessSearch, userAccessStatusFilter, userAccessBuFilter, userAccessDeptFilter, userAccessRoleFilter, userAccessManagerFilter]);
+  }, [userAccessData, userAccessSearch, userAccessKpiFilter, userAccessStatusFilter, userAccessBuFilter, userAccessDeptFilter, userAccessRoleFilter, userAccessManagerFilter]);
 
   // Active dataset pointer
   const currentDataset = useMemo(() => {
@@ -1294,7 +1309,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     }
   }, [activeReportId, filteredControls, filteredIncidents, filteredUserRoleData, filteredHierarchyData, filteredUserAccessData, filteredAuditLogs]);
 
-  // Active Filters & Options for User Access Report
+  // Active Filters & Options for User Detail Report
   const userAccessBuOptions = useMemo(() => {
     const set = new Set<string>();
     userAccessData.forEach(r => { if (r.businessUnit) set.add(r.businessUnit); });
@@ -1319,8 +1334,22 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     return Array.from(set).sort();
   }, [userAccessData]);
 
+  const userAccessKpiFilterLabels: Record<string, string> = {
+    WITH_ROLES: 'Users With Roles',
+    WITHOUT_ROLES: 'Users Without Roles',
+    ASSIGNMENTS: 'Role Assignments',
+    ACTIVE: 'Active Users',
+    INACTIVE: 'Inactive Users'
+  };
+
+  const selectUserAccessKpiFilter = (key: 'ALL' | 'WITH_ROLES' | 'WITHOUT_ROLES' | 'ASSIGNMENTS' | 'ACTIVE' | 'INACTIVE') => {
+    setUserAccessKpiFilter(prev => (prev === key ? 'ALL' : key));
+    setCurrentPage(1);
+  };
+
   const userAccessActiveFilters = useMemo(() => {
     const list: { label: string; value: string }[] = [];
+    if (userAccessKpiFilter !== 'ALL') list.push({ label: 'View', value: userAccessKpiFilterLabels[userAccessKpiFilter] || userAccessKpiFilter });
     if (userAccessSearch) list.push({ label: 'Search', value: `"${userAccessSearch}"` });
     if (userAccessStatusFilter !== 'ALL') list.push({ label: 'Status', value: userAccessStatusFilter });
     if (userAccessRoleFilter !== 'ALL') list.push({ label: 'Role', value: userAccessRoleFilter });
@@ -1328,9 +1357,10 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     if (userAccessDeptFilter !== 'ALL') list.push({ label: 'Department', value: userAccessDeptFilter });
     if (userAccessManagerFilter !== 'ALL') list.push({ label: 'Manager', value: userAccessManagerFilter });
     return list;
-  }, [userAccessSearch, userAccessStatusFilter, userAccessRoleFilter, userAccessBuFilter, userAccessDeptFilter, userAccessManagerFilter]);
+  }, [userAccessKpiFilter, userAccessSearch, userAccessStatusFilter, userAccessRoleFilter, userAccessBuFilter, userAccessDeptFilter, userAccessManagerFilter]);
 
   const hasActiveUserAccessFilters = Boolean(
+    userAccessKpiFilter !== 'ALL' ||
     userAccessSearch ||
     userAccessStatusFilter !== 'ALL' ||
     userAccessRoleFilter !== 'ALL' ||
@@ -1340,6 +1370,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   );
 
   const resetUserAccessFilters = () => {
+    setUserAccessKpiFilter('ALL');
     setUserAccessSearch('');
     setUserAccessStatusFilter('ALL');
     setUserAccessRoleFilter('ALL');
@@ -1804,9 +1835,9 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
             {activeReportId === 'USER_ACCESS' && (
               <EnterpriseExportControl
-                filename="oracle_user_access_report"
-                sheetName="User Access"
-                reportTitle="Oracle Fusion User Access & Assignment Report"
+                filename="oracle_user_detail_report"
+                sheetName="User Detail"
+                reportTitle="Oracle Fusion User Detail Report"
                 dataSource="Oracle Fusion Cloud (SCIM & Public Workers)"
                 entityName="User Access Records"
                 buttonText="Export Access Report"
@@ -1817,10 +1848,13 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                 availableColumns={[
                   { key: 'username', label: 'Username', defaultSelected: true },
                   { key: 'displayName', label: 'Display Name', defaultSelected: true, getValue: (r: any) => r.displayName || '—' },
+                  { key: 'firstName', label: 'First Name', defaultSelected: true, getValue: (r: any) => r.firstName || '—' },
+                  { key: 'lastName', label: 'Last Name', defaultSelected: true, getValue: (r: any) => r.lastName || '—' },
                   { key: 'email', label: 'Email', defaultSelected: true, getValue: (r: any) => r.email || '—' },
                   { key: 'active', label: 'Status', defaultSelected: true, getValue: (r: any) => r.active ? 'Active' : 'Inactive' },
                   { key: 'roleName', label: 'Role Name', defaultSelected: true, getValue: (r: any) => r.roleName || '—' },
                   { key: 'roleCode', label: 'Role Code', defaultSelected: true, getValue: (r: any) => r.roleCode || '—' },
+                  { key: 'autoProvisioned', label: 'Auto Provision', defaultSelected: true, getValue: (r: any) => r.autoProvisioned || '—' },
                   { key: 'personId', label: 'Person ID', defaultSelected: true, getValue: (r: any) => r.personId || '—' },
                   { key: 'personNumber', label: 'Person Number', defaultSelected: true, getValue: (r: any) => r.personNumber || '—' },
                   { key: 'department', label: 'Department', defaultSelected: true, getValue: (r: any) => r.department || '—' },
@@ -2625,7 +2659,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
         )}
 
         {/* -------------------------------------------------------------
-            REPORT 6: USER ACCESS REPORT KPIS & FILTERS
+            REPORT 6: USER DETAIL REPORT KPIS & FILTERS
             ------------------------------------------------------------- */}
         {activeReportId === 'USER_ACCESS' && (
           <div>
@@ -2633,7 +2667,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               
               {/* Card 1: Total Users */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-gold)' }}>
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('ALL')} title="Click to show all users" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-gold)', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'ALL' ? '0 0 0 2px var(--accent-gold)' : undefined }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <Users size={16} style={{ color: 'var(--accent-gold)' }} />
                   Total Users
@@ -2647,7 +2681,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               </div>
 
               {/* Card 2: Users With Roles */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)' }}>
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('WITH_ROLES')} title="Click to show only users with roles" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'WITH_ROLES' ? '0 0 0 2px var(--accent-blue)' : undefined }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <UserCheck size={16} style={{ color: 'var(--accent-blue)' }} />
                   Users With Roles
@@ -2661,7 +2695,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               </div>
 
               {/* Card 3: Users Without Roles */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #F59E0B' }}>
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('WITHOUT_ROLES')} title="Click to show only users without roles" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #F59E0B', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'WITHOUT_ROLES' ? '0 0 0 2px #F59E0B' : undefined }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <AlertCircle size={16} style={{ color: '#F59E0B' }} />
                   Users Without Roles
@@ -2675,7 +2709,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               </div>
 
               {/* Card 4: Total Role Assignments */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #8B5CF6' }}>
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('ASSIGNMENTS')} title="Click to show only role assignment rows" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #8B5CF6', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'ASSIGNMENTS' ? '0 0 0 2px #8B5CF6' : undefined }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <Layers size={16} style={{ color: '#8B5CF6' }} />
                   Total Role Assignments
@@ -2689,7 +2723,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               </div>
 
               {/* Card 5: Active Users */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-green)' }}>
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('ACTIVE')} title="Click to show only active users" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-green)', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'ACTIVE' ? '0 0 0 2px var(--accent-green)' : undefined }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <CheckCircle2 size={16} style={{ color: 'var(--accent-green)' }} />
                   Active Users
@@ -2703,7 +2737,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               </div>
 
               {/* Card 6: Inactive Users */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #94A3B8' }}>
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('INACTIVE')} title="Click to show only inactive users" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #94A3B8', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'INACTIVE' ? '0 0 0 2px #94A3B8' : undefined }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                   <User size={16} style={{ color: '#94A3B8' }} />
                   Inactive Users
@@ -2718,7 +2752,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
 
             </div>
 
-            {/* Filter Toolbar for User Access Report */}
+            {/* Filter Toolbar for User Detail Report */}
             <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
                 <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -2809,6 +2843,12 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             {hasActiveUserAccessFilters && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Filters:</span>
+                {userAccessKpiFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    View: {userAccessKpiFilterLabels[userAccessKpiFilter]}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessKpiFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
                 {userAccessSearch && (
                   <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
                     Search: "{userAccessSearch}"
@@ -3541,18 +3581,21 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             </div>
           )}
 
-          {/* Table 6: User Access Report */}
+          {/* Table 6: User Detail Report */}
           {activeReportId === 'USER_ACCESS' && (
             <div style={{ overflowX: 'auto' }}>
-              <table className="enterprise-table" style={{ minWidth: '1500px' }}>
+              <table className="enterprise-table" style={{ minWidth: '1900px' }}>
                 <thead>
                   <tr>
                     <th style={{ minWidth: '120px' }}>Username</th>
                     <th style={{ minWidth: '140px' }}>Display Name</th>
+                    <th style={{ minWidth: '110px' }}>First Name</th>
+                    <th style={{ minWidth: '110px' }}>Last Name</th>
                     <th style={{ minWidth: '160px' }}>Email</th>
                     <th style={{ width: '90px' }}>Status</th>
                     <th style={{ minWidth: '180px' }}>Role Name</th>
                     <th style={{ minWidth: '160px' }}>Role Code</th>
+                    <th style={{ width: '110px' }}>Auto Provision</th>
                     <th style={{ width: '110px' }}>Person ID</th>
                     <th style={{ width: '110px' }}>Person Number</th>
                     <th style={{ minWidth: '150px' }}>Department</th>
@@ -3568,10 +3611,13 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                       <tr key={`uar-skel-${idx}`} className="animate-pulse">
                         <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
                         <td><div style={{ height: '14px', width: '150px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
                         <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '110px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
@@ -3583,7 +3629,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                     ))
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={13} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
+                      <td colSpan={16} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                           <Users size={32} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
                           <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
@@ -3629,6 +3675,16 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                           {row.displayName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
                         </td>
 
+                        {/* 2a. First Name (live Oracle SCIM name.givenName) */}
+                        <td>
+                          {row.firstName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 2b. Last Name (live Oracle SCIM name.familyName) */}
+                        <td>
+                          {row.lastName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
                         {/* 3. Email */}
                         <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                           {row.email || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
@@ -3667,6 +3723,17 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                             <code style={{ fontSize: '0.78rem' }}>{row.roleCode}</code>
                           ) : (
                             <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* 6a. Auto Provision (live Oracle BIP User Role Auto-Provisioning report) */}
+                        <td>
+                          {row.autoProvisioned ? (
+                            <span className={`badge ${row.autoProvisioned === 'Yes' ? 'badge-active' : 'badge-inactive'}`} style={{ fontSize: '0.68rem' }}>
+                              {row.autoProvisioned}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
                           )}
                         </td>
 

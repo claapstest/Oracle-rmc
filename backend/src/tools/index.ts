@@ -1,6 +1,19 @@
 import { oracleService, classifyRoleRecord } from '../services/oracleService.js';
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
+import { controlRawDbService } from '../services/controlRawDbService.js';
+
+function clampChatLimit(raw: any, def = 25, max = 50): number {
+  const n = typeof raw === 'string' ? parseInt(raw, 10) : typeof raw === 'number' ? raw : def;
+  if (Number.isNaN(n)) return def;
+  return Math.min(Math.max(n, 1), max);
+}
+
+function controlTypeLabel(t: any): string {
+  if (t === 173 || t === '173') return 'Access';
+  if (t === 174 || t === '174') return 'Transaction';
+  return t ? 'Other' : '—';
+}
 
 export interface ToolExecutionResult {
   tool: string;
@@ -302,6 +315,260 @@ export async function getRolesByPrivilegeTool(params: { privilegeName: string })
   }
 }
 
+// ── Controls & Incidents conversational tools (live Oracle Fusion data) ──
+
+export async function getControlsOverviewTool(): Promise<ToolExecutionResult> {
+  try {
+    const res = await oracleService.getControlSummaryReport({});
+    const controls = res.controls || [];
+    let access = 0;
+    let transaction = 0;
+    let active = 0;
+    let inactive = 0;
+    let incidents = 0;
+    for (const c of controls) {
+      if (c.controlTypeName === 'Access Control') access++;
+      else if (c.controlTypeName === 'Transaction Control') transaction++;
+      if ((c.status || '').toUpperCase() === 'ACTIVE') active++;
+      else inactive++;
+      incidents += c.totalIncidentCount || 0;
+    }
+    return createResult('getControlsOverview', {}, true, {
+      totalControls: res.totalControls ?? controls.length,
+      accessControls: access,
+      transactionControls: transaction,
+      activeControls: active,
+      inactiveControls: inactive,
+      totalIncidents: incidents,
+      reportSource: res.dataSource
+    });
+  } catch (err) {
+    return createResult('getControlsOverview', {}, false, null, (err as Error).message);
+  }
+}
+
+export async function listControlsTool(params: {
+  status?: string; type?: string; top?: boolean; limit?: number; search?: string;
+} = {}): Promise<ToolExecutionResult> {
+  try {
+    const catalog = oracleService.getControlCatalogService();
+    const res = await catalog.getAllControls(false);
+    let items = res.items || [];
+    const totalControls = items.length;
+
+    if (params.type) {
+      const t = params.type.trim().toUpperCase();
+      items = items.filter(c => controlTypeLabel((c as any).type).toUpperCase() === t);
+    }
+    if (params.status) {
+      const s = params.status.trim().toUpperCase();
+      items = items.filter(c => (c.status || '').toUpperCase() === s);
+    }
+    if (params.search) {
+      const q = params.search.trim().toLowerCase();
+      items = items.filter(c => c.id.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q));
+    }
+    const totalMatching = items.length;
+
+    if (params.top) {
+      items = [...items].sort((a, b) => (b.incidentCount || 0) - (a.incidentCount || 0));
+    }
+    const limit = clampChatLimit(params.limit, 25);
+    const rows = items.slice(0, limit).map(c => ({
+      control: c.id,
+      name: c.name,
+      type: controlTypeLabel((c as any).type),
+      status: c.status,
+      state: c.state,
+      incidents: c.incidentCount ?? 0,
+      lastRun: (c as any).lastRunDate || null
+    }));
+
+    return createResult('listControls', params, true, {
+      controls: rows, totalControls, totalMatching, returned: rows.length
+    });
+  } catch (err) {
+    return createResult('listControls', params, false, null, (err as Error).message);
+  }
+}
+
+export async function getControlDetailsTool(params: { controlId?: string; controlName?: string } = {}): Promise<ToolExecutionResult> {
+  try {
+    const query = (params.controlId || params.controlName || '').trim();
+    if (!query) {
+      return createResult('getControlDetails', params, false, null, 'Control ID or name is required.');
+    }
+    const catalog = oracleService.getControlCatalogService();
+    const resolved = catalog.resolveControl(query);
+    const id = resolved ? resolved.id : (/^\d{3,7}$/.test(query) ? query : null);
+    if (!id) {
+      return createResult('getControlDetails', params, true, {
+        notFound: true, query,
+        message: `Control "${query}" was not found in the Oracle Fusion Advanced Controls catalog.`
+      });
+    }
+    const detail = await catalog.getControlDetail(id, {});
+    if (!detail || !detail.control) {
+      return createResult('getControlDetails', params, true, {
+        notFound: true, query,
+        message: detail?.message || `Control "${query}" was not found in Oracle Fusion.`
+      });
+    }
+    const c: any = detail.control;
+    const incidentCount = detail.incidentCount !== undefined ? detail.incidentCount : (c.incidentCount ?? 0);
+    return createResult('getControlDetails', params, true, {
+      control: {
+        control: c.id, name: c.name, description: c.description || null,
+        type: controlTypeLabel(c.type), typeCode: c.type ?? null,
+        status: c.status, state: c.state,
+        incidents: incidentCount,
+        lastRun: c.lastRunDate || null, lastUpdated: c.lastUpdateDate || c.lastUpdatedDate || null,
+        enforcement: c.enforcementType ?? null, latestJob: c.latestJobId ?? null,
+        createdBy: c.createdBy || null, creationDate: c.creationDate || null,
+        lastUpdatedBy: c.lastUpdatedBy || null, scheduledBy: c.scheduledBy || null
+      },
+      incidentCount
+    });
+  } catch (err) {
+    return createResult('getControlDetails', params, false, null, (err as Error).message);
+  }
+}
+
+export async function listIncidentsTool(params: {
+  controlId?: string; controlName?: string; username?: string; role?: string;
+  accessPoint?: string; status?: string; state?: string; priority?: string;
+  page?: number; limit?: number;
+} = {}): Promise<ToolExecutionResult> {
+  try {
+    const catalog = oracleService.getControlCatalogService();
+    let scopeIds: string[] | null = null;
+    let scopeLabel = 'all controls';
+    const q = (params.controlId || params.controlName || '').trim();
+    if (q) {
+      const resolved = catalog.resolveControl(q);
+      if (resolved) {
+        scopeIds = [resolved.id];
+        scopeLabel = `control ${resolved.id} (${resolved.name})`;
+      } else if (/^\d{3,7}$/.test(q)) {
+        // Numeric ID: verify it exists in the live catalog before querying.
+        const allIds = await catalog.getAllControls(false);
+        const known = (allIds.items || []).find(c => c.id === q);
+        if (known) {
+          scopeIds = [known.id];
+          scopeLabel = `control ${known.id} (${known.name})`;
+        } else {
+          return createResult('listIncidents', params, true, {
+            notFound: true, query: q,
+            message: `Control "${q}" was not found in the Oracle Fusion Advanced Controls catalog, so no incidents could be retrieved.`
+          });
+        }
+      } else {
+        return createResult('listIncidents', params, true, {
+          notFound: true, query: q,
+          message: `Control "${q}" was not found in the Oracle Fusion Advanced Controls catalog, so no incidents could be retrieved.`
+        });
+      }
+    }
+    if (!scopeIds) {
+      const all = await catalog.getAllControls(false);
+      scopeIds = (all.items || []).map(c => c.id);
+    }
+
+    const terms = [params.username, params.role, params.accessPoint].filter(Boolean) as string[];
+    const limit = clampChatLimit(params.limit, 25);
+    const page = Math.max(1, typeof params.page === 'number' ? params.page : parseInt(String(params.page || '1'), 10) || 1);
+    const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
+      controlIds: scopeIds,
+      offset: (page - 1) * limit,
+      limit,
+      searchTerms: terms,
+      status: params.status,
+      state: params.state,
+      priority: params.priority
+    });
+
+    // Authoritative total for the scope from lightweight per-control counts
+    let authoritativeTotal = pg.filteredTotal;
+    try {
+      const all = await catalog.getAllControls(false);
+      const counts = new Map((all.items || []).map(c => [c.id, c.incidentCount || 0]));
+      authoritativeTotal = scopeIds.reduce((s, id) => s + (counts.get(id) || 0), 0);
+    } catch (_) {}
+
+    const nameMap = new Map<string, string>();
+    try {
+      const all = await catalog.getAllControls(false);
+      for (const c of all.items || []) nameMap.set(c.id, c.name);
+    } catch (_) {}
+
+    const incidents = pg.rows.map(r => {
+      const n = catalog.normalizeIncident(r.raw, r.control_id, nameMap.get(r.control_id));
+      return {
+        incident: n.id, control: n.controlId, controlName: n.controlName || r.control_name || null,
+        priority: (r.raw?.Priority ?? r.raw?.priority ?? n.priority ?? null),
+        user: n.globalUserName || n.globalUser || null,
+        userFirst: n.userFirstName || null, userLast: n.userLastName || null,
+        role: n.role || null, accessPoint: n.accessPointName || n.accessPoint || null,
+        accessPointType: n.accessPointType || null, entitlement: n.entitlement || null,
+        info: n.incidentInformation || null, conflictingRoles: n.conflictingRoles || null,
+        status: n.status || null, state: n.state || null,
+        created: n.creationDate || null, closed: n.closedDate || null
+      };
+    });
+
+    const payload: any = {
+      incidents, scopeLabel,
+      totalMatching: pg.filteredTotal, authoritativeTotal,
+      page, pageSize: limit, returned: incidents.length
+    };
+    if (params.priority) {
+      payload.priorityNote = 'Oracle marks every incident in this environment with numeric priority 1, so "high priority" covers the full matching set.';
+    }
+    return createResult('listIncidents', params, true, payload);
+  } catch (err) {
+    return createResult('listIncidents', params, false, null, (err as Error).message);
+  }
+}
+
+export async function getIncidentDetailsTool(params: { incidentId?: string } = {}): Promise<ToolExecutionResult> {
+  try {
+    const incidentId = (params.incidentId || '').trim();
+    if (!incidentId) {
+      return createResult('getIncidentDetails', params, false, null, 'Incident ID is required (format "<controlId>:<number>", e.g. "11067:1").');
+    }
+    const hit = await controlRawDbService.getIncidentById(incidentId);
+    if (!hit) {
+      return createResult('getIncidentDetails', params, true, {
+        notFound: true, incidentId,
+        message: `Incident "${incidentId}" was not found in the synchronized Oracle Fusion incident data.`
+      });
+    }
+    const catalog = oracleService.getControlCatalogService();
+    const n = catalog.normalizeIncident(hit.raw, hit.controlId, hit.controlName || undefined);
+    const raw = hit.raw || {};
+    return createResult('getIncidentDetails', params, true, {
+      incident: {
+        incident: n.id, control: n.controlId, controlName: n.controlName || hit.controlName || null,
+        priority: raw.Priority ?? raw.priority ?? n.priority ?? null,
+        user: n.globalUserName || n.globalUser || null, userId: n.globalUserId || null,
+        userFirst: n.userFirstName || null, userLast: n.userLastName || null,
+        role: n.role || null, conflictingRoles: n.conflictingRoles || null,
+        accessPoint: n.accessPointName || n.accessPoint || null,
+        accessPointType: n.accessPointType || null, entitlement: n.entitlement || null,
+        info: n.incidentInformation || null, infoCodes: n.incidentInformationCodes || null,
+        status: n.status || null, state: n.state || null,
+        created: n.creationDate || null, createdBy: n.createdBy || null,
+        updated: n.lastUpdateDate || null, updatedBy: n.lastUpdatedBy || null,
+        closed: n.closedDate || null, closedBy: n.closedBy || null,
+        investigator: n.resultInvestigator || n.investigator || null,
+        grouping: n.groupingValue || n.group || null, dataSource: n.dataSource || 'Oracle Cloud'
+      }
+    });
+  } catch (err) {
+    return createResult('getIncidentDetails', params, false, null, (err as Error).message);
+  }
+}
+
 // Global registry mapping intents to tools
 export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecutionResult>> = {
   LIST_USERS: getUsersTool,
@@ -320,6 +587,11 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
   RISK_INFORMATION: getRiskIncidentsTool,
   ACCESS_REQUESTS: getAccessRequestsTool,
   ADVANCED_CONTROLS: getAdvancedControlsTool,
+  CONTROLS_OVERVIEW: getControlsOverviewTool,
+  CONTROLS_LIST: listControlsTool,
+  CONTROL_DETAILS: getControlDetailsTool,
+  INCIDENTS_LIST: listIncidentsTool,
+  INCIDENT_DETAILS: getIncidentDetailsTool,
   SECURITY_STATISTICS: async () => {
     // Collect statistics in parallel using cached services
     const [usersRes, rolesRes, audits, incidentsRes] = await Promise.all([

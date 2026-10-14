@@ -868,7 +868,6 @@ export default function InvestigationWorkspace({
                               <th>Role</th>
                               <th>Role Code</th>
                               <th>Auto-Provisioned</th>
-                              <th title="Assignable is not exposed by Oracle REST/BIP role APIs">Assignable</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -881,7 +880,6 @@ export default function InvestigationWorkspace({
                                   <td style={{ fontWeight: 600 }}>{rName}</td>
                                   <td><code style={{ fontSize: '0.75rem' }}>{rCode}</code></td>
                                   <td>{rAuto}</td>
-                                  <td title="Assignable is not exposed by Oracle REST/BIP role APIs">—</td>
                                 </tr>
                               );
                             })}
@@ -890,7 +888,7 @@ export default function InvestigationWorkspace({
                       </div>
                     )}
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.75rem 0 0 0' }}>
-                      Live Oracle Fusion data (SCIM + HCM assignments + BIP auto-provisioning, merged on USERNAME + ROLE_CODE). Auto-Provisioned fills in once a runnable BIP Report exists on the CLAAPS_User_Role_AutoProvisioning data model (BI catalog → New Report → save as /Custom/CLAAPS_User_Role_AutoProvisioning_Report.xdo) — it is auto-discovered. Phone, password expiration, locked and assignable show — when Oracle does not expose them via REST/BIP.
+                      Live Oracle Fusion data (SCIM + HCM assignments + BIP auto-provisioning, merged on USERNAME + ROLE_CODE). Auto-Provisioned fills in once a runnable BIP Report exists on the CLAAPS_User_Role_AutoProvisioning data model (BI catalog → New Report → save as /Custom/CLAAPS_User_Role_AutoProvisioning_Report.xdo) — it is auto-discovered. Phone, password expiration and locked show — when Oracle does not expose them via REST/BIP.
                     </p>
                   </div>
                 </div>

@@ -487,8 +487,10 @@ export class ControlRawDbService {
     offset?: number;
     limit?: number;
     search?: string;
+    searchTerms?: string[];
     status?: string;
     state?: string;
+    priority?: string;
   }): Promise<{
     filteredTotal: number;
     rows: Array<{ control_id: string; control_name: string | null; raw: any }>;
@@ -531,6 +533,25 @@ export class ControlRawDbService {
       p++;
     }
 
+    // Multi-term AND search (each term matched against any text field)
+    for (const rawTerm of options.searchTerms || []) {
+      const term = String(rawTerm || '').trim().toLowerCase();
+      if (!term) continue;
+      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'AccessPointName',el->>'accessPointName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Entitlement',el->>'entitlement','')) LIKE $${p})`);
+      params.push(`%${term}%`);
+      p++;
+    }
+
+    // Oracle numeric priority (verified live: every incident carries Priority "1")
+    const prio = (options.priority || '').trim().toUpperCase();
+    if (prio) {
+      const prioMap: Record<string, string> = { HIGH: '1', MEDIUM: '2', LOW: '3' };
+      const prioVal = prioMap[prio] || prio;
+      conds.push(`(COALESCE(el->>'Priority',el->>'priority','') = $${p})`);
+      params.push(prioVal);
+      p++;
+    }
+
     const whereExtra = conds.length > 0 ? `AND ${conds.join(' AND ')}` : '';
     const res = await query<{
       control_id: string;
@@ -565,6 +586,56 @@ export class ControlRawDbService {
     );
 
     return Array.isArray(res.rows[0]?.raw_incidents) ? res.rows[0].raw_incidents : [];
+  }
+
+  /**
+   * Finds a single incident by its Oracle ID ("<controlId>:<seq>", e.g. "11067:1").
+   * Searches the owning control's synced payload; falls back to a cross-control
+   * scan when the ID prefix does not resolve to a known control.
+   */
+  public async getIncidentById(incidentId: string): Promise<{ controlId: string; controlName: string | null; raw: any } | null> {
+    const host = this.getHost();
+    const clean = String(incidentId || '').trim();
+    if (!clean) return null;
+
+    const prefixMatch = clean.match(/^(\d{3,7}):(.+)$/);
+    const candidateControls: string[] = prefixMatch && prefixMatch[1] ? [prefixMatch[1]] : [];
+    const seqPart = prefixMatch ? prefixMatch[2] : clean;
+
+    // Exact ID match only. A loose suffix match would return a different
+    // control's incident (e.g. "99999:1" must never resolve to "11055:1").
+    const matches = (el: any): boolean => {
+      if (!el || typeof el !== 'object') return false;
+      const id = String(el.Id ?? el.id ?? el.IncidentId ?? el.ResultId ?? '');
+      return id === clean || (!prefixMatch && id === seqPart);
+    };
+
+    // 1. Direct control lookup from the ID prefix
+    for (const cid of candidateControls) {
+      const items = await this.getAllRawIncidentsForControl(cid);
+      const hit = items.find(matches);
+      if (hit) {
+        const nameRes = await query<{ control_name: string | null }>(
+          `SELECT control_name FROM oracle_control_incidents WHERE environment_host = $1 AND control_id = $2`,
+          [host, cid]
+        );
+        return { controlId: cid, controlName: nameRes.rows[0]?.control_name || null, raw: hit };
+      }
+    }
+
+    // 2. Cross-control scan (bounded: newest-synced controls first)
+    const list = await query<{ control_id: string; control_name: string | null }>(
+      `SELECT control_id, control_name FROM oracle_control_incidents
+       WHERE environment_host = $1 ORDER BY last_synced_at DESC NULLS LAST LIMIT 60`,
+      [host]
+    );
+    for (const row of list.rows) {
+      if (candidateControls.includes(row.control_id)) continue;
+      const items = await this.getAllRawIncidentsForControl(row.control_id);
+      const hit = items.find(matches);
+      if (hit) return { controlId: row.control_id, controlName: row.control_name, raw: hit };
+    }
+    return null;
   }
 
   // =============================================================

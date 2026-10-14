@@ -52,6 +52,207 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     }
   }
 
+  // 0. Controls & Incidents conversational intents (live Oracle Fusion data).
+  // Placed first so control/incident questions never fall into generic buckets.
+  {
+    const hasControlWord = clean.includes('control') || clean.includes('controls') || clean.includes('algorithm');
+    const hasIncidentWord = clean.includes('incident') || clean.includes('incidents');
+    const stripPunct = (s: string) => s.replace(/[\?\.\!,;:\(\)"']+$/g, '').replace(/^["']+/, '').trim();
+
+    if (hasControlWord || hasIncidentWord) {
+      const incidentIdMatch = clean.match(/\b(\d{3,7}:\d+)\b/);
+      const cleanNoInc = clean.replace(/\b\d{3,7}:\d+\b/g, ' ');
+      const controlNumMatch = cleanNoInc.match(/\b(\d{4,6})\b/);
+      const quotedMatch = clean.match(/"([^"]{2,80})"/);
+
+      const extractControlName = (): string => {
+        if (quotedMatch && quotedMatch[1]) return stripPunct(quotedMatch[1]);
+        const m = cleanNoInc.match(/controls?\s+(?:id\s+|number\s+|#)?([a-z0-9][a-z0-9\s&'\-\.]*)/);
+        if (m && m[1]) {
+          return stripPunct(m[1].replace(/\s+(details?|incidents?|information|info|status|state|description|enforcement|job|history|control|controls)$/, ''));
+        }
+        return '';
+      };
+
+      const extractUsername = (): string => {
+        const email = clean.match(/\b([a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,})\b/);
+        if (email) return email[1];
+        const m = clean.match(/(?:\buser\s+|\busername\s+|\bfor\s+|\bby\s+)([a-z0-9_\.\@\-]+)/);
+        if (m && m[1]) {
+          const stop = new Set(['control', 'controls', 'incident', 'incidents', 'role', 'roles', 'status', 'state', 'for', 'with', 'and', 'the', 'all', 'show', 'list']);
+          const tok = stripPunct(m[1]).split(/\s+/)[0] || '';
+          if (tok && !stop.has(tok) && (tok.includes('.') || tok.includes('_') || tok.includes('@'))) return tok;
+        }
+        return '';
+      };
+
+      const stripTrailingFilters = (s: string): string => stripPunct(
+        s.replace(/\s+(with|and|status|state|priority|high|medium|low|for|in|of|show|list|control|controls|incident|incidents|\?)$/g, '')
+      );
+
+      const extractRole = (): string => {
+        const m = clean.match(/roles?\s+(?:for\s+|of\s+|with\s+)?([a-zA-Z][a-zA-Z0-9 _&'\-]*)/);
+        if (m && m[1]) {
+          let v = stripTrailingFilters(m[1]);
+          v = v.replace(/^(for|of|with)\s+/i, '').trim();
+          if (v && !/^(all|any|assigned|show|list)$/i.test(v)) return v;
+        }
+        return '';
+      };
+
+      const extractAccessPoint = (): string => {
+        const m = clean.match(/access\s*points?\s+([a-zA-Z][a-zA-Z0-9 _>\-&'\-]*)/);
+        if (m && m[1]) {
+          const v = stripTrailingFilters(m[1]);
+          if (v) return v;
+        }
+        return '';
+      };
+
+      const extractLifecycleStatus = (): string => {
+        const m = clean.match(/status\s+([a-z_\-]+)/);
+        const raw = (m && m[1] ? m[1] : clean).toLowerCase();
+        if (raw.includes('in-remediation') || raw.includes('in remediation') || raw.includes('remediat')) return 'REMEDIATE';
+        if (raw.includes('assign')) return 'ASSIGNED';
+        if (raw.includes('accept')) return 'ACCEPTED';
+        if (raw.includes('clos') || raw.includes('resolv')) return 'RESOLVED';
+        return '';
+      };
+
+      const extractState = (): string => {
+        const m = clean.match(/state\s+([a-z_]+)/);
+        return m && m[1] ? m[1].toUpperCase() : '';
+      };
+
+      const extractPriority = (): string => {
+        const m = clean.match(/priority\s*(high|medium|low|\d)/);
+        if (m && m[1]) return /^\d$/.test(m[1]) ? m[1] : m[1].toUpperCase();
+        const b = clean.match(/\b(high|medium|low)[\s\-]*priority\b/);
+        return b && b[1] ? b[1].toUpperCase() : '';
+      };
+
+      const extractLimit = (): number | undefined => {
+        const m = clean.match(/(?:top|first)\s+(\d{1,2})\b/);
+        if (m && m[1]) return Math.min(Math.max(parseInt(m[1], 10), 1), 50);
+        return undefined;
+      };
+
+      // 0a. Single incident details: "details of incident 11067:1"
+      if (incidentIdMatch && incidentIdMatch[1]) {
+        return {
+          intent: 'INCIDENT_DETAILS',
+          parameters: { incidentId: incidentIdMatch[1] },
+          explanation: `Detected request for incident details "${incidentIdMatch[1]}".`
+        };
+      }
+
+      // 0b. Incident listing / counting with filters.
+      // "Most/highest incidents" without a specific control means rank controls.
+      if (!incidentIdMatch && !controlNumMatch && !quotedMatch &&
+        /most|highest/.test(clean) && hasControlWord && hasIncidentWord) {
+        const lim = extractLimit();
+        return {
+          intent: 'CONTROLS_LIST',
+          parameters: { top: true, limit: lim || 10 },
+          explanation: 'Detected request to rank controls by incident count.'
+        };
+      }
+      const userF = extractUsername();
+      const roleF = extractRole();
+      const apF = extractAccessPoint();
+      const statusF = extractLifecycleStatus();
+      const stateF = extractState();
+      const prioF = extractPriority();
+      const wantsIncidents = hasIncidentWord && (
+        controlNumMatch || quotedMatch || /control\b/.test(clean) ||
+        userF || roleF || apF || statusF || stateF || prioF ||
+        clean.includes('how many') || clean.includes('count') || clean.includes('number of') ||
+        clean.includes('show') || clean.includes('list') || clean.includes('find') || clean.includes('which')
+      );
+      if (wantsIncidents) {
+        const params: any = {};
+        const cName = extractControlName();
+        if (controlNumMatch && controlNumMatch[1]) {
+          // Numeric control ID is authoritative; ignore name fragments.
+          params.controlId = controlNumMatch[1];
+        } else if (cName && !/^\d{4,6}$/.test(cName)) {
+          params.controlName = cName;
+        }
+        if (userF) params.username = userF;
+        if (roleF) params.role = roleF;
+        if (apF) params.accessPoint = apF;
+        if (statusF) params.status = statusF;
+        if (stateF) params.state = stateF;
+        if (prioF) params.priority = prioF;
+        const lim = extractLimit();
+        params.limit = lim || ((clean.includes('how many') || clean.includes('count')) ? 5 : 25);
+        return {
+          intent: 'INCIDENTS_LIST',
+          parameters: params,
+          explanation: 'Detected request for Oracle Fusion control incidents with filters.'
+        };
+      }
+
+      // 0c. Single control details (by id/name, or attribute questions)
+      const detailVerbs = clean.includes('detail') || clean.includes('description') || clean.includes('enforcement') ||
+        clean.includes('last run') || clean.includes('last updated') || clean.includes('created') ||
+        clean.includes('scheduled') || clean.includes('job') || clean.includes('who') ||
+        clean.includes('show') || clean.includes('find') || clean.includes('tell me') || clean.includes('what is');
+      const cNameOnly = extractControlName();
+      if ((controlNumMatch && controlNumMatch[1]) || (quotedMatch && quotedMatch[1]) || (hasControlWord && (detailVerbs || cNameOnly))) {
+        const params: any = {};
+        if (controlNumMatch && controlNumMatch[1]) {
+          // Numeric control ID is authoritative; ignore name fragments.
+          params.controlId = controlNumMatch[1];
+        } else if (cNameOnly && !/^\d{4,6}$/.test(cNameOnly)) {
+          params.controlName = cNameOnly;
+        } else if (quotedMatch && quotedMatch[1]) {
+          params.controlName = stripPunct(quotedMatch[1]);
+        }
+        if (!params.controlId && !params.controlName) {
+          // Fall through to list/overview below
+        } else {
+          return {
+            intent: 'CONTROL_DETAILS',
+            parameters: params,
+            explanation: 'Detected request for a specific Oracle Fusion control record.'
+          };
+        }
+      }
+
+      // 0d. Control listing (active/inactive, access/transaction, top, search)
+      const listVerbs = clean.includes('list') || clean.includes('show') || clean.includes('find') ||
+        clean.includes('active') || clean.includes('inactive') || clean.includes('most') ||
+        clean.includes('highest') || clean.includes('top') || clean.includes('which');
+      if (hasControlWord && (listVerbs || controlNumMatch)) {
+        const params: any = {};
+        if (clean.includes('inactive')) params.status = 'INACTIVE';
+        else if (clean.includes('active')) params.status = 'ACTIVE';
+        if (clean.includes('transaction')) params.type = 'TRANSACTION';
+        else if (/\baccess\b/.test(clean)) params.type = 'ACCESS';
+        if (clean.includes('most') || clean.includes('highest') || clean.includes('top')) params.top = true;
+        const lim = extractLimit();
+        params.limit = lim || 25;
+        const sName = extractControlName();
+        if (sName && !/^\d{4,6}$/.test(sName) && !clean.includes('active') && !clean.includes('inactive')) params.search = sName;
+        return {
+          intent: 'CONTROLS_LIST',
+          parameters: params,
+          explanation: 'Detected request to list Oracle Fusion Advanced Controls with filters.'
+        };
+      }
+
+      // 0e. Control counts overview ("how many access/transaction controls")
+      if (hasControlWord && (clean.includes('how many') || clean.includes('count') || clean.includes('number of') || clean.includes('total'))) {
+        return {
+          intent: 'CONTROLS_OVERVIEW',
+          parameters: {},
+          explanation: 'Detected request for Advanced Controls population counts.'
+        };
+      }
+    }
+  }
+
   // 1. Statistics & Dashboard
   if (
     clean.includes('statistics') || 
@@ -604,6 +805,55 @@ You can review the full request details and risk flags in the table below or via
       return `Oracle Fusion Advanced Access Controls catalog (${toolResult.dataSource}) contains **${ctrlList.length}** configured control(s). Automated control analysis and continuous monitoring policies can be reviewed in the Risk module.`;
     }
 
+    case 'CONTROLS_OVERVIEW': {
+      return `Oracle Fusion Advanced Controls population (${toolResult.dataSource}):
+* **Access Controls:** ${data.accessControls.toLocaleString()}
+* **Transaction Controls:** ${data.transactionControls.toLocaleString()}
+* **Active:** ${data.activeControls.toLocaleString()} · **Inactive:** ${data.inactiveControls.toLocaleString()}
+* **Total incidents across ${data.totalControls.toLocaleString()} controls:** ${data.totalIncidents.toLocaleString()}`;
+    }
+
+    case 'CONTROLS_LIST': {
+      if (data.totalMatching === 0) {
+        return `No controls matched the requested filters in ${toolResult.dataSource}. Try broadening the status, type, or search term.`;
+      }
+      return `Found **${data.totalMatching.toLocaleString()}** matching control(s) out of **${data.totalControls.toLocaleString()}** in ${toolResult.dataSource}. Showing ${data.returned} below.`;
+    }
+
+    case 'CONTROL_DETAILS': {
+      if (data?.notFound) {
+        return data.message || `Control "${parameters.controlId || parameters.controlName || 'requested'}" was not found in ${toolResult.dataSource}.`;
+      }
+      const c = data.control;
+      return `**${c.name}** (\`${c.control}\`)
+* Type: **${c.type}** · Status: **${c.status}** · State: **${c.state}**
+* Incidents: **${(data.incidentCount || 0).toLocaleString()}**
+${c.description ? `* Description: ${c.description}\n` : ''}${c.enforcement ? `* Enforcement: ${c.enforcement}\n` : ''}* Last run: **${c.lastRun || '—'}** · Last updated: **${c.lastUpdated || '—'}**
+* Created by **${c.createdBy || '—'}**${c.creationDate ? ` on ${c.creationDate}` : ''} · Scheduled by **${c.scheduledBy || '—'}**`;
+    }
+
+    case 'INCIDENTS_LIST': {
+      if (data?.notFound) {
+        return data.message || `No incidents could be retrieved for the requested scope in ${toolResult.dataSource}.`;
+      }
+      if (data.totalMatching === 0) {
+        return `No incidents matched the requested filters for **${data.scopeLabel}** in ${toolResult.dataSource}.`;
+      }
+      const extra = data.priorityNote ? `\n*Note: ${data.priorityNote}*` : '';
+      return `**${data.totalMatching.toLocaleString()}** matching incident(s) for **${data.scopeLabel}** (authoritative total: ${data.authoritativeTotal.toLocaleString()}). Showing page ${data.page} (${data.returned} rows).${extra}`;
+    }
+
+    case 'INCIDENT_DETAILS': {
+      if (data?.notFound) {
+        return data.message || `Incident "${parameters.incidentId || 'requested'}" was not found in ${toolResult.dataSource}.`;
+      }
+      const i = data.incident;
+      return `**Incident ${i.incident}** — ${i.controlName || i.control}
+* User: **${i.user || '—'}** · Role: **${i.role || '—'}** · Priority: **${i.priority ?? '—'}**
+* Status: **${i.status || '—'}** · State: **${i.state || '—'}**
+${i.info ? `* Violation: ${i.info}\n` : ''}${i.conflictingRoles ? `* Conflicting roles: ${i.conflictingRoles}\n` : ''}* Created: ${i.created || '—'}${i.closed ? ` · Closed: ${i.closed}` : ''}`;
+    }
+
     default:
       return `Retrieved data matching your request from the ${toolResult.dataSource}. Please review the table below for the structured values.`;
   }
@@ -682,7 +932,7 @@ async function callGroqCompletions(payload: any): Promise<any> {
             content: `You are the NLU intent classification engine for an Oracle Fusion Security Assistant. 
 Analyze the user query and output a strict JSON object mapping to:
 {
-  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "UNKNOWN",
+  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "UNKNOWN",
   "parameters": {
     "roleName": "Extracted role display name or code (string, optional)",
     "privilegeName": "Extracted privilege name for reverse lookup (e.g. 'Maintain Supplier Contact', 'Create Purchase Order') (string, optional)",
@@ -694,7 +944,18 @@ Analyze the user query and output a strict JSON object mapping to:
     "filterType": "For LIST_USERS, extract: 'MULTIPLE_ROLES' (if query asks for users with multiple/more than one role), 'NO_ROLES' (if users without roles), 'ADMIN_ROLES' (if security admins), 'HIGH_RISK' (if high-risk access), or 'NONE' (string, optional)",
     "roleCategory": "When query asks for specific role type assigned to a user (e.g. 'Duty Roles', 'Abstract Roles', 'Job Roles', 'Data Roles'), extract: 'DUTY', 'ABSTRACT', 'JOB', 'DATA', or omit/'ALL' for general role queries (string, optional)",
     "controlName": "Extracted control name or rule number like '4096: Manage HSDL...' or '4096' or 'Manage HSDL' (string, optional)",
-    "controlId": "Extracted numerical control ID like '114281' (string, optional)"
+    "controlId": "Extracted numerical control ID like '114281' (string, optional)",
+    "incidentId": "Incident ID like '11067:1' (string, optional)",
+    "role": "Role name for incident filtering (string, optional)",
+    "accessPoint": "Access point name for incident filtering (string, optional)",
+    "status": "Lifecycle filter: ASSIGNED, ACCEPTED, REMEDIATE, RESOLVED, ACTIVE, or INACTIVE (string, optional)",
+    "state": "Incident state like IN_INVESTIGATION (string, optional)",
+    "priority": "HIGH, MEDIUM, LOW, or numeric (string, optional)",
+    "type": "Control type filter: ACCESS or TRANSACTION (string, optional)",
+    "top": "true when asking for highest/most incidents (boolean, optional)",
+    "limit": "Max rows for listings, 1-50 (number, optional)",
+    "page": "Page number for incident listings (number, optional)",
+    "search": "Free-text control search (string, optional)"
   },
   "explanation": "Brief rationale for this mapping"
 }
@@ -716,6 +977,11 @@ Intent definitions:
 - RISK_INFORMATION: Incidents, Access certifications, Segregation of Duties conflicts.
 - ACCESS_REQUESTS: Advanced access requests list and approvals.
 - ADVANCED_CONTROLS: Show advanced controls catalog, control details, or control violation incidents (e.g. "Show me details of 4096: Manage HSDL Spreadsheets Templates and Load Data using HSDL", "Show incidents for Manage HSDL Spreadsheets...", "Show incidents for 4096", "Show details of control 114281").
+- CONTROLS_OVERVIEW: Control population counts (e.g. "How many access controls and transaction controls are available?").
+- CONTROLS_LIST: Filtered control listings — active/inactive, access/transaction, most incidents, search (e.g. "Show all active controls", "Which controls have the most incidents?").
+- CONTROL_DETAILS: Full record of one control by id or name — description, enforcement, last run/update, created/updated by (e.g. "Find control 11065", "When was control 11065 last run?").
+- INCIDENTS_LIST: Filtered incident listings — by control, user, role, access point, status, state, priority (e.g. "Show incidents for control 11065", "How many incidents does control 11065 have?", "Show incidents for user X", "Show incidents with status ASSIGNED", "Show high priority incidents").
+- INCIDENT_DETAILS: Full record of one incident by id like "11067:1" (e.g. "Show details of incident 11067:1", "Explain the conflicting roles in incident 11067:1").
 - UNKNOWN: Generic conversations or queries outside security boundaries.
 
 ${contextPrompt}
@@ -1117,10 +1383,145 @@ function buildStructuredResponse(
               id: targetUser.userName, 
               name: targetUser.displayName,
               initialTab: intent === 'ROLES_BY_USER' ? 'ROLES' : 'OVERVIEW'
-            } 
+            }
           }
         ];
       }
+      break;
+    }
+
+    case 'CONTROLS_OVERVIEW': {
+      title = 'Advanced Controls Overview';
+      table = {
+        type: 'general',
+        columns: ['Metric', 'Value'],
+        rows: [
+          { id: 'm1', attribute: 'Access Controls', value: String(data.accessControls) },
+          { id: 'm2', attribute: 'Transaction Controls', value: String(data.transactionControls) },
+          { id: 'm3', attribute: 'Active Controls', value: String(data.activeControls) },
+          { id: 'm4', attribute: 'Inactive Controls', value: String(data.inactiveControls) },
+          { id: 'm5', attribute: 'Total Controls', value: String(data.totalControls) },
+          { id: 'm6', attribute: 'Total Incidents', value: Number(data.totalIncidents).toLocaleString() }
+        ]
+      };
+      totalCount = 6;
+      matchingCount = 6;
+      actions = [
+        { label: 'Open Controls Catalog', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
+      break;
+    }
+
+    case 'CONTROLS_LIST': {
+      title = `Controls (${(data.totalMatching || 0).toLocaleString()} matching)`;
+      const cList = Array.isArray(data?.controls) ? data.controls : [];
+      totalCount = data?.totalControls ?? cList.length;
+      matchingCount = data?.totalMatching ?? cList.length;
+      table = {
+        type: 'controls',
+        columns: ['Control', 'Name', 'Type', 'Status', 'State', 'Incidents'],
+        rows: cList.map((c: any) => ({
+          id: c.control,
+          control: c.control,
+          name: c.name,
+          type: c.type,
+          status: c.status,
+          state: c.state,
+          incidents: (c.incidents || 0).toLocaleString()
+        }))
+      };
+      actions = [
+        { label: 'Open Controls Catalog', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
+      break;
+    }
+
+    case 'CONTROL_DETAILS': {
+      if (data?.notFound) {
+        title = 'Control Not Found';
+        break;
+      }
+      const c = data.control;
+      title = `Control: ${c.name}`;
+      const attrRows: any[] = [
+        ['Control ID', c.control], ['Control Name', c.name], ['Type', c.type],
+        ['Status', c.status], ['State', c.state],
+        ['Total Incidents', Number(data.incidentCount || 0).toLocaleString()],
+        ['Description', c.description || '—'], ['Enforcement Type', c.enforcement || '—'],
+        ['Last Run', c.lastRun || '—'], ['Last Updated', c.lastUpdated || '—'],
+        ['Latest Job ID', c.latestJob !== null && c.latestJob !== undefined ? String(c.latestJob) : '—'],
+        ['Created By', c.createdBy || '—'], ['Creation Date', c.creationDate || '—'],
+        ['Last Updated By', c.lastUpdatedBy || '—'], ['Scheduled By', c.scheduledBy || '—']
+      ];
+      table = {
+        type: 'general',
+        columns: ['Attribute', 'Value'],
+        rows: attrRows.map(([attribute, value], i) => ({ id: `a${i}`, attribute, value }))
+      };
+      totalCount = attrRows.length;
+      matchingCount = attrRows.length;
+      actions = [
+        { label: 'Open Controls Catalog', actionType: 'NAVIGATE', params: { page: 'risk' } }
+      ];
+      break;
+    }
+
+    case 'INCIDENTS_LIST': {
+      title = `Incidents — ${data.scopeLabel || 'requested scope'} (${(data.totalMatching || 0).toLocaleString()} matching)`;
+      const iList = Array.isArray(data?.incidents) ? data.incidents : [];
+      totalCount = data?.authoritativeTotal ?? data?.totalMatching ?? iList.length;
+      matchingCount = data?.totalMatching ?? iList.length;
+      table = {
+        type: 'control_incidents',
+        columns: ['Incident', 'Control', 'User', 'Role', 'AccessPoint', 'Status', 'State', 'Priority'],
+        rows: iList.map((inc: any) => ({
+          id: inc.incident,
+          incident: inc.incident,
+          control: inc.control,
+          user: inc.user || '—',
+          role: inc.role || '—',
+          accesspoint: inc.accessPoint || '—',
+          status: inc.status || '—',
+          state: inc.state || '—',
+          priority: inc.priority !== null && inc.priority !== undefined ? String(inc.priority) : '—'
+        }))
+      };
+      actions = [
+        { label: 'Open Incidents Report', actionType: 'NAVIGATE', params: { page: 'reports' } }
+      ];
+      break;
+    }
+
+    case 'INCIDENT_DETAILS': {
+      if (data?.notFound) {
+        title = 'Incident Not Found';
+        break;
+      }
+      const i = data.incident;
+      title = `Incident: ${i.incident}`;
+      const iRows: any[] = [
+        ['Incident ID', i.incident], ['Control ID', i.control], ['Control Name', i.controlName || '—'],
+        ['Priority', i.priority !== null && i.priority !== undefined ? String(i.priority) : '—'],
+        ['User', i.user || '—'], ['User ID', i.userId || '—'],
+        ['First Name', i.userFirst || '—'], ['Last Name', i.userLast || '—'],
+        ['Role', i.role || '—'], ['Conflicting Roles', i.conflictingRoles || '—'],
+        ['Access Point', i.accessPoint || '—'], ['Access Point Type', i.accessPointType || '—'],
+        ['Entitlement', i.entitlement || '—'], ['Incident Information', i.info || '—'],
+        ['Status', i.status || '—'], ['State', i.state || '—'],
+        ['Created Date', i.created || '—'], ['Created By', i.createdBy || '—'],
+        ['Last Updated', i.updated || '—'], ['Last Updated By', i.updatedBy || '—'],
+        ['Closed Date', i.closed || '—'], ['Investigator', i.investigator || '—']
+      ];
+      table = {
+        type: 'general',
+        columns: ['Attribute', 'Value'],
+        rows: iRows.map(([attribute, value], idx) => ({ id: `i${idx}`, attribute, value }))
+      };
+      totalCount = iRows.length;
+      matchingCount = iRows.length;
+      actions = [
+        { label: 'Open Incidents Report', actionType: 'NAVIGATE', params: { page: 'reports' } }
+      ];
       break;
     }
 
