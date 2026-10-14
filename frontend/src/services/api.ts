@@ -251,10 +251,11 @@ export const api = {
   },
 
   // Users
-  async getUsers(filter?: string, startIndex?: number, count?: number, category?: string) {
+  async getUsers(filter?: string, startIndex?: number, count?: number, category?: string, status?: string) {
     const params = new URLSearchParams();
     if (filter) params.append('filter', filter);
     if (category && category !== 'ALL') params.append('category', category);
+    if (status && status !== 'ALL') params.append('status', status);
     if (startIndex) params.append('startIndex', String(startIndex));
     if (count) params.append('count', String(count));
     params.append('source', 'oracle');

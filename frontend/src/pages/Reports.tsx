@@ -148,6 +148,14 @@ const REPORT_SELECTOR_NAMES: Record<ReportId, string> = {
   AUDIT_HISTORY: 'Audit History Report'
 };
 
+function getEventBadgeClass(event?: string): string {
+  const e = (event || '').toString().trim().toUpperCase();
+  if (e.includes('DELETE') || e.includes('REVOKE')) return 'badge-inactive';
+  if (e.includes('INSERT') || e.includes('CREATE') || e.includes('ASSIGN') || e.includes('ADD')) return 'badge-active';
+  if (e.includes('UPDATE') || e.includes('MODIFY')) return 'badge-gold';
+  return 'badge-secondary';
+}
+
 export default function Reports({ environmentMode = 'DEMO', canGenerate = false, onInvestigateUser, onInspectRole }: ReportsProps) {
   // Active Report Selection - intentionally null until the user picks a report
   const [activeReportId, setActiveReportId] = useState<ReportId | null>(() => {
@@ -253,11 +261,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
   const [auditProducts, setAuditProducts] = useState<any[]>([]);
   const [selectedAuditProduct, setSelectedAuditProduct] = useState<string>('hcm');
   const [selectedAuditBO, setSelectedAuditBO] = useState<string>('person');
-  const [auditFromDate, setAuditFromDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14);
-    return d.toISOString().split('T')[0];
-  });
+  const [auditFromDate, setAuditFromDate] = useState<string>('2025-01-01');
   const [auditToDate, setAuditToDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [auditUserQuery, setAuditUserQuery] = useState<string>('');
   const [auditActionFilter, setAuditActionFilter] = useState<string>('ALL');
@@ -517,7 +521,46 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     setUserRoleLoading(true);
     setUserRoleError('');
     try {
-      const res = await api.getUsers(undefined, 1, 1000);
+      // Load both users and role hierarchy report in parallel to build authoritative privileges lookup
+      const [res, hierRes] = await Promise.all([
+        api.getUsers(undefined, 1, 1000),
+        hierarchyData && hierarchyData.length > 0
+          ? Promise.resolve({ items: hierarchyData })
+          : api.getRoleHierarchyReport().catch(() => ({ items: [] }))
+      ]);
+
+      if (hierRes?.items && Array.isArray(hierRes.items) && (!hierarchyData || hierarchyData.length === 0)) {
+        setHierarchyData(hierRes.items);
+      }
+
+      const hierItems = (hierRes?.items && Array.isArray(hierRes.items)) ? hierRes.items : (hierarchyData || []);
+
+      // Build authoritative role code & name -> privileges lookup map
+      const rolePrivilegeMap = new Map<string, Array<{ code: string; name: string; description?: string }>>();
+      hierItems.forEach((h: any) => {
+        if (!h.privileges || !Array.isArray(h.privileges) || h.privileges.length === 0) return;
+        const keys = [
+          h.roleCode ? String(h.roleCode).trim().toLowerCase() : '',
+          h.roleName ? String(h.roleName).trim().toLowerCase() : '',
+          h.childRole ? String(h.childRole).trim().toLowerCase() : ''
+        ].filter(Boolean);
+
+        keys.forEach(k => {
+          const existing = rolePrivilegeMap.get(k) || [];
+          const existingCodes = new Set(existing.map(p => p.code));
+          h.privileges.forEach((p: any) => {
+            const pCode = typeof p === 'string' ? p : (p.code || p.name || '');
+            const pName = typeof p === 'string' ? p : (p.name || p.code || '');
+            const pDesc = typeof p === 'object' ? (p.description || '') : '';
+            if (pCode && !existingCodes.has(pCode)) {
+              existingCodes.add(pCode);
+              existing.push({ code: pCode, name: pName, description: pDesc });
+            }
+          });
+          rolePrivilegeMap.set(k, existing);
+        });
+      });
+
       const rawUsers = res?.users || [];
       
       const expandedRows: any[] = [];
@@ -538,7 +581,9 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             roleName: '(No Assigned Roles)',
             roleCode: '—',
             category: '—',
-            isCustom: false
+            isCustom: false,
+            privileges: [],
+            privilegeCount: 0
           });
         } else {
           roles.forEach((r: any, idx: number) => {
@@ -546,6 +591,12 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
             const roleCode = typeof r === 'string' ? r : (r.roleCode || '—');
             const category = typeof r === 'object' && r.category ? r.category : 'Job';
             const isCustom = typeof r === 'object' ? Boolean(r.isCustom) : false;
+
+            const rCodeKey = roleCode ? roleCode.trim().toLowerCase() : '';
+            const rNameKey = roleName ? roleName.trim().toLowerCase() : '';
+            const matchedPrivs = rolePrivilegeMap.get(rCodeKey) || 
+                                rolePrivilegeMap.get(rNameKey) || 
+                                (Array.isArray(r.privileges) ? r.privileges : []);
 
             expandedRows.push({
               id: `${u.id || username}_${roleCode}_${idx}`,
@@ -556,7 +607,9 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               roleName,
               roleCode,
               category,
-              isCustom
+              isCustom,
+              privileges: matchedPrivs,
+              privilegeCount: matchedPrivs.length
             });
           });
         }
@@ -1004,17 +1057,16 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     try {
       const res = await api.getAuditLogs({
         product: selectedAuditProduct,
-        businessObjectType: selectedAuditBO,
+        businessObjectType: selectedAuditBO || undefined,
         fromDate: auditFromDate,
         toDate: auditToDate,
         username: auditUserQuery,
         action: auditActionFilter,
         pageNumber: 1,
-        pageSize: 500
+        pageSize: 5000
       });
-      if (res?.items) {
-        setAuditLogs(res.items);
-      }
+      const logsList = Array.isArray(res?.logs) ? res.logs : (Array.isArray(res?.items) ? res.items : []);
+      setAuditLogs(logsList);
     } catch (err: any) {
       console.error('Failed to load audit history:', err);
       setAuditError('Failed to execute audit trail query.');
@@ -1197,7 +1249,11 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
         item.displayName.toLowerCase().includes(q) ||
         item.email.toLowerCase().includes(q) ||
         item.roleName.toLowerCase().includes(q) ||
-        item.roleCode.toLowerCase().includes(q);
+        item.roleCode.toLowerCase().includes(q) ||
+        (Array.isArray(item.privileges) && item.privileges.some((p: any) =>
+          (p.code && p.code.toLowerCase().includes(q)) ||
+          (p.name && p.name.toLowerCase().includes(q))
+        ));
 
       const matchesStatus = urmStatusFilter === 'ALL' || 
         item.status.toUpperCase() === urmStatusFilter.toUpperCase();
@@ -1766,7 +1822,29 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                   { key: 'status', label: 'Status', defaultSelected: true },
                   { key: 'roleName', label: 'Role Name', defaultSelected: true },
                   { key: 'roleCode', label: 'Role Code', defaultSelected: true },
-                  { key: 'category', label: 'Role Category', defaultSelected: true }
+                  { key: 'category', label: 'Role Category', defaultSelected: true },
+                  {
+                    key: 'privilegeCount',
+                    label: 'Privilege Count',
+                    defaultSelected: false,
+                    getValue: (item) => Array.isArray(item.privileges) ? item.privileges.length : (item.privilegeCount || 0)
+                  },
+                  {
+                    key: 'privilegeCodes',
+                    label: 'Privilege Codes',
+                    defaultSelected: false,
+                    getValue: (item) => Array.isArray(item.privileges) && item.privileges.length > 0
+                      ? item.privileges.map((p: any) => typeof p === 'string' ? p : (p.code || p.name || '')).filter(Boolean).join('; ')
+                      : '—'
+                  },
+                  {
+                    key: 'privileges',
+                    label: 'Functional Privileges',
+                    defaultSelected: false,
+                    getValue: (item) => Array.isArray(item.privileges) && item.privileges.length > 0
+                      ? item.privileges.map((p: any) => typeof p === 'string' ? p : (p.name || p.code || '')).filter(Boolean).join('; ')
+                      : '—'
+                  }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -1794,7 +1872,21 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                   { key: 'category', label: 'Category', defaultSelected: true },
                   { key: 'parentRole', label: 'Parent Role', defaultSelected: true },
                   { key: 'childRole', label: 'Child Role', defaultSelected: true },
-                  { key: 'relationshipType', label: 'Relationship Type', defaultSelected: true }
+                  { key: 'relationshipType', label: 'Relationship Type', defaultSelected: true },
+                  {
+                    key: 'privilegeCount',
+                    label: 'Privilege Count',
+                    defaultSelected: false,
+                    getValue: (item) => Array.isArray(item.privileges) ? item.privileges.length : (item.privilegeCount || 0)
+                  },
+                  {
+                    key: 'privileges',
+                    label: 'Functional Privileges',
+                    defaultSelected: false,
+                    getValue: (item) => Array.isArray(item.privileges) && item.privileges.length > 0
+                      ? item.privileges.map((p: any) => typeof p === 'string' ? p : (p.name || p.code || '')).filter(Boolean).join('; ')
+                      : '—'
+                  }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -1816,14 +1908,15 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                 filteredCount={filteredAuditLogs.length}
                 totalCount={auditLogs.length}
                 availableColumns={[
-                  { key: 'timestamp', label: 'Timestamp', defaultSelected: true, getValue: (l: any) => l.timestamp ? new Date(l.timestamp).toLocaleString() : '' },
-                  { key: 'username', label: 'Username', defaultSelected: true },
-                  { key: 'action', label: 'Action', defaultSelected: true },
-                  { key: 'event', label: 'Event', defaultSelected: true },
-                  { key: 'businessObject', label: 'Business Object', defaultSelected: true },
-                  { key: 'qualifiedBusinessObject', label: 'Qualified Object', defaultSelected: false, getValue: (l: any) => l.qualifiedBusinessObject || '' },
-                  { key: 'identifier', label: 'Identifier', defaultSelected: false, getValue: (l: any) => l.identifier || '' },
-                  { key: 'details', label: 'Details', defaultSelected: true }
+                  { key: 'date', label: 'Date', defaultSelected: true, getValue: (l: any) => l.date || (l.timestamp ? new Date(l.timestamp).toLocaleString() : '') },
+                  { key: 'user', label: 'User', defaultSelected: true, getValue: (l: any) => l.user || l.username || '' },
+                  { key: 'userId', label: 'User ID', defaultSelected: true, getValue: (l: any) => l.userId || l.userInternalName || '' },
+                  { key: 'eventType', label: 'Event Type', defaultSelected: true, getValue: (l: any) => l.eventType || l.action || '' },
+                  { key: 'businessObjectType', label: 'Business Object Type', defaultSelected: true, getValue: (l: any) => l.businessObjectType || l.businessObject || '' },
+                  { key: 'description', label: 'Description', defaultSelected: true, getValue: (l: any) => l.description || '' },
+                  { key: 'attribute', label: 'Attribute', defaultSelected: true, getValue: (l: any) => l.attribute !== null && l.attribute !== undefined ? l.attribute : '' },
+                  { key: 'oldValue', label: 'Old Value', defaultSelected: true, getValue: (l: any) => l.oldValue !== null && l.oldValue !== undefined ? l.oldValue : 'null' },
+                  { key: 'newValue', label: 'New Value', defaultSelected: true, getValue: (l: any) => l.newValue !== null && l.newValue !== undefined ? l.newValue : 'null' }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -2578,6 +2671,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                   onChange={(e) => setSelectedAuditBO(e.target.value)}
                   style={{ width: '180px', fontSize: '0.84rem' }}
                 >
+                  <option value="">All Business Objects</option>
                   {auditProducts.find(p => p.id === selectedAuditProduct)?.businessObjects?.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.displayName}</option>
                   )) || <option value="">All Events</option>}
@@ -2585,10 +2679,25 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>From Date:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>From Date:</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuditFromDate('2025-01-01');
+                      setAuditToDate(new Date().toISOString().split('T')[0]);
+                    }}
+                    style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.68rem', color: 'var(--accent-blue)', cursor: 'pointer', textDecoration: 'underline' }}
+                    title="Set range from 01 Jan 2025 to now"
+                  >
+                    2025-Now
+                  </button>
+                </div>
                 <input
                   type="date"
                   className="form-input"
+                  min="2025-01-01"
+                  max={new Date().toISOString().split('T')[0]}
                   value={auditFromDate}
                   onChange={(e) => setAuditFromDate(e.target.value)}
                   style={{ width: '140px', fontSize: '0.82rem', height: '36px' }}
@@ -2600,6 +2709,8 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                 <input
                   type="date"
                   className="form-input"
+                  min="2025-01-01"
+                  max={new Date().toISOString().split('T')[0]}
                   value={auditToDate}
                   onChange={(e) => setAuditToDate(e.target.value)}
                   style={{ width: '140px', fontSize: '0.82rem', height: '36px' }}
@@ -3339,6 +3450,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                     <th>Role Name</th>
                     <th>Role Code</th>
                     <th>Role Category</th>
+                    <th>Functional Privileges</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3352,11 +3464,12 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                         <td><div style={{ height: '14px', width: '180px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                        <td><div style={{ height: '18px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
                       </tr>
                     ))
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
                         No user role assignments match the selected filters.
                       </td>
                     </tr>
@@ -3371,12 +3484,63 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                             {row.status}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 500 }}>{row.roleName}</td>
+                        <td style={{ fontWeight: 500 }}>
+                          {row.roleCode && row.roleCode !== '—' ? (
+                            <span
+                              style={{ color: 'var(--accent-blue)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                              onClick={() => handleOpenTreeModal(row.roleName || row.roleCode)}
+                              title="Click to view role hierarchy tree"
+                            >
+                              <Shield size={13} style={{ flexShrink: 0 }} />
+                              {row.roleName}
+                            </span>
+                          ) : (
+                            row.roleName
+                          )}
+                        </td>
                         <td><code style={{ fontSize: '0.78rem' }}>{row.roleCode}</code></td>
                         <td>
                           <span className="badge badge-gold" style={{ fontSize: '0.68rem' }}>
                             {row.category}
                           </span>
+                        </td>
+                        <td>
+                          {row.privileges && row.privileges.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRhSelectedPrivItem({
+                                  roleName: row.roleName,
+                                  roleCode: row.roleCode,
+                                  category: row.category,
+                                  parentRole: `User: ${row.displayName || row.username}`,
+                                  relationshipType: `User Role Assignment (${row.status})`,
+                                  privileges: row.privileges
+                                });
+                                setRhPrivSearch('');
+                                setRhPrivModalOpen(true);
+                              }}
+                              className="badge badge-blue"
+                              style={{
+                                fontSize: '0.7rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                border: '1px solid rgba(37, 99, 235, 0.25)',
+                                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                                color: 'var(--accent-blue)',
+                                padding: '3px 8px',
+                                borderRadius: '6px'
+                              }}
+                              title="Click to view all privileges, codes, and descriptions"
+                            >
+                              <Key size={11} style={{ flexShrink: 0 }} />
+                              <span>{row.privileges.length} Privileges</span>
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>—</span>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -3528,50 +3692,68 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
           {/* Table 5: Audit History */}
           {activeReportId === 'AUDIT_HISTORY' && (
             <div style={{ overflowX: 'auto' }}>
-              <table className="enterprise-table">
+              <table className="enterprise-table" style={{ minWidth: '1500px' }}>
                 <thead>
                   <tr>
-                    <th>Timestamp</th>
-                    <th>Username</th>
-                    <th>Action</th>
-                    <th>Event</th>
-                    <th>Business Object</th>
-                    <th>Identifier</th>
-                    <th>Details</th>
+                    <th style={{ minWidth: '120px' }}>Date</th>
+                    <th style={{ minWidth: '130px' }}>User</th>
+                    <th style={{ minWidth: '140px' }}>User ID</th>
+                    <th style={{ minWidth: '130px' }}>Event Type</th>
+                    <th style={{ minWidth: '160px' }}>Business Object Type</th>
+                    <th style={{ minWidth: '220px' }}>Description</th>
+                    <th style={{ minWidth: '140px' }}>Attribute</th>
+                    <th style={{ minWidth: '240px' }}>Old Value</th>
+                    <th style={{ minWidth: '240px' }}>New Value</th>
                   </tr>
                 </thead>
                 <tbody>
                   {auditLoading ? (
                     Array.from({ length: 8 }).map((_, idx) => (
                       <tr key={`aud-skel-${idx}`} className="animate-pulse">
-                        <td><div style={{ height: '14px', width: '110px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
                         <td><div style={{ height: '14px', width: '100px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                         <td><div style={{ height: '14px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '100px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '18px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '110px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '180px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '180px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '180px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                       </tr>
                     ))
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                      <td colSpan={9} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
                         No audit history records found for the selected criteria.
                       </td>
                     </tr>
                   ) : (
-                    paginatedSlice.map((log: any) => (
-                      <tr key={log.id}>
+                    paginatedSlice.map((log: any, idx: number) => (
+                      <tr key={log.id || `aud-${idx}`}>
                         <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                          {formatOracleDate(log.timestamp)}
+                          {log.date || formatOracleDate(log.timestamp)}
                         </td>
-                        <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{log.username}</td>
-                        <td><span className="badge badge-gold" style={{ fontSize: '0.68rem' }}>{log.action}</span></td>
-                        <td>{log.event}</td>
-                        <td>{log.businessObject}</td>
-                        <td><code>{log.identifier || '—'}</code></td>
-                        <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={log.details}>
-                          {log.details || '—'}
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.user || log.username || '—'}</td>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--accent-blue)' }}>
+                          <code>{log.userId || log.userInternalName || '—'}</code>
+                        </td>
+                        <td>
+                          <span className={`badge ${getEventBadgeClass(log.eventType || log.action)}`} style={{ fontSize: '0.68rem' }}>
+                            {log.eventType || log.action || '—'}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 500 }}>{log.businessObjectType || log.businessObject || '—'}</td>
+                        <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', minWidth: '200px', maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }} title={log.description || log.identifier}>
+                          {log.description || log.identifier || '—'}
+                        </td>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                          {log.attribute !== null && log.attribute !== undefined ? log.attribute : '—'}
+                        </td>
+                        <td style={{ fontSize: '0.78rem', color: log.oldValue ? 'var(--accent-red)' : 'var(--text-muted)', fontFamily: log.oldValue ? 'monospace' : 'inherit', minWidth: '220px', maxWidth: '380px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }} title={log.oldValue ?? ''}>
+                          {log.oldValue !== null && log.oldValue !== undefined ? log.oldValue : 'null'}
+                        </td>
+                        <td style={{ fontSize: '0.78rem', color: log.newValue ? 'var(--accent-green, #10B981)' : 'var(--text-muted)', fontFamily: log.newValue ? 'monospace' : 'inherit', minWidth: '220px', maxWidth: '380px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }} title={log.newValue ?? ''}>
+                          {log.newValue !== null && log.newValue !== undefined ? log.newValue : 'null'}
                         </td>
                       </tr>
                     ))
@@ -4335,7 +4517,8 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                     </span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    Parent Duty Role: <strong style={{ color: 'var(--text-primary)' }}>{rhSelectedPrivItem.parentRole}</strong>
+                    {rhSelectedPrivItem.parentRole?.startsWith('User:') ? 'Context: ' : 'Parent Duty Role: '}
+                    <strong style={{ color: 'var(--text-primary)' }}>{rhSelectedPrivItem.parentRole}</strong>
                     {' '}&bull; Relationship: <span style={{ color: 'var(--text-muted)' }}>{rhSelectedPrivItem.relationshipType}</span>
                   </div>
                 </div>

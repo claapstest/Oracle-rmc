@@ -806,9 +806,18 @@ class OracleService {
     return this.lastTestedAt;
   }
 
-  async getUsers(params?: string | { filterText?: string; category?: string; startIndex?: number; count?: number }): Promise<{ users: User[]; totalResults: number; startIndex: number; count: number }> {
+  async getUsers(params?: string | { filterText?: string; category?: string; status?: string; startIndex?: number; count?: number }): Promise<{
+    users: User[];
+    totalResults: number;
+    startIndex: number;
+    count: number;
+    directoryTotal?: number;
+    activeCount?: number;
+    inactiveCount?: number;
+  }> {
     let filterText: string | undefined;
     let category: string | undefined;
+    let status: string | undefined;
     let startIndex = 1;
     let count = 50;
 
@@ -817,14 +826,38 @@ class OracleService {
     } else if (params && typeof params === 'object') {
       filterText = params.filterText;
       category = params.category;
+      status = params.status;
       if (params.startIndex) startIndex = params.startIndex;
       if (params.count) count = params.count;
     }
 
+    const normCat = (category || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    const normStatus = (status || '').trim().toUpperCase();
+
+    let effectiveStatus = normStatus;
+    if (!effectiveStatus || effectiveStatus === 'ALL') {
+      if (normCat === 'INACTIVE' || normCat === 'INACTIVE_ACCOUNTS') {
+        effectiveStatus = 'INACTIVE';
+      } else if (normCat === 'ACTIVE') {
+        effectiveStatus = 'ACTIVE';
+      } else {
+        effectiveStatus = 'ALL';
+      }
+    }
+
+    const dirTotal = this.cachedTotalUsers || 3014;
+    const actTotal = this.cachedActiveUsers || 991;
+    const inactTotal = this.cachedInactiveUsers || 2023;
+
     if (this.isDemoMode()) {
       let list = mockUsers;
-      if (category && category !== 'ALL') {
-        const normCat = category.trim().toUpperCase().replace(/[\s-]+/g, '_');
+      if (effectiveStatus === 'ACTIVE') {
+        list = list.filter(u => u.active);
+      } else if (effectiveStatus === 'INACTIVE') {
+        list = list.filter(u => !u.active);
+      }
+
+      if (normCat && normCat !== 'ALL' && effectiveStatus !== 'INACTIVE') {
         if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
           list = list.filter(u => !u.assignedRoles || u.assignedRoles.length === 0);
         } else if (normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS' || normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS') {
@@ -836,8 +869,6 @@ class OracleService {
           list = list.filter(u => u.assignedRoles && u.assignedRoles.length > 1);
         } else if (normCat === 'SINGLE_ROLE' || normCat === 'SINGLE_ROLE_USERS') {
           list = list.filter(u => u.assignedRoles && u.assignedRoles.length === 1);
-        } else if (normCat === 'INACTIVE' || normCat === 'INACTIVE_ACCOUNTS') {
-          list = list.filter(u => !u.active);
         }
       }
       if (filterText) {
@@ -858,15 +889,34 @@ class OracleService {
         users: mapped,
         totalResults,
         startIndex,
-        count
+        count,
+        directoryTotal: mockUsers.length,
+        activeCount: mockUsers.filter(u => u.active).length,
+        inactiveCount: mockUsers.filter(u => !u.active).length
       };
     }
 
     // Call live Oracle Fusion SCIM Users API
     this.assertLiveInstance('Users list');
-    const scimFilter = filterText ? `userName co "${filterText}" or displayName co "${filterText}"` : undefined;
-    const cacheKey = `users:${scimFilter || 'all'}:${category || 'all'}:${startIndex}:${count}`;
-    const cached = this.getFromCache<{ users: User[]; totalResults: number; startIndex: number; count: number }>(cacheKey);
+    let scimFilter: string | undefined;
+    if (filterText) {
+      scimFilter = `userName co "${filterText}" or displayName co "${filterText}"`;
+    } else if (effectiveStatus === 'INACTIVE') {
+      scimFilter = 'active eq false';
+    } else if (effectiveStatus === 'ACTIVE') {
+      scimFilter = 'active eq true';
+    }
+
+    const cacheKey = `users:${scimFilter || 'all'}:${category || 'all'}:${effectiveStatus}:${startIndex}:${count}`;
+    const cached = this.getFromCache<{
+      users: User[];
+      totalResults: number;
+      startIndex: number;
+      count: number;
+      directoryTotal?: number;
+      activeCount?: number;
+      inactiveCount?: number;
+    }>(cacheKey);
     if (cached) {
       return cached;
     }
@@ -878,11 +928,40 @@ class OracleService {
     });
 
     let resources = scimResponse?.Resources || [];
-    // Live-only total: prefer SCIM totalResults; otherwise use background-cached total;
-    // otherwise assume current page is the tail (startIndex-1+len) so deep pages don't collapse to page length.
-    const totalResults = scimResponse?.totalResults !== undefined
-      ? scimResponse.totalResults
-      : (this.cachedTotalUsers > 0 ? this.cachedTotalUsers : startIndex - 1 + resources.length);
+
+    // In-memory filter if both text filter and status filter were applied
+    if (filterText && effectiveStatus !== 'ALL') {
+      resources = resources.filter((res: any) => {
+        const isActive = typeof res.active === 'boolean' ? res.active : true;
+        return effectiveStatus === 'ACTIVE' ? isActive : !isActive;
+      });
+    }
+
+    // Determine target total for pagination / batch fetching
+    let totalResults: number;
+    if (filterText) {
+      if (resources.length < count) {
+        totalResults = (startIndex - 1) + resources.length;
+      } else {
+        totalResults = Math.max(startIndex - 1 + resources.length + 1, (startIndex - 1) + resources.length);
+      }
+    } else if (effectiveStatus === 'INACTIVE') {
+      totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : inactTotal;
+    } else if (effectiveStatus === 'ACTIVE') {
+      totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : actTotal;
+    } else if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
+      totalResults = this.cachedUsersWithoutRoles > 0 ? this.cachedUsersWithoutRoles : (scimResponse?.totalResults ?? resources.length);
+    } else if (normCat === 'SINGLE_ROLE' || normCat === 'SINGLE_ROLE_USERS') {
+      totalResults = this.cachedSingleRoleUsers > 0 ? this.cachedSingleRoleUsers : (scimResponse?.totalResults ?? resources.length);
+    } else if (normCat === 'MULTIPLE_ROLES' || normCat === 'MULTIPLE_ROLE_USERS') {
+      totalResults = this.cachedMultipleRoleUsers > 0 ? this.cachedMultipleRoleUsers : (scimResponse?.totalResults ?? resources.length);
+    } else if (normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS' || normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS') {
+      totalResults = this.cachedSecurityAdmins > 0 ? this.cachedSecurityAdmins : (scimResponse?.totalResults ?? resources.length);
+    } else {
+      totalResults = scimResponse?.totalResults !== undefined
+        ? scimResponse.totalResults
+        : dirTotal;
+    }
 
     // If client requested more records than a single Oracle SCIM response (e.g. for enterprise export)
     // and totalResults indicates more records exist, fetch subsequent pages up to Math.min(count, totalResults, 5000)
@@ -994,9 +1073,12 @@ class OracleService {
 
     const result = {
       users: mapped,
-      totalResults: (category && category !== 'ALL') ? mapped.length : totalResults,
+      totalResults,
       startIndex,
-      count
+      count,
+      directoryTotal: dirTotal,
+      activeCount: actTotal,
+      inactiveCount: inactTotal
     };
 
     // Asynchronously persist raw users to PostgreSQL oracle_raw_users table
@@ -1671,55 +1753,161 @@ class OracleService {
     return results;
   }
 
-  public mapRawAuditItem(a: any, idx: number, boDisplayName: string, restBusinessObjectType?: string): any {
-    const safeLower = (val: unknown): string => (val !== undefined && val !== null ? String(val).trim().toLowerCase() : '');
-    let identifier = a.identifier || a.objectIdentifier || '';
+  public formatAuditDateTime(dateInput: string | Date | undefined | null): string {
+    if (!dateInput) return '—';
+    try {
+      const s = String(dateInput).trim();
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s+(?:AM|PM)$/i.test(s)) {
+        return s;
+      }
+      let d: Date;
+      if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) {
+        d = new Date(s.replace(' ', 'T') + 'Z');
+      } else {
+        d = new Date(s);
+      }
+      if (isNaN(d.getTime())) {
+        d = new Date(dateInput);
+      }
+      if (isNaN(d.getTime())) return s;
+
+      const month = d.getUTCMonth() + 1;
+      const day = d.getUTCDate();
+      const year = String(d.getUTCFullYear()).slice(-2);
+      let hours = d.getUTCHours();
+      const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
+    } catch {
+      return String(dateInput);
+    }
+  }
+
+  public mapRawAuditItemToRows(a: any, idx: number, boDisplayName: string, restBusinessObjectType?: string): any[] {
     const rawAttrDetails = Array.isArray(a.attributeDetails) ? a.attributeDetails : [];
-    if (!identifier && a.description) {
-      const descMatch = String(a.description).match(/(?:Person ID|Person Number|ID|Number):\s*([0-9A-Za-z_-]+)/i);
-      if (descMatch) {
-        identifier = descMatch[0];
-      }
+
+    // Separate User (display name) and User ID (username / internal ID / email)
+    const user = a.userName || a.displayName || a.userInternalName || 'System';
+    const userId = a.userInternalName || a.userId || a.userName || '—';
+
+    // Event Type & Business Object Type
+    const eventType = a.eventType || a.action || 'Object Data Update';
+    const businessObjectType = a.businessObject || boDisplayName;
+
+    // Description - authoritative audit object description (never prefixed with User:<userId>)
+    let description = a.description || a.objectIdentifier || '';
+    if (!description && a.descriptionInternal) {
+      description = a.descriptionInternal;
     }
-    if (!identifier && rawAttrDetails.length > 0) {
-      const idAttr = rawAttrDetails.find((d: any) =>
-        d.attribute && (safeLower(d.attribute).includes('id') || safeLower(d.attribute).includes('name') || safeLower(d.attribute).includes('number'))
+    if (!description && a.name) {
+      description = a.name;
+    }
+    if (!description && rawAttrDetails.length > 0) {
+      const nameAttr = rawAttrDetails.find((d: any) =>
+        d.attribute && String(d.attribute).toLowerCase().includes('name')
       );
-      if (idAttr) {
-        identifier = `${idAttr.attribute}: ${idAttr.newValue || idAttr.oldValue || ''}`;
+      if (nameAttr?.newValue) {
+        description = String(nameAttr.newValue);
       }
     }
-    if (!identifier && a.userInternalName) {
-      identifier = `User:${a.userInternalName}`;
-    }
-    if (!identifier) {
-      identifier = `${a.businessObject || boDisplayName}:${idx + 1}`;
+    if (!description) {
+      description = `${businessObjectType}`;
     }
 
-    const attributeDetails = rawAttrDetails.map((ad: any) => ({
-      attribute: ad.attribute || ad.attributeInternalName || 'Attribute',
-      attributeInternalName: ad.attributeInternalName,
-      oldValue: ad.oldValue !== undefined && ad.oldValue !== null ? String(ad.oldValue) : undefined,
-      newValue: ad.newValue !== undefined && ad.newValue !== null ? String(ad.newValue) : undefined
-    }));
+    const rawDate = a.date || a.timestamp || a.lastUpdateDate || new Date().toISOString();
+    const formattedDate = this.formatAuditDateTime(rawDate);
+    const baseId = a.id || `aud_${(a.userName || 'sys').replace(/[^a-zA-Z0-9]/g, '_')}_${idx}_${Date.now()}`;
 
-    const eventName = a.eventType || a.action || 'Object Data Update';
+    // If no attribute details array exists, return 1 row with null attribute / old / new
+    if (rawAttrDetails.length === 0) {
+      const topAttr = a.attribute || a.attributeInternalName || null;
+      const topOld = a.oldValue !== undefined && a.oldValue !== null ? String(a.oldValue) : null;
+      const topNew = a.newValue !== undefined && a.newValue !== null ? String(a.newValue) : null;
 
-    return {
-      id: a.id || `aud_${(a.userName || 'sys').replace(/[^a-zA-Z0-9]/g, '_')}_${idx}_${Date.now()}`,
-      timestamp: a.date || a.timestamp || a.lastUpdateDate || new Date().toISOString(),
-      username: a.userName || a.userInternalName || a.userId || 'System',
-      userInternalName: a.userInternalName,
-      action: a.action || a.eventType || 'UPDATE',
-      event: eventName,
-      eventCategory: a.eventCategory,
-      businessObject: a.businessObject || boDisplayName,
-      qualifiedBusinessObject: a.qualifiedBusinessObject || restBusinessObjectType,
-      identifier,
-      details: a.description || (attributeDetails.length > 0 ? `Updated ${attributeDetails.length} attribute(s)` : `${eventName} on ${a.businessObject || boDisplayName}`),
-      attributeDetails: attributeDetails.length > 0 ? attributeDetails : undefined,
-      childObjects: a.childObjects || a.children || undefined,
-      impersonator: a.impersonator || undefined,
+      return [{
+        id: `${baseId}_0`,
+        date: formattedDate,
+        timestamp: rawDate,
+        user,
+        userId,
+        eventType,
+        businessObjectType,
+        description,
+        attribute: topAttr,
+        oldValue: topOld,
+        newValue: topNew,
+        // Backward-compatible fields
+        username: user,
+        userInternalName: userId,
+        action: eventType,
+        event: eventType,
+        businessObject: businessObjectType,
+        qualifiedBusinessObject: a.qualifiedBusinessObject || restBusinessObjectType,
+        identifier: description,
+        details: topAttr ? `${topAttr}: ${topOld ?? 'null'} -> ${topNew ?? 'null'}` : description,
+        attributeDetails: undefined,
+        raw: a
+      }];
+    }
+
+    // When attribute details exist, return 1 discrete row per changed attribute
+    return rawAttrDetails.map((attr: any, attrIdx: number) => {
+      const attrName = attr.attribute || attr.attributeInternalName || a.attribute || 'Attribute';
+      const oldVal = attr.oldValue !== undefined && attr.oldValue !== null
+        ? String(attr.oldValue)
+        : (attrIdx === 0 && a.oldValue !== undefined && a.oldValue !== null ? String(a.oldValue) : null);
+      const newVal = attr.newValue !== undefined && attr.newValue !== null
+        ? String(attr.newValue)
+        : (attrIdx === 0 && a.newValue !== undefined && a.newValue !== null ? String(a.newValue) : null);
+
+      return {
+        id: `${baseId}_${attrIdx}`,
+        date: formattedDate,
+        timestamp: rawDate,
+        user,
+        userId,
+        eventType,
+        businessObjectType,
+        description,
+        attribute: attrName,
+        oldValue: oldVal,
+        newValue: newVal,
+        // Backward-compatible fields
+        username: user,
+        userInternalName: userId,
+        action: eventType,
+        event: eventType,
+        businessObject: businessObjectType,
+        qualifiedBusinessObject: a.qualifiedBusinessObject || restBusinessObjectType,
+        identifier: description,
+        details: `${attrName}: ${oldVal ?? 'null'} -> ${newVal ?? 'null'}`,
+        attributeDetails: [attr],
+        raw: a
+      };
+    });
+  }
+
+  public mapRawAuditItem(a: any, idx: number, boDisplayName: string, restBusinessObjectType?: string): any {
+    const rows = this.mapRawAuditItemToRows(a, idx, boDisplayName, restBusinessObjectType);
+    return rows[0] || {
+      id: `aud_${idx}_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      user: 'System',
+      userId: '—',
+      username: 'System',
+      action: 'UPDATE',
+      event: 'Object Data Update',
+      eventType: 'Object Data Update',
+      businessObject: boDisplayName,
+      businessObjectType: boDisplayName,
+      identifier: '—',
+      description: '—',
+      attribute: null,
+      oldValue: null,
+      newValue: null,
+      details: '—',
       raw: a
     };
   }
@@ -1875,7 +2063,7 @@ class OracleService {
     const preferDb = params.source === 'database' || isWideRange || isHistorical;
     if (preferDb && !this.isDemoMode()) {
       try {
-        const queryPageSize = params.pageSize && params.pageSize > 50 ? params.pageSize : 500;
+        const queryPageSize = params.pageSize && params.pageSize > 0 ? params.pageSize : 500;
         const dbResult = await auditRawDbService.getRawAuditRecords({
           product: resolution.product?.productName || resolution.product?.displayName || productQuery,
           businessObjectType: resolution.businessObject?.displayName || params.businessObjectType,
@@ -1888,15 +2076,15 @@ class OracleService {
         });
 
         if (dbResult.totalCount > 0 || isWideRange || isHistorical) {
-          const mappedLogs = dbResult.rawItems.map((a: any, idx: number) =>
-            this.mapRawAuditItem(a, idx, boDisplayName, restBusinessObjectType)
+          const mappedLogs = dbResult.rawItems.flatMap((a: any, idx: number) =>
+            this.mapRawAuditItemToRows(a, idx, boDisplayName, restBusinessObjectType)
           );
 
           return {
             success: true,
             dataSource: 'PostgreSQL Database (Raw Oracle Fusion Data)',
             logs: mappedLogs,
-            totalRecords: dbResult.totalCount,
+            totalRecords: mappedLogs.length > dbResult.totalCount ? mappedLogs.length : dbResult.totalCount,
             pageNumber,
             pageSize: queryPageSize,
             product: resolution.product?.id,
@@ -1977,7 +2165,7 @@ class OracleService {
       console.log(`[AUDIT DEBUG] fromDate:\n${fromDateStr}`);
       console.log(`[AUDIT DEBUG] toDate:\n${toDateStr}`);
 
-      const queryPageSize = params.pageSize && params.pageSize > 50 ? params.pageSize : 500;
+      const queryPageSize = params.pageSize && params.pageSize > 0 ? params.pageSize : 500;
       const response = await this.client.getAuditHistory(payload, { pageNumber, pageSize: queryPageSize });
 
       if (response?.status === 'FAIL' || response?.error) {
@@ -2015,8 +2203,8 @@ class OracleService {
         ).catch(e => console.warn('[Audit Raw DB Auto-Save Error]:', e.message));
       }
 
-      let mappedLogs = audits.map((a: any, idx: number) =>
-        this.mapRawAuditItem(a, idx, boDisplayName, restBusinessObjectType)
+      let mappedLogs = audits.flatMap((a: any, idx: number) =>
+        this.mapRawAuditItemToRows(a, idx, boDisplayName, restBusinessObjectType)
       );
 
       // Filter in memory if username or action filter specified
@@ -2024,9 +2212,10 @@ class OracleService {
         const term = safeLower(params.username);
         if (term) {
           mappedLogs = mappedLogs.filter((a: any) =>
+            safeLower(a.user).includes(term) ||
+            safeLower(a.userId).includes(term) ||
             safeLower(a.username).includes(term) ||
-            (a.userInternalName && safeLower(a.userInternalName).includes(term)) ||
-            (a.details && safeLower(a.details).includes(term))
+            safeLower(a.details).includes(term)
           );
         }
       }
@@ -2037,15 +2226,14 @@ class OracleService {
         const isDelete = act.includes('delete');
 
         mappedLogs = mappedLogs.filter((a: any) => {
-          const evtLower = safeLower(a.event);
+          const evtLower = safeLower(a.eventType || a.event);
           const actLower = safeLower(a.action);
-          const catLower = safeLower(a.eventCategory);
 
           if (isInsert && (evtLower.includes('insert') || actLower.includes('insert') || actLower === 'insert')) return true;
           if (isUpdate && (evtLower.includes('update') || actLower.includes('update') || actLower === 'update')) return true;
           if (isDelete && (evtLower.includes('delete') || actLower.includes('delete') || actLower === 'delete')) return true;
 
-          return evtLower.includes(act) || actLower.includes(act) || catLower.includes(act);
+          return evtLower.includes(act) || actLower.includes(act);
         });
       }
 
