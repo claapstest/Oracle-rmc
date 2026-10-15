@@ -2955,7 +2955,7 @@ class OracleService {
     };
   }
 
-  async getRiskIncidents(options?: { controlId?: string; forceRefresh?: boolean; limit?: number; offset?: number; page?: number; search?: string; status?: string; state?: string }): Promise<any> {
+  async getRiskIncidents(options?: { controlId?: string; controls?: string[]; user?: string; role?: string; forceRefresh?: boolean; limit?: number; offset?: number; page?: number; search?: string; status?: string; state?: string }): Promise<any> {
     const isDemo = this.isDemoMode();
     const catalogRes = await this.controlCatalogService.getAllControls(options?.forceRefresh);
     const availableControls = (catalogRes.items || []).map(c => ({
@@ -2971,7 +2971,12 @@ class OracleService {
     if (isDemo) {
       const selectedId = options?.controlId || '114281';
       const detail = await this.controlCatalogService.getControlDetail(selectedId, { forceRefresh: options?.forceRefresh });
-      const items = detail.incidents || [];
+      let items = detail.incidents || [];
+      // Demo-mode drill-down filtering (Top-10 bar clicks).
+      const demoUser = (options?.user || '').trim().toLowerCase();
+      if (demoUser) items = items.filter((it: any) => String(it.globalUserName ?? it.globalUser ?? '').trim().toLowerCase() === demoUser);
+      const demoRole = (options?.role || '').trim().toLowerCase();
+      if (demoRole) items = items.filter((it: any) => String(it.role ?? '').trim().toLowerCase() === demoRole);
       const demoCats = this.categorizeRiskIncidents(items);
       return {
         success: true,
@@ -3007,15 +3012,20 @@ class OracleService {
     const topLiveControlId = controlsByIncidents.find(c => (c.incidentCount || 0) > 0)?.id
       || controlsByIncidents[0]?.id;
 
-    if (!targetControlId || targetControlId === 'ALL') {
+    if (!targetControlId || targetControlId === 'ALL' || ((options?.controls?.length || 0) > 0) || options?.user || options?.role) {
       // ALL-controls view: aggregate across every control from PostgreSQL
       // (single-cell raw payloads synced by the background workers) instead of
       // only the freshly-downloaded disk caches. Authoritative total comes from
       // the lightweight per-control counts; the 4-way split is computed exactly
       // in SQL over the synced rows.
-      const scopeIds = availableControls.map(c => c.id);
+      // When `controls` is supplied (e.g. Top-10 domain drill-down), narrow the
+      // scope to those controls instead of the whole environment.
+      const requested = new Set((options?.controls || []).map((s) => String(s).trim()).filter(Boolean));
+      if (targetControlId && targetControlId !== 'ALL') requested.add(targetControlId);
+      const scopedControls = requested.size > 0 ? availableControls.filter((c) => requested.has(c.id)) : availableControls;
+      const scopeIds = scopedControls.map(c => c.id);
       const scopeNames = new Map(availableControls.map(c => [c.id, c.name]));
-      const authoritativeTotal = availableControls.reduce((s, c) => s + (c.incidentCount || 0), 0);
+      const authoritativeTotal = scopedControls.reduce((s, c) => s + (c.incidentCount || 0), 0);
 
       if (scopeIds.length > 0) {
         const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
@@ -3027,7 +3037,9 @@ class OracleService {
           limit: pageSize,
           search: options?.search,
           status: options?.status,
-          state: options?.state
+          state: options?.state,
+          user: options?.user,
+          role: options?.role
         });
         const items = pg.rows.map(r =>
           this.controlCatalogService.normalizeIncident(r.raw, r.control_id, scopeNames.get(r.control_id))

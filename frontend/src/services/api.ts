@@ -451,9 +451,12 @@ export const api = {
     return apiRequest('/risk/capabilities');
   },
 
-  async getRiskIncidents(options?: { controlId?: string; refresh?: boolean; page?: number; limit?: number; search?: string; status?: string; state?: string }) {
+  async getRiskIncidents(options?: { controlId?: string; controls?: string[]; user?: string; role?: string; refresh?: boolean; page?: number; limit?: number; search?: string; status?: string; state?: string }) {
     const params = new URLSearchParams();
     if (options?.controlId) params.append('controlId', options.controlId);
+    if (options?.controls && options.controls.length > 0) params.append('controls', options.controls.join(','));
+    if (options?.user && options.user.trim()) params.append('user', options.user.trim());
+    if (options?.role && options.role.trim()) params.append('role', options.role.trim());
     if (options?.refresh) params.append('refresh', 'true');
     if (options?.page) params.append('page', String(options.page));
     if (options?.limit) params.append('limit', String(options.limit));

@@ -1827,7 +1827,7 @@
   {
     "sno": 46,
     "id": "payables",
-    "displayName": "Payables (AP / SQLAP)",
+    "displayName": "Payables",
     "productName": "Payables",
     "shortCodes": [
       "AP",

@@ -491,6 +491,8 @@ export class ControlRawDbService {
     status?: string;
     state?: string;
     priority?: string;
+    user?: string;
+    role?: string;
   }): Promise<{
     filteredTotal: number;
     rows: Array<{ control_id: string; control_name: string | null; raw: any }>;
@@ -540,6 +542,29 @@ export class ControlRawDbService {
       conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'AccessPointName',el->>'accessPointName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Entitlement',el->>'entitlement','')) LIKE $${p})`);
       params.push(`%${term}%`);
       p++;
+    }
+
+    // Exact (case-insensitive) drill-down filters for Top-10 bar clicks.
+    // 'Unknown' matches rows with a blank/missing value so ranking totals reconcile.
+    const exactUser = (options.user || '').trim();
+    if (exactUser) {
+      if (exactUser.toLowerCase() === 'unknown') {
+        conds.push(`(COALESCE(NULLIF(TRIM(el->>'GlobalUserName'), ''), 'Unknown') = 'Unknown')`);
+      } else {
+        conds.push(`(LOWER(TRIM(COALESCE(el->>'GlobalUserName',el->>'globalUserName',''))) = LOWER($${p}))`);
+        params.push(exactUser);
+        p++;
+      }
+    }
+    const exactRole = (options.role || '').trim();
+    if (exactRole) {
+      if (exactRole.toLowerCase() === 'unknown') {
+        conds.push(`(COALESCE(NULLIF(TRIM(el->>'Role'), ''), 'Unknown') = 'Unknown')`);
+      } else {
+        conds.push(`(LOWER(TRIM(COALESCE(el->>'Role',el->>'role',''))) = LOWER($${p}))`);
+        params.push(exactRole);
+        p++;
+      }
     }
 
     // Oracle numeric priority (verified live: every incident carries Priority "1")

@@ -32,7 +32,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { api } from '../services/api.js';
-import { RankedBars, useIncidentRankings } from './IncidentRankingPanels';
+import { RankedBars, RankingDrilldownModal, useIncidentRankings, type RankingSelection } from './IncidentRankingPanels';
 import { EnterpriseExportControl, type EnterpriseExportColumn } from './EnterpriseExportControl';
 import { 
   isAccessControl, 
@@ -364,6 +364,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   // Domain top-violators analytics (follows the active domain tab)
   const domainRankings = useIncidentRankings(activeSubsectionControls.map((c) => c.id));
   const domainScopeCaption = `${activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} domain · ${activeSubsectionControls.length} controls`;
+  // Clicked Top-10 bar (user or role) -> incident drill-down modal scoped to this domain.
+  const [rankingSelection, setRankingSelection] = useState<RankingSelection | null>(null);
 
   // Extract unique filter options present in backend data for current subsection
   const availableStatuses = useMemo(() => {
@@ -2862,7 +2864,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </button>
                 </div>
               ) : (
-                <RankedBars bare title="Top 10 Users with Most Incidents" subtitle="" items={domainRankings.users} color="#1D4ED8" />
+                <RankedBars bare title="Top 10 Users with Most Incidents" subtitle="" items={domainRankings.users} color="#1D4ED8" onSelect={(item) => setRankingSelection({ kind: 'user', item })} selectedLabel={rankingSelection?.kind === 'user' ? rankingSelection.item.label : null} />
               )}
             </div>
             {/* Analytics Card: Top 10 Roles (replaces Incident Status donut) */}
@@ -2899,9 +2901,17 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </button>
                 </div>
               ) : (
-                <RankedBars bare title="Top 10 Roles with Most Incidents" subtitle="" items={domainRankings.roles} color="#7C3AED" />
+                <RankedBars bare title="Top 10 Roles with Most Incidents" subtitle="" items={domainRankings.roles} color="#7C3AED" onSelect={(item) => setRankingSelection({ kind: 'role', item })} selectedLabel={rankingSelection?.kind === 'role' ? rankingSelection.item.label : null} />
               )}
             </div>
+            {rankingSelection && (
+              <RankingDrilldownModal
+                selection={rankingSelection}
+                controlIds={activeSubsectionControls.map((c) => c.id)}
+                scopeCaption={domainScopeCaption}
+                onClose={() => setRankingSelection(null)}
+              />
+            )}
             </>
           ) : (
             <>

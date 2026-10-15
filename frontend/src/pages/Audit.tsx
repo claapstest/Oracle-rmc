@@ -667,7 +667,7 @@ export default function Audit({
             >
               {products.map(prod => (
                 <option key={prod.id} value={prod.id}>
-                  {prod.displayName}
+                  {prod.productName || prod.displayName}
                 </option>
               ))}
             </select>

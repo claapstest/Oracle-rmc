@@ -2553,13 +2553,21 @@ apiRouter.get('/risk/capabilities', requirePrivilege(['RISK_MANAGEMENT', 'RISK_R
 apiRouter.get('/risk/incidents', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const controlId = req.query.controlId as string | undefined;
+    const controlsRaw = req.query.controls as string | string[] | undefined;
+    const controls = Array.isArray(controlsRaw)
+      ? controlsRaw.flatMap((s) => String(s).split(','))
+      : typeof controlsRaw === 'string'
+        ? controlsRaw.split(',')
+        : undefined;
+    const user = req.query.user as string | undefined;
+    const role = req.query.role as string | undefined;
     const forceRefresh = req.query.refresh === 'true';
     const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const search = req.query.search as string | undefined;
     const status = req.query.status as string | undefined;
     const state = req.query.state as string | undefined;
-    const result = await oracleService.getRiskIncidents({ controlId, forceRefresh, page, limit, search, status, state });
+    const result = await oracleService.getRiskIncidents({ controlId, controls, user, role, forceRefresh, page, limit, search, status, state });
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
