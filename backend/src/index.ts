@@ -47,6 +47,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Healthcheck endpoint for cloud platforms (Railway, Render, AWS)
+app.get(['/health', '/api/health'], (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // API Routes
 app.use('/api', apiRouter);
 
@@ -94,7 +99,7 @@ oracleService.recreateClient();
 validateConfig();
 rolePrivilegeCatalogService.initialize(oracleService);
 privilegeRoleCatalogService.initialize();
-app.listen(config.port, () => {
+app.listen(config.port, '0.0.0.0', () => {
   console.log(`===========================================================`);
   console.log(`  Oracle Fusion Security & Risk Intelligence Assistant`);
   console.log(`  Server is listening on port: http://localhost:${config.port}`);
