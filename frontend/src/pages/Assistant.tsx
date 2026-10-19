@@ -659,13 +659,20 @@ export default function Assistant({
               </div>
             )}
             
-            {structured.summary && (
-              <div style={{ display: 'flex', gap: '1.5rem', padding: '0.25rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                <div>Total Privileges: <strong>{structured.summary.totalPrivileges}</strong></div>
-                <div>Direct: <strong>{structured.summary.directPrivileges}</strong></div>
-                <div>Inherited: <strong>{structured.summary.inheritedPrivileges}</strong></div>
-              </div>
-            )}
+            {/* Privilege Metrics Summary */}
+            {(structured.privilegeSummary || structured.summaryMeta || (typeof structured.summary === 'object' && structured.summary !== null) || (table?.type === 'privileges' && table.rows)) && (() => {
+              const s = structured.privilegeSummary || structured.summaryMeta || (typeof structured.summary === 'object' ? structured.summary : null);
+              const total = s?.totalPrivileges ?? table?.rows?.length ?? 0;
+              const direct = s?.directPrivileges ?? total;
+              const inherited = s?.inheritedPrivileges ?? 0;
+              return (
+                <div style={{ display: 'flex', gap: '1.5rem', padding: '0.25rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <div>Total Privileges: <strong style={{ color: 'var(--text-primary)' }}>{total}</strong></div>
+                  <div>Direct: <strong style={{ color: 'var(--text-primary)' }}>{direct}</strong></div>
+                  <div>Inherited: <strong style={{ color: 'var(--text-primary)' }}>{inherited}</strong></div>
+                </div>
+              );
+            })()}
 
             {/* Render Briefing Text segments */}
             {typeof structured.briefingRaw === 'string' ? (
@@ -706,6 +713,31 @@ export default function Assistant({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Functional Privileges Table for Role Briefing */}
+            {table && table.rows && table.rows.length > 0 && !structured.ambiguous && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+                  {table.type === 'privileges' ? `Privilege Entitlements (${table.rows.length})` : 'Entitlements & Details'}
+                </div>
+                <PaginatedTable 
+                  table={table}
+                  metadata={metadata}
+                  onNavigatePage={onNavigatePage}
+                  onInvestigate={onInvestigate}
+                  onInspectRole={(roleName) => onInvestigate('role', roleName, roleName)}
+                  initialPage={tableStates[index]?.currentPage ?? 1}
+                  initialPageSize={tableStates[index]?.pageSize ?? 10}
+                  initialFilterText={tableStates[index]?.filterText ?? ''}
+                  onStateChange={(tblState) => {
+                    setTableStates(prev => ({
+                      ...prev,
+                      [index]: tblState
+                    }));
+                  }}
+                />
               </div>
             )}
           </div>

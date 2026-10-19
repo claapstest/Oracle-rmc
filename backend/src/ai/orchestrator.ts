@@ -2032,14 +2032,17 @@ function buildStructuredResponse(
       }
       title = `Privilege Entitlements: ${data.roleName || parameters.roleName}`;
       const privArray = Array.isArray(data.privileges) ? data.privileges : [];
+      totalCount = data?.summary?.totalPrivileges ?? privArray.length;
+      matchingCount = privArray.length;
       table = {
         type: 'privileges',
         columns: ['Privilege Name', 'Code', 'Inherited From'],
         rows: privArray.map((p: any) => ({
           id: p.code,
-          name: p.name,
+          name: p.name || p.code,
+          privilegeName: p.name || p.code,
           code: p.code,
-          inheritedFrom: p.inheritedFrom
+          inheritedFrom: p.inheritedFrom || data.roleName || parameters.roleName || 'Direct'
         }))
       };
       actions = [
@@ -2290,7 +2293,9 @@ function buildStructuredResponse(
     table,
     actions,
     briefingRaw: data?.briefingRaw || null,
-    role: data?.role || null,
+    role: data?.role || (data?.roleName ? { name: data.roleName, code: data.roleCode || '', category: data.category || 'Job' } : null),
+    privilegeSummary: data?.summary || null,
+    summaryMeta: data?.summary || null,
     user: (intent === 'GET_USER' || intent === 'ROLES_BY_USER') && data?.displayName ? data : null,
     metadata: {
       source,

@@ -382,6 +382,52 @@ function getTableColumns(
     ];
   }
 
+  if (tableType === 'privileges') {
+    return [
+      {
+        key: 'name',
+        header: 'PRIVILEGE NAME',
+        width: '45%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
+            {row.name || row.privilegeName || row.displayName || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'code',
+        header: 'PRIVILEGE CODE',
+        width: '30%',
+        align: 'left',
+        render: (row) => (
+          <code style={{ 
+            fontSize: '0.76rem', 
+            backgroundColor: '#F1F5F9', 
+            color: '#0F172A',
+            padding: '0.15rem 0.4rem', 
+            borderRadius: '4px',
+            border: '1px solid #E2E8F0',
+            wordBreak: 'break-all'
+          }}>
+            {row.code || row.privilegeCode || row.id || '—'}
+          </code>
+        )
+      },
+      {
+        key: 'inheritedFrom',
+        header: 'INHERITED FROM',
+        width: '25%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            {row.inheritedFrom || 'Direct Assignment'}
+          </span>
+        )
+      }
+    ];
+  }
+
   if (tableType === 'audit') {
     return [
       {
