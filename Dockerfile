@@ -1,24 +1,24 @@
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Copy package definitions
+# Copy package manifests for layer caching
 COPY package.json package-lock.json* ./
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 COPY database/package*.json ./database/
 
-# Install dependencies for all sub-packages
-RUN npm install
-RUN npm install --prefix backend
-RUN npm install --prefix frontend
-RUN npm install --prefix database
+# Install dependencies cleanly for each service (no recursion)
+RUN npm --prefix backend install --no-audit --no-fund
+RUN npm --prefix frontend install --no-audit --no-fund
+RUN npm --prefix database install --no-audit --no-fund
 
-# Copy entire repository source
+# Copy remaining source code
 COPY . .
 
-# Build both backend (TypeScript) and frontend (Vite React)
-RUN npm run build:all
+# Build backend (tsc) and frontend (vite)
+RUN npm run build:backend
+RUN npm run build:frontend
 
 ENV NODE_ENV=production
 ENV PORT=5000

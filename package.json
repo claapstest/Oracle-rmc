@@ -7,7 +7,6 @@
   "scripts": {
     "install:subpackages": "npm install --prefix backend && npm install --prefix frontend && npm install --prefix database",
     "install:all": "npm install && npm run install:subpackages",
-    "postinstall": "npm run install:subpackages",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
