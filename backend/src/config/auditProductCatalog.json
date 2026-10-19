@@ -2,15 +2,16 @@
   {
     "sno": 1,
     "id": "pages_and_business_objects_extensibility_adf",
-    "displayName": "Pages and Business Objects Extensibility (ADF)",
-    "productName": "Pages and Business Objects Extensibility (ADF)",
+    "displayName": "Pages and Business Objects Extensibility",
+    "productName": "Pages and Business Objects Extensibility",
     "shortCodes": [
       "ADF"
     ],
     "aliases": [
       "Pages and Business Objects Extensibility (ADF)",
       "ADF",
-      "pages_and_business_objects_extensibility_adf"
+      "pages_and_business_objects_extensibility_adf",
+      "Pages and Business Objects Extensibility"
     ],
     "instanceProductName": "ADF",
     "restProduct": "ADF",
@@ -32,7 +33,7 @@
   {
     "sno": 2,
     "id": "oracle_enterprise_scheduler_service",
-    "displayName": "Oracle Enterprise Scheduler Service (ESS)",
+    "displayName": "Oracle Enterprise Scheduler Service",
     "productName": "Oracle Enterprise Scheduler Service",
     "shortCodes": [
       "ESS"
@@ -136,7 +137,7 @@
   {
     "sno": 3,
     "id": "opss",
-    "displayName": "Oracle Platform Security Services (OPSS)",
+    "displayName": "Oracle Platform Security Services",
     "productName": "Oracle Platform Security Services",
     "shortCodes": [
       "OPSS"
@@ -167,15 +168,16 @@
   {
     "sno": 4,
     "id": "oracle_soa_suite_soa",
-    "displayName": "Oracle SOA Suite (SOA)",
-    "productName": "Oracle SOA Suite (SOA)",
+    "displayName": "Oracle SOA Suite",
+    "productName": "Oracle SOA Suite",
     "shortCodes": [
       "SOA"
     ],
     "aliases": [
       "Oracle SOA Suite (SOA)",
       "SOA",
-      "oracle_soa_suite_soa"
+      "oracle_soa_suite_soa",
+      "Oracle SOA Suite"
     ],
     "instanceProductName": "SOA",
     "restProduct": "SOA",
@@ -197,15 +199,16 @@
   {
     "sno": 5,
     "id": "oracle_data_integrator_odi",
-    "displayName": "Oracle Data Integrator (ODI)",
-    "productName": "Oracle Data Integrator (ODI)",
+    "displayName": "Oracle Data Integrator",
+    "productName": "Oracle Data Integrator",
     "shortCodes": [
       "ODI"
     ],
     "aliases": [
       "Oracle Data Integrator (ODI)",
       "ODI",
-      "oracle_data_integrator_odi"
+      "oracle_data_integrator_odi",
+      "Oracle Data Integrator"
     ],
     "instanceProductName": "ODI",
     "restProduct": "ODI",
@@ -227,15 +230,16 @@
   {
     "sno": 6,
     "id": "oracle_metadata_services_mds",
-    "displayName": "Oracle Metadata Services (MDS)",
-    "productName": "Oracle Metadata Services (MDS)",
+    "displayName": "Oracle Metadata Services",
+    "productName": "Oracle Metadata Services",
     "shortCodes": [
       "MDS"
     ],
     "aliases": [
       "Oracle Metadata Services (MDS)",
       "MDS",
-      "oracle_metadata_services_mds"
+      "oracle_metadata_services_mds",
+      "Oracle Metadata Services"
     ],
     "instanceProductName": "MDS",
     "restProduct": "MDS",
@@ -257,7 +261,7 @@
   {
     "sno": 7,
     "id": "oracle_business_intelligence_enterprise_edition",
-    "displayName": "Oracle Business Intelligence Enterprise Edition (OBIEE)",
+    "displayName": "Oracle Business Intelligence Enterprise Edition",
     "productName": "Oracle Business Intelligence Enterprise Edition",
     "shortCodes": [
       "OBIEE"
@@ -415,7 +419,7 @@
   {
     "sno": 10,
     "id": "absence_management",
-    "displayName": "Absence Management (ANC)",
+    "displayName": "Absence Management",
     "productName": "Absence Management",
     "shortCodes": [
       "ANC"
@@ -437,7 +441,7 @@
   {
     "sno": 11,
     "id": "advanced_collections",
-    "displayName": "Advanced Collections (IEX)",
+    "displayName": "Advanced Collections",
     "productName": "Advanced Collections",
     "shortCodes": [
       "IEX"
@@ -468,7 +472,7 @@
   {
     "sno": 12,
     "id": "applications_common_components",
-    "displayName": "Applications Common Components (ACR)",
+    "displayName": "Applications Common Components",
     "productName": "Applications Common Components",
     "shortCodes": [
       "ACR"
@@ -522,7 +526,7 @@
   {
     "sno": 13,
     "id": "assets",
-    "displayName": "Assets (OFA / FA)",
+    "displayName": "Assets",
     "productName": "Assets",
     "shortCodes": [
       "OFA",
@@ -555,7 +559,7 @@
   {
     "sno": 14,
     "id": "benefits",
-    "displayName": "Benefits (BEN)",
+    "displayName": "Benefits",
     "productName": "Benefits",
     "shortCodes": [
       "BEN"
@@ -613,7 +617,7 @@
   {
     "sno": 16,
     "id": "budgetary_control",
-    "displayName": "Budgetary Control (XCC)",
+    "displayName": "Budgetary Control",
     "productName": "Budgetary Control",
     "shortCodes": [
       "XCC"
@@ -644,7 +648,7 @@
   {
     "sno": 17,
     "id": "crm_application_composer",
-    "displayName": "CRM Application Composer (CRM)",
+    "displayName": "CRM Application Composer",
     "productName": "CRM Application Composer",
     "shortCodes": [
       "CRM"
@@ -702,7 +706,7 @@
   {
     "sno": 19,
     "id": "cash_management",
-    "displayName": "Cash Management (CE)",
+    "displayName": "Cash Management",
     "productName": "Cash Management",
     "shortCodes": [
       "CE"
@@ -733,7 +737,7 @@
   {
     "sno": 20,
     "id": "common_crm",
-    "displayName": "Common CRM (CRM)",
+    "displayName": "Common CRM",
     "productName": "Common CRM",
     "shortCodes": [
       "CRM"
@@ -873,7 +877,7 @@
   {
     "sno": 23,
     "id": "compensation",
-    "displayName": "Compensation (CMP)",
+    "displayName": "Compensation",
     "productName": "Compensation",
     "shortCodes": [
       "CMP"
@@ -940,7 +944,7 @@
   {
     "sno": 26,
     "id": "enterprise_contracts",
-    "displayName": "Enterprise Contracts (OKC)",
+    "displayName": "Enterprise Contracts",
     "productName": "Enterprise Contracts",
     "shortCodes": [
       "OKC"
@@ -962,7 +966,7 @@
   {
     "sno": 27,
     "id": "expenses",
-    "displayName": "Expenses (EXM)",
+    "displayName": "Expenses",
     "productName": "Expenses",
     "shortCodes": [
       "EXM"
@@ -984,7 +988,7 @@
   {
     "sno": 28,
     "id": "financials_common_module",
-    "displayName": "Financials Common Module (FUN)",
+    "displayName": "Financials Common Module",
     "productName": "Financials Common Module",
     "shortCodes": [
       "FUN"
@@ -1015,7 +1019,7 @@
   {
     "sno": 29,
     "id": "financials_for_regional_localizations",
-    "displayName": "Financials for Regional Localizations (JG)",
+    "displayName": "Financials for Regional Localizations",
     "productName": "Financials for Regional Localizations",
     "shortCodes": [
       "JG"
@@ -1037,7 +1041,7 @@
   {
     "sno": 30,
     "id": "financials_for_the_americas",
-    "displayName": "Financials for the Americas (JL)",
+    "displayName": "Financials for the Americas",
     "productName": "Financials for the Americas",
     "shortCodes": [
       "JL"
@@ -1059,7 +1063,7 @@
   {
     "sno": 31,
     "id": "general_ledger",
-    "displayName": "General Ledger (Ledger / GL)",
+    "displayName": "General Ledger",
     "productName": "General Ledger",
     "shortCodes": [
       "Ledger",
@@ -1285,7 +1289,7 @@
   {
     "sno": 32,
     "id": "hcm",
-    "displayName": "Global Human Resources (PER / HCM)",
+    "displayName": "Global Human Resources",
     "productName": "Global Human Resources",
     "shortCodes": [
       "PER",
@@ -1365,7 +1369,7 @@
   {
     "sno": 33,
     "id": "global_payroll",
-    "displayName": "Global Payroll (PAY)",
+    "displayName": "Global Payroll",
     "productName": "Global Payroll",
     "shortCodes": [
       "PAY"
@@ -1396,7 +1400,7 @@
   {
     "sno": 34,
     "id": "goal_management",
-    "displayName": "Goal Management (HRG)",
+    "displayName": "Goal Management",
     "productName": "Goal Management",
     "shortCodes": [
       "HRG"
@@ -1418,7 +1422,7 @@
   {
     "sno": 35,
     "id": "grants_management",
-    "displayName": "Grants Management (PJF)",
+    "displayName": "Grants Management",
     "productName": "Grants Management",
     "shortCodes": [
       "PJF"
@@ -1440,7 +1444,7 @@
   {
     "sno": 36,
     "id": "hcm_common_architecture",
-    "displayName": "HCM Common Architecture (HCM)",
+    "displayName": "HCM Common Architecture",
     "productName": "HCM Common Architecture",
     "shortCodes": [
       "HCM"
@@ -1518,7 +1522,7 @@
   {
     "sno": 37,
     "id": "incentive_compensation",
-    "displayName": "Incentive Compensation (CN)",
+    "displayName": "Incentive Compensation",
     "productName": "Incentive Compensation",
     "shortCodes": [
       "CN"
@@ -1540,7 +1544,7 @@
   {
     "sno": 38,
     "id": "inventory_management",
-    "displayName": "Inventory Management (INV)",
+    "displayName": "Inventory Management",
     "productName": "Inventory Management",
     "shortCodes": [
       "INV"
@@ -1668,7 +1672,7 @@
   {
     "sno": 39,
     "id": "joint_venture_management",
-    "displayName": "Joint Venture Management (JVM)",
+    "displayName": "Joint Venture Management",
     "productName": "Joint Venture Management",
     "shortCodes": [
       "JVM"
@@ -1690,7 +1694,7 @@
   {
     "sno": 40,
     "id": "lease_accounting",
-    "displayName": "Lease Accounting (OKL)",
+    "displayName": "Lease Accounting",
     "productName": "Lease Accounting",
     "shortCodes": [
       "OKL"
@@ -1712,7 +1716,7 @@
   {
     "sno": 41,
     "id": "legal_entity_configurator",
-    "displayName": "Legal Entity Configurator (XLE)",
+    "displayName": "Legal Entity Configurator",
     "productName": "Legal Entity Configurator",
     "shortCodes": [
       "XLE"
@@ -1734,7 +1738,7 @@
   {
     "sno": 42,
     "id": "loyalty",
-    "displayName": "Loyalty (LOY)",
+    "displayName": "Loyalty",
     "productName": "Loyalty",
     "shortCodes": [
       "LOY"
@@ -1756,7 +1760,7 @@
   {
     "sno": 43,
     "id": "marketing",
-    "displayName": "Marketing (MKT)",
+    "displayName": "Marketing",
     "productName": "Marketing",
     "shortCodes": [
       "MKT"
@@ -1805,7 +1809,7 @@
   {
     "sno": 45,
     "id": "partner_management",
-    "displayName": "Partner Management (ZPM)",
+    "displayName": "Partner Management",
     "productName": "Partner Management",
     "shortCodes": [
       "ZPM"
@@ -2308,7 +2312,7 @@
   {
     "sno": 47,
     "id": "payments",
-    "displayName": "Payments (IBY)",
+    "displayName": "Payments",
     "productName": "Payments",
     "shortCodes": [
       "IBY"
@@ -2330,7 +2334,7 @@
   {
     "sno": 48,
     "id": "performance_management",
-    "displayName": "Performance Management (PER)",
+    "displayName": "Performance Management",
     "productName": "Performance Management",
     "shortCodes": [
       "PER"
@@ -2361,7 +2365,7 @@
   {
     "sno": 49,
     "id": "product_hub",
-    "displayName": "Product Hub (EGP)",
+    "displayName": "Product Hub",
     "productName": "Product Hub",
     "shortCodes": [
       "EGP"
@@ -2415,7 +2419,7 @@
   {
     "sno": 50,
     "id": "profile_management",
-    "displayName": "Profile Management (PER)",
+    "displayName": "Profile Management",
     "productName": "Profile Management",
     "shortCodes": [
       "PER"
@@ -2519,7 +2523,7 @@
   {
     "sno": 51,
     "id": "project_foundation",
-    "displayName": "Project Foundation (PJF)",
+    "displayName": "Project Foundation",
     "productName": "Project Foundation",
     "shortCodes": [
       "PJF"
@@ -2541,7 +2545,7 @@
   {
     "sno": 52,
     "id": "public_sector_common_components",
-    "displayName": "Public Sector Common Components (PSB)",
+    "displayName": "Public Sector Common Components",
     "productName": "Public Sector Common Components",
     "shortCodes": [
       "PSB"
@@ -2645,7 +2649,7 @@
   {
     "sno": 53,
     "id": "quality_issue_and_action_management",
-    "displayName": "Quality Issue and Action Management (QIM)",
+    "displayName": "Quality Issue and Action Management",
     "productName": "Quality Issue and Action Management",
     "shortCodes": [
       "QIM"
@@ -2869,7 +2873,7 @@
   {
     "sno": 54,
     "id": "receivables",
-    "displayName": "Receivables (AR)",
+    "displayName": "Receivables",
     "productName": "Receivables",
     "shortCodes": [
       "AR"
@@ -3069,7 +3073,7 @@
   {
     "sno": 55,
     "id": "receiving",
-    "displayName": "Receiving (RCV)",
+    "displayName": "Receiving",
     "productName": "Receiving",
     "shortCodes": [
       "RCV"
@@ -3091,7 +3095,7 @@
   {
     "sno": 56,
     "id": "recruiting",
-    "displayName": "Recruiting (IRC)",
+    "displayName": "Recruiting",
     "productName": "Recruiting",
     "shortCodes": [
       "IRC"
@@ -3113,7 +3117,7 @@
   {
     "sno": 57,
     "id": "revenue_management",
-    "displayName": "Revenue Management (ORA-REV)",
+    "displayName": "Revenue Management",
     "productName": "Revenue Management",
     "shortCodes": [
       "ORA-REV"
@@ -3135,7 +3139,7 @@
   {
     "sno": 58,
     "id": "risks_and_controls",
-    "displayName": "Risks and Controls (RACM / RMC)",
+    "displayName": "Risks and Controls",
     "productName": "Risks and Controls",
     "shortCodes": [
       "RACM",
@@ -3196,7 +3200,7 @@
   {
     "sno": 59,
     "id": "sales",
-    "displayName": "Sales (ZSF / CRM)",
+    "displayName": "Sales",
     "productName": "Sales",
     "shortCodes": [
       "ZSF",
@@ -3220,7 +3224,7 @@
   {
     "sno": 60,
     "id": "sales_catalog",
-    "displayName": "Sales Catalog (QSC)",
+    "displayName": "Sales Catalog",
     "productName": "Sales Catalog",
     "shortCodes": [
       "QSC"
@@ -3269,7 +3273,7 @@
   {
     "sno": 62,
     "id": "service",
-    "displayName": "Service (CS)",
+    "displayName": "Service",
     "productName": "Service",
     "shortCodes": [
       "CS"
@@ -3395,7 +3399,7 @@
   {
     "sno": 63,
     "id": "sourcing",
-    "displayName": "Sourcing (PON)",
+    "displayName": "Sourcing",
     "productName": "Sourcing",
     "shortCodes": [
       "PON"
@@ -3426,7 +3430,7 @@
   {
     "sno": 64,
     "id": "student_admissions",
-    "displayName": "Student Admissions (SAD)",
+    "displayName": "Student Admissions",
     "productName": "Student Admissions",
     "shortCodes": [
       "SAD"
@@ -3448,7 +3452,7 @@
   {
     "sno": 65,
     "id": "student_financials",
-    "displayName": "Student Financials (SFA)",
+    "displayName": "Student Financials",
     "productName": "Student Financials",
     "shortCodes": [
       "SFA"
@@ -3470,7 +3474,7 @@
   {
     "sno": 66,
     "id": "student_records",
-    "displayName": "Student Records (SSR)",
+    "displayName": "Student Records",
     "productName": "Student Records",
     "shortCodes": [
       "SSR"
@@ -3524,7 +3528,7 @@
   {
     "sno": 67,
     "id": "subledger_accounting",
-    "displayName": "Subledger Accounting (XLA)",
+    "displayName": "Subledger Accounting",
     "productName": "Subledger Accounting",
     "shortCodes": [
       "XLA"
@@ -3560,7 +3564,7 @@
   {
     "sno": 68,
     "id": "subscription_management",
-    "displayName": "Subscription Management (OSS)",
+    "displayName": "Subscription Management",
     "productName": "Subscription Management",
     "shortCodes": [
       "OSS"
@@ -3591,7 +3595,7 @@
   {
     "sno": 69,
     "id": "succession_management",
-    "displayName": "Succession Management (PER)",
+    "displayName": "Succession Management",
     "productName": "Succession Management",
     "shortCodes": [
       "PER"
@@ -3613,7 +3617,7 @@
   {
     "sno": 70,
     "id": "supplier_model",
-    "displayName": "Supplier Model (POS)",
+    "displayName": "Supplier Model",
     "productName": "Supplier Model",
     "shortCodes": [
       "POS"
@@ -3667,7 +3671,7 @@
   {
     "sno": 71,
     "id": "supply_chain_management_common_components",
-    "displayName": "Supply Chain Management Common Components (RCS)",
+    "displayName": "Supply Chain Management Common Components",
     "productName": "Supply Chain Management Common Components",
     "shortCodes": [
       "RCS"
@@ -3703,7 +3707,7 @@
   {
     "sno": 72,
     "id": "tax",
-    "displayName": "Tax (ZX)",
+    "displayName": "Tax",
     "productName": "Tax",
     "shortCodes": [
       "ZX"
@@ -3725,7 +3729,7 @@
   {
     "sno": 73,
     "id": "territory_management",
-    "displayName": "Territory Management (JTM)",
+    "displayName": "Territory Management",
     "productName": "Territory Management",
     "shortCodes": [
       "JTM"
@@ -3747,7 +3751,7 @@
   {
     "sno": 74,
     "id": "time_and_labor",
-    "displayName": "Time and Labor (HXT / TLM)",
+    "displayName": "Time and Labor",
     "productName": "Time and Labor",
     "shortCodes": [
       "HXT",
@@ -3771,7 +3775,7 @@
   {
     "sno": 75,
     "id": "trading_community_model",
-    "displayName": "Trading Community Model (HZ)",
+    "displayName": "Trading Community Model",
     "productName": "Trading Community Model",
     "shortCodes": [
       "HZ"
@@ -3793,7 +3797,7 @@
   {
     "sno": 76,
     "id": "u_s_federal_financials",
-    "displayName": "U.S. Federal Financials (FV)",
+    "displayName": "U.S. Federal Financials",
     "productName": "U.S. Federal Financials",
     "shortCodes": [
       "FV"
@@ -3815,7 +3819,7 @@
   {
     "sno": 77,
     "id": "workforce_health_and_safety_incidents",
-    "displayName": "Workforce Health and Safety Incidents (HNS)",
+    "displayName": "Workforce Health and Safety Incidents",
     "productName": "Workforce Health and Safety Incidents",
     "shortCodes": [
       "HNS"
@@ -3846,7 +3850,7 @@
   {
     "sno": 78,
     "id": "workforce_scheduling",
-    "displayName": "Workforce Scheduling (WFM)",
+    "displayName": "Workforce Scheduling",
     "productName": "Workforce Scheduling",
     "shortCodes": [
       "WFM"

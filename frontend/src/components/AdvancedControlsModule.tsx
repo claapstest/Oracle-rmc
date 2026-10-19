@@ -29,7 +29,8 @@ import {
   CheckCircle,
   Wrench,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  AlignLeft
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { RankedBars, RankingDrilldownModal, useIncidentRankings, type RankingSelection } from './IncidentRankingPanels';
@@ -97,14 +98,14 @@ interface ColumnDef {
 
 const ALL_COLUMNS: ColumnDef[] = [
   { key: 'id', label: 'Control ID', defaultVisible: true, minWidth: '110px' },
-  { key: 'name', label: 'Control Name', defaultVisible: true, minWidth: '280px' },
+  { key: 'name', label: 'Control Name', defaultVisible: true, minWidth: '340px' },
   { key: 'type', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '110px' },
   { key: 'incidentCount', label: 'Incidents', defaultVisible: true, minWidth: '110px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
-  { key: 'description', label: 'Description', defaultVisible: false, minWidth: '260px' },
+  { key: 'description', label: 'Description', defaultVisible: false, minWidth: '320px' },
   { key: 'enforcementType', label: 'Priority', defaultVisible: false, minWidth: '110px' },
   { key: 'latestJobId', label: 'Job ID', defaultVisible: false, minWidth: '120px' },
   { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
@@ -121,37 +122,66 @@ interface IncidentColumnDef {
   stickyLeft?: boolean;
 }
 
-// Continuous Monitoring Incidents columns — labels match the Oracle payload
-// fields resolved by getIncidentAttr; Action stays fixed outside the toggle set.
-const ALL_INCIDENT_COLUMNS: IncidentColumnDef[] = [
+// Access Controls Incidents columns (Oracle Type 173)
+const ACCESS_INCIDENT_COLUMNS: IncidentColumnDef[] = [
   { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px', stickyLeft: true },
-  { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '240px' },
-  { key: 'accessPointType', label: 'Access Point Type', defaultVisible: true, minWidth: '150px' },
-  { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '90px' },
+  { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '340px' },
+  { key: 'accessPointType', label: 'Access Point Type', defaultVisible: true, minWidth: '160px' },
+  { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '95px' },
   { key: 'globalUser', label: 'Global User', defaultVisible: true, minWidth: '150px' },
-  { key: 'userFirstName', label: 'User First Name', defaultVisible: true, minWidth: '130px' },
-  { key: 'userLastName', label: 'User Last Name', defaultVisible: true, minWidth: '130px' },
-  { key: 'role', label: 'Role', defaultVisible: true, minWidth: '180px' },
-  { key: 'accessEntitlement', label: 'Access Entitlement', defaultVisible: true, minWidth: '180px' },
-  { key: 'accessPoint', label: 'Access Point', defaultVisible: true, minWidth: '160px' },
-  { key: 'incidentInformation', label: 'Incident Information', defaultVisible: true, minWidth: '240px' },
-  { key: 'conflictingRoles', label: 'Conflicting Roles', defaultVisible: true, minWidth: '200px' },
-  { key: 'group', label: 'Group', defaultVisible: true, minWidth: '140px' },
-  { key: 'investigator', label: 'Investigator', defaultVisible: true, minWidth: '140px' },
-  { key: 'comments', label: 'Comments', defaultVisible: true, minWidth: '120px' },
-  { key: 'attachments', label: 'Attachments', defaultVisible: true, minWidth: '110px' },
-  { key: 'globalUserId', label: 'Global User ID', defaultVisible: true, minWidth: '130px' },
-  { key: 'dataSource', label: 'Data Source', defaultVisible: true, minWidth: '130px' },
-  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: true, minWidth: '130px' },
-  { key: 'incidentInformationCodes', label: 'Incident Information Codes', defaultVisible: true, minWidth: '240px' },
-  { key: 'lastUpdatedDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '130px' },
-  { key: 'createdBy', label: 'Created By', defaultVisible: true, minWidth: '130px' },
-  { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
-  { key: 'state', label: 'State', defaultVisible: true, minWidth: '130px' },
-  { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '120px' },
-  { key: 'closedDate', label: 'Closed Date', defaultVisible: true, minWidth: '120px' },
-  { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '120px' },
-  { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '120px' },
+  { key: 'userFirstName', label: 'User First Name', defaultVisible: true, minWidth: '140px' },
+  { key: 'userLastName', label: 'User Last Name', defaultVisible: true, minWidth: '140px' },
+  { key: 'role', label: 'Role', defaultVisible: true, minWidth: '220px' },
+  { key: 'accessEntitlement', label: 'Access Entitlement', defaultVisible: true, minWidth: '220px' },
+  { key: 'accessPoint', label: 'Access Point', defaultVisible: true, minWidth: '200px' },
+  { key: 'incidentInformation', label: 'Incident Information', defaultVisible: true, minWidth: '300px' },
+  { key: 'conflictingRoles', label: 'Conflicting Roles', defaultVisible: true, minWidth: '240px' },
+  { key: 'group', label: 'Group', defaultVisible: true, minWidth: '180px' },
+  { key: 'investigator', label: 'Investigator', defaultVisible: true, minWidth: '150px' },
+  { key: 'comments', label: 'Comments', defaultVisible: true, minWidth: '130px' },
+  { key: 'attachments', label: 'Attachments', defaultVisible: true, minWidth: '120px' },
+  { key: 'globalUserId', label: 'Global User ID', defaultVisible: true, minWidth: '140px' },
+  { key: 'dataSource', label: 'Data Source', defaultVisible: true, minWidth: '140px' },
+  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: true, minWidth: '140px' },
+  { key: 'incidentInformationCodes', label: 'Incident Information Codes', defaultVisible: true, minWidth: '260px' },
+  { key: 'lastUpdatedDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
+  { key: 'createdBy', label: 'Created By', defaultVisible: true, minWidth: '140px' },
+  { key: 'status', label: 'Status', defaultVisible: true, minWidth: '120px' },
+  { key: 'state', label: 'State', defaultVisible: true, minWidth: '140px' },
+  { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
+  { key: 'closedDate', label: 'Closed Date', defaultVisible: true, minWidth: '130px' },
+  { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '130px' },
+  { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '130px' },
+];
+
+// Transaction Controls Incidents columns (Oracle Type 174)
+// Purely matching Oracle Fusion Cloud REST API output and incident table layout.
+// Omitted columns not present in REST API output for Transaction Controls (Roles, Access Points, Global User).
+// Includes 5 structured fields parsed directly from GroupingValue:
+// [Person Identifier, Expense Type ID, Amount, Date, Reimbursement Currency Code]
+const TRANSACTION_INCIDENT_COLUMNS: IncidentColumnDef[] = [
+  { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px', stickyLeft: true },
+  { key: 'status', label: 'Status', defaultVisible: true, minWidth: '125px' },
+  { key: 'incidentInformation', label: 'Person.Full Name', defaultVisible: true, minWidth: '200px' },
+  { key: 'txAmount', label: 'Expense Details.Amount', defaultVisible: true, minWidth: '170px' },
+  { key: 'txDate', label: 'Expense Details.Date', defaultVisible: true, minWidth: '150px' },
+  { key: 'txCurrency', label: 'Currency', defaultVisible: true, minWidth: '110px' },
+  { key: 'group', label: 'Group', defaultVisible: true, minWidth: '260px' },
+  { key: 'groupingValue', label: 'Grouping Value', defaultVisible: true, minWidth: '320px' },
+  { key: 'txPersonId', label: 'Person Identifier', defaultVisible: false, minWidth: '180px' },
+  { key: 'txExpenseTypeId', label: 'Expense Type ID', defaultVisible: false, minWidth: '180px' },
+  { key: 'state', label: 'State', defaultVisible: true, minWidth: '140px' },
+  { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '95px' },
+  { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '340px' },
+  { key: 'investigator', label: 'Investigator', defaultVisible: true, minWidth: '160px' },
+  { key: 'incidentVersion', label: 'Incident Version', defaultVisible: false, minWidth: '120px' },
+  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '140px' },
+  { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
+  { key: 'lastUpdatedDate', label: 'Last Updated Date', defaultVisible: false, minWidth: '140px' },
+  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: false, minWidth: '140px' },
+  { key: 'revisionDate', label: 'Revision Date', defaultVisible: false, minWidth: '140px' },
+  { key: 'dataSource', label: 'Data Source', defaultVisible: false, minWidth: '130px' },
+  { key: 'comments', label: 'Comments', defaultVisible: false, minWidth: '130px' },
 ];
 
 export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
@@ -180,21 +210,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const [isColumnsDropdownOpen, setIsColumnsDropdownOpen] = useState(false);
   const columnsDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Incident column visibility state (same functionality as the controls table)
-  const [visibleIncidentKeys, setVisibleIncidentKeys] = useState<Set<string>>(
-    () => new Set(ALL_INCIDENT_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
-  );
-  const [isIncidentColumnsOpen, setIsIncidentColumnsOpen] = useState(false);
-  const incidentColumnsRef = useRef<HTMLDivElement>(null);
-
-  // Sorting state
-  const [sortField, setSortField] = useState<SortField>('id');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(15);
-
   // Selected Control detail view state
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
   const [selectedControlDetail, setSelectedControlDetail] = useState<any | null>(null);
@@ -214,6 +229,49 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const [incidentsTotalCount, setIncidentsTotalCount] = useState<number | undefined>(undefined);
   const [incidentsCountLoading, setIncidentsCountLoading] = useState<boolean>(false);
   const [incidentsError, setIncidentsError] = useState<string>('');
+
+  // Determine if the currently inspected control is a Transaction Control (Oracle Type 174)
+  const isTxControl = useMemo(() => {
+    if (selectedControlDetail) {
+      if (isTransactionControl(selectedControlDetail.type) || isTransactionControl(selectedControlDetail.raw?.ControlType)) return true;
+      if (isAccessControl(selectedControlDetail.type) || isAccessControl(selectedControlDetail.raw?.ControlType)) return false;
+    }
+    if (incidentsList.length > 0) {
+      const first = incidentsList[0];
+      const cType = first.controlType || first.raw?.ControlType;
+      if (isTransactionControl(cType)) return true;
+    }
+    return activeSubSection === 'TRANSACTION';
+  }, [selectedControlDetail, incidentsList, activeSubSection]);
+
+  const currentIncidentColumns = useMemo(() => {
+    return isTxControl ? TRANSACTION_INCIDENT_COLUMNS : ACCESS_INCIDENT_COLUMNS;
+  }, [isTxControl]);
+
+  // Incident column visibility state (dynamically configured per control domain: Access vs Transaction)
+  const [visibleIncidentKeys, setVisibleIncidentKeys] = useState<Set<string>>(
+    () => new Set(ACCESS_INCIDENT_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
+  );
+  const [isIncidentColumnsOpen, setIsIncidentColumnsOpen] = useState(false);
+  const incidentColumnsRef = useRef<HTMLDivElement>(null);
+
+  // Automatically adjust default visible incident columns whenever switching control or domain
+  useEffect(() => {
+    const targetCols = isTxControl ? TRANSACTION_INCIDENT_COLUMNS : ACCESS_INCIDENT_COLUMNS;
+    setVisibleIncidentKeys(new Set(targetCols.filter(c => c.defaultVisible).map(c => c.key)));
+  }, [isTxControl, selectedControlDetail?.id]);
+
+  // Full text wrapping states (default true so user sees complete text)
+  const [incidentWrapText, setIncidentWrapText] = useState<boolean>(true);
+  const [controlWrapText, setControlWrapText] = useState<boolean>(true);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>('id');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(15);
 
   // Incident Details modal state
   const [viewingIncident, setViewingIncident] = useState<any | null>(null);
@@ -691,6 +749,49 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     return String(val);
   };
 
+  // Helper to parse the 5 composite elements from GroupingValue:
+  // [Person Identifier, Expense Type ID, Amount, Date, Reimbursement Currency Code]
+  // Matching Oracle Fusion rule: Equals[Person Identifier And Expense Type ID And Amount And Date And Reimbursement Currency Code]
+  const parseGroupingValueTokens = (groupingVal: string | null | undefined) => {
+    if (!groupingVal || typeof groupingVal !== 'string') {
+      return { personId: null, expenseTypeId: null, amount: null, date: null, currency: null, tokens: [] };
+    }
+    const tokens = groupingVal.split(/\s+AND\s+/i).map(t => t.trim()).filter(Boolean);
+    if (tokens.length === 0) {
+      return { personId: null, expenseTypeId: null, amount: null, date: null, currency: null, tokens: [] };
+    }
+
+    // Expected order in Oracle Fusion rule:
+    // 0: Expense Report Details.Person Identifier
+    // 1: Expense Report Details.Expense Type ID
+    // 2: Expense Report Details.Amount
+    // 3: Expense Report Details.Date
+    // 4: Expense Report Details.Reimbursement Currency Code
+    let personId: string | null = tokens[0] || null;
+    let expenseTypeId: string | null = tokens[1] || null;
+    let amount: string | null = tokens[2] || null;
+    let date: string | null = tokens[3] || null;
+    let currency: string | null = tokens[4] ? tokens[4].toUpperCase() : null;
+
+    // Pattern-based heuristics to gracefully handle variations:
+    tokens.forEach(tok => {
+      // 3-letter currency code (e.g. "lkr", "usd", "eur")
+      if (/^[a-zA-Z]{3}$/.test(tok)) {
+        currency = tok.toUpperCase();
+      }
+      // Date pattern (e.g. "8/4/26" or "2026-08-04")
+      else if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(tok) || /^\d{4}-\d{2}-\d{2}$/.test(tok)) {
+        date = tok;
+      }
+      // Amount with decimal (e.g. "5000.0" or "5000.00")
+      else if (/^\d+\.\d+$/.test(tok)) {
+        amount = tok;
+      }
+    });
+
+    return { personId, expenseTypeId, amount, date, currency, tokens };
+  };
+
   // Helper to extract incident values dynamically from Oracle response attributes without hardcoding
   const getIncidentAttr = (inc: any, attr: string): any => {
     if (!inc) return null;
@@ -717,7 +818,35 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'conflictingRoles':
         return inc.conflictingRoles || raw.ConflictingRoles || raw.conflictingRoles || null;
       case 'group':
-        return inc.group || inc.groupingValue || raw.Group || raw.group || raw.GroupName || raw.groupName || raw.GroupingValue || raw.groupingValue || null;
+        return inc.resultGroup || raw.ResultGroup || raw.resultGroup || inc.group || raw.Group || raw.group || raw.GroupName || raw.groupName || null;
+      case 'groupingValue':
+        return inc.groupingValue || raw.GroupingValue || raw.groupingValue || null;
+      case 'txAmount': {
+        const parsed = parseGroupingValueTokens(inc.groupingValue || raw.GroupingValue || raw.groupingValue);
+        return parsed.amount;
+      }
+      case 'txDate': {
+        const parsed = parseGroupingValueTokens(inc.groupingValue || raw.GroupingValue || raw.groupingValue);
+        return parsed.date;
+      }
+      case 'txCurrency': {
+        const parsed = parseGroupingValueTokens(inc.groupingValue || raw.GroupingValue || raw.groupingValue);
+        return parsed.currency;
+      }
+      case 'txPersonId': {
+        const parsed = parseGroupingValueTokens(inc.groupingValue || raw.GroupingValue || raw.groupingValue);
+        return parsed.personId;
+      }
+      case 'txExpenseTypeId': {
+        const parsed = parseGroupingValueTokens(inc.groupingValue || raw.GroupingValue || raw.groupingValue);
+        return parsed.expenseTypeId;
+      }
+      case 'incidentVersion':
+        return (inc.incidentVersion !== undefined && inc.incidentVersion !== null) 
+          ? String(inc.incidentVersion) 
+          : (raw.IncidentVersion !== undefined && raw.IncidentVersion !== null ? String(raw.IncidentVersion) : null);
+      case 'revisionDate':
+        return inc.revisionDate || raw.RevisionDate || raw.revisionDate || null;
       case 'investigator':
         return inc.investigator || inc.resultInvestigator || raw.Investigator || raw.investigator || raw.ResultInvestigator || raw.resultInvestigator || null;
       case 'comments':
@@ -751,13 +880,388 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'creationDate':
         return inc.creationDate || raw.CreationDate || raw.creationDate || null;
       case 'controlType':
-        return inc.controlType || raw.ControlType || raw.controlType || selectedControlDetail?.enforcementType || (selectedControlDetail?.type ? String(selectedControlDetail.type) : 'Access');
+        return inc.controlType || raw.ControlType || raw.controlType || selectedControlDetail?.enforcementType || (selectedControlDetail?.type ? String(selectedControlDetail.type) : (isTxControl ? '174' : 'Access'));
       case 'controlName':
         return inc.controlName || raw.ControlName || raw.controlName || selectedControlDetail?.name || null;
       case 'priority':
         return inc.priority || raw.Priority || raw.priority || null;
       default:
         return null;
+    }
+  };
+
+  // Helper to extract Person Name cleanly from IncidentInformation if formatted as "Person.Full Name: <name>"
+  const renderPersonOrInfo = (val: string | null) => {
+    if (!val) return renderFieldVal(null);
+    const match = val.match(/^Person\.Full Name:\s*(.+)$/i);
+    if (match) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <span 
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              width: '22px', 
+              height: '22px', 
+              borderRadius: '50%', 
+              backgroundColor: 'rgba(59, 130, 246, 0.15)', 
+              color: '#60A5FA',
+              flexShrink: 0
+            }}
+          >
+            <User size={12} />
+          </span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{match[1].trim()}</span>
+        </div>
+      );
+    }
+    return renderFieldVal(val);
+  };
+
+  // Helper to render dynamic table cell based on column key matching current schema (Access vs Transaction)
+  const renderIncidentCell = (inc: any, colKey: string) => {
+    const rawVal = getIncidentAttr(inc, colKey);
+    const isWrap = incidentWrapText;
+
+    switch (colKey) {
+      case 'resultId':
+        return (
+          <td 
+            key={colKey}
+            style={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+          >
+            <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{rawVal || inc.id}</span>
+          </td>
+        );
+
+      case 'status': {
+        const s = String(rawVal || 'Assigned').toUpperCase();
+        let bg = 'rgba(59, 130, 246, 0.12)';
+        let color = '#3B82F6';
+        let border = 'rgba(59, 130, 246, 0.3)';
+        let label = rawVal || 'Assigned';
+
+        if (s.includes('REMEDIAT')) {
+          bg = 'rgba(245, 158, 11, 0.12)';
+          color = '#F59E0B';
+          border = 'rgba(245, 158, 11, 0.3)';
+          label = 'Remediate';
+        } else if (s.includes('ACCEPT')) {
+          bg = 'rgba(139, 92, 246, 0.12)';
+          color = '#8B5CF6';
+          border = 'rgba(139, 92, 246, 0.3)';
+          label = 'Accepted';
+        } else if (s.includes('RESOLV') || s.includes('CLOSE')) {
+          bg = 'rgba(16, 185, 129, 0.12)';
+          color = '#10B981';
+          border = 'rgba(16, 185, 129, 0.3)';
+          label = 'Resolved';
+        } else if (s.includes('ASSIGN')) {
+          label = 'Assigned';
+        }
+
+        return (
+          <td key={colKey}>
+            <span 
+              className="badge" 
+              style={{
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                backgroundColor: bg,
+                color,
+                border: `1px solid ${border}`
+              }}
+            >
+              {label}
+            </span>
+          </td>
+        );
+      }
+
+      case 'txAmount': {
+        const num = parseFloat(String(rawVal || '').replace(/,/g, ''));
+        const displayVal = !isNaN(num)
+          ? num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : rawVal;
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+            {displayVal ? (
+              <span style={{ color: 'var(--accent-gold)' }}>
+                {displayVal}
+              </span>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+      }
+
+      case 'txDate':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+            {rawVal ? (
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {rawVal}
+              </span>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+
+      case 'txCurrency':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem' }}>
+            {rawVal ? (
+              <span 
+                className="badge" 
+                style={{ 
+                  fontSize: '0.72rem', 
+                  fontWeight: 700, 
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)', 
+                  color: '#60A5FA', 
+                  border: '1px solid rgba(59, 130, 246, 0.3)' 
+                }}
+              >
+                {String(rawVal).toUpperCase()}
+              </span>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+
+      case 'txPersonId':
+        return (
+          <td key={colKey} style={{ fontSize: '0.82rem' }}>
+            <code>{renderFieldVal(rawVal)}</code>
+          </td>
+        );
+
+      case 'txExpenseTypeId':
+        return (
+          <td key={colKey} style={{ fontSize: '0.82rem' }}>
+            <code>{renderFieldVal(rawVal)}</code>
+          </td>
+        );
+
+      case 'groupingValue':
+        return (
+          <td 
+            key={colKey}
+            style={{ 
+              fontSize: '0.82rem', 
+              minWidth: '320px', 
+              maxWidth: isWrap ? '650px' : '340px', 
+              overflow: isWrap ? 'visible' : 'hidden', 
+              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+              whiteSpace: isWrap ? 'normal' : 'nowrap',
+              wordBreak: 'break-all',
+              lineHeight: 1.45
+            }} 
+            title={String(rawVal || '')}
+          >
+            {rawVal ? (
+              <code style={{ fontSize: '0.76rem', backgroundColor: 'rgba(59, 130, 246, 0.08)', padding: '0.2rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--text-primary)' }}>
+                {rawVal}
+              </code>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+
+      case 'incidentInformation':
+        return (
+          <td 
+            key={colKey}
+            style={{ 
+              fontSize: '0.85rem', 
+              minWidth: '220px', 
+              maxWidth: isWrap ? '520px' : '260px', 
+              overflow: isWrap ? 'visible' : 'hidden', 
+              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+              whiteSpace: isWrap ? 'normal' : 'nowrap',
+              wordBreak: 'break-word',
+              lineHeight: 1.45
+            }} 
+            title={String(rawVal || '')}
+          >
+            {renderPersonOrInfo(rawVal)}
+          </td>
+        );
+
+      case 'group':
+        return (
+          <td 
+            key={colKey}
+            style={{ 
+              fontSize: '0.85rem', 
+              minWidth: '220px', 
+              maxWidth: isWrap ? '450px' : '260px', 
+              overflow: isWrap ? 'visible' : 'hidden', 
+              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+              whiteSpace: isWrap ? 'normal' : 'nowrap',
+              wordBreak: 'break-word',
+              lineHeight: 1.4
+            }} 
+            title={String(rawVal || '')}
+          >
+            {rawVal ? (
+              <span 
+                className="badge" 
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                  color: '#34D399',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  whiteSpace: isWrap ? 'normal' : 'nowrap',
+                  textAlign: 'left'
+                }}
+              >
+                {rawVal}
+              </span>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+
+      case 'state':
+        return (
+          <td key={colKey}>
+            <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
+              {rawVal || 'In Investigation'}
+            </span>
+          </td>
+        );
+
+      case 'priority':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center' }}>
+            <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+              {renderFieldVal(rawVal)}
+            </span>
+          </td>
+        );
+
+      case 'controlName':
+        return (
+          <td 
+            key={colKey}
+            style={{ 
+              fontSize: '0.85rem', 
+              minWidth: '320px', 
+              maxWidth: isWrap ? '550px' : '340px', 
+              overflow: isWrap ? 'visible' : 'hidden', 
+              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+              whiteSpace: isWrap ? 'normal' : 'nowrap',
+              wordBreak: 'break-word',
+              lineHeight: 1.45
+            }} 
+            title={String(rawVal || '')}
+          >
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+              {renderFieldVal(rawVal)}
+            </span>
+          </td>
+        );
+
+      case 'investigator':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+            {renderFieldVal(rawVal)}
+          </td>
+        );
+
+      case 'incidentVersion':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center' }}>
+            <span className="badge" style={{ fontSize: '0.72rem' }}>
+              v{renderFieldVal(rawVal)}
+            </span>
+          </td>
+        );
+
+      case 'accessPointType':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem' }}>
+            {rawVal ? (
+              <span 
+                className="badge" 
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  backgroundColor: rawVal === 'Role' ? 'rgba(139, 92, 246, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                  color: rawVal === 'Role' ? '#A78BFA' : '#60A5FA',
+                  border: rawVal === 'Role' ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)'
+                }}
+              >
+                {rawVal}
+              </span>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+
+      case 'role':
+      case 'accessEntitlement':
+      case 'accessPoint':
+      case 'conflictingRoles':
+        return (
+          <td 
+            key={colKey}
+            style={{ 
+              fontSize: '0.85rem', 
+              minWidth: '220px', 
+              maxWidth: isWrap ? '400px' : '220px', 
+              overflow: isWrap ? 'visible' : 'hidden', 
+              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+              whiteSpace: isWrap ? 'normal' : 'nowrap',
+              wordBreak: 'break-word',
+              lineHeight: 1.4
+            }} 
+            title={String(rawVal || '')}
+          >
+            {renderFieldVal(rawVal)}
+          </td>
+        );
+
+      case 'globalUserId':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem' }}>
+            <code>{renderFieldVal(rawVal)}</code>
+          </td>
+        );
+
+      case 'incidentInformationCodes':
+        return (
+          <td 
+            key={colKey}
+            style={{ 
+              fontSize: '0.85rem', 
+              minWidth: '260px', 
+              maxWidth: isWrap ? '460px' : '260px', 
+              overflow: isWrap ? 'visible' : 'hidden', 
+              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+              whiteSpace: isWrap ? 'normal' : 'nowrap',
+              wordBreak: 'break-all',
+              lineHeight: 1.4
+            }} 
+            title={String(rawVal || '')}
+          >
+            <code>{renderFieldVal(rawVal)}</code>
+          </td>
+        );
+
+      case 'creationDate':
+      case 'lastUpdatedDate':
+      case 'revisionDate':
+      case 'lastRunDate':
+      case 'closedDate':
+        return (
+          <td key={colKey} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            {formatOracleDate(rawVal)}
+          </td>
+        );
+
+      default:
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem' }}>
+            {renderFieldVal(rawVal)}
+          </td>
+        );
     }
   };
 
@@ -1224,7 +1728,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   };
 
   const selectAllIncidentColumns = () => {
-    setVisibleIncidentKeys(new Set(ALL_INCIDENT_COLUMNS.map(c => c.key)));
+    setVisibleIncidentKeys(new Set(currentIncidentColumns.map(c => c.key)));
   };
 
   const clearAllIncidentColumns = () => {
@@ -1233,7 +1737,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   };
 
   const resetIncidentColumns = () => {
-    setVisibleIncidentKeys(new Set(ALL_INCIDENT_COLUMNS.filter(c => c.defaultVisible).map(c => c.key)));
+    setVisibleIncidentKeys(new Set(currentIncidentColumns.filter(c => c.defaultVisible).map(c => c.key)));
   };
 
   const showInc = (key: string) => visibleIncidentKeys.has(key);
@@ -1802,6 +2306,33 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         '0 incidents'
                       )}
                     </span>
+                    {isTxControl ? (
+                      <span
+                        className="badge"
+                        style={{
+                          fontSize: '0.72rem',
+                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                          color: '#34D399',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          fontWeight: 600
+                        }}
+                      >
+                        Transaction Control Schema
+                      </span>
+                    ) : (
+                      <span
+                        className="badge"
+                        style={{
+                          fontSize: '0.72rem',
+                          backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                          color: '#A78BFA',
+                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          fontWeight: 600
+                        }}
+                      >
+                        Access Control Schema
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -1817,6 +2348,24 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     >
                       <RefreshCw size={13} className={incidentsLoading || incidentsCountLoading ? 'animate-spin' : ''} />
                       Refresh Incidents
+                    </button>
+
+                    {/* Text Wrap Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setIncidentWrapText(prev => !prev)}
+                      className={`btn ${incidentWrapText ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        fontSize: '0.8rem',
+                        padding: '0.4rem 0.85rem'
+                      }}
+                      title={incidentWrapText ? 'Switch to compact single-line view' : 'Wrap cells to show full text without truncation'}
+                    >
+                      <AlignLeft size={14} />
+                      <span>{incidentWrapText ? 'Wrap: Full Text' : 'Wrap: Compact'}</span>
                     </button>
 
                     {/* Incidents Columns Customizer Dropdown (same functionality as controls table) */}
@@ -1849,7 +2398,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              Visible Columns ({visibleIncidentKeys.size}/{ALL_INCIDENT_COLUMNS.length})
+                              Visible Columns ({visibleIncidentKeys.size}/{currentIncidentColumns.length})
                             </span>
                             <button
                               onClick={resetIncidentColumns}
@@ -1876,7 +2425,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                           </div>
 
                           <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            {ALL_INCIDENT_COLUMNS.map(col => {
+                            {currentIncidentColumns.map(col => {
                               const isChecked = visibleIncidentKeys.has(col.key);
                               return (
                                 <label
@@ -2234,10 +2783,10 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         </div>
                       )}
 
-                      <table className="enterprise-table" style={{ minWidth: '3200px' }}>
+                      <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2200px' : '100%' }}>
                         <thead>
                           <tr>
-                            {ALL_INCIDENT_COLUMNS.filter(c => showInc(c.key)).map(c => (
+                            {currentIncidentColumns.filter(c => showInc(c.key)).map(c => (
                               <th
                                 key={c.key}
                                 style={c.stickyLeft
@@ -2274,159 +2823,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                               </td>
                             </tr>
                           ) : (
-                            filteredIncidents.map((inc: any, idx: number) => {
-                            const resultId = getIncidentAttr(inc, 'resultId') || inc.id;
-                            const controlName = getIncidentAttr(inc, 'controlName');
-                            const accessPointType = getIncidentAttr(inc, 'accessPointType');
-                            const priority = getIncidentAttr(inc, 'priority');
-                            const globalUser = getIncidentAttr(inc, 'globalUser');
-                            const userFirstName = getIncidentAttr(inc, 'userFirstName');
-                            const userLastName = getIncidentAttr(inc, 'userLastName');
-                            const roleVal = getIncidentAttr(inc, 'role');
-                            const accessEntitlement = getIncidentAttr(inc, 'accessEntitlement');
-                            const accessPoint = getIncidentAttr(inc, 'accessPoint');
-                            const incidentInfo = getIncidentAttr(inc, 'incidentInformation');
-                            const conflictingRoles = getIncidentAttr(inc, 'conflictingRoles');
-                            const groupVal = getIncidentAttr(inc, 'group');
-                            const investigator = getIncidentAttr(inc, 'investigator');
-                            const comments = getIncidentAttr(inc, 'comments') || 'None';
-                            const attachments = getIncidentAttr(inc, 'attachments') || 'None';
-                            const globalUserId = getIncidentAttr(inc, 'globalUserId');
-                            const dataSource = getIncidentAttr(inc, 'dataSource') || 'Oracle Cloud';
-                            const lastUpdatedBy = getIncidentAttr(inc, 'lastUpdatedBy');
-                            const incidentCodes = getIncidentAttr(inc, 'incidentInformationCodes');
-                            const lastUpdatedDate = getIncidentAttr(inc, 'lastUpdatedDate');
-                            const createdBy = getIncidentAttr(inc, 'createdBy');
-                            const statusVal = getIncidentAttr(inc, 'status') || 'Assigned';
-                            const stateVal = getIncidentAttr(inc, 'state') || 'In Investigation';
-                            const lastRunDate = getIncidentAttr(inc, 'lastRunDate');
-                            const closedDate = getIncidentAttr(inc, 'closedDate');
-                            const creationDate = getIncidentAttr(inc, 'creationDate');
-                            const controlType = getIncidentAttr(inc, 'controlType') || 'Access';
-
-                            return (
+                            filteredIncidents.map((inc: any, idx: number) => (
                               <tr key={inc.id || idx}>
-                                {showInc('resultId') && (
-                                <td style={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}>
-                                  <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{resultId}</span>
-                                </td>
-                                )}
-                                {showInc('controlName') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(controlName || '')}>
-                                  {renderFieldVal(controlName)}
-                                </td>
-                                )}
-                                {showInc('accessPointType') && (
-                                <td style={{ fontSize: '0.85rem' }}>
-                                  {accessPointType ? (
-                                    <span 
-                                      className="badge" 
-                                      style={{
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        backgroundColor: accessPointType === 'Role' ? 'rgba(139, 92, 246, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-                                        color: accessPointType === 'Role' ? '#A78BFA' : '#60A5FA',
-                                        border: accessPointType === 'Role' ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)'
-                                      }}
-                                    >
-                                      {accessPointType}
-                                    </span>
-                                  ) : (
-                                    renderFieldVal(null)
-                                  )}
-                                </td>
-                                )}
-                                {showInc('priority') && (
-                                <td style={{ fontSize: '0.85rem', textAlign: 'center' }}>
-                                  <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-                                    {renderFieldVal(priority)}
-                                  </span>
-                                </td>
-                                )}
-                                {showInc('globalUser') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(globalUser)}</td>)}
-                                {showInc('userFirstName') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(userFirstName)}</td>)}
-                                {showInc('userLastName') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(userLastName)}</td>)}
-                                {showInc('role') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(roleVal || '')}>
-                                  {renderFieldVal(roleVal)}
-                                </td>
-                                )}
-                                {showInc('accessEntitlement') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(accessEntitlement || '')}>
-                                  {renderFieldVal(accessEntitlement)}
-                                </td>
-                                )}
-                                {showInc('accessPoint') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(accessPoint || '')}>
-                                  {renderFieldVal(accessPoint)}
-                                </td>
-                                )}
-                                {showInc('incidentInformation') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(incidentInfo || '')}>
-                                  {renderFieldVal(incidentInfo)}
-                                </td>
-                                )}
-                                {showInc('conflictingRoles') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(conflictingRoles || '')}>
-                                  {renderFieldVal(conflictingRoles)}
-                                </td>
-                                )}
-                                {showInc('group') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(groupVal || '')}>
-                                  {renderFieldVal(groupVal)}
-                                </td>
-                                )}
-                                {showInc('investigator') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(investigator)}</td>)}
-                                {showInc('comments') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(comments)}</td>)}
-                                {showInc('attachments') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(attachments)}</td>)}
-                                {showInc('globalUserId') && (
-                                <td style={{ fontSize: '0.85rem' }}>
-                                  <code>{renderFieldVal(globalUserId)}</code>
-                                </td>
-                                )}
-                                {showInc('dataSource') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(dataSource)}</td>)}
-                                {showInc('lastUpdatedBy') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(lastUpdatedBy)}</td>)}
-                                {showInc('incidentInformationCodes') && (
-                                <td style={{ fontSize: '0.85rem', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(incidentCodes || '')}>
-                                  <code>{renderFieldVal(incidentCodes)}</code>
-                                </td>
-                                )}
-                                {showInc('lastUpdatedDate') && (
-                                <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                  {formatOracleDate(lastUpdatedDate)}
-                                </td>
-                                )}
-                                {showInc('createdBy') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(createdBy)}</td>)}
-                                {showInc('status') && (
-                                <td>
-                                  <span className="badge" style={{ fontSize: '0.72rem' }}>
-                                    {statusVal}
-                                  </span>
-                                </td>
-                                )}
-                                {showInc('state') && (
-                                <td>
-                                  <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
-                                    {stateVal}
-                                  </span>
-                                </td>
-                                )}
-                                {showInc('lastRunDate') && (
-                                <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                  {formatOracleDate(lastRunDate)}
-                                </td>
-                                )}
-                                {showInc('closedDate') && (
-                                <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                  {formatOracleDate(closedDate)}
-                                </td>
-                                )}
-                                {showInc('creationDate') && (
-                                <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                  {formatOracleDate(creationDate)}
-                                </td>
-                                )}
-                                {showInc('controlType') && (<td style={{ fontSize: '0.85rem' }}>{renderFieldVal(controlType)}</td>)}
+                                {currentIncidentColumns
+                                  .filter(c => showInc(c.key))
+                                  .map(col => renderIncidentCell(inc, col.key))}
                                 <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>
                                   <button
                                     onClick={() => setViewingIncident(inc)}
@@ -2444,8 +2845,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   </button>
                                 </td>
                               </tr>
-                            );
-                          }))}
+                            ))
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -2502,237 +2903,417 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     onClick={e => e.stopPropagation()}
                   >
                     {/* Modal Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
-                          <span className="badge badge-gold" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-                            Result ID #{getIncidentAttr(viewingIncident, 'resultId')}
-                          </span>
-                          <span className="badge" style={{ fontSize: '0.72rem' }}>
-                            {getIncidentAttr(viewingIncident, 'status') || 'Assigned'}
-                          </span>
-                          <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
-                            {getIncidentAttr(viewingIncident, 'state') || 'In Investigation'}
-                          </span>
-                          <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            {getIncidentAttr(viewingIncident, 'controlType') || 'Access'}
-                          </span>
-                        </div>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                          Oracle Fusion Incident Details
-                        </h3>
-                      </div>
-                      <button 
-                        onClick={() => setViewingIncident(null)}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        title="Close modal"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
+                    {(() => {
+                      const isViewingTx = isTxControl || isTransactionControl(getIncidentAttr(viewingIncident, 'controlType')) || isTransactionControl(viewingIncident?.raw?.ControlType);
+                      const resultId = getIncidentAttr(viewingIncident, 'resultId');
+                      const statusVal = getIncidentAttr(viewingIncident, 'status') || 'Assigned';
+                      const stateVal = getIncidentAttr(viewingIncident, 'state') || 'In Investigation';
+                      const viewingGroupingRaw = getIncidentAttr(viewingIncident, 'groupingValue');
+                      const parsedGrouping = parseGroupingValueTokens(viewingGroupingRaw);
 
-                    {/* Section 1: User Information */}
-                    <div style={{ marginBottom: '1.25rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                        <User size={15} /> User Information
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User</span>
-                          <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'globalUser'))}
-                          </strong>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User First Name</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User Last Name</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User ID</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--accent-gold)' }}>
-                            <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      return (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                                <span className="badge badge-gold" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                                  Result ID #{resultId}
+                                </span>
+                                <span className="badge" style={{ fontSize: '0.72rem' }}>
+                                  {statusVal}
+                                </span>
+                                <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
+                                  {stateVal}
+                                </span>
+                                <span 
+                                  className="badge" 
+                                  style={{ 
+                                    fontSize: '0.72rem', 
+                                    backgroundColor: isViewingTx ? 'rgba(16, 185, 129, 0.12)' : 'rgba(139, 92, 246, 0.12)', 
+                                    color: isViewingTx ? '#34D399' : '#A78BFA',
+                                    border: isViewingTx ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {isViewingTx ? 'Transaction Control' : 'Access Control'}
+                                </span>
+                              </div>
+                              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                Oracle Fusion Incident Details
+                              </h3>
+                            </div>
+                            <button 
+                              onClick={() => setViewingIncident(null)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.35rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              title="Close modal"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
 
-                    {/* Section 2: Access & Privilege Details */}
-                    <div style={{ marginBottom: '1.25rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                        <Key size={15} /> Access & Privilege Details
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Role</span>
-                          <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'role'))}
-                          </strong>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Entitlement</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
-                          </span>
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
-                          </span>
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information Codes</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', wordBreak: 'break-all' }}>
-                            <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
-                          </span>
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                          {isViewingTx ? (
+                            /* Transaction Control Schema Modal Layout */
+                            <>
+                              {/* Section 1: Transaction & Grouping Details */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                  <FileText size={15} /> Transaction & Grouping Details
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Person / Subject</span>
+                                    <div>{renderPersonOrInfo(getIncidentAttr(viewingIncident, 'incidentInformation'))}</div>
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Grouping Value (Expression)</span>
+                                    <div style={{ backgroundColor: 'rgba(0,0,0,0.25)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                      {renderFieldVal(viewingGroupingRaw)}
+                                    </div>
+                                  </div>
+                                  {(parsedGrouping.amount || parsedGrouping.date || parsedGrouping.currency || parsedGrouping.personId || parsedGrouping.expenseTypeId) && (
+                                    <div style={{ gridColumn: '1 / -1', padding: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.06)', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                                      <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#60A5FA', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
+                                        Parsed Grouping Criteria (5 Composite Attributes)
+                                      </span>
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                                        <div>
+                                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Expense Details.Amount</span>
+                                          <strong style={{ fontSize: '0.9rem', color: '#34D399', fontFamily: 'monospace' }}>
+                                            {parsedGrouping.amount ? (parsedGrouping.currency ? `${parsedGrouping.currency} ${Number(parsedGrouping.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : Number(parsedGrouping.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-'}
+                                          </strong>
+                                        </div>
+                                        <div>
+                                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Expense Details.Date</span>
+                                          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                                            {parsedGrouping.date || '-'}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Reimbursement Currency</span>
+                                          <span className="badge badge-gold" style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+                                            {parsedGrouping.currency || '-'}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Person Identifier</span>
+                                          <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                                            {parsedGrouping.personId || '-'}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Expense Type ID</span>
+                                          <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                                            {parsedGrouping.expenseTypeId || '-'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Group (Result Group)</span>
+                                    <strong style={{ fontSize: '0.88rem', color: '#34D399' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Priority</span>
+                                    <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Investigator</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
+                                    </span>
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Name</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
 
-                    {/* Section 3: Incident Metadata & Investigation */}
-                    <div style={{ marginBottom: '1.25rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                        <FileText size={15} /> Incident Metadata
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                          <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)' }}>{renderFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Priority</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Status</span>
-                          <span className="badge" style={{ fontSize: '0.78rem' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'status') || 'Assigned')}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>State</span>
-                          <span className="badge badge-gold" style={{ fontSize: '0.78rem' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'state') || 'In Investigation')}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
-                          <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                              {/* Section 2: Lifecycle & Audit Metadata */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                  <Clock size={15} /> Incident Lifecycle & Audit Metadata
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Version</span>
+                                    <span className="badge" style={{ fontSize: '0.75rem' }}>
+                                      v{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentVersion'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'creationDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Update Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'lastUpdatedDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Revision Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'revisionDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            /* Access Control Schema Modal Layout */
+                            <>
+                              {/* Section 1: User Information */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                  <User size={15} /> User Information
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User</span>
+                                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'globalUser'))}
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User First Name</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User Last Name</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User ID</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--accent-gold)' }}>
+                                      <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
 
-                    {/* Section 4: Audit & Timeline */}
-                    <div style={{ marginBottom: '1.25rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                        <Clock size={15} /> Audit & Timeline
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {formatOracleDate(getIncidentAttr(viewingIncident, 'creationDate'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {formatOracleDate(getIncidentAttr(viewingIncident, 'lastRunDate'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated Date</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {formatOracleDate(getIncidentAttr(viewingIncident, 'lastUpdatedDate'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {formatOracleDate(getIncidentAttr(viewingIncident, 'closedDate'))}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                              {/* Section 2: Access & Privilege Details */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                  <Key size={15} /> Access & Privilege Details
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Role</span>
+                                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'role'))}
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Entitlement</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
+                                    </span>
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
+                                    </span>
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information Codes</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', wordBreak: 'break-all' }}>
+                                      <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
+                                    </span>
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Section 3: Incident Metadata & Investigation */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                  <FileText size={15} /> Incident Metadata
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
+                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)' }}>{renderFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Priority</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Section 4: Audit & Timeline */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                  <Clock size={15} /> Audit & Timeline
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'creationDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'lastRunDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'lastUpdatedDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'closedDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Raw Oracle Fusion Live Payload Section */}
+                          <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                            <details style={{ cursor: 'pointer' }}>
+                              <summary style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent-blue)', outline: 'none' }}>
+                                View Raw Oracle Fusion REST API JSON
+                              </summary>
+                              <pre 
+                                style={{ 
+                                  marginTop: '0.75rem', 
+                                  padding: '0.85rem', 
+                                  backgroundColor: 'rgba(0,0,0,0.4)', 
+                                  borderRadius: '6px', 
+                                  fontSize: '0.75rem', 
+                                  color: '#A5B4FC', 
+                                  overflowX: 'auto',
+                                  maxHeight: '260px'
+                                }}
+                              >
+                                {JSON.stringify(viewingIncident.raw || viewingIncident, null, 2)}
+                              </pre>
+                            </details>
+                          </div>
+                        </>
+                      );
+                    })()}
 
                     {/* Modal Footer */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
@@ -3518,6 +4099,26 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               </select>
             </div>
 
+            {/* Text Wrap Toggle */}
+            <button
+              id="btn-toggle-control-wrap"
+              type="button"
+              onClick={() => setControlWrapText(prev => !prev)}
+              className={`btn ${controlWrapText ? 'btn-primary' : 'btn-secondary'}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.5rem 0.85rem',
+                fontSize: '0.85rem',
+                borderRadius: '6px'
+              }}
+              title={controlWrapText ? 'Switch to compact single-line view' : 'Wrap cells to show full text without truncation'}
+            >
+              <AlignLeft size={15} />
+              <span>{controlWrapText ? 'Wrap: Full Text' : 'Wrap: Compact'}</span>
+            </button>
+
             {/* Professional Columns Customizer Dropdown */}
             <div style={{ position: 'relative' }} ref={columnsDropdownRef}>
               <button
@@ -3920,22 +4521,35 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('name') && (
-                          <td>
-                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <td style={{ minWidth: '320px', maxWidth: controlWrapText ? '600px' : '360px' }}>
+                            <div 
+                              style={{ 
+                                fontWeight: 600, 
+                                color: 'var(--text-primary)',
+                                whiteSpace: controlWrapText ? 'normal' : 'nowrap',
+                                wordBreak: 'break-word',
+                                overflow: controlWrapText ? 'visible' : 'hidden',
+                                textOverflow: controlWrapText ? 'clip' : 'ellipsis',
+                                lineHeight: 1.4
+                              }}
+                              title={ctrl.name}
+                            >
                               {ctrl.name}
                             </div>
-                            {/* If description column is hidden, show single-line truncated hint under name with tooltip */}
+                            {/* If description column is hidden, show hint under name with tooltip */}
                             {!visibleColumnKeys.has('description') && ctrl.description && (
                               <div 
                                 style={{ 
                                   fontSize: '0.75rem', 
                                   color: 'var(--text-muted)', 
-                                  marginTop: '0.2rem', 
-                                  whiteSpace: 'nowrap', 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis', 
-                                  maxWidth: '380px' 
-                                }}
+                                  marginTop: '0.25rem', 
+                                  whiteSpace: controlWrapText ? 'normal' : 'nowrap', 
+                                  overflow: controlWrapText ? 'visible' : 'hidden', 
+                                  textOverflow: controlWrapText ? 'clip' : 'ellipsis', 
+                                  wordBreak: 'break-word',
+                                  maxWidth: controlWrapText ? '580px' : '380px',
+                                  lineHeight: 1.35
+                                }} 
                                 title={ctrl.description}
                               >
                                 {ctrl.description}
@@ -4018,12 +4632,19 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('description') && (
-                          <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '280px' }}>
+                          <td style={{ 
+                            fontSize: '0.8rem', 
+                            color: 'var(--text-secondary)', 
+                            minWidth: '300px',
+                            maxWidth: controlWrapText ? '600px' : '320px'
+                          }}>
                             <div 
                               style={{ 
-                                whiteSpace: 'nowrap', 
-                                overflow: 'hidden', 
-                                textOverflow: 'ellipsis' 
+                                whiteSpace: controlWrapText ? 'normal' : 'nowrap', 
+                                overflow: controlWrapText ? 'visible' : 'hidden', 
+                                textOverflow: controlWrapText ? 'clip' : 'ellipsis',
+                                wordBreak: 'break-word',
+                                lineHeight: 1.45
                               }}
                               title={ctrl.description || ''}
                             >

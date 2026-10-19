@@ -104,21 +104,25 @@ export class AuditProductCatalogService {
    * Includes isSupported and status so the UI knows which business objects have tested payloads.
    */
   public getPublicCatalog(): PublicAuditProduct[] {
-    return this.products.map(p => ({
-      sno: p.sno,
-      id: p.id,
-      displayName: p.displayName,
-      productName: p.productName || p.displayName,
-      shortCodes: p.shortCodes,
-      mappingStatus: 'CONFIRMED',
-      requiresBusinessObjectType: p.requiresBusinessObjectType,
-      businessObjects: (p.businessObjects || []).map(bo => ({
-        id: bo.id,
-        displayName: bo.displayName,
-        isSupported: bo.isSupported !== false,
-        status: bo.isSupported === false ? 'UNSUPPORTED' : 'SUPPORTED'
-      }))
-    }));
+    return this.products.map(p => {
+      const cleanDisplayName = (p.displayName || '').replace(/\s*\([^)]*\)$/, '').trim();
+      const cleanProductName = (p.productName || cleanDisplayName).replace(/\s*\([^)]*\)$/, '').trim();
+      return {
+        sno: p.sno,
+        id: p.id,
+        displayName: cleanDisplayName,
+        productName: cleanProductName,
+        shortCodes: p.shortCodes,
+        mappingStatus: 'CONFIRMED',
+        requiresBusinessObjectType: p.requiresBusinessObjectType,
+        businessObjects: (p.businessObjects || []).map(bo => ({
+          id: bo.id,
+          displayName: bo.displayName,
+          isSupported: bo.isSupported !== false,
+          status: bo.isSupported === false ? 'UNSUPPORTED' : 'SUPPORTED'
+        }))
+      };
+    });
   }
 
   /**

@@ -1,7 +1,22 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Award, X, Users, Network, KeyRound, AlertTriangle, Sparkles, ArrowRight } from 'lucide-react';
+import { Search, Award, X, Users, Network, KeyRound, AlertTriangle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
+
+function highlightMatch(text: string, query: string) {
+  if (!query || !query.trim() || !text) return text;
+  const words = query.trim().split(/\s+/).filter(Boolean).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (words.length === 0) return text;
+  const regex = new RegExp(`(${words.join('|')})`, 'gi');
+  const parts = text.split(regex);
+  return parts.map((part, i) => 
+    regex.test(part) ? (
+      <mark key={i} style={{ backgroundColor: 'rgba(234, 179, 8, 0.25)', color: 'inherit', padding: '0 2px', borderRadius: '2px', fontWeight: 700 }}>
+        {part}
+      </mark>
+    ) : part
+  );
+}
 
 interface RolesProps {
   initialCategory?: string;
@@ -198,7 +213,7 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
     </div>
   );
 
-  if (loading) {
+  if (loading && roles.length === 0) {
     return (
       <div style={{ padding: '2rem' }}>
         <div style={{ height: '35px', width: '150px', marginBottom: '1.5rem' }} className="skeleton" />
@@ -272,7 +287,7 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
             <input
               type="text"
               className="form-input"
-              style={{ paddingLeft: '2.5rem' }}
+              style={{ paddingLeft: '2.5rem', paddingRight: searchTerm ? '4.5rem' : '2.5rem' }}
               placeholder="Search by role name or code..."
               value={searchTerm}
               onChange={(e) => {
@@ -280,6 +295,23 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
                 setCurrentPage(1);
               }}
             />
+            <div style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {loading && roles.length > 0 && (
+                <RefreshCw size={14} className="animate-spin" style={{ color: 'var(--accent-blue)' }} />
+              )}
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setCurrentPage(1);
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.2rem' }}
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
           <select
@@ -357,8 +389,8 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
         </div>
 
         {/* List Table */}
-        <div className="table-container" style={{ margin: 0 }}>
-          <table className="enterprise-table">
+        <div className="table-container" style={{ margin: 0, position: 'relative' }}>
+          <table className="enterprise-table" style={{ opacity: loading ? 0.65 : 1, transition: 'opacity 0.2s ease' }}>
             <thead>
               <tr>
                 <th>Display Name</th>
@@ -370,8 +402,28 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
             <tbody>
               {roles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    No roles matched your search criteria.
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        No roles matched your search criteria.
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.'}
+                      </p>
+                      {(searchTerm || categoryFilter !== 'ALL') && (
+                        <button
+                          onClick={() => {
+                            setSearchTerm('');
+                            setCategoryFilter('ALL');
+                            setCurrentPage(1);
+                          }}
+                          className="btn btn-secondary"
+                          style={{ marginTop: '0.5rem', fontSize: '0.78rem' }}
+                        >
+                          Clear Filters & Search
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -381,8 +433,8 @@ export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: Ro
                     onClick={() => setSelectedRole(role)}
                     style={{ cursor: 'pointer', backgroundColor: selectedRole?.roleCode === role.roleCode ? 'rgba(255, 255, 255, 0.04)' : '' }}
                   >
-                    <td style={{ fontWeight: 600 }}>{role.displayName}</td>
-                    <td><code>{role.roleCode}</code></td>
+                    <td style={{ fontWeight: 600 }}>{highlightMatch(role.displayName, searchTerm)}</td>
+                    <td><code>{highlightMatch(role.roleCode, searchTerm)}</code></td>
                     <td><span className="badge badge-blue">{role.category}</span></td>
                     <td>
                       <button 

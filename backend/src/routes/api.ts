@@ -2605,7 +2605,8 @@ apiRouter.get('/risk/incidents/top-roles', requirePrivilege(['RISK_MANAGEMENT', 
 
 apiRouter.get('/access-certifications', requirePrivilege(['REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL']), async (req: Request, res: Response) => {
   try {
-    const result = await oracleService.getAccessCertifications();
+    const forceRefresh = req.query.refresh === 'true' || Boolean(req.query.t);
+    const result = await oracleService.getAccessCertifications(forceRefresh);
     if (!result.success) {
       const statusCode = result.isConfigurationError ? 400 : 502;
       return res.status(statusCode).json(result);
@@ -2631,7 +2632,8 @@ apiRouter.get('/access-certifications/:certificationId/details', requirePrivileg
   }
 
   try {
-    const result = await oracleService.getAccessCertificationDetails(certificationId);
+    const forceRefresh = req.query.refresh === 'true' || Boolean(req.query.t);
+    const result = await oracleService.getAccessCertificationDetails(certificationId, forceRefresh);
     if (!result.success) {
       const statusCode = result.isConfigurationError ? 400 : 502;
       return res.status(statusCode).json(result);

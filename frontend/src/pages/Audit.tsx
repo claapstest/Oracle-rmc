@@ -69,6 +69,11 @@ const MIN_ALLOWED_AUDIT_DATE = '2025-01-01';
 const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
 const MAX_ALLOWED_AUDIT_DATE = getTodayIsoDate();
 
+const cleanProductName = (name?: string): string => {
+  if (!name) return '';
+  return name.replace(/\s*\([^)]*\)$/, '').trim();
+};
+
 export interface AuditProps {
   initialBOId?: string;
   initialProductId?: string;
@@ -327,7 +332,7 @@ export default function Audit({
     if (selectedBO && selectedBO.isSupported === false) {
       const firstSupported = (prod?.businessObjects || []).find(b => b.isSupported !== false);
       setConfigNotice(
-        `Business Object Type "${selectedBO.displayName}" is available in the Oracle instance, but its payload template is not yet configured. Currently supported for ${prod?.displayName}: "${firstSupported?.displayName || 'None'}".`
+        `Business Object Type "${selectedBO.displayName}" is available in the Oracle instance, but its payload template is not yet configured. Currently supported for ${cleanProductName(prod?.displayName)}: "${firstSupported?.displayName || 'None'}".`
       );
       setError('');
       setLogs([]);
@@ -375,7 +380,7 @@ export default function Audit({
         setTotalRecords(res.totalRecords !== undefined ? res.totalRecords : res.logs.length);
         setDataSource(res.dataSource || 'Oracle Fusion');
         setLastQuerySummary({
-          productDisplayName: res.productDisplayName || prod?.displayName || 'Oracle Fusion',
+          productDisplayName: cleanProductName(res.productDisplayName || prod?.displayName || 'Oracle Fusion'),
           businessObjectDisplayName: res.businessObjectDisplayName || selectedBO?.displayName || (prod?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events'),
           fromDate: res.dateRange?.fromDate || qFrom,
           toDate: res.dateRange?.toDate || qTo,
@@ -444,7 +449,7 @@ export default function Audit({
           setTotalRecords(res.totalRecords || res.logs.length);
           setDataSource(res.dataSource || 'Live Oracle Fusion API');
           setLastQuerySummary({
-            productDisplayName: prod?.displayName || 'Oracle Fusion',
+            productDisplayName: cleanProductName(prod?.displayName || 'Oracle Fusion'),
             businessObjectDisplayName: selectedBO?.displayName || 'Standard Object',
             fromDate: res.dateRange?.fromDate || fromDate,
             toDate: res.dateRange?.toDate || toDate,
@@ -667,7 +672,7 @@ export default function Audit({
             >
               {products.map(prod => (
                 <option key={prod.id} value={prod.id}>
-                  {prod.productName || prod.displayName}
+                  {cleanProductName(prod.productName || prod.displayName)}
                 </option>
               ))}
             </select>
@@ -949,7 +954,7 @@ export default function Audit({
                 Product
               </span>
               <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {lastQuerySummary.productDisplayName}
+                {cleanProductName(lastQuerySummary.productDisplayName)}
               </div>
             </div>
 

@@ -13,6 +13,7 @@ import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { roleHierarchyService } from './roleHierarchyService.js';
 import { auditRawDbService } from './auditRawDbService.js';
 import { controlRawDbService } from './controlRawDbService.js';
+import { accessCertRawDbService } from './accessCertRawDbService.js';
 export { classifyRoleRecord };
 
 const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
@@ -97,6 +98,175 @@ export function extractUserCategory(res: any): string | null {
   if (res.userCategory) return String(res.userCategory);
   if (res.userType) return String(res.userType);
   return null;
+}
+
+const ENTERPRISE_ROLE_ALIASES: Record<string, string[]> = {
+  ap: ['accounts payable', 'payables'],
+  ar: ['accounts receivable', 'receivables'],
+  gl: ['general ledger'],
+  po: ['purchase order', 'purchasing', 'procurement'],
+  fa: ['fixed assets', 'assets'],
+  hr: ['human resources'],
+  hcm: ['human capital management'],
+  it: ['information technology'],
+  mgr: ['manager'],
+  admin: ['administrator', 'administration'],
+  sec: ['security'],
+  spec: ['specialist'],
+  fin: ['financial', 'finance'],
+  scm: ['supply chain management', 'supply chain'],
+  bi: ['business intelligence', 'analytics'],
+  grc: ['governance risk compliance']
+};
+
+export function searchAndRankRoles(roles: Role[], query?: string, category?: string): Role[] {
+  let filtered = roles;
+
+  // 1. Category Filter
+  const normalizedCat = normalizeCategoryFilter(category);
+  if (normalizedCat === 'UNASSIGNED') {
+    filtered = filtered.filter(r => !r.members || r.members.length === 0);
+  } else if (normalizedCat) {
+    filtered = filtered.filter(r => (r.category || '').toLowerCase() === normalizedCat.toLowerCase());
+  }
+
+  if (!query || !query.trim()) {
+    return filtered;
+  }
+
+  const rawQuery = query.trim().toLowerCase();
+  const normalizedQuery = rawQuery.replace(/[_\W]+/g, ' ').trim();
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  if (tokens.length === 0) {
+    return filtered;
+  }
+
+  const tokenMatchers = tokens.map(t => {
+    const expansions = [t];
+    if (ENTERPRISE_ROLE_ALIASES[t]) {
+      expansions.push(...ENTERPRISE_ROLE_ALIASES[t]);
+    }
+    return { raw: t, expansions };
+  });
+
+  const scored: Array<{ role: Role; score: number }> = [];
+
+  for (const role of filtered) {
+    const nameLower = (role.displayName || '').toLowerCase();
+    const nameClean = nameLower.replace(/[_\W]+/g, ' ');
+    const codeLower = (role.roleCode || '').toLowerCase();
+    const codeClean = codeLower.replace(/[_\W]+/g, ' ');
+    const descLower = (role.description || '').toLowerCase();
+    const descClean = descLower.replace(/[_\W]+/g, ' ');
+    const idLower = (role.id || '').toLowerCase();
+
+    let allTokensMatched = true;
+    let nameTokenMatches = 0;
+    let codeTokenMatches = 0;
+    let descTokenMatches = 0;
+    let wordBoundaryMatches = 0;
+
+    for (const matcher of tokenMatchers) {
+      let matchedThisToken = false;
+
+      // Check display name
+      for (const expr of matcher.expansions) {
+        if (nameClean.includes(expr)) {
+          matchedThisToken = true;
+          nameTokenMatches++;
+          if (nameClean.startsWith(expr) || nameClean.includes(' ' + expr)) {
+            wordBoundaryMatches++;
+          }
+          break;
+        }
+      }
+
+      // Check role code
+      if (!matchedThisToken) {
+        for (const expr of matcher.expansions) {
+          if (codeLower.includes(expr) || codeClean.includes(expr)) {
+            matchedThisToken = true;
+            codeTokenMatches++;
+            if (codeClean.startsWith(expr) || codeClean.includes(' ' + expr)) {
+              wordBoundaryMatches++;
+            }
+            break;
+          }
+        }
+      }
+
+      // Check description or ID
+      if (!matchedThisToken) {
+        for (const expr of matcher.expansions) {
+          if (descClean.includes(expr) || idLower.includes(expr)) {
+            matchedThisToken = true;
+            descTokenMatches++;
+            break;
+          }
+        }
+      }
+
+      if (!matchedThisToken) {
+        allTokensMatched = false;
+        break;
+      }
+    }
+
+    if (!allTokensMatched) continue;
+
+    let score = 0;
+
+    // Exact Full Matches
+    if (nameLower === rawQuery || nameClean === normalizedQuery) {
+      score += 2000;
+    } else if (codeLower === rawQuery || codeClean === normalizedQuery) {
+      score += 1800;
+    }
+
+    // Prefix Matches
+    if (nameLower.startsWith(rawQuery) || nameClean.startsWith(normalizedQuery)) {
+      score += 1000;
+    } else if (codeLower.startsWith(rawQuery) || codeClean.startsWith(normalizedQuery)) {
+      score += 850;
+    }
+
+    // Contiguous Phrase Substring Match
+    if (nameClean.includes(normalizedQuery)) {
+      score += 600;
+    } else if (codeClean.includes(normalizedQuery) || codeLower.includes(rawQuery)) {
+      score += 450;
+    }
+
+    // Token Coverage & Quality Bonuses
+    if (nameTokenMatches === tokens.length) {
+      score += 400;
+    }
+    if (codeTokenMatches === tokens.length) {
+      score += 300;
+    }
+
+    score += wordBoundaryMatches * 80;
+    score += nameTokenMatches * 50;
+    score += codeTokenMatches * 30;
+    score += descTokenMatches * 5;
+
+    // Brevity Bonus (favor concise matches over long blocks of text)
+    const lengthDiff = Math.abs(nameClean.length - normalizedQuery.length);
+    score += Math.max(0, 50 - lengthDiff);
+
+    scored.push({ role, score });
+  }
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const lenA = a.role.displayName?.length || 0;
+    const lenB = b.role.displayName?.length || 0;
+    if (lenA !== lenB) return lenA - lenB;
+    return (a.role.displayName || '').localeCompare(b.role.displayName || '');
+  });
+
+  return scored.map(s => s.role);
 }
 
 class OracleService {
@@ -1333,25 +1503,7 @@ class OracleService {
     // When authoritative dataset is available, serve directly from it to guarantee
     // 100% consistency between Overview Dashboard role counts and Roles Catalog records.
     if (this.authoritativeRoles.length > 0) {
-      let results = this.authoritativeRoles;
-      const normalizedCat = normalizeCategoryFilter(category);
-
-      if (normalizedCat === 'UNASSIGNED') {
-        results = results.filter(r => !r.members || r.members.length === 0);
-      } else if (normalizedCat) {
-        results = results.filter(r => r.category.toLowerCase() === normalizedCat.toLowerCase());
-      }
-
-      if (filterText && filterText.trim()) {
-        const term = filterText.trim().toLowerCase();
-        results = results.filter(r => 
-          (r.displayName && r.displayName.toLowerCase().includes(term)) ||
-          (r.roleCode && r.roleCode.toLowerCase().includes(term)) ||
-          (r.description && r.description.toLowerCase().includes(term)) ||
-          (r.id && r.id.toLowerCase().includes(term))
-        );
-      }
-
+      const results = searchAndRankRoles(this.authoritativeRoles, filterText, category);
       const totalResults = results.length;
       const sliced = results.slice(startIndex - 1, startIndex - 1 + count);
       return {
@@ -1363,17 +1515,7 @@ class OracleService {
     }
 
     if (this.isDemoMode()) {
-      let results = mockRoles;
-      if (filterText) {
-        const term = filterText.toLowerCase();
-        results = results.filter(r => r.displayName.toLowerCase().includes(term) || r.roleCode.toLowerCase().includes(term));
-      }
-      const normalizedCat = normalizeCategoryFilter(category);
-      if (normalizedCat === 'UNASSIGNED') {
-        results = results.filter(r => !r.members || r.members.length === 0);
-      } else if (normalizedCat) {
-        results = results.filter(r => r.category.toLowerCase() === normalizedCat.toLowerCase());
-      }
+      const results = searchAndRankRoles(mockRoles, filterText, category);
       const totalResults = results.length;
       const sliced = results.slice(startIndex - 1, startIndex - 1 + count);
       return {
@@ -1386,8 +1528,14 @@ class OracleService {
 
     // Fallback: Call live Oracle Fusion SCIM Roles API directly if authoritative dataset is not yet loaded
     let scimFilter = '';
-    if (filterText) {
-      scimFilter = `displayName co "${filterText}" or name co "${filterText}"`;
+    if (filterText && filterText.trim()) {
+      const norm = filterText.trim().replace(/[_\W]+/g, ' ');
+      const toks = norm.split(/\s+/).filter(Boolean);
+      if (toks.length > 1) {
+        scimFilter = toks.map(t => `(displayName co "${t}" or name co "${t}")`).join(' and ');
+      } else {
+        scimFilter = `displayName co "${filterText.trim()}" or name co "${filterText.trim()}"`;
+      }
     }
     const normalizedCat = normalizeCategoryFilter(category);
     if (normalizedCat) {
@@ -1419,9 +1567,7 @@ class OracleService {
     }
 
     const resources = scimResponse?.Resources || [];
-    const totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : (this.cachedTotalRoles || resources.length);
-
-    const roles: Role[] = resources.map((res: any) => {
+    const rawRoles: Role[] = resources.map((res: any) => {
       const cat = classifyRoleRecord(res);
 
       return {
@@ -1436,6 +1582,9 @@ class OracleService {
         privileges: []
       };
     });
+
+    const roles = searchAndRankRoles(rawRoles, filterText, category);
+    const totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : (this.cachedTotalRoles || roles.length);
 
     const result = {
       roles,
@@ -1999,7 +2148,7 @@ class OracleService {
     }
 
     if (resolution.status === 'UNRESOLVED' || resolution.status === 'NOT_CONFIGURED') {
-      const pDisplayName = resolution.product?.displayName || productQuery;
+      const pDisplayName = (resolution.product?.displayName || productQuery || '').replace(/\s*\([^)]*\)$/, '').trim();
       const bDisplayName = resolution.businessObject?.displayName || (params.businessObjectType || 'Standard Object');
       return {
         success: false,
@@ -2017,7 +2166,7 @@ class OracleService {
       };
     }
 
-    const productDisplayName = resolution.product?.displayName || productQuery;
+    const productDisplayName = (resolution.product?.displayName || productQuery || '').replace(/\s*\([^)]*\)$/, '').trim();
     const boDisplayName = resolution.businessObject?.displayName || (resolution.product?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events');
 
 
@@ -3223,11 +3372,34 @@ class OracleService {
     };
   }
 
-  async getAccessCertifications(): Promise<any> {
-    return bipClient.runAccessCertificationReport();
+  async getAccessCertifications(forceRefresh = false): Promise<any> {
+    if (!forceRefresh) {
+      try {
+        const dbCerts = await accessCertRawDbService.getCertifications();
+        if (dbCerts && dbCerts.length > 0) {
+          return {
+            success: true,
+            data: dbCerts,
+            reportPath: bipClient.reportPath,
+            source: 'PostgreSQL Database',
+            message: 'Retrieved Access Certification records from database.'
+          };
+        }
+      } catch (dbErr: any) {
+        console.warn('[OracleService] AccessCert DB lookup skipped:', dbErr.message);
+      }
+    }
+
+    const bipRes = await bipClient.runAccessCertificationReport();
+    if (bipRes && bipRes.success && Array.isArray(bipRes.data) && bipRes.data.length > 0) {
+      accessCertRawDbService.saveRawCertifications(bipRes.data).catch(err => {
+        console.warn('[OracleService] Background AccessCert DB save error:', err.message);
+      });
+    }
+    return bipRes;
   }
 
-  async getAccessCertificationDetails(certificationId: string): Promise<any> {
+  async getAccessCertificationDetails(certificationId: string, forceRefresh = false): Promise<any> {
     const cleanCertId = String(certificationId || '').trim();
     if (!cleanCertId) {
       return {
@@ -3237,6 +3409,23 @@ class OracleService {
         data: [],
         message: 'Certification ID is required.'
       };
+    }
+
+    if (!forceRefresh) {
+      try {
+        const dbRows = await accessCertRawDbService.getWorksheetRows(cleanCertId);
+        if (dbRows && dbRows.length > 0) {
+          return {
+            success: true,
+            certificationId: Number(cleanCertId) || cleanCertId,
+            count: dbRows.length,
+            data: dbRows,
+            source: 'PostgreSQL Database'
+          };
+        }
+      } catch (dbErr: any) {
+        console.warn(`[OracleService] Worksheet DB lookup error for ${cleanCertId}:`, dbErr.message);
+      }
     }
 
     // 1. First run the existing BIP report
@@ -3313,6 +3502,11 @@ class OracleService {
           businessUnit: bu,
           department: dept
         };
+      });
+
+      // Save to Database and update cache
+      accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
+        console.warn(`[OracleService] Background Worksheet DB save error for ${cleanCertId}:`, err.message);
       });
 
       return {

@@ -2658,7 +2658,7 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
                   style={{ width: '170px', fontSize: '0.84rem' }}
                 >
                   {auditProducts.map(p => (
-                    <option key={p.id} value={p.id}>{p.displayName || p.productName}</option>
+                    <option key={p.id} value={p.id}>{(p.displayName || p.productName || '').replace(/\s*\([^)]*\)$/, '').trim()}</option>
                   ))}
                 </select>
               </div>

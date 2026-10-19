@@ -407,6 +407,9 @@ export default function App() {
     if (pageId === 'audit') {
       setInitialAuditBO(filter || 'document_records');
     }
+    if (pageId === 'risk-certificates') {
+      setInitialCertId(filter || null);
+    }
     if (pageId === 'assistant') {
       setIsSidebarOpen(false); // Ask VEYRA defaults to full width
     } else {
@@ -418,6 +421,7 @@ export default function App() {
   const [initialRolesCategory, setInitialRolesCategory] = useState('ALL');
   const [initialUsersFilter, setInitialUsersFilter] = useState('ALL');
   const [initialAuditBO, setInitialAuditBO] = useState('document_records');
+  const [initialCertId, setInitialCertId] = useState<string | null>(null);
 
   // Synchronize settings for administrator sessions
   useEffect(() => {
@@ -993,6 +997,7 @@ export default function App() {
                   if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
                   if (pageId === 'users' && filter) setInitialUsersFilter(filter);
                   if (pageId === 'audit' && filter) setInitialAuditBO(filter);
+                  if (pageId === 'risk-certificates' && filter) setInitialCertId(filter);
                 }}
               />
             </div>
@@ -1012,6 +1017,7 @@ export default function App() {
                 if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
                 if (pageId === 'users' && filter) setInitialUsersFilter(filter);
                 if (pageId === 'audit' && filter) setInitialAuditBO(filter);
+                if (pageId === 'risk-certificates' && filter) setInitialCertId(filter);
               }}
               onInvestigate={handleInvestigate}
               onOpenFullInvestigation={handleOpenQueryInvestigation}
@@ -1055,7 +1061,7 @@ export default function App() {
           )}
           {visitedPages.has('risk-certificates') && (
             <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
-              <AccessCertificatesPage environmentMode={environmentMode} />
+              <AccessCertificatesPage environmentMode={environmentMode} initialCertificationId={initialCertId} />
             </div>
           )}
           {visitedPages.has('reports') && (

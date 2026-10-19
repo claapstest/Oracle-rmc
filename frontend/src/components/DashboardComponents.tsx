@@ -1764,7 +1764,7 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
               data={data.products}
               totalCount={data.products.length}
               columns={[
-                { key: 'product', label: 'Oracle Product' },
+                { key: 'product', label: 'Oracle Product', getValue: (p: any) => (p.product || '').replace(/\s*\([^)]*\)$/, '').trim() },
                 { key: 'totalRecords', label: 'Total Records' },
                 { key: 'inserts', label: 'Inserts / Additions' },
                 { key: 'updates', label: 'Updates' },
@@ -1991,7 +1991,7 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                             {cat.category}
                           </span>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
-                            {p.product}
+                            {(p.product || '').replace(/\s*\([^)]*\)$/, '').trim()}
                           </span>
                         </div>
                       </td>

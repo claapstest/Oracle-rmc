@@ -1,11 +1,11 @@
 {
-  "syncedAt": "2026-10-14T14:21:08.781Z",
-  "totalResults": 707,
+  "syncedAt": "2026-10-19T15:31:44.735Z",
+  "totalResults": 708,
   "counts": {
     "Job": 511,
     "Duty": 2,
     "Data": 48,
-    "Abstract": 107,
+    "Abstract": 108,
     "GRC": 12,
     "Other": 27
   },
@@ -5133,6 +5133,10 @@
           "display": ""
         },
         {
+          "value": "0CBDE453546D4229922699F3758C0BB6",
+          "display": ""
+        },
+        {
           "value": "F9E9874834D547CEA098292DD717AB3E",
           "display": ""
         },
@@ -5225,6 +5229,10 @@
           "display": ""
         },
         {
+          "value": "8CCCFE03F9454BFEAA19AA2C36C654F5",
+          "display": ""
+        },
+        {
           "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
@@ -5238,6 +5246,10 @@
         },
         {
           "value": "5462FFB05654349FE063B9131CAC132E",
+          "display": ""
+        },
+        {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
           "display": ""
         },
         {
@@ -6360,6 +6372,14 @@
           "display": ""
         },
         {
+          "value": "5956643D5110F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "434770A9AD1748F78F819970ED49E62A",
+          "display": ""
+        },
+        {
           "value": "76328FC05C3840B0ABFD57671FAE1427",
           "display": ""
         },
@@ -6368,11 +6388,23 @@
           "display": ""
         },
         {
+          "value": "2DD06AFF79AA481080AB3661C87E9E84",
+          "display": ""
+        },
+        {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
           "display": ""
         },
         {
           "value": "B194EFACBCBC477CB20694AECF72E091",
+          "display": ""
+        },
+        {
+          "value": "EAB83B58C96841FC82653442E38AC81F",
+          "display": ""
+        },
+        {
+          "value": "8C11B15BA24345058273A8D490013B05",
           "display": ""
         },
         {
@@ -7487,7 +7519,15 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "036F37B32DF14FA2B7E0E108E91FEAE3",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
           "display": ""
         },
         {
@@ -7500,6 +7540,10 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -14830,6 +14874,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -14855,6 +14903,14 @@
         },
         {
           "value": "F9E9874834D547CEA098292DD717AB3E",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -19567,6 +19623,10 @@
           "display": ""
         },
         {
+          "value": "0CBDE453546D4229922699F3758C0BB6",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -19588,6 +19648,10 @@
         },
         {
           "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
           "display": ""
         },
         {
@@ -27377,11 +27441,19 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "036F37B32DF14FA2B7E0E108E91FEAE3",
           "display": ""
         },
         {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
           "display": ""
         },
         {
@@ -27402,6 +27474,10 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -27780,6 +27856,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
           "display": ""
         },
@@ -27801,6 +27881,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -30648,6 +30736,10 @@
           "display": ""
         },
         {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
+          "display": ""
+        },
+        {
           "value": "C46698073B4843E8B02F7FDAD92D8C38",
           "display": ""
         },
@@ -32116,6 +32208,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
           "display": ""
         },
@@ -32140,7 +32236,15 @@
           "display": ""
         },
         {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -33056,6 +33160,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "036F37B32DF14FA2B7E0E108E91FEAE3",
           "display": ""
         },
@@ -33069,6 +33177,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -33839,6 +33955,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "036F37B32DF14FA2B7E0E108E91FEAE3",
           "display": ""
         },
@@ -33852,6 +33972,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -36976,6 +37104,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -37001,6 +37133,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -37982,6 +38122,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -38011,6 +38155,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -39657,7 +39809,15 @@
           "display": ""
         },
         {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
+          "display": ""
+        },
+        {
           "value": "B194EFACBCBC477CB20694AECF72E091",
+          "display": ""
+        },
+        {
+          "value": "0CBDE453546D4229922699F3758C0BB6",
           "display": ""
         },
         {
@@ -39705,7 +39865,23 @@
           "display": ""
         },
         {
+          "value": "8CCCFE03F9454BFEAA19AA2C36C654F5",
+          "display": ""
+        },
+        {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
+          "display": ""
+        },
+        {
+          "value": "1F84C4E8E43D44C3A4325E5306079DA8",
+          "display": ""
+        },
+        {
+          "value": "621BA22E31804F1385F67097E506D8EC",
+          "display": ""
+        },
+        {
+          "value": "F483E76DD1BA4F0FB64193DE747723D3",
           "display": ""
         },
         {
@@ -40556,11 +40732,31 @@
           "display": ""
         },
         {
+          "value": "EAB83B58C96841FC82653442E38AC81F",
+          "display": ""
+        },
+        {
+          "value": "8C11B15BA24345058273A8D490013B05",
+          "display": ""
+        },
+        {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
           "display": ""
         },
         {
           "value": "A7B4CD97BC5C4162B8840909C9361F3F",
+          "display": ""
+        },
+        {
+          "value": "5956643D5110F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
+          "value": "434770A9AD1748F78F819970ED49E62A",
+          "display": ""
+        },
+        {
+          "value": "2DD06AFF79AA481080AB3661C87E9E84",
           "display": ""
         },
         {
@@ -44229,6 +44425,10 @@
           "display": ""
         },
         {
+          "value": "9A0AC601E34A4EE1A6F47BB8627B32FC",
+          "display": ""
+        },
+        {
           "value": "190648FD282F460AA6795744D1976132",
           "display": ""
         },
@@ -44238,6 +44438,10 @@
         },
         {
           "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
           "display": ""
         },
         {
@@ -47402,6 +47606,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -47427,6 +47635,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -48250,6 +48466,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -48275,6 +48495,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -51506,6 +51734,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -51531,6 +51763,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -52702,6 +52942,10 @@
           "display": ""
         },
         {
+          "value": "F9C9366EE34B4D07A976B3339A4951A5",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -52727,6 +52971,14 @@
         },
         {
           "value": "8623D433C364456493059D00A408D8F9",
+          "display": ""
+        },
+        {
+          "value": "05EEDDD2B730447ABDEBEA78604D36BB",
+          "display": ""
+        },
+        {
+          "value": "5F11D4C2D1024C5683941AE0C491450C",
           "display": ""
         },
         {
@@ -57123,6 +57375,10 @@
           "display": ""
         },
         {
+          "value": "4AF0DF308D7FF3DEE063B9131CAC8E53",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -60169,6 +60425,10 @@
           "display": ""
         },
         {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
+          "display": ""
+        },
+        {
           "value": "76328FC05C3840B0ABFD57671FAE1427",
           "display": ""
         },
@@ -60274,6 +60534,10 @@
         },
         {
           "value": "D77587DD7528492D8AC8AE1A713FBF6D",
+          "display": ""
+        },
+        {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
           "display": ""
         },
         {
@@ -60418,6 +60682,10 @@
         },
         {
           "value": "76328FC05C3840B0ABFD57671FAE1427",
+          "display": ""
+        },
+        {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
           "display": ""
         },
         {
@@ -60602,6 +60870,10 @@
         },
         {
           "value": "C46698073B4843E8B02F7FDAD92D8C38",
+          "display": ""
+        },
+        {
+          "value": "05D2FA9951864B6194EBED7EA22DB70E",
           "display": ""
         },
         {
@@ -65575,6 +65847,10 @@
         {
           "value": "3D943095CA17E914E063B9131CACE513",
           "display": ""
+        },
+        {
+          "value": "4AF0DF308D7FF3DEE063B9131CAC8E53",
+          "display": ""
         }
       ],
       "parentRoles": [],
@@ -69408,6 +69684,10 @@
       "description": "Performs duties of a human resources analyst.",
       "members": [
         {
+          "value": "5956643D5110F242E063B9131CACAD63",
+          "display": ""
+        },
+        {
           "value": "2FD4987F6B10F1F9E063B9131CAC64BF",
           "display": ""
         },
@@ -72065,6 +72345,22 @@
         },
         {
           "value": "0ABCDC24BC654C4ABF31DFF4B2FF864A",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "95472084D3B4487BB6D7546512342F65",
+      "displayName": "BICC_ROLE1",
+      "roleCode": "BICC_ROLE1",
+      "category": "Abstract",
+      "description": "Oracle Fusion Security Abstract Role",
+      "members": [
+        {
+          "value": "2EF343CEE7C5AAD5E063B9131CACEE3E",
           "display": ""
         }
       ],

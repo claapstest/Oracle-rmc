@@ -1,12 +1,12 @@
 {
-  "totalUsers": 3014,
-  "activeUsers": 991,
+  "totalUsers": 3030,
+  "activeUsers": 1007,
   "inactiveUsers": 2023,
-  "usersWithoutRoles": 2027,
-  "activeUsersWithoutRoles": 36,
-  "singleRoleUsers": 97,
-  "multipleRoleUsers": 890,
-  "securityAdmins": 452,
-  "highRiskUsers": 452,
-  "syncedAt": "2026-10-14T14:21:01.955Z"
+  "usersWithoutRoles": 2033,
+  "activeUsersWithoutRoles": 42,
+  "singleRoleUsers": 101,
+  "multipleRoleUsers": 896,
+  "securityAdmins": 458,
+  "highRiskUsers": 458,
+  "syncedAt": "2026-10-19T15:31:29.829Z"
 }

@@ -356,15 +356,6 @@ export async function getSoDConflictsTool(): Promise<ToolExecutionResult> {
   }
 }
 
-export async function getAccessCertificationsTool(): Promise<ToolExecutionResult> {
-  try {
-    const data = await oracleService.getAccessCertifications();
-    return createResult('getAccessCertifications', {}, data.success, data, data.message);
-  } catch (err) {
-    return createResult('getAccessCertifications', {}, false, null, (err as Error).message);
-  }
-}
-
 export async function getAccessRequestsTool(params: { status?: string; user?: string } = {}): Promise<ToolExecutionResult> {
   try {
     const data = await oracleService.getAdvancedAccessRequests(params);
@@ -983,6 +974,176 @@ export async function getIncidentDetailsTool(params: { incidentId?: string } = {
   }
 }
 
+export async function getAccessCertificationsTool(params: {
+  status?: string;
+  type?: string;
+  search?: string;
+  filter?: string;
+  limit?: number;
+} = {}): Promise<ToolExecutionResult> {
+  try {
+    const certsRes = await oracleService.getAccessCertifications();
+    let certs: any[] = certsRes?.data || (Array.isArray(certsRes) ? certsRes : []);
+    const totalCount = certs.length;
+
+    const searchTerm = (params.search || params.filter || '').trim().toLowerCase();
+    if (searchTerm) {
+      certs = certs.filter(c => {
+        const idStr = String(c.certificationId || c.id || '');
+        const nameStr = String(c.certificationName || '').toLowerCase();
+        const typeStr = String(c.type || '').toLowerCase();
+        const statusStr = String(c.status || '').toLowerCase();
+        const certifierStr = String(c.certifierName || c.ownerName || '').toLowerCase();
+        return idStr.includes(searchTerm) ||
+          nameStr.includes(searchTerm) ||
+          typeStr.includes(searchTerm) ||
+          statusStr.includes(searchTerm) ||
+          certifierStr.includes(searchTerm);
+      });
+    }
+
+    if (params.status) {
+      const s = params.status.trim().toLowerCase();
+      certs = certs.filter(c => String(c.status || '').toLowerCase().includes(s));
+    }
+
+    if (params.type) {
+      const t = params.type.trim().toLowerCase();
+      certs = certs.filter(c => String(c.type || '').toLowerCase().includes(t));
+    }
+
+    const activeCount = certs.filter(c => String(c.status || '').toLowerCase() === 'active').length;
+    const completedCount = certs.filter(c => String(c.status || '').toLowerCase() === 'completed').length;
+    const limit = clampChatLimit(params.limit, 25, 50);
+
+    const resultPayload = {
+      certifications: certs.slice(0, limit),
+      totalMatching: certs.length,
+      totalCount,
+      activeCount,
+      completedCount,
+      source: certsRes?.source || 'PostgreSQL Database / Oracle BIP'
+    };
+
+    return createResult('getAccessCertifications', params, true, resultPayload);
+  } catch (err) {
+    return createResult('getAccessCertifications', params, false, null, (err as Error).message);
+  }
+}
+
+export async function getCertifierWorksheetTool(params: {
+  certificationId?: string | number;
+  certificationName?: string;
+  userName?: string;
+  roleName?: string;
+  manager?: string;
+  action?: string;
+  search?: string;
+  filter?: string;
+  limit?: number;
+} = {}): Promise<ToolExecutionResult> {
+  try {
+    let certId = params.certificationId ? String(params.certificationId).trim() : '';
+
+    let resolvedCert: any = null;
+    const certsRes = await oracleService.getAccessCertifications();
+    const certs: any[] = certsRes?.data || (Array.isArray(certsRes) ? certsRes : []);
+
+    if (!certId && (params.certificationName || params.search)) {
+      const query = (params.certificationName || params.search || '').trim().toLowerCase();
+      resolvedCert = certs.find(c =>
+        String(c.certificationId) === query ||
+        String(c.certificationName || '').toLowerCase().includes(query)
+      );
+      if (resolvedCert) {
+        certId = String(resolvedCert.certificationId);
+      }
+    }
+
+    if (!certId && certs.length > 0) {
+      resolvedCert = certs[0];
+      certId = String(resolvedCert.certificationId || 1);
+    }
+
+    if (!resolvedCert && certId) {
+      resolvedCert = certs.find(c => String(c.certificationId) === certId);
+    }
+
+    if (!certId) {
+      return createResult('getCertifierWorksheet', params, false, null, 'No Access Certification found.');
+    }
+
+    const detailsRes = await oracleService.getAccessCertificationDetails(certId);
+    let rows: any[] = detailsRes?.data || [];
+    const totalInCert = rows.length;
+
+    const searchFilter = (params.search || params.filter || '').trim().toLowerCase();
+    if (searchFilter && !params.certificationName) {
+      rows = rows.filter(r => {
+        const u = String(r.userName || '').toLowerCase();
+        const role = String(r.roleName || '').toLowerCase();
+        const code = String(r.roleCode || '').toLowerCase();
+        const mgr = String(r.directManager || '').toLowerCase();
+        const bu = String(r.businessUnit || '').toLowerCase();
+        const act = String(r.action || '').toLowerCase();
+        return u.includes(searchFilter) ||
+          role.includes(searchFilter) ||
+          code.includes(searchFilter) ||
+          mgr.includes(searchFilter) ||
+          bu.includes(searchFilter) ||
+          act.includes(searchFilter);
+      });
+    }
+
+    if (params.userName) {
+      const u = params.userName.trim().toLowerCase();
+      rows = rows.filter(r => String(r.userName || '').toLowerCase().includes(u));
+    }
+
+    if (params.roleName) {
+      const rn = params.roleName.trim().toLowerCase();
+      rows = rows.filter(r =>
+        String(r.roleName || '').toLowerCase().includes(rn) ||
+        String(r.roleCode || '').toLowerCase().includes(rn)
+      );
+    }
+
+    if (params.manager) {
+      const m = params.manager.trim().toLowerCase();
+      rows = rows.filter(r => String(r.directManager || '').toLowerCase().includes(m));
+    }
+
+    if (params.action) {
+      const a = params.action.trim().toLowerCase();
+      rows = rows.filter(r => String(r.action || '').toLowerCase().includes(a));
+    }
+
+    const uniqueUsers = new Set(rows.map(r => r.userName).filter(Boolean)).size;
+    const uniqueRoles = new Set(rows.map(r => r.roleName || r.roleCode).filter(Boolean)).size;
+    const pendingCount = rows.filter(r => String(r.action || '').toLowerCase() === 'pending').length;
+    const approvedCount = rows.filter(r => String(r.action || '').toLowerCase() === 'approved').length;
+    const limit = clampChatLimit(params.limit, 25, 50);
+
+    const resultPayload = {
+      certificationId: certId,
+      certificationName: resolvedCert?.certificationName || `Certification #${certId}`,
+      certificationMeta: resolvedCert,
+      worksheetRows: rows.slice(0, limit),
+      totalMatching: rows.length,
+      totalInCert,
+      uniqueUsers,
+      uniqueRoles,
+      pendingCount,
+      approvedCount,
+      source: detailsRes?.source || 'PostgreSQL Database / Oracle BIP'
+    };
+
+    return createResult('getCertifierWorksheet', params, true, resultPayload);
+  } catch (err) {
+    return createResult('getCertifierWorksheet', params, false, null, (err as Error).message);
+  }
+}
+
 // Global registry mapping intents to tools
 export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecutionResult>> = {
   LIST_USERS: getUsersTool,
@@ -1010,6 +1171,8 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
   CONTROL_DETAILS: getControlDetailsTool,
   INCIDENTS_LIST: listIncidentsTool,
   INCIDENT_DETAILS: getIncidentDetailsTool,
+  ACCESS_CERTIFICATIONS: getAccessCertificationsTool,
+  CERTIFIER_WORKSHEET: getCertifierWorksheetTool,
   SECURITY_STATISTICS: async () => {
     // Collect statistics in parallel using cached services
     const [usersRes, rolesRes, audits, incidentsRes] = await Promise.all([

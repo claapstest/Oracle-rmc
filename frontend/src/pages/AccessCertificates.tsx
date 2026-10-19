@@ -20,6 +20,7 @@ import { api } from '../services/api.js';
 
 interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
+  initialCertificationId?: string | null;
 }
 
 interface WorksheetColumn {
@@ -55,7 +56,7 @@ export function wsVal(row: any, keys: string[]): string {
   return '';
 }
 
-export default function AccessCertificates({ environmentMode }: AccessCertificatesProps) {
+export default function AccessCertificates({ environmentMode, initialCertificationId }: AccessCertificatesProps) {
   // Main Certification List State
   const [certifications, setCertifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,6 +179,29 @@ export default function AccessCertificates({ environmentMode }: AccessCertificat
     setDetailsError('');
     setWorksheetSearchTerm('');
   };
+
+  useEffect(() => {
+    if (initialCertificationId) {
+      if (certifications.length > 0) {
+        const match = certifications.find(
+          (c) => String(c.certificationId ?? c.id) === String(initialCertificationId)
+        );
+        if (match) {
+          openCertificationDrillDown(match);
+        } else {
+          openCertificationDrillDown({
+            certificationId: initialCertificationId,
+            certificationName: `Certification #${initialCertificationId}`
+          });
+        }
+      } else {
+        openCertificationDrillDown({
+          certificationId: initialCertificationId,
+          certificationName: `Certification #${initialCertificationId}`
+        });
+      }
+    }
+  }, [initialCertificationId, certifications]);
 
   // Filtered worksheet rows based on search term (matches across all 23 columns)
   const filteredWorksheetRows = useMemo(() => {

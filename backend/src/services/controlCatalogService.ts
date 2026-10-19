@@ -71,6 +71,8 @@ export interface ControlIncidentItem {
   dataSource?: string | null;
   groupingValue?: string | null;
   group?: string | null;
+  resultGroup?: string | null;
+  revisionDate?: string | null;
   comments?: string | null;
   attachments?: string | null;
   controlType?: string | null;
@@ -682,8 +684,10 @@ export class ControlCatalogService {
       incidentInformation: raw.IncidentInformation ?? raw.incidentInformation ?? raw.Description ?? raw.description ?? null,
       incidentInformationCodes: raw.IncidentInformationCodes ?? raw.incidentInformationCodes ?? raw.IncidentCodes ?? raw.incidentCodes ?? null,
       dataSource: raw.DataSource ?? raw.dataSource ?? 'Oracle Cloud',
-      groupingValue: raw.GroupingValue ?? raw.groupingValue ?? raw.Group ?? raw.group ?? raw.GroupName ?? raw.groupName ?? null,
-      group: raw.Group ?? raw.group ?? raw.GroupName ?? raw.groupName ?? raw.GroupingValue ?? raw.groupingValue ?? null,
+      groupingValue: raw.GroupingValue ?? raw.groupingValue ?? null,
+      group: raw.ResultGroup ?? raw.resultGroup ?? raw.Group ?? raw.group ?? raw.GroupName ?? raw.groupName ?? null,
+      resultGroup: raw.ResultGroup ?? raw.resultGroup ?? raw.Group ?? raw.group ?? null,
+      revisionDate: raw.RevisionDate ?? raw.revisionDate ?? null,
       comments: raw.Comments ?? raw.comments ?? raw.IncidentComments ?? raw.incidentComments ?? null,
       attachments: raw.Attachments ?? raw.attachments ?? null,
       controlType: raw.ControlType ?? raw.controlType ?? null,

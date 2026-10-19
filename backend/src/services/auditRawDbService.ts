@@ -95,10 +95,10 @@ export class AuditRawDbService {
     const s = String(rawName).trim();
     const lower = s.toLowerCase();
     if (lower.includes('risk') || lower.includes('racm') || lower.includes('rmc')) {
-      return 'Risks and Controls (RACM / RMC)';
+      return 'Risks and Controls';
     }
     if (lower.includes('human') || lower.includes('hcm') || lower.includes('per')) {
-      return 'Global Human Resources (PER / HCM)';
+      return 'Global Human Resources';
     }
     if (lower.includes('security services') || lower.includes('opss') || lower === 'oracle platform security services') {
       return 'Oracle Platform Security Services';
@@ -614,8 +614,8 @@ export class AuditRawDbService {
       WITH norm AS (
         SELECT 
           CASE 
-            WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls (RACM / RMC)'
-            WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources (PER / HCM)'
+            WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls'
+            WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources'
             WHEN product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' THEN 'Oracle Platform Security Services'
             ELSE product 
           END as norm_product,
@@ -643,8 +643,8 @@ export class AuditRawDbService {
       WITH norm AS (
         SELECT 
           CASE 
-            WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls (RACM / RMC)'
-            WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources (PER / HCM)'
+            WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls'
+            WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources'
             WHEN product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' THEN 'Oracle Platform Security Services'
             ELSE product 
           END as norm_product,

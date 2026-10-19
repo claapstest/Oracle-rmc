@@ -508,6 +508,252 @@ function getTableColumns(
     ];
   }
 
+  if (tableType === 'access_certifications') {
+    return [
+      {
+        key: 'certificationId',
+        header: 'ID',
+        width: '9%',
+        align: 'center',
+        render: (row) => (
+          <code style={{ 
+            fontSize: '0.78rem', 
+            backgroundColor: '#EFF6FF', 
+            color: '#2563EB',
+            padding: '0.15rem 0.45rem', 
+            borderRadius: '4px',
+            border: '1px solid #BFDBFE',
+            fontWeight: 700
+          }}>
+            {row.certificationId || row.id || '—'}
+          </code>
+        )
+      },
+      {
+        key: 'certificationName',
+        header: 'CERTIFICATION NAME',
+        width: '32%',
+        align: 'left',
+        render: (row) => (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.84rem' }}>
+              {row.certificationName || '—'}
+            </span>
+            {row.certifierName && row.certifierName !== '—' && (
+              <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                Certifier: {row.certifierName}
+              </span>
+            )}
+          </div>
+        )
+      },
+      {
+        key: 'type',
+        header: 'TYPE',
+        width: '14%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            {row.type || 'Standard'}
+          </span>
+        )
+      },
+      {
+        key: 'status',
+        header: 'STATUS',
+        width: '12%',
+        align: 'center',
+        render: (row) => {
+          const isActive = String(row.status || '').toLowerCase() === 'active';
+          return (
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '9999px',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                backgroundColor: isActive ? 'rgba(34, 197, 94, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                color: isActive ? '#15803D' : '#475569',
+                border: isActive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(100, 116, 139, 0.25)'
+              }}
+            >
+              {row.status || 'Active'}
+            </span>
+          );
+        }
+      },
+      {
+        key: 'percentComplete',
+        header: '% COMPLETE',
+        width: '11%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+            {row.percentComplete !== undefined ? `${row.percentComplete}%` : '0%'}
+          </span>
+        )
+      },
+      {
+        key: 'dueDate',
+        header: 'DUE DATE',
+        width: '12%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {row.dueDate || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'actions',
+        header: 'ACTIONS',
+        width: '10%',
+        align: 'center',
+        render: (row, _idx, { onNavigatePage }) => (
+          <button 
+            onClick={() => {
+              if (onNavigatePage) {
+                onNavigatePage('risk-certificates', String(row.certificationId || row.id));
+              }
+            }}
+            className="btn btn-secondary" 
+            style={{ 
+              padding: '0.2rem 0.55rem', 
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              color: 'var(--accent-blue)',
+              borderColor: 'rgba(53, 99, 233, 0.3)',
+              backgroundColor: 'rgba(53, 99, 233, 0.05)',
+              borderRadius: '4px',
+              whiteSpace: 'nowrap'
+            }}
+            title="Open in Access Certificates"
+          >
+            <span>View</span>
+            <ArrowRight size={11} />
+          </button>
+        )
+      }
+    ];
+  }
+
+  if (tableType === 'certifier_worksheet') {
+    return [
+      {
+        key: 'userName',
+        header: 'USER NAME',
+        width: '18%',
+        align: 'left',
+        render: (row, _idx, { onInvestigate }) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
+              {row.userName || '—'}
+            </span>
+            {row.userName && row.userName !== '—' && (
+              <button
+                onClick={() => onInvestigate && onInvestigate('user', row.userName, row.userName)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-blue)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'inline-flex'
+                }}
+                title={`Inspect user ${row.userName}`}
+              >
+                <ArrowRight size={11} />
+              </button>
+            )}
+          </div>
+        )
+      },
+      {
+        key: 'roleName',
+        header: 'ROLE NAME',
+        width: '26%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
+            {row.roleName || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'roleCode',
+        header: 'ROLE CODE',
+        width: '20%',
+        align: 'left',
+        render: (row) => (
+          <code style={{ 
+            fontSize: '0.74rem', 
+            backgroundColor: '#F1F5F9', 
+            color: '#0F172A',
+            padding: '0.12rem 0.35rem', 
+            borderRadius: '4px',
+            border: '1px solid #E2E8F0',
+            wordBreak: 'break-all'
+          }}>
+            {row.roleCode || '—'}
+          </code>
+        )
+      },
+      {
+        key: 'directManager',
+        header: 'DIRECT MANAGER',
+        width: '14%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            {row.directManager || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'businessUnit',
+        header: 'BUSINESS UNIT',
+        width: '12%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {row.businessUnit || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'action',
+        header: 'ACTION',
+        width: '10%',
+        align: 'center',
+        render: (row) => {
+          const act = String(row.action || 'Pending').toLowerCase();
+          const isPending = act === 'pending';
+          const isApproved = act === 'approved';
+          return (
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                backgroundColor: isPending ? '#FEF3C7' : isApproved ? '#DCFCE7' : '#F1F5F9',
+                color: isPending ? '#D97706' : isApproved ? '#15803D' : '#475569',
+                border: isPending ? '1px solid #FCD34D' : isApproved ? '1px solid #86EFAC' : '1px solid #CBD5E1'
+              }}
+            >
+              {row.action || 'Pending'}
+            </span>
+          );
+        }
+      }
+    ];
+  }
+
   const cols = rawColumns.length > 0 
     ? rawColumns 
     : (rows.length > 0 ? Object.keys(rows[0]).filter(k => k !== 'id' && !k.startsWith('_')) : ['Attribute', 'Value']);
