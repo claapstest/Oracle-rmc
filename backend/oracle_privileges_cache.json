@@ -1842,7 +1842,7 @@
       },
       "message": "Security role \"Pricing Manager\" with 17 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1791990965978
+    "timestamp": 1792426006319
   },
   "role_privileges:ora_qp_pricing_manager_job": {
     "data": {
@@ -1973,7 +1973,7 @@
       },
       "message": "Security role \"Pricing Manager\" with 17 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1791990966021
+    "timestamp": 1792426006359
   },
   "role_privileges:fscm load interface administration": {
     "data": {
