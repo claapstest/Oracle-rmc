@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "commands": [
+        "npm install",
+        "npm run install:subpackages"
+      ]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": [
+        "npm run build"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "node index.js"
+  }
+}
