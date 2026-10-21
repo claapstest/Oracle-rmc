@@ -240,8 +240,10 @@ export default function Audit({
                 }
               }
               if (!targetBO) {
-                targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) => b.isSupported !== false) ||
-                           targetProd.businessObjects?.[0];
+                targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) => 
+                  b.isSupported !== false && (b.id.toLowerCase() === 'account' || b.displayName.toLowerCase() === 'account')
+                ) || (targetProd.businessObjects || []).find((b: AuditProductBO) => b.isSupported !== false) ||
+                targetProd.businessObjects?.[0];
               }
               setSelectedBOId(targetBO?.id || '');
             }
@@ -268,7 +270,8 @@ export default function Audit({
       const supportedBOs = prod.businessObjects.filter(b => b.isSupported !== false);
       const alreadyMatches = supportedBOs.some(b => b.id === selectedBOId);
       if (!alreadyMatches) {
-        setSelectedBOId(supportedBOs[0]?.id || '');
+        const preferred = supportedBOs.find(b => b.id.toLowerCase() === 'account' || b.displayName.toLowerCase() === 'account');
+        setSelectedBOId(preferred?.id || supportedBOs[0]?.id || '');
       }
     }
   }, [selectedProductId, products]);
@@ -404,8 +407,8 @@ export default function Audit({
         toDate: qTo,
         username: qUser.trim() || undefined,
         action: qAction !== 'ALL' ? qAction : undefined,
-        pageNumber: targetPage,
-        pageSize
+        pageNumber: 1,
+        pageSize: 500
       });
 
       setCurrentPage(targetPage);

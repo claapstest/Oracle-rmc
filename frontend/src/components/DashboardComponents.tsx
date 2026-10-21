@@ -2142,7 +2142,11 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                           </button>
 
                           <span
-                            onClick={() => handleInspect(p.product)}
+                            onClick={() => {
+                              const activeBO = p.businessObjects?.find(b => b.totalRecords > 0)?.businessObject 
+                                || p.businessObjects?.[0]?.businessObject;
+                              handleInspect(p.product, activeBO);
+                            }}
                             style={{
                               fontSize: '0.78rem',
                               color: 'var(--accent-blue)',
