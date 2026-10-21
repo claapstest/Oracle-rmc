@@ -18,7 +18,8 @@ import {
   Activity,
   ChevronDown,
   ChevronRight,
-  CheckCircle2
+  CheckCircle2,
+  UserX
 } from 'lucide-react';
 
 /* ==========================================================
@@ -152,7 +153,9 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
 
   const total = stats.totalUsers || 2993;
-  const inactive = stats.inactiveUsers || 2015;
+  const inactive = stats.inactiveUsers !== undefined 
+    ? stats.inactiveUsers 
+    : (stats.userAccountHealth?.inactiveUsers !== undefined ? stats.userAccountHealth.inactiveUsers : 2035);
   const usersNoRoles = stats.usersWithoutRolesCount !== undefined ? stats.usersWithoutRolesCount : 2018;
   const activeUsersWithoutRoles = stats.activeUsersWithoutRolesCount !== undefined 
     ? stats.activeUsersWithoutRolesCount 
@@ -205,14 +208,14 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
       icon: Users
     },
     {
-      label: 'Users Without Roles',
-      count: usersNoRoles,
-      desc: 'Orphaned accounts lacking any assigned roles',
-      filter: 'NO_ROLES',
+      label: 'Inactive Users',
+      count: inactive,
+      desc: 'Dormant or de-provisioned accounts',
+      filter: 'INACTIVE',
       page: 'users',
       color: '#EF4444',
       bg: '#FEF2F2',
-      icon: AlertTriangle
+      icon: UserX
     },
     {
       label: 'Security Administrators',
