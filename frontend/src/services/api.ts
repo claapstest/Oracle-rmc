@@ -494,9 +494,10 @@ export const api = {
     return apiRequest(`/access-certifications${query}`);
   },
 
-  async getAccessCertificationDetails(certificationId: string) {
+  async getAccessCertificationDetails(certificationId: string, forceRefresh = false) {
     const encodedId = encodeURIComponent(String(certificationId || '').trim());
-    return apiRequest(`/access-certifications/${encodedId}/details`);
+    const query = forceRefresh ? `?refresh=true&t=${Date.now()}` : '';
+    return apiRequest(`/access-certifications/${encodedId}/details${query}`);
   },
 
   // Configuration Settings

@@ -50,6 +50,7 @@ export interface AccessCertificationDetailsResult {
   certificationId: string;
   count: number;
   data: CertifierWorksheetRow[];
+  allData?: CertifierWorksheetRow[];
   message?: string;
   error?: string;
   isConfigurationError?: boolean;
@@ -1259,13 +1260,14 @@ export class BipClient {
         ? normalizedRows.filter((r) => String(r.certificationId).trim() === cleanCertId)
         : normalizedRows;
 
-      console.log(`[BIP Client] Certifier Worksheet: Parsed ${matchingRows.length} rows for Certification ID "${cleanCertId}" from sheet "${firstSheetName}".`);
+      console.log(`[BIP Client] Certifier Worksheet: Parsed ${matchingRows.length} rows for Certification ID "${cleanCertId}" (${normalizedRows.length} total rows) from sheet "${firstSheetName}".`);
 
       return {
         success: true,
         certificationId: cleanCertId,
         count: matchingRows.length,
         data: matchingRows,
+        allData: normalizedRows,
         message: matchingRows.length === 0 ? 'No user access details found for this certification.' : undefined
       };
     } catch (err: any) {
@@ -1281,6 +1283,42 @@ export class BipClient {
   }
 
   /**
+   * Resolves the canonical or actual Certification Campaign ID from a certification campaign name.
+   * Matches live Oracle Fusion campaign naming patterns.
+   */
+  public resolveCampaignIdFromName(certName: string, knownCerts?: any[]): string | null {
+    if (!certName) return null;
+    const clean = certName.trim();
+    const norm = clean.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Check against known list if provided
+    if (Array.isArray(knownCerts)) {
+      for (const c of knownCerts) {
+        const cName = String(c.certificationName || c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cId = String(c.certificationId ?? c.id ?? '').trim();
+        if (cName && cId && (norm === cName || norm.includes(cName) || cName.includes(norm))) {
+          return cId;
+        }
+      }
+    }
+
+    // Default known mappings for Oracle Fusion campaigns
+    if (norm.includes('itsecuritymanager') || (norm.includes('security') && norm.includes('manager'))) {
+      return '2';
+    }
+    if (norm.includes('accountspayable') || norm.includes('payable')) {
+      return '3';
+    }
+    if (norm.includes('accountsreceivable') || norm.includes('receivable')) {
+      return '7002';
+    }
+    if (norm.includes('advancedaccesscontrol') || (norm.includes('access') && norm.includes('control'))) {
+      return '1';
+    }
+    return null;
+  }
+
+  /**
    * Normalizes a raw Certifier Worksheet row into the standardized CertifierWorksheetRow format.
    * Maps actual BIP column names directly (live-only: blank cells stay blank, no invented defaults):
    *  - Role Name: row['Role Name'] || row['Job Role Name']
@@ -1292,14 +1330,6 @@ export class BipClient {
    *  - User Manager: row['Manager Name'] || row['User Manager']
    */
   public normalizeCertifierRow(row: Record<string, any>, certIdDefault = ''): CertifierWorksheetRow {
-    const certId = String(
-      row['Certification ID'] ??
-      row['certificationId'] ??
-      row['CERTIFICATION_ID'] ??
-      certIdDefault ??
-      ''
-    ).trim();
-
     // Live-only: certification name comes strictly from the worksheet row.
     let certName = String(
       row['Certification Name'] ??
@@ -1307,6 +1337,16 @@ export class BipClient {
       row['CERTIFICATION_NAME'] ??
       ''
     ).trim();
+
+    const explicitCertId = String(
+      row['Certification ID'] ??
+      row['certificationId'] ??
+      row['CERTIFICATION_ID'] ??
+      ''
+    ).trim();
+
+    const resolvedFromCertName = this.resolveCampaignIdFromName(certName);
+    const certId = explicitCertId || resolvedFromCertName || certIdDefault;
 
     const owner = String(
       row['Owner Name'] ??

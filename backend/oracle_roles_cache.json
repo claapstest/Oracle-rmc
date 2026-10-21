@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-10-21T12:45:40.268Z",
+  "syncedAt": "2026-10-21T15:45:07.774Z",
   "totalResults": 711,
   "counts": {
     "Job": 513,
@@ -70493,7 +70493,12 @@
       "roleCode": "LEDGER_AGENT_TEST_ROLE",
       "category": "Abstract",
       "description": "Oracle Fusion Security Abstract Role",
-      "members": [],
+      "members": [
+        {
+          "value": "3E210388C1BDC9BEE063B9131CAC1D25",
+          "display": ""
+        }
+      ],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []

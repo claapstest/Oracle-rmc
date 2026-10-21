@@ -3504,10 +3504,42 @@ class OracleService {
         };
       });
 
-      // Save to Database and update cache
-      accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
-        console.warn(`[OracleService] Background Worksheet DB save error for ${cleanCertId}:`, err.message);
-      });
+      // Save all partitioned campaigns if sheet contained multiple campaigns
+      if (bipResult.allData && bipResult.allData.length > 0) {
+        const campaignGroups = new Map<string, any[]>();
+        for (const row of bipResult.allData) {
+          const cId = String(row.certificationId || '').trim();
+          if (cId) {
+            if (!campaignGroups.has(cId)) campaignGroups.set(cId, []);
+            campaignGroups.get(cId)!.push(row);
+          }
+        }
+        for (const [grpCertId, grpRows] of campaignGroups.entries()) {
+          const enrichedGrpData = grpRows.map((row: any) => {
+            const uName = (row.userName || row.ownerName || '').toUpperCase();
+            const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
+            const bu = row.businessUnit || userBuMap.get(uName) || '';
+            const dept = row.department || userDeptMap.get(uName) || '';
+            const numId = Number(grpCertId) || grpCertId;
+            return {
+              ...row,
+              id: numId,
+              certificationId: numId,
+              directManager: directMgr,
+              businessUnit: bu,
+              department: dept
+            };
+          });
+          accessCertRawDbService.saveRawWorksheetRows(grpCertId, enrichedGrpData).catch(err => {
+            console.warn(`[OracleService] Background Worksheet DB save error for ${grpCertId}:`, err.message);
+          });
+        }
+      } else {
+        // Save to Database and update cache
+        accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
+          console.warn(`[OracleService] Background Worksheet DB save error for ${cleanCertId}:`, err.message);
+        });
+      }
 
       return {
         success: true,

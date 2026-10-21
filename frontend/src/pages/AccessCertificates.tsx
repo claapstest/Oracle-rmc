@@ -180,7 +180,7 @@ export default function AccessCertificates({
   }, [filteredCertifications, currentPage, pageSize]);
 
   // Drill-Down: Open worksheet for selected certification
-  const openCertificationDrillDown = async (cert: any) => {
+  const openCertificationDrillDown = async (cert: any, isManualRefresh = false) => {
     const certId = String(cert?.certificationId ?? cert?.id ?? '').trim();
     if (!certId) {
       setDetailsError('Certification ID is missing.');
@@ -196,7 +196,7 @@ export default function AccessCertificates({
     setWorksheetCurrentPage(1);
 
     try {
-      const res = await api.getAccessCertificationDetails(certId);
+      const res = await api.getAccessCertificationDetails(certId, isManualRefresh);
       if (res && res.success) {
         setWorksheetRows(Array.isArray(res.data) ? res.data : []);
       } else {
@@ -347,19 +347,19 @@ export default function AccessCertificates({
   // =========================================================================
   if (drillDownCertId !== null) {
     const firstRow = worksheetRows[0] || {};
-    const certName = firstRow.certificationName || drillDownSummary?.certificationName || 'Access Certification Details';
-    const certStatus = firstRow.status || drillDownSummary?.status || 'Active';
-    const certType = firstRow.type || drillDownSummary?.type || 'Standard';
+    const certName = drillDownSummary?.certificationName || firstRow.certificationName || 'Access Certification Details';
+    const certStatus = drillDownSummary?.status || firstRow.status || 'Active';
+    const certType = drillDownSummary?.type || firstRow.type || 'Standard';
     const certPct = getPercentValue(
-      firstRow.completionPercent ?? drillDownSummary?.certificationPercentComplete ?? 0
+      drillDownSummary?.certificationPercentComplete ?? firstRow.completionPercent ?? 0
     );
-    const certDueDate = firstRow.dueDate || drillDownSummary?.dueDate;
-    const certCreationDate = firstRow.creationDate || drillDownSummary?.creationDate;
+    const certDueDate = drillDownSummary?.dueDate || firstRow.dueDate;
+    const certCreationDate = drillDownSummary?.creationDate || firstRow.creationDate;
     const certManager =
+      drillDownSummary?.certifierName ||
+      drillDownSummary?.managerName ||
       firstRow.certifiedManager ||
       firstRow.certifierName ||
-      firstRow.userManager ||
-      drillDownSummary?.managerName ||
       drillDownSummary?.createdBy ||
       '—';
 
@@ -465,7 +465,7 @@ export default function AccessCertificates({
 
             <button
               type="button"
-              onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId })}
+              onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId }, true)}
               disabled={loadingDetails}
               style={{
                 display: 'inline-flex',
@@ -491,40 +491,6 @@ export default function AccessCertificates({
               <RefreshCw size={14} className={loadingDetails ? 'animate-spin' : ''} />
               <span>Refresh Worksheet</span>
             </button>
-          </div>
-        </div>
-
-        {/* Integration Notification / Notice */}
-        <div
-          className="animate-fade-in"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: '#EFF6FF',
-            border: '1px solid #DBEAFE',
-            borderRadius: '10px',
-            padding: '0.75rem 1.25rem',
-            marginBottom: '1.25rem',
-            fontSize: '0.84rem',
-            color: '#1E3A8A',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Info size={16} style={{ color: '#2563EB', flexShrink: 0 }} />
-            <span>
-              <strong>BIP Certifier Worksheet Source:</strong> Executed via ExternalReportWSSService with parameter{' '}
-              <code style={{ background: 'rgba(37, 99, 235, 0.08)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
-                P_CERTIFICATION_ID = {drillDownCertId}
-              </code>
-              . Preserving all assigned user and role worksheet rows.
-            </span>
-          </div>
-          <div style={{ color: '#64748B', fontSize: '0.82rem' }}>
-            Rows Loaded:{' '}
-            <strong style={{ color: '#1E293B' }}>{worksheetRows.length}</strong>
           </div>
         </div>
 
