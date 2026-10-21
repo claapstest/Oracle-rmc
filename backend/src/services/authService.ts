@@ -666,13 +666,19 @@ export class AuthService {
         };
       }
 
-      // 6. AC6: Transition any expired ACTIVE sessions for this user to EXPIRED status
+      // 6. AC6: Transition any expired or inactive ACTIVE sessions for this user to EXPIRED status
       try {
+        const inactivityTimeoutMs = getInactivityTimeoutMs();
+        const cutoffTime = new Date(Date.now() - inactivityTimeoutMs);
         await dbQuery(
           `UPDATE veyra_session
            SET status = 'EXPIRED'
-           WHERE user_id = $1 AND status = 'ACTIVE' AND expires_at IS NOT NULL AND expires_at < NOW()`,
-          [dbUser.id]
+           WHERE user_id = $1 AND status = 'ACTIVE' 
+             AND (
+               (expires_at IS NOT NULL AND expires_at < NOW())
+               OR (last_activity_at IS NOT NULL AND last_activity_at < $2)
+             )`,
+          [dbUser.id, cutoffTime]
         );
       } catch (expErr) {
         console.error('[Auth Service] Error updating expired sessions:', expErr);
@@ -680,7 +686,7 @@ export class AuthService {
 
       // 7. AC2 & AC3: Check if an ACTIVE session already exists for this user in PostgreSQL
       const existingActiveRes = await dbQuery(
-        `SELECT id, session_id, created_at, expires_at
+        `SELECT id, session_id, created_at, expires_at, last_activity_at
          FROM veyra_session
          WHERE user_id = $1 AND status = 'ACTIVE'
          LIMIT 1`,
@@ -688,22 +694,33 @@ export class AuthService {
       );
 
       if (existingActiveRes.rows.length > 0) {
-        // Active session already exists: reject second login with 409 conflict
-        // AC4: Existing session remains completely valid and untouched
-        await auditService.recordAuditEvent({
-          userId: dbUser.id,
-          eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
-          ipAddress,
-          userAgent,
-          targetType: 'SESSION',
-          targetId: existingActiveRes.rows[0].session_id,
-          details: { reason: 'ACTIVE_SESSION_EXISTS' }
-        }).catch(() => {});
-        return {
-          success: false,
-          code: 'ACTIVE_SESSION_EXISTS',
-          message: 'An active session already exists for this user.'
-        };
+        const existingRow = existingActiveRes.rows[0];
+        const now = Date.now();
+        const inactivityTimeout = getInactivityTimeoutMs();
+        const existingLastAct = existingRow.last_activity_at ? new Date(existingRow.last_activity_at).getTime() : new Date(existingRow.created_at).getTime();
+        const existingExpires = existingRow.expires_at ? new Date(existingRow.expires_at).getTime() : (existingLastAct + inactivityTimeout);
+
+        if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout)) {
+          await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE id = $1`, [existingRow.id]);
+          activeSessions.delete(existingRow.session_id);
+        } else {
+          // Active session already exists: reject second login with 409 conflict
+          // AC4: Existing session remains completely valid and untouched
+          await auditService.recordAuditEvent({
+            userId: dbUser.id,
+            eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
+            ipAddress,
+            userAgent,
+            targetType: 'SESSION',
+            targetId: existingRow.session_id,
+            details: { reason: 'ACTIVE_SESSION_EXISTS' }
+          }).catch(() => {});
+          return {
+            success: false,
+            code: 'ACTIVE_SESSION_EXISTS',
+            message: 'An active session already exists for this user.'
+          };
+        }
       }
 
       // 8. Retrieve active roles assigned via veyra_user_role -> veyra_role

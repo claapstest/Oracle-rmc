@@ -1190,10 +1190,6 @@ export default function App() {
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
                 onNavigatePage={(pageId, filter) => {
                   handlePageSelect(pageId, filter);
-                  if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
-                  if (pageId === 'users' && filter) setInitialUsersFilter(filter);
-                  if (pageId === 'audit' && filter) setInitialAuditBO(filter);
-                  if (pageId === 'risk-certificates' && filter) setInitialCertId(filter);
                 }}
               />
             </div>
@@ -1210,10 +1206,6 @@ export default function App() {
               environmentMode={environmentMode}
               onNavigatePage={(pageId, filter) => {
                 handlePageSelect(pageId, filter);
-                if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
-                if (pageId === 'users' && filter) setInitialUsersFilter(filter);
-                if (pageId === 'audit' && filter) setInitialAuditBO(filter);
-                if (pageId === 'risk-certificates' && filter) setInitialCertId(filter);
               }}
               onInvestigate={(type, id, name, initialTab) => handleInvestigate(type, id, name, initialTab, 'assistant')}
               onOpenFullInvestigation={handleOpenQueryInvestigation}

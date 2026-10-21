@@ -95,7 +95,12 @@ export default function Audit({
   // Product Catalog state
   const [products, setProducts] = useState<AuditProduct[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>(initialProductId || 'hcm');
-  const [selectedBOId, setSelectedBOId] = useState<string>(initialBOId || 'document_records');
+  const rawInitialBO = typeof initialBOId === 'string'
+    ? initialBOId
+    : (typeof initialBOId === 'object' && initialBOId !== null
+        ? ((initialBOId as any).businessObject || (initialBOId as any).id || '')
+        : '');
+  const [selectedBOId, setSelectedBOId] = useState<string>(rawInitialBO || 'document_records');
 
   // Filter state - supports 2025 through current date
   const [fromDate, setFromDate] = useState<string>(() => initialFromDate || '2025-01-01');
@@ -221,11 +226,18 @@ export default function Audit({
             } else {
               let targetBO: AuditProductBO | undefined;
               if (initialBOId) {
-                const normBO = initialBOId.trim().toLowerCase();
-                targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) =>
-                  b.id.toLowerCase() === normBO ||
-                  b.displayName.toLowerCase() === normBO
-                );
+                const rawBO = typeof initialBOId === 'string'
+                  ? initialBOId
+                  : (typeof initialBOId === 'object' && initialBOId !== null
+                      ? ((initialBOId as any).businessObject || (initialBOId as any).id || '')
+                      : String(initialBOId || ''));
+                const normBO = rawBO.trim().toLowerCase();
+                if (normBO) {
+                  targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) =>
+                    b.id.toLowerCase() === normBO ||
+                    b.displayName.toLowerCase() === normBO
+                  );
+                }
               }
               if (!targetBO) {
                 targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) => b.isSupported !== false) ||
