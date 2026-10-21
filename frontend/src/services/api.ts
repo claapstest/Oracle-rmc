@@ -223,10 +223,10 @@ export const api = {
   },
 
   // On-demand Product-Level Audit Sync
-  async syncProductActivity(product: string) {
+  async syncProductActivity(product: string, options?: { businessObject?: string; fromDate?: string; toDate?: string }) {
     return apiRequest('/audit/sync/product', {
       method: 'POST',
-      body: JSON.stringify({ product })
+      body: JSON.stringify({ product, ...options })
     });
   },
 

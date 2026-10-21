@@ -78,13 +78,17 @@ const cleanProductName = (name?: string): string => {
 export interface AuditProps {
   initialBOId?: string;
   initialProductId?: string;
+  initialFromDate?: string;
+  initialToDate?: string;
   onBack?: () => void;
   onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
 export default function Audit({
-  initialBOId = 'document_records',
-  initialProductId = 'hcm',
+  initialBOId,
+  initialProductId,
+  initialFromDate,
+  initialToDate,
   onBack,
   onRegisterBack
 }: AuditProps = {}) {
@@ -94,8 +98,8 @@ export default function Audit({
   const [selectedBOId, setSelectedBOId] = useState<string>(initialBOId || 'document_records');
 
   // Filter state - supports 2025 through current date
-  const [fromDate, setFromDate] = useState<string>('2025-01-01');
-  const [toDate, setToDate] = useState<string>(getTodayIsoDate);
+  const [fromDate, setFromDate] = useState<string>(() => initialFromDate || '2025-01-01');
+  const [toDate, setToDate] = useState<string>(() => initialToDate || getTodayIsoDate());
   const [userQuery, setUserQuery] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
 
@@ -194,16 +198,40 @@ export default function Audit({
         if (isCancelled) return;
         if (res?.success && Array.isArray(res.products)) {
           setProducts(res.products);
-          const targetProdId = initialProductId || 'hcm';
-          const targetBOId = initialBOId || 'document_records';
-          const targetProd = res.products.find((p: AuditProduct) => p.id === targetProdId || p.sno === 32) || res.products[0];
+          
+          let targetProd: AuditProduct | undefined;
+          if (initialProductId) {
+            const normTarget = initialProductId.trim().toLowerCase();
+            targetProd = res.products.find((p: AuditProduct) =>
+              p.id.toLowerCase() === normTarget ||
+              (p.displayName && p.displayName.toLowerCase() === normTarget) ||
+              (p.productName && p.productName.toLowerCase() === normTarget) ||
+              cleanProductName(p.displayName).toLowerCase() === normTarget ||
+              (p.shortCodes && p.shortCodes.some(c => c.toLowerCase() === normTarget))
+            );
+          }
+          if (!targetProd) {
+            targetProd = res.products.find((p: AuditProduct) => p.id === 'hcm') || res.products[0];
+          }
+
           if (targetProd) {
             setSelectedProductId(targetProd.id);
-            const targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) => b.id === targetBOId) ||
-                             (targetProd.businessObjects || []).find((b: AuditProductBO) => b.isSupported !== false) ||
-                             targetProd.businessObjects?.[0];
-            if (targetBO) {
-              setSelectedBOId(targetBO.id);
+            if (!targetProd.requiresBusinessObjectType || !targetProd.businessObjects || targetProd.businessObjects.length === 0) {
+              setSelectedBOId('');
+            } else {
+              let targetBO: AuditProductBO | undefined;
+              if (initialBOId) {
+                const normBO = initialBOId.trim().toLowerCase();
+                targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) =>
+                  b.id.toLowerCase() === normBO ||
+                  b.displayName.toLowerCase() === normBO
+                );
+              }
+              if (!targetBO) {
+                targetBO = (targetProd.businessObjects || []).find((b: AuditProductBO) => b.isSupported !== false) ||
+                           targetProd.businessObjects?.[0];
+              }
+              setSelectedBOId(targetBO?.id || '');
             }
           }
         }
@@ -281,16 +309,24 @@ export default function Audit({
   // Auto-run initial search once product catalog is loaded
   const [hasAutoSearched, setHasAutoSearched] = useState(false);
   useEffect(() => {
-    if (!hasAutoSearched && products.length > 0 && selectedProductId && selectedBOId) {
-      setHasAutoSearched(true);
-      handleSearch(1, selectedProductId, selectedBOId);
+    if (!hasAutoSearched && products.length > 0 && selectedProductId) {
+      const currentProd = products.find(p => p.id === selectedProductId);
+      const isBOValid = !currentProd?.requiresBusinessObjectType || Boolean(selectedBOId);
+      if (isBOValid) {
+        setHasAutoSearched(true);
+        handleSearch(1, selectedProductId, selectedBOId, fromDate, toDate);
+      }
     }
-  }, [products, selectedProductId, selectedBOId, hasAutoSearched]);
+  }, [products, selectedProductId, selectedBOId, hasAutoSearched, fromDate, toDate]);
 
   // Re-run search if selected BO or product changes after initial search has run
   useEffect(() => {
-    if (hasAutoSearched && products.length > 0 && selectedProductId && selectedBOId) {
-      handleSearch(1, selectedProductId, selectedBOId);
+    if (hasAutoSearched && products.length > 0 && selectedProductId) {
+      const currentProd = products.find(p => p.id === selectedProductId);
+      const isBOValid = !currentProd?.requiresBusinessObjectType || Boolean(selectedBOId);
+      if (isBOValid) {
+        handleSearch(1, selectedProductId, selectedBOId, fromDate, toDate);
+      }
     }
   }, [selectedProductId, selectedBOId]);
 

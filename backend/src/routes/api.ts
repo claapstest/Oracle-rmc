@@ -2185,57 +2185,45 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
     } = req.body || {};
 
     const currentUser = res.locals.email || 'SYSTEM';
-    logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered live audit trail sync for product: ${product || 'All'}, BO: ${businessObjectType || 'Default'}`);
+    logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered audit trail sync for product: ${product || 'All Active Products'}, BO: ${businessObjectType || 'All'}`);
 
-    // If dates are not explicitly supplied, compute from the exact last sync watermark up to now
-    let queryFrom = fromDate;
-    let queryTo = toDate;
-    if (!queryFrom) {
-      const lastSync = await auditRawDbService.getLastSyncTime(product || '__GLOBAL__');
-      queryFrom = lastSync.toISOString().split('T')[0];
-    }
-    if (!queryTo) {
-      queryTo = new Date().toISOString().split('T')[0];
+    if (!product || product === '__ALL__') {
+      // Run comprehensive multi-product incremental sync across all cataloged products
+      const syncResult = await auditRawDbService.runDailyIncrementalSync(
+        (oracleService as any).client,
+        auditProductCatalogService,
+        { fromDate, toDate }
+      );
+
+      return res.json({
+        ...oracleService.getModeInfo(),
+        success: true,
+        message: `Audit Trail upgrade sync complete across ${syncResult.targetsProcessed} product targets. Retrieved ${syncResult.totalSynced} records (${syncResult.totalSaved} newly persisted to database).`,
+        syncedCount: syncResult.totalSynced,
+        savedCount: syncResult.totalSaved,
+        totalRecords: syncResult.totalSynced,
+        lastSynced: syncResult.lastSyncedAt,
+        dataSource: 'Live Oracle Fusion API'
+      });
     }
 
-    // Query live Oracle Fusion API
-    const result = await oracleService.getAuditHistory({
+    // Product-level sync
+    const syncResult = await auditRawDbService.syncProduct(
       product,
-      businessObjectType,
-      fromDate: queryFrom,
-      toDate: queryTo,
-      source: 'live',
-      pageSize: 500
-    });
-
-    // Save live retrieved records to PostgreSQL database
-    let savedCount = 0;
-    if (result.logs && result.logs.length > 0 && Array.isArray(result.logs)) {
-      const rawPayloads = result.logs.map((l: any) => l.raw || l);
-      try {
-        savedCount = await auditRawDbService.saveRawAuditRecords(
-          result.productDisplayName || product || 'Oracle Fusion',
-          result.businessObjectDisplayName || businessObjectType || 'All Events',
-          rawPayloads
-        );
-        await auditRawDbService.updateSyncState(product || '__GLOBAL__', savedCount, 'SUCCESS');
-      } catch (dbErr: any) {
-        console.warn('[Audit Sync] Could not persist raw audit records:', dbErr.message);
-      }
-    } else {
-      await auditRawDbService.updateSyncState(product || '__GLOBAL__', 0, 'SUCCESS');
-    }
+      (oracleService as any).client,
+      auditProductCatalogService,
+      { fromDate, toDate, businessObject: businessObjectType }
+    );
 
     res.json({
       ...oracleService.getModeInfo(),
       success: true,
-      message: `Audit Trail successfully synchronized from Oracle Fusion (${queryFrom} to ${queryTo}). Retrieved ${result.logs?.length || 0} records (${savedCount} newly persisted to database).`,
-      syncedCount: result.logs?.length || 0,
-      savedCount,
-      totalRecords: result.totalRecords || result.logs?.length || 0,
-      lastSynced: new Date().toISOString(),
-      dataSource: result.dataSource || 'Live Oracle Fusion API',
-      logs: result.logs
+      message: `Audit records for ${syncResult.product} successfully synchronized (${fromDate || 'recent'} to ${toDate || 'now'}). Synced ${syncResult.syncedCount} records (${syncResult.savedCount} newly saved).`,
+      syncedCount: syncResult.syncedCount,
+      savedCount: syncResult.savedCount,
+      totalRecords: syncResult.syncedCount,
+      lastSynced: syncResult.lastSyncedAt,
+      dataSource: 'Live Oracle Fusion API'
     });
   } catch (err) {
     console.error('[API Router] Audit sync failed:', err);
@@ -2250,18 +2238,19 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
 // POST /api/audit/sync/product - Product-level audit synchronization on-demand
 apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
   try {
-    const { product } = req.body || {};
+    const { product, businessObject, fromDate, toDate } = req.body || {};
     if (!product) {
       return res.status(400).json({ success: false, message: 'Product parameter is required.' });
     }
 
     const currentUser = res.locals.email || 'SYSTEM';
-    logAudit(currentUser, 'PRODUCT_AUDIT_SYNC', `Triggered product-level audit sync for: ${product}`);
+    logAudit(currentUser, 'PRODUCT_AUDIT_SYNC', `Triggered product-level audit sync for: ${product} (BO: ${businessObject || 'All'})`);
 
     const syncResult = await auditRawDbService.syncProduct(
       product,
       (oracleService as any).client,
-      auditProductCatalogService
+      auditProductCatalogService,
+      { fromDate, toDate, businessObject }
     );
 
     res.json({

@@ -561,13 +561,10 @@ export class AuditRawDbService {
     let targetDate = todayStr;
 
     if (timeframe === '24h' || timeframe === 'rolling_24h') {
-      const lastSyncTime = await this.getLastSyncTime('__GLOBAL__');
-      const cutoff = lastSyncTime.getTime() > now.getTime() - 48 * 60 * 60 * 1000
-        ? lastSyncTime
-        : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       whereClause += ` AND event_timestamp >= $2::timestamptz`;
       values.push(cutoff.toISOString());
-      effectiveDateLabel = `Daily Sync Interval (Since ${cutoff.toLocaleDateString()} ${cutoff.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+      effectiveDateLabel = 'Last 24 Hours (Rolling)';
       targetDate = todayStr;
     } else if (timeframe === 'today') {
       whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
@@ -737,7 +734,8 @@ export class AuditRawDbService {
   public async syncProduct(
     productName: string,
     oracleClient?: any,
-    catalogService?: any
+    catalogService?: any,
+    options?: { fromDate?: string; toDate?: string; businessObject?: string }
   ): Promise<{
     product: string;
     syncedCount: number;
@@ -750,8 +748,8 @@ export class AuditRawDbService {
     const now = new Date();
     const lastSync = await this.getLastSyncTime(normalizedProduct);
     const formatDate = (d: Date) => d.toISOString().split('T')[0];
-    const fromDateStr = formatDate(lastSync);
-    const toDateStr = formatDate(now);
+    const fromDateStr = options?.fromDate || formatDate(lastSync);
+    const toDateStr = options?.toDate || formatDate(now);
 
     const client = oracleClient;
     if (!client) {
@@ -768,7 +766,9 @@ export class AuditRawDbService {
     );
 
     let businessObjectsToSync: Array<{ businessObject?: string }> = [];
-    if (prodDef && Array.isArray(prodDef.businessObjects) && prodDef.businessObjects.length > 0) {
+    if (options?.businessObject) {
+      businessObjectsToSync = [{ businessObject: options.businessObject }];
+    } else if (prodDef && Array.isArray(prodDef.businessObjects) && prodDef.businessObjects.length > 0) {
       businessObjectsToSync = prodDef.businessObjects
         .filter((b: any) => b.isSupported !== false)
         .map((b: any) => ({ businessObject: b.displayName }));
@@ -834,13 +834,22 @@ export class AuditRawDbService {
   /**
    * Performs an incremental sync of active products from the last sync timestamp up to current time.
    */
-  public async runDailyIncrementalSync(oracleClient?: any, catalogService?: any): Promise<number> {
+  public async runDailyIncrementalSync(
+    oracleClient?: any,
+    catalogService?: any,
+    options?: { fromDate?: string; toDate?: string }
+  ): Promise<{
+    totalSynced: number;
+    totalSaved: number;
+    targetsProcessed: number;
+    lastSyncedAt: string;
+  }> {
     console.log('[AuditRawDbService] Starting automated daily audit incremental sync...');
     const now = new Date();
     const lastSync = await this.getLastSyncTime('__GLOBAL__');
     const formatDate = (d: Date) => d.toISOString().split('T')[0];
-    const fromDateStr = formatDate(lastSync);
-    const toDateStr = now.toISOString().split('T')[0];
+    const fromDateStr = options?.fromDate || formatDate(lastSync);
+    const toDateStr = options?.toDate || now.toISOString().split('T')[0];
 
     console.log(`[Audit Daily Sync Window] Retrieving records from ${fromDateStr} (${lastSync.toISOString()}) to ${toDateStr} (${now.toISOString()})`);
 
@@ -932,7 +941,10 @@ export class AuditRawDbService {
       { product: 'Oracle Platform Security Services', businessObject: undefined }
     ];
 
+    let totalSynced = 0;
     let totalNew = 0;
+    let targetsProcessed = 0;
+
     for (const t of targets) {
       try {
         const client = oracleClient;
@@ -964,6 +976,8 @@ export class AuditRawDbService {
 
         const resp = await client.getAuditHistory(payload, { pageNumber: 1, pageSize: 500 });
         const rawItems = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
+        totalSynced += rawItems.length;
+        targetsProcessed++;
 
         if (rawItems.length > 0) {
           const inserted = await this.saveRawAuditRecords(t.product, t.businessObject || 'All Platform Events', rawItems);
@@ -977,8 +991,13 @@ export class AuditRawDbService {
     }
 
     await this.updateSyncState('__GLOBAL__', totalNew, 'SUCCESS');
-    console.log(`[AuditRawDbService] Incremental sync complete. Total new records inserted: ${totalNew}`);
-    return totalNew;
+    console.log(`[AuditRawDbService] Incremental sync complete. Total fetched: ${totalSynced}, total new records inserted: ${totalNew}`);
+    return {
+      totalSynced,
+      totalSaved: totalNew,
+      targetsProcessed,
+      lastSyncedAt: now.toISOString()
+    };
   }
 
   /**

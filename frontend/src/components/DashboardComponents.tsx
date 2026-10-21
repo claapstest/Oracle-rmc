@@ -1548,7 +1548,7 @@ export const SecurityActivityTrend = RiskTrend;
    7. PRODUCT-LEVEL AUDIT ACTIVITY MONITOR
    ========================================================== */
 interface ProductActivityMonitorProps {
-  onNavigatePage?: (pageId: string, filter?: string) => void;
+  onNavigatePage?: (pageId: string, filter?: any) => void;
   onInvestigateProduct?: (productName: string) => void;
   businessObjects?: any; // Backward compatibility prop
 }
@@ -1610,6 +1610,38 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     loadData(timeframe);
   }, [timeframe, loadData]);
 
+  const handleInspect = (productName: string, businessObject?: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    let fromDate = today;
+    let toDate = today;
+
+    if (timeframe === '24h') {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      fromDate = yesterday;
+      toDate = today;
+    } else if (timeframe === 'yesterday') {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      fromDate = yesterday;
+      toDate = yesterday;
+    } else if (timeframe === 'previous_active') {
+      fromDate = data.targetDate || today;
+      toDate = data.targetDate || today;
+    } else if (timeframe === '7d') {
+      fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      toDate = today;
+    } else if (timeframe === '30d') {
+      fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      toDate = today;
+    }
+
+    onNavigatePage?.('audit', {
+      product: productName,
+      businessObject,
+      fromDate,
+      toDate
+    });
+  };
+
   const handleSyncProduct = async (productName: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setSyncingProduct(productName);
@@ -1637,7 +1669,7 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     try {
       const res = await api.syncAuditTrail();
       if (res?.success) {
-        setSyncFeedback(`Audit sync complete: ${res.syncedCount || 0} records fetched (${res.savedCount || 0} newly saved).`);
+        setSyncFeedback(`Audit upgrade sync complete: ${res.syncedCount || 0} records fetched (${res.savedCount || 0} newly saved).`);
         await loadData(timeframe);
       }
     } catch (err: any) {
@@ -1776,7 +1808,7 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
           )}
 
           <span
-            onClick={() => onNavigatePage?.('audit')}
+            onClick={() => handleInspect('')}
             style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
           >
             Full Audit Trail &rarr;
@@ -2108,7 +2140,7 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                           </button>
 
                           <span
-                            onClick={() => onNavigatePage?.('audit')}
+                            onClick={() => handleInspect(p.product)}
                             style={{
                               fontSize: '0.78rem',
                               color: 'var(--accent-blue)',
@@ -2173,10 +2205,27 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                                     {bo.updates > 0 && <span style={{ color: '#2563EB', fontSize: '0.72rem', fontWeight: 600 }}>{bo.updates} Updates</span>}
                                     {bo.deletes > 0 && <span style={{ color: '#7C3AED', fontSize: '0.72rem', fontWeight: 600 }}>{bo.deletes} Deletes</span>}
                                     {bo.latestEventTime && (
-                                      <span style={{ color: '#64748B', fontSize: '0.7rem', marginLeft: '0.5rem' }}>
+                                      <span style={{ color: '#64748B', fontSize: '0.7rem', marginLeft: '0.3rem' }}>
                                         Latest: {new Date(bo.latestEventTime).toLocaleTimeString()}
                                       </span>
                                     )}
+                                    <span
+                                      onClick={() => handleInspect(p.product, bo.businessObject)}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        color: '#2563EB',
+                                        backgroundColor: '#EFF6FF',
+                                        border: '1px solid #BFDBFE',
+                                        borderRadius: '4px',
+                                        padding: '0.12rem 0.45rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        marginLeft: '0.4rem'
+                                      }}
+                                      title={`Inspect ${bo.businessObject} in Audit Trail`}
+                                    >
+                                      Inspect BO &rarr;
+                                    </span>
                                   </div>
                                 </div>
                               ))}

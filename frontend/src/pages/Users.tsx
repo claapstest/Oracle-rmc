@@ -66,7 +66,9 @@ export default function Users({
 
   useEffect(() => {
     setActiveCategoryFilter(initialFilter);
+    setSearchTerm('');
     setCurrentPage(1);
+    setSelectedUser(null);
   }, [initialFilter]);
 
   // Helper for human-readable category filter label

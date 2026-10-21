@@ -33,7 +33,7 @@ interface DashboardProps {
   onFAQSelect?: (question: string) => void;
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
   onInvestigate?: (type: 'role' | 'user', id: string, name: string) => void;
-  onNavigatePage?: (pageId: string, filter?: string) => void;
+  onNavigatePage?: (pageId: string, filter?: any) => void;
   hasAccess?: (pageId: string) => boolean;
 }
 

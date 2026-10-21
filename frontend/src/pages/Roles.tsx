@@ -35,7 +35,7 @@ export default function Roles({
 }: RolesProps) {
   const [roles, setRoles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState(() => (initialCategory ? initialCategory.toUpperCase() : 'ALL'));
   const [selectedRole, setSelectedRole] = useState<any | null>(null);
   
   // Synchronize internal selected role drawer with topbar Back button
@@ -111,12 +111,13 @@ export default function Roles({
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, categoryFilter, currentPage, pageSize]);
 
-  // Update category filter if initialCategory changes
+  // Update category filter and clear search if initialCategory changes
   useEffect(() => {
-    if (initialCategory) {
-      setCategoryFilter(initialCategory.toUpperCase());
-      setCurrentPage(1);
-    }
+    const targetCat = (initialCategory || 'ALL').toUpperCase();
+    setCategoryFilter(targetCat);
+    setSearchTerm('');
+    setCurrentPage(1);
+    setSelectedRole(null);
   }, [initialCategory]);
 
   // Fetch details (hierarchy and privileges) when role selection changes
@@ -288,8 +289,27 @@ export default function Roles({
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
               Browse Job, Duty, GRC, and Abstract roles mapped in the {dataSource || 'Oracle Fusion'} registry.
               {categoryFilter !== 'ALL' && (
-                <span style={{ marginLeft: '0.6rem', padding: '0.15rem 0.6rem', backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  Filter: {categoryFilter}
+                <span 
+                  onClick={() => {
+                    setCategoryFilter('ALL');
+                    setSearchTerm('');
+                    setCurrentPage(1);
+                  }}
+                  style={{ 
+                    marginLeft: '0.6rem', 
+                    padding: '0.15rem 0.6rem', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                    borderRadius: '9999px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}
+                  title="Click to reset filter to All Categories"
+                >
+                  Filter: {activeCategoryName} <X size={12} />
                 </span>
               )}
             </p>
@@ -351,6 +371,7 @@ export default function Roles({
             value={categoryFilter}
             onChange={(e) => {
               setCategoryFilter(e.target.value);
+              setSearchTerm('');
               setCurrentPage(1);
             }}
           >

@@ -211,8 +211,14 @@ export default function App() {
 
   // States to pass down filters when navigating from cards
   const [initialRolesCategory, setInitialRolesCategory] = useState('ALL');
+  const [rolesNavKey, setRolesNavKey] = useState(0);
   const [initialUsersFilter, setInitialUsersFilter] = useState('ALL');
-  const [initialAuditBO, setInitialAuditBO] = useState('document_records');
+  const [usersNavKey, setUsersNavKey] = useState(0);
+  const [initialAuditProduct, setInitialAuditProduct] = useState<string | undefined>(undefined);
+  const [initialAuditBO, setInitialAuditBO] = useState<string | undefined>('document_records');
+  const [initialAuditFromDate, setInitialAuditFromDate] = useState<string | undefined>(undefined);
+  const [initialAuditToDate, setInitialAuditToDate] = useState<string | undefined>(undefined);
+  const [auditNavKey, setAuditNavKey] = useState(0);
   const [initialCertId, setInitialCertId] = useState<string | null>(null);
 
   // Stack navigation history item definition (for deep entity investigations)
@@ -452,11 +458,26 @@ export default function App() {
     }
   }, []);
 
-  const handlePageSelect = (pageId: string, filter?: string) => {
-    const rolesCat = pageId === 'roles' ? (filter || 'ALL') : 'ALL';
-    const usersFilt = pageId === 'users' ? (filter || 'ALL') : 'ALL';
-    const auditBO = pageId === 'audit' ? (filter || 'document_records') : 'document_records';
-    const certId = pageId === 'risk-certificates' ? (filter || null) : null;
+  const handlePageSelect = (pageId: string, filter?: any) => {
+    const rolesCat = pageId === 'roles' ? (typeof filter === 'string' ? filter : 'ALL') : 'ALL';
+    const usersFilt = pageId === 'users' ? (typeof filter === 'string' ? filter : 'ALL') : 'ALL';
+    const certId = pageId === 'risk-certificates' ? (typeof filter === 'string' ? filter : null) : null;
+
+    let auditProd: string | undefined = undefined;
+    let auditBO: string | undefined = undefined;
+    let auditFrom: string | undefined = undefined;
+    let auditTo: string | undefined = undefined;
+
+    if (pageId === 'audit') {
+      if (typeof filter === 'object' && filter !== null) {
+        auditProd = filter.product || undefined;
+        auditBO = filter.businessObject || undefined;
+        auditFrom = filter.fromDate || undefined;
+        auditTo = filter.toDate || undefined;
+      } else if (typeof filter === 'string') {
+        auditBO = filter;
+      }
+    }
 
     if (
       currentPage === pageId &&
@@ -464,7 +485,7 @@ export default function App() {
       !activeQueryInvestigation &&
       (pageId !== 'roles' || initialRolesCategory === rolesCat) &&
       (pageId !== 'users' || initialUsersFilter === usersFilt) &&
-      (pageId !== 'audit' || initialAuditBO === auditBO) &&
+      (pageId !== 'audit' || (initialAuditProduct === auditProd && initialAuditBO === auditBO && initialAuditFromDate === auditFrom && initialAuditToDate === auditTo)) &&
       (pageId !== 'risk-certificates' || initialCertId === certId)
     ) {
       return;
@@ -488,9 +509,26 @@ export default function App() {
     });
     handleClose(); // Clear investigation when switching screens
     setInternalPageBack(null); // Clear internal page back state for the newly selected page
-    setInitialRolesCategory(rolesCat);
-    setInitialUsersFilter(usersFilt);
-    setInitialAuditBO(auditBO);
+
+    if (pageId === 'roles') {
+      setInitialRolesCategory(rolesCat);
+      setRolesNavKey(prev => prev + 1);
+    } else {
+      setInitialRolesCategory('ALL');
+    }
+    if (pageId === 'users') {
+      setInitialUsersFilter(usersFilt);
+      setUsersNavKey(prev => prev + 1);
+    } else {
+      setInitialUsersFilter('ALL');
+    }
+    if (pageId === 'audit') {
+      setInitialAuditProduct(auditProd);
+      setInitialAuditBO(auditBO);
+      setInitialAuditFromDate(auditFrom);
+      setInitialAuditToDate(auditTo);
+      setAuditNavKey(prev => prev + 1);
+    }
     setInitialCertId(certId);
 
     if (pageId === 'assistant') {
@@ -499,7 +537,6 @@ export default function App() {
       setIsSidebarOpen(true); // Normal pages default to visible sidebar
     }
   };
-
   // Synchronize settings for administrator sessions
   useEffect(() => {
     async function fetchServerSettings() {
@@ -1121,9 +1158,10 @@ export default function App() {
               onOpenFullInvestigation={handleOpenQueryInvestigation}
             />
           </div>
-          {visitedPages.has('users') && (
-            <div style={{ display: currentPage === 'users' ? 'block' : 'none', height: '100%' }}>
+          {currentPage === 'users' && (
+            <div style={{ height: '100%' }}>
               <UsersPage
+                key={`users-${usersNavKey}-${initialUsersFilter}`}
                 initialFilter={initialUsersFilter}
                 isActive={currentPage === 'users'}
                 onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
@@ -1142,9 +1180,10 @@ export default function App() {
               />
             </div>
           )}
-          {visitedPages.has('roles') && (
-            <div style={{ display: currentPage === 'roles' ? 'block' : 'none', height: '100%' }}>
+          {currentPage === 'roles' && (
+            <div style={{ height: '100%' }}>
               <RolesPage
+                key={`roles-${rolesNavKey}-${initialRolesCategory}`}
                 initialCategory={initialRolesCategory}
                 isActive={currentPage === 'roles'}
                 onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
@@ -1153,9 +1192,17 @@ export default function App() {
               />
             </div>
           )}
-          {visitedPages.has('audit') && (
-            <div style={{ display: currentPage === 'audit' ? 'block' : 'none', height: '100%' }}>
-              <AuditPage initialBOId={initialAuditBO} onBack={handleNavigateBack} onRegisterBack={setInternalPageBack} />
+          {currentPage === 'audit' && (
+            <div style={{ height: '100%' }}>
+              <AuditPage
+                key={`audit-${auditNavKey}-${initialAuditProduct || ''}-${initialAuditBO || ''}-${initialAuditFromDate || ''}-${initialAuditToDate || ''}`}
+                initialProductId={initialAuditProduct}
+                initialBOId={initialAuditBO}
+                initialFromDate={initialAuditFromDate}
+                initialToDate={initialAuditToDate}
+                onBack={handleNavigateBack}
+                onRegisterBack={setInternalPageBack}
+              />
             </div>
           )}
           {visitedPages.has('risk-controls') && (
