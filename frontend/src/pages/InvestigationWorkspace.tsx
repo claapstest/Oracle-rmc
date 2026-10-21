@@ -1040,7 +1040,7 @@ export default function InvestigationWorkspace({
                     totalCount={filteredMembers.length}
                     columns={[
                       { key: 'displayName', label: 'Display Name', getValue: (m: any) => m.displayName || m.name || m.userName || '' },
-                      { key: 'userName', label: 'User Code', getValue: (m: any) => m.userName || m.id || m.value || '' }
+                      { key: 'userName', label: 'User Name', getValue: (m: any) => m.userName || m.id || m.value || '' }
                     ]}
                   />
                 </div>
@@ -1052,7 +1052,7 @@ export default function InvestigationWorkspace({
                   <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input 
                     type="text"
-                    placeholder="Filter by display name or user code..."
+                    placeholder="Filter by display name or user name..."
                     value={membersSearch}
                     onChange={(e) => {
                       setMembersSearch(e.target.value);
@@ -1093,7 +1093,7 @@ export default function InvestigationWorkspace({
                   <thead>
                     <tr>
                       <th style={{ width: '40%' }}>DISPLAY NAME</th>
-                      <th style={{ width: '35%' }}>USER CODE</th>
+                      <th style={{ width: '35%' }}>USER NAME</th>
                       <th style={{ width: '25%', textAlign: 'right' }}>INVESTIGATION</th>
                     </tr>
                   </thead>
