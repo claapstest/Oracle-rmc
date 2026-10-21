@@ -252,15 +252,17 @@ export default function App() {
     label?: string;
   } | null>(null);
 
-  // canGoBack is true ONLY if inside an investigation or if the current page has a registered sub-view
-  const canGoBack = !!activeInvestigation || 
-                    !!activeQueryInvestigation || 
-                    investigationHistory.length > 1 || 
-                    (internalPageBack?.canGoBack === true);
+  // Back button visibility & target resolution
+  const isAtDashboardHome = currentPage === 'dashboard' && !activeInvestigation && !activeQueryInvestigation;
+  const canGoBack = !isAtDashboardHome;
 
-  const backTargetTitle = internalPageBack?.label || 
-    (activeInvestigation ? 'Close Profile' : 
-    (activeQueryInvestigation ? 'Close Investigation' : ''));
+  const backTargetTitle = internalPageBack?.canGoBack && internalPageBack?.label
+    ? internalPageBack.label
+    : (activeInvestigation
+        ? 'Close Profile'
+        : (activeQueryInvestigation
+            ? 'Close Investigation'
+            : 'Dashboard'));
 
   // Back Button Handler: strictly page-scoped
   const handleNavigateBack = () => {
@@ -276,13 +278,16 @@ export default function App() {
       return;
     }
 
-    // 3. If the active page registered an internal back action (e.g. Report details -> All Reports)
+    // 3. If the active page registered an internal back action (e.g. Report details -> All Reports, Role drawer -> Roles Catalog)
     if (internalPageBack?.canGoBack && internalPageBack.onBack) {
       internalPageBack.onBack();
       return;
     }
 
-    // 4. Otherwise: do nothing! Back ends here on this page.
+    // 4. Default: If on any non-dashboard page, navigate back to Dashboard home!
+    if (currentPage !== 'dashboard') {
+      handlePageSelect('dashboard');
+    }
   };
 
   // URL synchronization helpers
@@ -848,21 +853,25 @@ export default function App() {
               <PanelLeft size={16} />
             </button>
 
-            {/* Dedicated Top-Left Back Button for Switching Pages Back for Every Page */}
-            <button
-              type="button"
-              onClick={handleNavigateBack}
-              disabled={!canGoBack}
-              className={`topbar-menu-btn topbar-nav-back-btn ${canGoBack ? 'active' : 'disabled'}`}
-              title={canGoBack ? `Back to ${backTargetTitle}` : 'No previous page'}
-              aria-label={canGoBack ? `Back to ${backTargetTitle}` : 'Back button disabled, no previous page'}
-            >
-              <ArrowLeft size={15} />
-              <span>Back</span>
-            </button>
+            {/* Dedicated Top-Left Back Button: hidden on Dashboard home, active & clickable on every other page */}
+            {!isAtDashboardHome && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleNavigateBack}
+                  className="topbar-menu-btn topbar-nav-back-btn active"
+                  title={`Back to ${backTargetTitle}`}
+                  aria-label={`Back to ${backTargetTitle}`}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <ArrowLeft size={15} />
+                  <span>Back</span>
+                </button>
 
-            {/* Subtle separator */}
-            <div style={{ width: '1px', height: '18px', backgroundColor: 'rgba(255, 255, 255, 0.22)', margin: '0 0.15rem' }} />
+                {/* Subtle separator */}
+                <div style={{ width: '1px', height: '18px', backgroundColor: 'rgba(255, 255, 255, 0.22)', margin: '0 0.15rem' }} />
+              </>
+            )}
 
             {/* Breadcrumb Context Indicator with Clickable Navigation */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, fontFamily: 'var(--font-header)' }}>
