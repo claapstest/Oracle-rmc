@@ -1066,7 +1066,163 @@ class OracleService {
       };
     }
 
-    // Call live Oracle Fusion SCIM Users API
+    // Handle role-based categories using authoritative User Access Report data (SCIM + HCM + BIP)
+    if (normCat && normCat !== 'ALL') {
+      try {
+        const reportRes = await userAccessReportService.getUserAccessReport();
+        if (reportRes?.data && reportRes.data.length > 0) {
+          if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
+            let noRoleRows = reportRes.data.filter(r => !r.roleName && !r.roleCode);
+
+            const totalNoRoles = this.cachedUsersWithoutRoles > 0 ? this.cachedUsersWithoutRoles : noRoleRows.length;
+            const activeNoRoles = this.cachedActiveUsersWithoutRoles > 0 ? this.cachedActiveUsersWithoutRoles : noRoleRows.filter(r => r.active).length;
+            const inactiveNoRoles = Math.max(0, totalNoRoles - activeNoRoles);
+
+            if (effectiveStatus === 'ACTIVE') {
+              noRoleRows = noRoleRows.filter(r => r.active);
+            } else if (effectiveStatus === 'INACTIVE') {
+              noRoleRows = noRoleRows.filter(r => !r.active);
+            }
+
+            if (filterText) {
+              const term = filterText.toLowerCase();
+              noRoleRows = noRoleRows.filter(r =>
+                (r.username && r.username.toLowerCase().includes(term)) ||
+                (r.displayName && r.displayName.toLowerCase().includes(term)) ||
+                (r.firstName && r.firstName.toLowerCase().includes(term)) ||
+                (r.lastName && r.lastName.toLowerCase().includes(term)) ||
+                (r.email && r.email.toLowerCase().includes(term)) ||
+                (r.personNumber && r.personNumber.toLowerCase().includes(term))
+              );
+            }
+
+            const totalResults = filterText 
+              ? noRoleRows.length 
+              : (effectiveStatus === 'ACTIVE' ? activeNoRoles : (effectiveStatus === 'INACTIVE' ? inactiveNoRoles : totalNoRoles));
+
+            const sliced = noRoleRows.slice(startIndex - 1, startIndex - 1 + count);
+            const mappedUsers: User[] = sliced.map(r => ({
+              id: r.username,
+              userName: r.username,
+              displayName: r.displayName || `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username,
+              firstName: r.firstName || '',
+              lastName: r.lastName || '',
+              email: r.email || '',
+              phone: null,
+              active: r.active,
+              userCategory: r.userCategory || undefined,
+              personId: r.personId,
+              personNumber: r.personNumber,
+              department: r.department,
+              job: r.job,
+              businessUnit: r.businessUnit,
+              location: r.location,
+              manager: r.manager,
+              assignedRoles: [] // Guaranteed strictly NO ROLES
+            }));
+
+            return {
+              users: mappedUsers,
+              totalResults,
+              startIndex,
+              count,
+              directoryTotal: totalNoRoles,
+              activeCount: activeNoRoles,
+              inactiveCount: inactiveNoRoles
+            };
+          }
+
+          if (
+            normCat === 'SINGLE_ROLE' || normCat === 'SINGLE_ROLE_USERS' ||
+            normCat === 'MULTIPLE_ROLES' || normCat === 'MULTIPLE_ROLE_USERS' ||
+            normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS'
+          ) {
+            const userMap = new Map<string, any>();
+            for (const r of reportRes.data) {
+              let u = userMap.get(r.username);
+              if (!u) {
+                u = {
+                  id: r.username,
+                  userName: r.username,
+                  displayName: r.displayName || `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username,
+                  firstName: r.firstName || '',
+                  lastName: r.lastName || '',
+                  email: r.email || '',
+                  phone: null,
+                  active: r.active,
+                  userCategory: r.userCategory || undefined,
+                  personId: r.personId,
+                  personNumber: r.personNumber,
+                  department: r.department,
+                  job: r.job,
+                  businessUnit: r.businessUnit,
+                  location: r.location,
+                  manager: r.manager,
+                  assignedRoles: []
+                };
+                userMap.set(r.username, u);
+              }
+              if (r.roleName || r.roleCode) {
+                u.assignedRoles.push({
+                  roleName: r.roleName || r.roleCode,
+                  roleCode: r.roleCode || r.roleName,
+                  autoProvisioned: r.autoProvisioned ?? null
+                });
+              }
+            }
+
+            let categoryUsers = Array.from(userMap.values());
+            if (normCat.startsWith('SINGLE_ROLE')) {
+              categoryUsers = categoryUsers.filter(u => u.assignedRoles.length === 1);
+            } else if (normCat.startsWith('MULTIPLE_ROLE')) {
+              categoryUsers = categoryUsers.filter(u => u.assignedRoles.length > 1);
+            } else if (normCat.includes('ADMIN') || normCat.includes('SECURITY')) {
+              categoryUsers = categoryUsers.filter(u => u.assignedRoles.some((r: any) =>
+                (r.roleName || '').includes('Security Administrator') || (r.roleName || '').includes('IT Security Manager')
+              ));
+            }
+
+            const catTotal = categoryUsers.length;
+            const catActive = categoryUsers.filter(u => u.active).length;
+            const catInactive = catTotal - catActive;
+
+            if (effectiveStatus === 'ACTIVE') {
+              categoryUsers = categoryUsers.filter(u => u.active);
+            } else if (effectiveStatus === 'INACTIVE') {
+              categoryUsers = categoryUsers.filter(u => !u.active);
+            }
+
+            if (filterText) {
+              const term = filterText.toLowerCase();
+              categoryUsers = categoryUsers.filter(u =>
+                (u.userName && u.userName.toLowerCase().includes(term)) ||
+                (u.displayName && u.displayName.toLowerCase().includes(term)) ||
+                (u.firstName && u.firstName.toLowerCase().includes(term)) ||
+                (u.lastName && u.lastName.toLowerCase().includes(term)) ||
+                (u.email && u.email.toLowerCase().includes(term))
+              );
+            }
+
+            const totalResults = categoryUsers.length;
+            const sliced = categoryUsers.slice(startIndex - 1, startIndex - 1 + count);
+
+            return {
+              users: sliced,
+              totalResults,
+              startIndex,
+              count,
+              directoryTotal: catTotal,
+              activeCount: catActive,
+              inactiveCount: catInactive
+            };
+          }
+        }
+      } catch (catErr) {
+        console.warn('[Oracle Service] Failed to process category from access report:', (catErr as Error).message);
+      }
+    }
+
+    // Call live Oracle Fusion SCIM Users API for general directory queries
     this.assertLiveInstance('Users list');
     let scimFilter: string | undefined;
     if (filterText) {

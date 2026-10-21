@@ -72,43 +72,50 @@ export default function Roles({
   const [privilegeData, setPrivilegeData] = useState<any | null>(null);
   
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState('');
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>('DEMO');
 
   useEffect(() => {
-    // Instant loading on mount / category / page change; only debounce typing
+    let isCancelled = false;
+    // Instant loading on mount / category / page change; debounce search typing by 300ms
     const delay = searchTerm ? 300 : 0;
-    const delayDebounceFn = setTimeout(() => {
-      async function loadRoles() {
-        setLoading(true);
-        setError('');
-        try {
-          const startIndex = (currentPage - 1) * pageSize + 1;
-          const res = await api.getRoles(
-            searchTerm || undefined,
-            categoryFilter === 'ALL' ? undefined : categoryFilter,
-            startIndex,
-            pageSize
-          );
-          if (res?.roles) {
-            setRoles(res.roles);
-            setTotalResults(res.totalResults || res.roles.length);
-            setDataSource(res.dataSource || 'Oracle Fusion');
-            setEnvironmentMode(res.mode || 'DEMO');
-          }
-        } catch (err) {
+    const delayDebounceFn = setTimeout(async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const startIndex = (currentPage - 1) * pageSize + 1;
+        const res = await api.getRoles(
+          searchTerm || undefined,
+          categoryFilter === 'ALL' ? undefined : categoryFilter,
+          startIndex,
+          pageSize
+        );
+        if (!isCancelled && res?.roles) {
+          setRoles(res.roles);
+          setTotalResults(res.totalResults || res.roles.length);
+          setDataSource(res.dataSource || 'Oracle Fusion');
+          setEnvironmentMode(res.mode || 'DEMO');
+        }
+      } catch (err) {
+        if (!isCancelled) {
           console.error('Failed to load roles:', err);
           setError('Unable to fetch security roles.');
-        } finally {
+        }
+      } finally {
+        if (!isCancelled) {
           setLoading(false);
+          setInitialLoading(false);
         }
       }
-      loadRoles();
     }, delay);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      isCancelled = true;
+      clearTimeout(delayDebounceFn);
+    };
   }, [searchTerm, categoryFilter, currentPage, pageSize]);
 
   // Update category filter and clear search if initialCategory changes
@@ -246,7 +253,7 @@ export default function Roles({
     </div>
   );
 
-  if (loading && roles.length === 0) {
+  if (initialLoading && roles.length === 0) {
     return (
       <div style={{ padding: '2rem' }}>
         <div style={{ height: '35px', width: '150px', marginBottom: '1.5rem' }} className="skeleton" />
@@ -457,13 +464,18 @@ export default function Roles({
                 <tr>
                   <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                      {loading && (
+                        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--accent-blue)', opacity: 0.8 }} />
+                      )}
                       <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        No roles matched your search criteria.
+                        {loading ? 'Searching roles catalog...' : 'No roles matched your search criteria.'}
                       </div>
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        {searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.'}
+                        {loading
+                          ? 'Checking Oracle Fusion security roles catalog...'
+                          : (searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.')}
                       </p>
-                      {(searchTerm || categoryFilter !== 'ALL') && (
+                      {!loading && (searchTerm || categoryFilter !== 'ALL') && (
                         <button
                           onClick={() => {
                             setSearchTerm('');

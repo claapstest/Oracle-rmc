@@ -5,7 +5,6 @@ import {
   Search,
   Download,
   Eye,
-  Info,
   AlertCircle,
   ArrowLeft,
   Users,
@@ -75,6 +74,8 @@ export default function AccessCertificates({
   const [currentPage, setCurrentPage] = useState(1);
   const [lastExecuted, setLastExecuted] = useState<string>('');
   const [activeReportPath, setActiveReportPath] = useState<string>('/Custom/Claaps Access_certifier_worksheet.xdo');
+  void lastExecuted;
+  void activeReportPath;
 
   // Drill-Down / Certifier Worksheet State
   const [drillDownCertId, setDrillDownCertId] = useState<string | null>(null);
@@ -1042,40 +1043,7 @@ export default function AccessCertificates({
         </div>
       </div>
 
-      {/* On-Demand Report Notice Bar */}
-      <div
-        className="animate-fade-in"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: '#EFF6FF',
-          border: '1px solid #DBEAFE',
-          borderRadius: '10px',
-          padding: '0.75rem 1.25rem',
-          marginBottom: '1.25rem',
-          fontSize: '0.84rem',
-          color: '#1E3A8A',
-          flexWrap: 'wrap',
-          gap: '0.75rem'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Info size={16} style={{ color: '#2563EB', flexShrink: 0 }} />
-          <span>
-            <strong>On-Demand Report:</strong> Retrieves data directly via BI Publisher (
-            <code style={{ background: 'rgba(37, 99, 235, 0.08)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
-              {activeReportPath}
-            </code>
-            ). Click <strong>View</strong> on any certification row to drill down into the live Certifier Worksheet.
-          </span>
-        </div>
-        {lastExecuted && (
-          <div style={{ color: '#64748B', fontSize: '0.82rem' }}>
-            Last executed: <span style={{ fontWeight: 600, color: '#334155' }}>{lastExecuted}</span>
-          </div>
-        )}
-      </div>
+
 
       {/* Error state if integration failed */}
       {error && (

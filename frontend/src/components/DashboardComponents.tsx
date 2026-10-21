@@ -167,12 +167,11 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   const highRiskRoles = stats.highRiskRolesCount || stats.grcRolesCount || 12;
   const rolesWithoutUsers = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 249;
 
-  // Mutually-exclusive user access breakdown for donut (Single + Multiple + No Roles + Inactive = Total)
+  // Mutually-exclusive user access breakdown for donut (Single + Multiple + Without Roles = Total)
   const accessSegments = [
     { label: 'Single Role Users', count: singleRole, color: '#10B981', filter: 'SINGLE_ROLE' },
     { label: 'Multiple Role Users', count: multipleRoles, color: '#2563EB', filter: 'MULTIPLE_ROLES' },
-    { label: 'Users Without Roles', count: activeUsersWithoutRoles, color: '#EF4444', filter: 'NO_ROLES' },
-    { label: 'Inactive Accounts', count: inactive, color: '#64748B', filter: 'INACTIVE' }
+    { label: 'Users Without Roles', count: usersNoRoles, color: '#EF4444', filter: 'NO_ROLES' }
   ];
 
   const radius = 62;

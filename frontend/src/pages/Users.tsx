@@ -28,6 +28,7 @@ export default function Users({
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState('');
 
@@ -66,6 +67,7 @@ export default function Users({
 
   useEffect(() => {
     setActiveCategoryFilter(initialFilter);
+    setStatusFilter('ALL');
     setSearchTerm('');
     setCurrentPage(1);
     setSelectedUser(null);
@@ -84,39 +86,45 @@ export default function Users({
   };
 
   useEffect(() => {
-    const delay = searchTerm ? 350 : 0;
-    const delayDebounceFn = setTimeout(() => {
-      async function loadUsers() {
-        setLoading(true);
-        setError('');
-        try {
-          const startIndex = (currentPage - 1) * pageSize + 1;
-          const res = await api.getUsers(
-            searchTerm || undefined,
-            startIndex,
-            pageSize,
-            activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
-            statusFilter !== 'ALL' ? statusFilter : undefined
-          );
-          if (res?.users) {
-            setUsers(res.users);
-            setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
-            if (res.directoryTotal) setDirectoryTotal(res.directoryTotal);
-            if (res.activeCount !== undefined) setActiveCount(res.activeCount);
-            if (res.inactiveCount !== undefined) setInactiveCount(res.inactiveCount);
-            setDataSource(res.dataSource || 'Oracle Fusion SCIM API');
-          }
-        } catch (err) {
+    let isCancelled = false;
+    const delay = searchTerm ? 300 : 0;
+    const delayDebounceFn = setTimeout(async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const startIndex = (currentPage - 1) * pageSize + 1;
+        const res = await api.getUsers(
+          searchTerm || undefined,
+          startIndex,
+          pageSize,
+          activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
+          statusFilter !== 'ALL' ? statusFilter : undefined
+        );
+        if (!isCancelled && res?.users) {
+          setUsers(res.users);
+          setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
+          if (res.directoryTotal) setDirectoryTotal(res.directoryTotal);
+          if (res.activeCount !== undefined) setActiveCount(res.activeCount);
+          if (res.inactiveCount !== undefined) setInactiveCount(res.inactiveCount);
+          setDataSource(res.dataSource || 'Oracle Fusion SCIM API');
+        }
+      } catch (err) {
+        if (!isCancelled) {
           console.error('Failed to load users:', err);
           setError('Unable to fetch users from security service.');
-        } finally {
+        }
+      } finally {
+        if (!isCancelled) {
           setLoading(false);
+          setInitialLoading(false);
         }
       }
-      loadUsers();
     }, delay);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      isCancelled = true;
+      clearTimeout(delayDebounceFn);
+    };
   }, [searchTerm, currentPage, pageSize, activeCategoryFilter, statusFilter]);
 
   // Client-side filtering on current page items for status/insight tags if applicable
@@ -283,7 +291,7 @@ export default function Users({
     </div>
   );
 
-  if (loading && users.length === 0) {
+  if (initialLoading && users.length === 0) {
     return (
       <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
         <div style={{ height: '35px', width: '220px', marginBottom: '1.5rem' }} className="skeleton" />
@@ -342,6 +350,7 @@ export default function Users({
                     type="button"
                     onClick={() => {
                       setActiveCategoryFilter('ALL');
+                      setStatusFilter('ALL');
                       setCurrentPage(1);
                     }}
                     style={{
@@ -378,11 +387,13 @@ export default function Users({
               color: '#ffffff',
               backdropFilter: 'blur(8px)'
             }}>
-              {directoryTotal > 0
-                ? `${directoryTotal.toLocaleString()} Users in Directory`
-                : totalResults > 0
-                  ? `${totalResults.toLocaleString()} Users in Directory`
-                  : 'Loading directory...'}
+              {activeCategoryFilter && activeCategoryFilter !== 'ALL'
+                ? `${(directoryTotal > 0 ? directoryTotal : totalResults).toLocaleString()} ${getCategoryBadgeLabel(activeCategoryFilter)}`
+                : (directoryTotal > 0
+                    ? `${directoryTotal.toLocaleString()} Users in Directory`
+                    : totalResults > 0
+                      ? `${totalResults.toLocaleString()} Users in Directory`
+                      : 'Loading directory...')}
             </div>
           </div>
         </div>
@@ -499,7 +510,7 @@ export default function Users({
               <span>Showing <strong>0</strong> users</span>
             ) : (
               <span>
-                Showing <strong>{startItem.toLocaleString()}</strong>–<strong>{endItem.toLocaleString()}</strong> of <strong>{effectiveTotal.toLocaleString()}</strong> {statusFilter === 'INACTIVE' ? 'inactive ' : statusFilter === 'ACTIVE' ? 'active ' : ''}users
+                Showing <strong>{startItem.toLocaleString()}</strong>–<strong>{endItem.toLocaleString()}</strong> of <strong>{effectiveTotal.toLocaleString()}</strong> {statusFilter === 'INACTIVE' ? 'inactive ' : statusFilter === 'ACTIVE' ? 'active ' : ''}{activeCategoryFilter && activeCategoryFilter !== 'ALL' ? getCategoryBadgeLabel(activeCategoryFilter).toLowerCase() : 'users'}
               </span>
             )}
             {loading && <span style={{ marginLeft: '0.5rem', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>(updating...)</span>}
@@ -538,7 +549,7 @@ export default function Users({
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={16} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                    No security users match the filter criteria.
+                    {loading ? 'Searching users directory...' : 'No security users match the filter criteria.'}
                   </td>
                 </tr>
               ) : (
