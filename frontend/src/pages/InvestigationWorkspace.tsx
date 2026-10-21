@@ -36,6 +36,8 @@ interface InvestigationWorkspaceProps {
     type: 'role' | 'user';
     id: string; // roleCode or username
     name: string; // displayName
+    initialTab?: string;
+    sourcePage?: string;
   };
   onClose: () => void;
   onNavigate: (type: 'role' | 'user', id: string, name: string) => void;
@@ -451,22 +453,141 @@ export default function InvestigationWorkspace({
       
       {/* Breadcrumb Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => onNavigateToPage?.('assistant')}>Ask VEYRA</span>
-          <span>&gt;</span>
-          {isRole ? (
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {entity.sourcePage === 'roles' ? (
             <>
-              <span style={{ cursor: 'pointer' }} onClick={() => onNavigateToPage?.('roles')}>Roles</span>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={onClose} 
+                title="Back to Roles Catalog"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                Roles Catalog
+              </span>
               <span>&gt;</span>
-              <span>{roleCategory} Roles</span>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={onClose} 
+                title="Back to Roles Catalog"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                {roleCategory} Roles
+              </span>
+              <span>&gt;</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
+            </>
+          ) : entity.sourcePage === 'users' ? (
+            <>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={onClose} 
+                title="Back to Users List"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                Users List
+              </span>
+              {isRole && (
+                <>
+                  <span>&gt;</span>
+                  <span>{roleCategory} Roles</span>
+                </>
+              )}
+              <span>&gt;</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
+            </>
+          ) : entity.sourcePage === 'reports' ? (
+            <>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={onClose} 
+                title="Back to Reports"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                Reports
+              </span>
+              <span>&gt;</span>
+              <span>{isRole ? `${roleCategory} Roles` : 'Users'}</span>
+              <span>&gt;</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
+            </>
+          ) : entity.sourcePage === 'user-management' ? (
+            <>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={onClose} 
+                title="Back to User Management"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                User Management
+              </span>
+              <span>&gt;</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
+            </>
+          ) : entity.sourcePage === 'dashboard' ? (
+            <>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={onClose} 
+                title="Back to Dashboard"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                Dashboard
+              </span>
+              <span>&gt;</span>
+              <span>{isRole ? `${roleCategory} Roles` : 'Users'}</span>
+              <span>&gt;</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
             </>
           ) : (
+            // Default / Ask VEYRA
             <>
-              <span style={{ cursor: 'pointer' }} onClick={() => onNavigateToPage?.('users')}>Users</span>
+              <span 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                onClick={() => onNavigateToPage?.('assistant')} 
+                title="Back to Ask VEYRA"
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+              >
+                Ask VEYRA
+              </span>
+              <span>&gt;</span>
+              {isRole ? (
+                <>
+                  <span 
+                    style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                    onClick={() => onNavigateToPage?.('roles')} 
+                    title="Go to Roles Catalog"
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+                  >
+                    Roles
+                  </span>
+                  <span>&gt;</span>
+                  <span>{roleCategory} Roles</span>
+                </>
+              ) : (
+                <>
+                  <span 
+                    style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
+                    onClick={() => onNavigateToPage?.('users')} 
+                    title="Go to Users List"
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
+                  >
+                    Users
+                  </span>
+                </>
+              )}
+              <span>&gt;</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
             </>
           )}
-          <span>&gt;</span>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -483,7 +604,9 @@ export default function InvestigationWorkspace({
             ) : (
               <>
                 <Bookmark size={16} />
-                <span>Save Investigation</span>
+                <span>
+                  {entity.sourcePage === 'roles' ? 'Bookmark Role' : (entity.sourcePage === 'users' ? 'Bookmark User' : 'Save Investigation')}
+                </span>
               </>
             )}
           </button>

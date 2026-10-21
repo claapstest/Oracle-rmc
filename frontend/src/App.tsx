@@ -70,6 +70,20 @@ const TOP_LEVEL_PAGE_IDS = new Set([
   'command-center'
 ]);
 
+const PAGE_TITLE_MAP: Record<string, string> = {
+  dashboard: 'Dashboard',
+  assistant: 'Ask VEYRA',
+  users: 'Users List',
+  'user-management': 'User Management',
+  roles: 'Roles Catalog',
+  audit: 'Audit Trail',
+  'risk-controls': 'Advanced Controls',
+  'risk-certificates': 'Access Certificates',
+  reports: 'Reports',
+  settings: 'Oracle Integration',
+  'command-center': 'Oracle API Console'
+};
+
 function resolveStoredPage(): string {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -228,6 +242,7 @@ export default function App() {
     id: string; // roleCode or username or investigationId
     name?: string; // displayName
     initialTab?: string;
+    sourcePage?: string;
   }
 
   // Active investigation workspace entity state
@@ -236,6 +251,7 @@ export default function App() {
     id: string; // roleCode or username
     name: string; // displayName
     initialTab?: string;
+    sourcePage?: string;
   } | null>(null);
 
   // Active query-level investigation snapshot state (same tab)
@@ -259,9 +275,9 @@ export default function App() {
   const backTargetTitle = internalPageBack?.canGoBack && internalPageBack?.label
     ? internalPageBack.label
     : (activeInvestigation
-        ? 'Close Profile'
+        ? (PAGE_TITLE_MAP[activeInvestigation.sourcePage || currentPage] || 'Previous Page')
         : (activeQueryInvestigation
-            ? 'Close Investigation'
+            ? 'Ask VEYRA'
             : 'Dashboard'));
 
   // Back Button Handler: strictly page-scoped
@@ -297,7 +313,12 @@ export default function App() {
       if (item.kind === 'query') {
         newUrl = `/?investigationId=${encodeURIComponent(item.id)}`;
       } else {
-        newUrl = `/ask-veyra/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
+        const source = item.sourcePage || currentPage;
+        if (source === 'assistant') {
+          newUrl = `/ask-veyra/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
+        } else {
+          newUrl = `/?page=${encodeURIComponent(source)}&investigate=${item.type || 'user'}&id=${encodeURIComponent(item.id)}`;
+        }
       }
       window.history.pushState({ page: currentPage, investigation: item }, '', newUrl);
     } catch (_) { }
@@ -318,9 +339,10 @@ export default function App() {
     updateUrlForInvestigation(item);
   };
 
-  const handleInvestigate = (type: 'role' | 'user', id: string, name: string, initialTab?: string) => {
-    const entity = { type, id, name, initialTab };
-    const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab };
+  const handleInvestigate = (type: 'role' | 'user', id: string, name: string, initialTab?: string, sourcePage?: string) => {
+    const resolvedSource = sourcePage || currentPage || 'assistant';
+    const entity = { type, id, name, initialTab, sourcePage: resolvedSource };
+    const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab, sourcePage: resolvedSource };
     setInvestigationHistory([item]);
     setActiveInvestigation(entity);
     setActiveQueryInvestigation(null);
@@ -329,8 +351,9 @@ export default function App() {
   };
 
   const handleNavigate = (type: 'role' | 'user', id: string, name: string, initialTab?: string) => {
-    const entity = { type, id, name, initialTab };
-    const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab };
+    const resolvedSource = activeInvestigation?.sourcePage || currentPage || 'assistant';
+    const entity = { type, id, name, initialTab, sourcePage: resolvedSource };
+    const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab, sourcePage: resolvedSource };
     const nextInv = [...investigationHistory, item];
     setInvestigationHistory(nextInv);
     setActiveInvestigation(entity);
@@ -338,8 +361,9 @@ export default function App() {
   };
 
   const handleInvestigateFromQuery = (type: 'role' | 'user', id: string, name: string) => {
-    const entity = { type, id, name };
-    const item: InvestigationHistoryItem = { kind: 'entity', type, id, name };
+    const resolvedSource = 'assistant';
+    const entity = { type, id, name, sourcePage: resolvedSource };
+    const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, sourcePage: resolvedSource };
     const base = investigationHistory.length > 0 ? investigationHistory : (activeQueryInvestigation ? [{ kind: 'query', id: activeQueryInvestigation } as InvestigationHistoryItem] : []);
     const nextInv = [...base, item];
     setInvestigationHistory(nextInv);
@@ -365,7 +389,8 @@ export default function App() {
             type: top.type || 'user',
             id: top.id,
             name: top.name || top.id,
-            initialTab: top.initialTab
+            initialTab: top.initialTab,
+            sourcePage: top.sourcePage
           });
           setActiveQueryInvestigation(null);
           updateUrlForInvestigation(top);
@@ -405,7 +430,8 @@ export default function App() {
             type: item.type || 'user',
             id: item.id,
             name: item.name || item.id,
-            initialTab: item.initialTab
+            initialTab: item.initialTab,
+            sourcePage: item.sourcePage
           });
           setActiveQueryInvestigation(null);
         }
@@ -446,19 +472,25 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const invId = params.get('investigationId');
+    const investigateType = params.get('investigate');
+    const entityId = params.get('id');
+    const pageParam = params.get('page') || undefined;
     const path = window.location.pathname;
 
     if (invId) {
       handleOpenQueryInvestigation(invId);
+    } else if (investigateType && entityId) {
+      const type = investigateType === 'role' ? 'role' : 'user';
+      handleInvestigate(type, entityId, entityId, undefined, pageParam || 'roles');
     } else if (path.includes('/investigation/user/')) {
       const username = decodeURIComponent(path.split('/investigation/user/')[1] || '').trim();
       if (username) {
-        handleInvestigate('user', username, username);
+        handleInvestigate('user', username, username, undefined, 'assistant');
       }
     } else if (path.includes('/investigation/role/')) {
       const roleCode = decodeURIComponent(path.split('/investigation/role/')[1] || '').trim();
       if (roleCode) {
-        handleInvestigate('role', roleCode, roleCode);
+        handleInvestigate('role', roleCode, roleCode, undefined, 'assistant');
       }
     }
   }, []);
@@ -879,20 +911,40 @@ export default function App() {
                 <>
                   <span
                     style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
-                    onClick={handleNavigateBack}
-                    title="Back to previous view"
+                    onClick={() => handlePageSelect('dashboard')}
+                    title="Back to Dashboard"
                   >
-                    Ask VEYRA
+                    Dashboard
                   </span>
                   <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  {activeInvestigation.sourcePage && activeInvestigation.sourcePage !== 'dashboard' && (
+                    <>
+                      <span
+                        style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                        onClick={handleClose}
+                        title={`Back to ${PAGE_TITLE_MAP[activeInvestigation.sourcePage] || (activeInvestigation.sourcePage === 'assistant' ? 'Ask VEYRA' : 'Previous Page')}`}
+                      >
+                        {PAGE_TITLE_MAP[activeInvestigation.sourcePage] || (activeInvestigation.sourcePage === 'assistant' ? 'Ask VEYRA' : 'Previous Page')}
+                      </span>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                    </>
+                  )}
                   <span>{activeInvestigation.name}</span>
                 </>
               ) : activeQueryInvestigation ? (
                 <>
                   <span
                     style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
-                    onClick={handleNavigateBack}
-                    title="Back to previous view"
+                    onClick={() => handlePageSelect('dashboard')}
+                    title="Back to Dashboard"
+                  >
+                    Dashboard
+                  </span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span
+                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                    onClick={handleClose}
+                    title="Back to Ask VEYRA"
                   >
                     Ask VEYRA
                   </span>
@@ -1134,7 +1186,7 @@ export default function App() {
                 userRole={userRole}
                 onFAQSelect={handleFAQSelect}
                 environmentMode={environmentMode}
-                onInvestigate={handleInvestigate}
+                onInvestigate={(type, id, name) => handleInvestigate(type, id, name, undefined, 'dashboard')}
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
                 onNavigatePage={(pageId, filter) => {
                   handlePageSelect(pageId, filter);
@@ -1163,7 +1215,7 @@ export default function App() {
                 if (pageId === 'audit' && filter) setInitialAuditBO(filter);
                 if (pageId === 'risk-certificates' && filter) setInitialCertId(filter);
               }}
-              onInvestigate={handleInvestigate}
+              onInvestigate={(type, id, name, initialTab) => handleInvestigate(type, id, name, initialTab, 'assistant')}
               onOpenFullInvestigation={handleOpenQueryInvestigation}
             />
           </div>
@@ -1173,8 +1225,8 @@ export default function App() {
                 key={`users-${usersNavKey}-${initialUsersFilter}`}
                 initialFilter={initialUsersFilter}
                 isActive={currentPage === 'users'}
-                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
-                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'users')}
+                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'users')}
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
                 onBack={handleNavigateBack}
                 onRegisterBack={setInternalPageBack}
@@ -1185,7 +1237,7 @@ export default function App() {
             <div style={{ display: currentPage === 'user-management' ? 'block' : 'none', height: '100%' }}>
               <UserManagementPage
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
-                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
+                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'user-management')}
               />
             </div>
           )}
@@ -1195,7 +1247,7 @@ export default function App() {
                 key={`roles-${rolesNavKey}-${initialRolesCategory}`}
                 initialCategory={initialRolesCategory}
                 isActive={currentPage === 'roles'}
-                onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'roles')}
                 onBack={handleNavigateBack}
                 onRegisterBack={setInternalPageBack}
               />
@@ -1241,8 +1293,8 @@ export default function App() {
                 environmentMode={environmentMode}
                 canGenerate={isAdmin || userPermissions.map((p) => String(p).toUpperCase()).includes('ALL')}
                 isActive={currentPage === 'reports'}
-                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
-                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'reports')}
+                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'reports')}
                 onBack={handleNavigateBack}
                 onRegisterBack={setInternalPageBack}
               />

@@ -158,7 +158,7 @@ export default function FullInvestigationView({
     if (onInvestigate) {
       onInvestigate(type, id, name);
     } else {
-      const ent = { type, id, name };
+      const ent = { type, id, name, sourcePage: 'assistant' };
       setInternalHistory(prev => [...prev, ent]);
       setInternalEntity(ent);
     }
@@ -173,7 +173,7 @@ export default function FullInvestigationView({
           setInternalHistory([]);
         }}
         onNavigate={(type, id, name) => {
-          const ent = { type, id, name };
+          const ent = { type, id, name, sourcePage: 'assistant' };
           setInternalHistory(prev => [...prev, ent]);
           setInternalEntity(ent);
         }}
