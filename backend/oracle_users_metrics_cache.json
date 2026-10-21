@@ -1,12 +1,12 @@
 {
-  "totalUsers": 3045,
-  "activeUsers": 1010,
+  "totalUsers": 3050,
+  "activeUsers": 1015,
   "inactiveUsers": 2035,
-  "usersWithoutRoles": 2039,
-  "activeUsersWithoutRoles": 36,
+  "usersWithoutRoles": 2044,
+  "activeUsersWithoutRoles": 41,
   "singleRoleUsers": 103,
   "multipleRoleUsers": 903,
   "securityAdmins": 463,
   "highRiskUsers": 463,
-  "syncedAt": "2026-10-21T17:08:59.266Z"
+  "syncedAt": "2026-10-21T17:51:00.183Z"
 }
