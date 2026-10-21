@@ -1617,9 +1617,8 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     let fromDate = today;
     let toDate = today;
 
-    if (timeframe === '24h') {
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      fromDate = yesterday;
+    if (timeframe === '24h' || timeframe === 'today') {
+      fromDate = today;
       toDate = today;
     } else if (timeframe === 'yesterday') {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];

@@ -158,13 +158,15 @@ export class AuditRawDbService {
   /**
    * Generates a deterministic hash for deduplicating raw Oracle audit items.
    */
-  public generateHash(item: any): string {
+  public generateHash(item: any, occurrenceIndex = 0): string {
     const ts = item.date || item.timestamp || item.lastUpdateDate || '';
     const user = item.userInternalName || item.userName || item.userId || '';
     const id = item.identifier || item.objectIdentifier || item.id || '';
     const event = item.eventType || item.action || '';
     const desc = item.description || '';
-    const seed = `${ts}|${user}|${id}|${event}|${desc}`;
+    const seed = occurrenceIndex > 0
+      ? `${ts}|${user}|${id}|${event}|${desc}|#${occurrenceIndex}`
+      : `${ts}|${user}|${id}|${event}|${desc}`;
     return crypto.createHash('md5').update(seed).digest('hex');
   }
 
@@ -183,11 +185,16 @@ export class AuditRawDbService {
     const host = this.getHost();
     const normalizedProduct = this.normalizeProductName(product);
     let insertedCount = 0;
+    const occurrenceMap: Record<string, number> = {};
 
     for (const item of rawItems) {
       if (!item || typeof item !== 'object') continue;
 
-      const hash = this.generateHash(item);
+      const baseKey = `${item.date || item.timestamp || item.lastUpdateDate || ''}|${item.userInternalName || item.userName || item.userId || ''}|${item.eventType || item.action || ''}|${item.description || ''}`;
+      const occurrence = occurrenceMap[baseKey] || 0;
+      occurrenceMap[baseKey] = occurrence + 1;
+
+      const hash = this.generateHash(item, occurrence);
       const rawTimestamp = item.date || item.timestamp || item.lastUpdateDate;
       let eventDate: Date | null = null;
       if (rawTimestamp) {
@@ -614,8 +621,10 @@ export class AuditRawDbService {
             WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls'
             WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources'
             WHEN product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' THEN 'Oracle Platform Security Services'
+            WHEN product ILIKE '%Public Sector Common Components%' OR product ILIKE '%Applications Common Components%' THEN 'Common CRM'
             ELSE product 
           END as norm_product,
+          record_unique_hash,
           business_object,
           event_type,
           event_timestamp
@@ -624,14 +633,14 @@ export class AuditRawDbService {
       )
       SELECT 
         norm_product as product,
-        COUNT(*)::int as total_records,
-        COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
-        COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
-        COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
+        COUNT(DISTINCT record_unique_hash)::int as total_records,
+        COUNT(DISTINCT record_unique_hash) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
+        COUNT(DISTINCT record_unique_hash) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
+        COUNT(DISTINCT record_unique_hash) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
         MAX(event_timestamp) as latest_event_time
       FROM norm
       GROUP BY norm_product
-      HAVING COUNT(*) > 0
+      HAVING COUNT(DISTINCT record_unique_hash) > 0
       ORDER BY total_records DESC;
     `;
 
@@ -643,8 +652,10 @@ export class AuditRawDbService {
             WHEN product ILIKE '%Risks and Controls%' THEN 'Risks and Controls'
             WHEN product ILIKE '%Global Human Resources%' THEN 'Global Human Resources'
             WHEN product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' THEN 'Oracle Platform Security Services'
+            WHEN product ILIKE '%Public Sector Common Components%' OR product ILIKE '%Applications Common Components%' THEN 'Common CRM'
             ELSE product 
           END as norm_product,
+          record_unique_hash,
           business_object,
           event_type,
           event_timestamp
@@ -654,10 +665,10 @@ export class AuditRawDbService {
       SELECT 
         norm_product as product,
         business_object,
-        COUNT(*)::int as total_records,
-        COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
-        COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
-        COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
+        COUNT(DISTINCT record_unique_hash)::int as total_records,
+        COUNT(DISTINCT record_unique_hash) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int as inserts,
+        COUNT(DISTINCT record_unique_hash) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int as updates,
+        COUNT(DISTINCT record_unique_hash) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int as deletes,
         MAX(event_timestamp) as latest_event_time
       FROM norm
       GROUP BY norm_product, business_object

@@ -192,7 +192,13 @@ export default function Audit({
     if (initialBOId && initialBOId !== selectedBOId) {
       setSelectedBOId(initialBOId);
     }
-  }, [initialBOId, initialProductId]);
+    if (initialFromDate && initialFromDate !== fromDate) {
+      setFromDate(initialFromDate);
+    }
+    if (initialToDate && initialToDate !== toDate) {
+      setToDate(initialToDate);
+    }
+  }, [initialBOId, initialProductId, initialFromDate, initialToDate]);
 
   // 1. Load authoritative product catalog on mount
   useEffect(() => {

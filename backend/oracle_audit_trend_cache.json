@@ -144,9 +144,15 @@
     "deletes": 0
   },
   "2026-10-21": {
-    "count": 20,
-    "inserts": 11,
-    "updates": 9,
+    "count": 3004,
+    "inserts": 1763,
+    "updates": 185,
+    "deletes": 1056
+  },
+  "2026-10-20": {
+    "count": 1394,
+    "inserts": 1394,
+    "updates": 0,
     "deletes": 0
   }
 }
