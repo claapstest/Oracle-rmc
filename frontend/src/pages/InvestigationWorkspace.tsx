@@ -942,9 +942,6 @@ export default function InvestigationWorkspace({
                         </table>
                       </div>
                     )}
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.75rem 0 0 0' }}>
-                      Live Oracle Fusion data (SCIM + HCM assignments + BIP auto-provisioning, merged on USERNAME + ROLE_CODE). Auto-Provisioned fills in once a runnable BIP Report exists on the CLAAPS_User_Role_AutoProvisioning data model (BI catalog → New Report → save as /Custom/CLAAPS_User_Role_AutoProvisioning_Report.xdo) — it is auto-discovered. Phone, password expiration and locked show — when Oracle does not expose them via REST/BIP.
-                    </p>
                   </div>
                 </div>
               )}

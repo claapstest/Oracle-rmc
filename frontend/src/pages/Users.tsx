@@ -458,7 +458,6 @@ export default function Users({
               { key: 'roleCode', label: 'Role Code (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.roleCode || '' },
               { key: 'autoProvisioned', label: 'Auto-Provisioned (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.autoProvisioned ?? '' },
               { key: 'roleCount', label: 'Role Count', defaultSelected: true, getValue: (u: any) => u.assignedRoles?.length || 0 },
-              { key: 'personId', label: 'Person ID', defaultSelected: true, getValue: (u: any) => u.personId || '' },
               { key: 'personNumber', label: 'Person Number', defaultSelected: true, getValue: (u: any) => u.personNumber || '' },
               { key: 'department', label: 'Department', defaultSelected: true, getValue: (u: any) => u.department || '' },
               { key: 'job', label: 'Job', defaultSelected: true, getValue: (u: any) => u.job || '' },
@@ -525,7 +524,6 @@ export default function Users({
                 <th>Active</th>
                 <th>Role Name</th>
                 <th>Role Code</th>
-                <th>Person ID</th>
                 <th>Person Number</th>
                 <th>Department</th>
                 <th>Job</th>
@@ -539,7 +537,7 @@ export default function Users({
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={17} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={16} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No security users match the filter criteria.
                   </td>
                 </tr>
@@ -564,7 +562,6 @@ export default function Users({
                     </td>
                     <td>{primary?.roleName || '—'}</td>
                     <td><code style={{ fontSize: '0.7rem' }}>{primary?.roleCode || '—'}</code></td>
-                  <td>{user.personId || '—'}</td>
                     <td>{user.personNumber || '—'}</td>
                     <td>{user.department || '—'}</td>
                     <td>{user.job || '—'}</td>
@@ -672,13 +669,12 @@ export default function Users({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem 0.75rem', color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
                 <div><strong>First Name:</strong> {selectedUser.firstName || '—'}</div>
                 <div><strong>Last Name:</strong> {selectedUser.lastName || '—'}</div>
-                <div><strong>Person ID:</strong> {selectedUser.personId || '—'}</div>
                 <div><strong>Person Number:</strong> {selectedUser.personNumber || '—'}</div>
                 <div><strong>Department:</strong> {selectedUser.department || '—'}</div>
                 <div><strong>Job:</strong> {selectedUser.job || '—'}</div>
                 <div><strong>Business Unit:</strong> {selectedUser.businessUnit || '—'}</div>
                 <div><strong>Location:</strong> {selectedUser.location || '—'}</div>
-                <div style={{ gridColumn: '1 / -1' }}><strong>Manager:</strong> {selectedUser.manager || '—'}</div>
+                <div><strong>Manager:</strong> {selectedUser.manager || '—'}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                 <Mail size={14} />
