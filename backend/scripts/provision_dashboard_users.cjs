@@ -1,9 +1,16 @@
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Ensure .env is loaded from backend, database, or workspace root
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../database/.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const connectionString =
   process.env.DATABASE_URL ||
-  'postgresql://postgres:postgres@127.0.0.1:5433/veyra_db';
+  `postgresql://${process.env.POSTGRES_USER || 'postgres'}:${process.env.POSTGRES_PASSWORD || 'postgres'}@${process.env.POSTGRES_HOST || '127.0.0.1'}:${process.env.POSTGRES_PORT || '5433'}/${process.env.POSTGRES_DB || 'veyra_db'}`;
 
 const pool = new Pool({ connectionString });
 

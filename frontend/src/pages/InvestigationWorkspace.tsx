@@ -14,8 +14,6 @@ import {
   Calendar, 
   Shield, 
   ArrowRight, 
-  ArrowUp,
-  ArrowLeft,
   Lock, 
   Send,
   Terminal,
@@ -59,7 +57,7 @@ export default function InvestigationWorkspace({
   environmentMode 
 }: InvestigationWorkspaceProps) {
   // Tabs based on entity type
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'MEMBERS' | 'ROLES' | 'HIERARCHY' | 'PRIVILEGES' | 'AUDIT' | 'AI'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'MEMBERS' | 'ROLES' | 'HIERARCHY' | 'PRIVILEGES' | 'AUDIT'>('OVERVIEW');
   const [highlightedRoleCode, setHighlightedRoleCode] = useState<string | null>(null);
 
   const handleRoleChipClick = (roleCode: string) => {
@@ -110,11 +108,6 @@ export default function InvestigationWorkspace({
   const [expandedPrivilegeCode, setExpandedPrivilegeCode] = useState<string | null>(null);
   const [inspectingPrivilege, setInspectingPrivilege] = useState<any | null>(null);
 
-  // AI chat states
-  const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<{ sender: 'user' | 'assistant'; text: string; toolResult?: any }[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
-
   // Saved bookmark state
   const [isSaved, setIsSaved] = useState(false);
 
@@ -140,7 +133,6 @@ export default function InvestigationWorkspace({
       setPrivilegeData(null);
       setPrivilegeError('');
       setAuditData([]);
-      setChatHistory([]);
       setPrivilegePage(1);
       setPrivilegeSearch('');
       setMembersData(null);
@@ -318,39 +310,6 @@ export default function InvestigationWorkspace({
     localStorage.setItem('saved_investigations', JSON.stringify(items));
   };
 
-
-  const handleAISubmit = async (promptText: string) => {
-    const prompt = promptText.trim();
-    if (!prompt) return;
-
-    setChatHistory(prev => [...prev, { sender: 'user', text: prompt }]);
-    setChatInput('');
-    setAiLoading(true);
-
-    try {
-      const context = {
-        entityType: entity.type.toUpperCase(),
-        entityId: entity.id,
-        entityName: entity.name,
-        currentView: `${entity.type.toUpperCase()}_INVESTIGATION`
-      };
-
-      const res = await api.sendMessage(prompt, context);
-      setChatHistory(prev => [...prev, { 
-        sender: 'assistant', 
-        text: res.message, 
-        toolResult: res.toolResult 
-      }]);
-    } catch (err) {
-      console.error('AI chat error:', err);
-      setChatHistory(prev => [...prev, { 
-        sender: 'assistant', 
-        text: 'Failed to communicate with the security assistant. Please verify backend connection.' 
-      }]);
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   const renderHierarchyNode = (node: any, depth = 0) => {
     if (!node) return null;
@@ -540,29 +499,6 @@ export default function InvestigationWorkspace({
         </div>
       </div>
 
-      {/* Back Button / History navigation */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <button
-          onClick={onBack}
-          className="btn btn-secondary animate-fade-in"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.45rem 0.85rem',
-            fontSize: '0.8rem',
-            color: 'var(--accent-blue)',
-            borderColor: 'rgba(53, 99, 233, 0.25)',
-            background: 'transparent',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          <ArrowLeft size={14} />
-          <span>{historyCount > 1 ? 'Back to Previous Profile' : 'Back to Investigation'}</span>
-        </button>
-      </div>
-
       {error && (
         <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid var(--accent-red)', marginBottom: '1.5rem' }}>
           <p style={{ color: 'var(--accent-red)', fontSize: '0.85rem' }}>{error}</p>
@@ -673,8 +609,7 @@ export default function InvestigationWorkspace({
               id: 'AUDIT', 
               label: `Audit Timeline ${auditLoading ? '(Loading...)' : auditData.length > 0 ? `(${auditData.length})` : ''}`, 
               show: !isRole 
-            },
-            { id: 'AI', label: 'AI Investigation Panel', show: true }
+            }
           ].map(tab => {
             if (!tab.show) return null;
             return (
@@ -696,7 +631,6 @@ export default function InvestigationWorkspace({
                 }}
               >
                 <span>{tab.label}</span>
-                {tab.id === 'AI' && <Sparkles size={14} style={{ color: activeTab === 'AI' ? '#ffffff' : 'var(--accent-gold)' }} />}
               </button>
             );
           })}
@@ -704,7 +638,7 @@ export default function InvestigationWorkspace({
           <div className="glass-panel" style={{ marginTop: '1.5rem', padding: '1rem', fontSize: '0.8rem' }}>
             <h4 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Quick Action Guide</h4>
             <p style={{ color: 'var(--text-muted)', lineHeight: '1.4', fontSize: '0.75rem' }}>
-              Explore structural dependencies, privileges, or launch AI synthesis to evaluate risk vectors.
+              Explore structural dependencies, member assignments, and functional privileges to evaluate security posture.
             </p>
           </div>
         </div>
@@ -916,7 +850,7 @@ export default function InvestigationWorkspace({
                 ) : (
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', margin: 0 }}>
                     {isRole 
-                      ? (privilegeData?.briefingText || `Role ${entity.name} represents a major security checkpoint. Recommended investigation step: click on 'AI Investigation Panel' to check what high-sensitivity data can be written or read by users assigned to this role.`)
+                      ? (privilegeData?.briefingText || `Role ${entity.name} represents a major security checkpoint. Review assigned privileges and inheritance hierarchy to evaluate sensitive access.`)
                       : `Identity ${entity.name} currently holds ${data?.assignedRoles?.length || 0} active roles. Direct roles can lead to conflicts if invoice submission and approvals are combined.`}
                   </p>
                 )}
@@ -1795,166 +1729,7 @@ export default function InvestigationWorkspace({
             </div>
           )}
 
-          {/* Tab 7: AI Investigation Panel */}
-          {activeTab === 'AI' && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                <Sparkles size={14} />
-                <span>AI Security Co-Pilot (Context-Aware)</span>
-              </div>
-              
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                Ask questions about <strong>{entity.name}</strong>. The AI will automatically resolve terms like "this role", "their privileges", or "this user" using the active workspace details.
-              </p>
 
-              {/* Chat history area */}
-              <div style={{ 
-                flex: 1, 
-                minHeight: '200px', 
-                maxHeight: '400px', 
-                overflowY: 'auto', 
-                backgroundColor: 'rgba(0,0,0,0.15)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1rem',
-                marginBottom: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem'
-              }}>
-                {chatHistory.length === 0 ? (
-                  <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '300px' }}>
-                    No messages in this workspace session yet. Click a suggestion below to start.
-                  </div>
-                ) : (
-                  chatHistory.map((chat, idx) => (
-                    <div key={idx} style={{ 
-                      alignSelf: chat.sender === 'user' ? 'flex-end' : 'flex-start',
-                      maxWidth: '85%',
-                      padding: '0.75rem 1rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: chat.sender === 'user' ? 'var(--accent-blue-light)' : 'var(--bg-card)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.85rem',
-                      boxShadow: 'var(--shadow-sm)'
-                    }}>
-                      <div style={{ 
-                        fontWeight: 700, 
-                        fontSize: '0.7rem', 
-                        textTransform: 'uppercase', 
-                        color: chat.sender === 'user' ? 'var(--accent-blue)' : 'var(--accent-gold)',
-                        marginBottom: '0.25rem'
-                      }}>
-                        {chat.sender === 'user' ? 'You' : 'Assistant'}
-                      </div>
-                      <p style={{ whiteSpace: 'pre-line', margin: 0 }}>{chat.text}</p>
-                      
-                      {chat.toolResult && chat.toolResult.success && chat.toolResult.data && (
-                        <details style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          <summary style={{ cursor: 'pointer' }}>View API Data</summary>
-                          <pre style={{ 
-                            marginTop: '0.25rem', 
-                            padding: '0.5rem', 
-                            backgroundColor: 'rgba(0,0,0,0.2)', 
-                            color: '#a7f3d0', 
-                            borderRadius: '4px',
-                            overflowX: 'auto',
-                            fontFamily: 'monospace',
-                            fontSize: '0.7rem'
-                          }}>
-                            {JSON.stringify(chat.toolResult.data, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  ))
-                )}
-                {aiLoading && (
-                  <div style={{ 
-                    alignSelf: 'flex-start',
-                    minWidth: '150px',
-                    padding: '0.75rem',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <div style={{ height: '12px', width: '80px', marginBottom: '0.4rem' }} className="skeleton" />
-                    <div style={{ height: '12px', width: '120px' }} className="skeleton" />
-                  </div>
-                )}
-              </div>
-
-              {/* Suggestions */}
-              {chatHistory.length === 0 && (
-                <div style={{ marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Suggested Investigations:</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {isRole ? (
-                      <>
-                        <button onClick={() => handleAISubmit("Who has this role?")} className="btn btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-                          "Who has this role?"
-                        </button>
-                        <button onClick={() => handleAISubmit(`What privileges does ${entity.name || entity.id} have?`)} className="btn btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-                          "What privileges does it have?"
-                        </button>
-                        <button onClick={() => handleAISubmit(`Show the complete hierarchy of role ${entity.id || entity.name}`)} className="btn btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-                          "Show role hierarchy"
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => handleAISubmit(`Which roles are assigned to user ${entity.id}?`)} className="btn btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-                          "What roles does this user have?"
-                        </button>
-                        <button onClick={() => handleAISubmit(`Show audit history for user ${entity.id}`)} className="btn btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-                          "Show user audit history"
-                        </button>
-                        <button onClick={() => handleAISubmit(`Explain ${entity.id}'s security context`)} className="btn btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-                          "Explain this user's access"
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Chat Input Bar */}
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder={`Ask a security question about ${isRole ? 'this role' : 'this user'}...`}
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAISubmit(chatInput)}
-                  disabled={aiLoading}
-                  style={{ flex: 1 }}
-                />
-                <button 
-                  onClick={() => handleAISubmit(chatInput)} 
-                  disabled={aiLoading || !chatInput.trim()} 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    padding: 0,
-                    backgroundColor: chatInput.trim() && !aiLoading ? 'var(--accent-blue)' : '#e2e8f0',
-                    color: chatInput.trim() && !aiLoading ? '#ffffff' : '#94a3b8',
-                    border: 'none',
-                    cursor: chatInput.trim() && !aiLoading ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s ease',
-                    flexShrink: 0
-                  }}
-                >
-                  <ArrowUp size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-            </div>
-          )}
 
         </div>
 

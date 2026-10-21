@@ -20,14 +20,46 @@ function highlightMatch(text: string, query: string) {
 
 interface RolesProps {
   initialCategory?: string;
+  isActive?: boolean;
   onInvestigateRole?: (roleCode: string, displayName: string) => void;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
-export default function Roles({ initialCategory = 'ALL', onInvestigateRole }: RolesProps) {
+export default function Roles({
+  initialCategory = 'ALL',
+  isActive = true,
+  onInvestigateRole,
+  onBack,
+  onRegisterBack
+}: RolesProps) {
   const [roles, setRoles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [selectedRole, setSelectedRole] = useState<any | null>(null);
+  
+  // Synchronize internal selected role drawer with topbar Back button
+  useEffect(() => {
+    if (onRegisterBack) {
+      if (isActive && selectedRole) {
+        onRegisterBack({
+          canGoBack: true,
+          onBack: () => setSelectedRole(null),
+          label: 'Roles Catalog'
+        });
+      } else if (isActive) {
+        onRegisterBack(null);
+      }
+    }
+  }, [isActive, selectedRole, onRegisterBack]);
+
+  useEffect(() => {
+    return () => {
+      if (onRegisterBack) {
+        onRegisterBack(null);
+      }
+    };
+  }, [onRegisterBack]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);

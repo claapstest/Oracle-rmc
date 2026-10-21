@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   Scale,
   CheckCircle2,
@@ -82,6 +82,9 @@ export interface AdvancedControlsModuleProps {
   embedded?: boolean;
   /** When the hosting page already renders its own title/hero, hide the module section header and keep only the view tabs + sync actions. */
   hideSectionHeader?: boolean;
+  isActive?: boolean;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
 type SubSectionType = 'ACCESS' | 'TRANSACTION';
@@ -193,9 +196,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   onRefreshControls,
   embedded = false,
   hideSectionHeader = false,
+  isActive = true,
+  onBack,
+  onRegisterBack,
 }) => {
   // Active internal subsection tab
   const [activeSubSection, setActiveSubSection] = useState<SubSectionType>('ACCESS');
+  const activeEntityName = activeSubSection === 'ACCESS' ? 'Access Controls' : 'Transaction Controls';
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -295,6 +302,41 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   }>({ cacheStatus: 'NOT_CACHED' });
   const [detailIncidentPage, setDetailIncidentPage] = useState(1);
   const detailPollingRef = useRef<any>(null);
+
+  // Close control details and return to controls catalog
+  const handleCloseDetail = useCallback(() => {
+    if (detailPollingRef.current) {
+      clearInterval(detailPollingRef.current);
+      detailPollingRef.current = null;
+    }
+    setSelectedControlId(null);
+    setSelectedControlDetail(null);
+    setDetailError('');
+    setIncidentSyncState({ cacheStatus: 'NOT_CACHED' });
+  }, []);
+
+  // Synchronize detail view state with topbar Back button
+  useEffect(() => {
+    if (onRegisterBack) {
+      if (isActive && selectedControlId) {
+        onRegisterBack({
+          canGoBack: true,
+          onBack: handleCloseDetail,
+          label: activeEntityName || 'Advanced Controls'
+        });
+      } else if (isActive) {
+        onRegisterBack(null);
+      }
+    }
+  }, [isActive, selectedControlId, onRegisterBack, handleCloseDetail, activeEntityName]);
+
+  useEffect(() => {
+    return () => {
+      if (onRegisterBack) {
+        onRegisterBack(null);
+      }
+    };
+  }, [onRegisterBack]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -1763,8 +1805,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     ];
   }, []);
 
-  const activeEntityName = activeSubSection === 'ACCESS' ? 'Access Controls' : 'Transaction Controls';
-
   return (
     <div className="advanced-controls-module animate-fade-in">
 
@@ -2057,25 +2097,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       {/* Detail Modal / Screen Override */}
       {selectedControlId ? (
         <div className="animate-fade-in">
-          {/* Back Navigation Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <button
-              onClick={() => {
-                if (detailPollingRef.current) {
-                  clearInterval(detailPollingRef.current);
-                  detailPollingRef.current = null;
-                }
-                setSelectedControlId(null);
-                setSelectedControlDetail(null);
-                setDetailError('');
-                setIncidentSyncState({ cacheStatus: 'NOT_CACHED' });
-              }}
-              className="btn btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem' }}
-            >
-              <ArrowLeft size={16} /> Back to {activeEntityName}
-            </button>
-
+          {/* Detail View Header Bar */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.25rem' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Endpoint: <code>/fscmRestApi/resources/11.13.18.05/advancedControls/{selectedControlId}</code>
             </div>

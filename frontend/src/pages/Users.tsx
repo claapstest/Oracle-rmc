@@ -5,12 +5,23 @@ import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 
 interface UsersProps {
   initialFilter?: string;
+  isActive?: boolean;
   onInvestigateUser?: (userId: string, displayName: string) => void;
   onInspectRole?: (roleCode: string, displayName: string) => void;
   hasAccess?: (pageId: string) => boolean;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
-export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInspectRole, hasAccess }: UsersProps) {
+export default function Users({
+  initialFilter = 'ALL',
+  isActive = true,
+  onInvestigateUser,
+  onInspectRole,
+  hasAccess,
+  onBack,
+  onRegisterBack
+}: UsersProps) {
   void hasAccess;
   const [users, setUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +40,29 @@ export default function Users({ initialFilter = 'ALL', onInvestigateUser, onInsp
   const [inactiveCount, setInactiveCount] = useState<number | null>(null);
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState(initialFilter);
+
+  // Synchronize internal selected user drawer with topbar Back button
+  useEffect(() => {
+    if (onRegisterBack) {
+      if (isActive && selectedUser) {
+        onRegisterBack({
+          canGoBack: true,
+          onBack: () => setSelectedUser(null),
+          label: 'Users List'
+        });
+      } else if (isActive) {
+        onRegisterBack(null);
+      }
+    }
+  }, [isActive, selectedUser, onRegisterBack]);
+
+  useEffect(() => {
+    return () => {
+      if (onRegisterBack) {
+        onRegisterBack(null);
+      }
+    };
+  }, [onRegisterBack]);
 
   useEffect(() => {
     setActiveCategoryFilter(initialFilter);

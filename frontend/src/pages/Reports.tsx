@@ -47,8 +47,11 @@ import { formatControlTypeName, isAccessControl, isTransactionControl } from '..
 interface ReportsProps {
   environmentMode?: string;
   canGenerate?: boolean;
+  isActive?: boolean;
   onInvestigateUser?: (userId: string, displayName: string) => void;
   onInspectRole?: (roleCode: string, displayName: string) => void;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
 type ReportSectionId = 'RISK' | 'SECURITY' | 'AUDIT';
@@ -156,7 +159,15 @@ function getEventBadgeClass(event?: string): string {
   return 'badge-secondary';
 }
 
-export default function Reports({ environmentMode = 'DEMO', canGenerate = false, onInvestigateUser, onInspectRole }: ReportsProps) {
+export default function Reports({
+  environmentMode = 'DEMO',
+  canGenerate = false,
+  isActive = true,
+  onInvestigateUser,
+  onInspectRole,
+  onBack,
+  onRegisterBack
+}: ReportsProps) {
   // Active Report Selection - intentionally null until the user picks a report
   const [activeReportId, setActiveReportId] = useState<ReportId | null>(() => {
     try {
@@ -169,6 +180,37 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
     }
     return null;
   });
+
+  // Keep topbar Back button synchronized strictly with internal report selection state
+  useEffect(() => {
+    if (onRegisterBack) {
+      if (isActive && activeReportId) {
+        onRegisterBack({
+          canGoBack: true,
+          onBack: () => {
+            setActiveReportId(null);
+            setCurrentPage(1);
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('report');
+              window.history.pushState({}, '', url.toString());
+            } catch (_) {}
+          },
+          label: 'Reports Catalog'
+        });
+      } else if (isActive) {
+        onRegisterBack(null);
+      }
+    }
+  }, [isActive, activeReportId, onRegisterBack]);
+
+  useEffect(() => {
+    return () => {
+      if (onRegisterBack) {
+        onRegisterBack(null);
+      }
+    };
+  }, [onRegisterBack]);
 
   // Shared Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -1619,30 +1661,6 @@ export default function Reports({ environmentMode = 'DEMO', canGenerate = false,
       {activeMeta ? (
       <div className="glass-panel" style={{ borderRadius: '12px', padding: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
         
-        {/* Back to All Reports Link */}
-        <div style={{ marginBottom: '1.1rem' }}>
-          <button
-            type="button"
-            onClick={() => handleSelectReport(null)}
-            className="btn btn-secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              padding: '0.35rem 0.75rem',
-              color: 'var(--accent-blue)',
-              borderColor: 'rgba(53, 99, 233, 0.25)',
-              background: 'transparent',
-              cursor: 'pointer'
-            }}
-          >
-            <ArrowLeft size={13} />
-            <span>Back to All Reports</span>
-          </button>
-        </div>
-
         {/* Selected Report Header Bar */}
         <div style={{
           display: 'flex',

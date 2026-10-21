@@ -9,7 +9,8 @@ import {
   ChevronRight, 
   Calendar, 
   AlertCircle, 
-  Layers
+  Layers,
+  ArrowLeft
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { TableExportControl } from '../components/TableExportControl';
@@ -77,11 +78,15 @@ const cleanProductName = (name?: string): string => {
 export interface AuditProps {
   initialBOId?: string;
   initialProductId?: string;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
 export default function Audit({
   initialBOId = 'document_records',
-  initialProductId = 'hcm'
+  initialProductId = 'hcm',
+  onBack,
+  onRegisterBack
 }: AuditProps = {}) {
   // Product Catalog state
   const [products, setProducts] = useState<AuditProduct[]>([]);

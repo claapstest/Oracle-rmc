@@ -209,7 +209,13 @@ export default function App() {
   // Bridge state for FAQ clicking
   const [faqQuestion, setFaqQuestion] = useState('');
 
-  // Stack navigation history item definition
+  // States to pass down filters when navigating from cards
+  const [initialRolesCategory, setInitialRolesCategory] = useState('ALL');
+  const [initialUsersFilter, setInitialUsersFilter] = useState('ALL');
+  const [initialAuditBO, setInitialAuditBO] = useState('document_records');
+  const [initialCertId, setInitialCertId] = useState<string | null>(null);
+
+  // Stack navigation history item definition (for deep entity investigations)
   interface InvestigationHistoryItem {
     kind: 'entity' | 'query';
     type?: 'role' | 'user';
@@ -229,8 +235,49 @@ export default function App() {
   // Active query-level investigation snapshot state (same tab)
   const [activeQueryInvestigation, setActiveQueryInvestigation] = useState<string | null>(null);
 
-  // Stack navigation history state
+  // Stack navigation history state for entity investigation
   const [investigationHistory, setInvestigationHistory] = useState<InvestigationHistoryItem[]>([]);
+
+  // Dedicated Page-Internal Back State
+  // Back button MUST end on the current page and NOT switch across sidebar pages.
+  const [internalPageBack, setInternalPageBack] = useState<{
+    canGoBack: boolean;
+    onBack: () => void;
+    label?: string;
+  } | null>(null);
+
+  // canGoBack is true ONLY if inside an investigation or if the current page has a registered sub-view
+  const canGoBack = !!activeInvestigation || 
+                    !!activeQueryInvestigation || 
+                    investigationHistory.length > 1 || 
+                    (internalPageBack?.canGoBack === true);
+
+  const backTargetTitle = internalPageBack?.label || 
+    (activeInvestigation ? 'Close Profile' : 
+    (activeQueryInvestigation ? 'Close Investigation' : ''));
+
+  // Back Button Handler: strictly page-scoped
+  const handleNavigateBack = () => {
+    // 1. If in nested investigation entities, pop back to previous entity
+    if (investigationHistory.length > 1) {
+      handleBack();
+      return;
+    }
+
+    // 2. If single active investigation / query, close back to the host page
+    if (activeInvestigation || activeQueryInvestigation) {
+      handleClose();
+      return;
+    }
+
+    // 3. If the active page registered an internal back action (e.g. Report details -> All Reports)
+    if (internalPageBack?.canGoBack && internalPageBack.onBack) {
+      internalPageBack.onBack();
+      return;
+    }
+
+    // 4. Otherwise: do nothing! Back ends here on this page.
+  };
 
   // URL synchronization helpers
   const updateUrlForInvestigation = (item: InvestigationHistoryItem) => {
@@ -241,22 +288,19 @@ export default function App() {
       } else {
         newUrl = `/ask-veyra/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
       }
-      window.history.pushState({ investigation: item }, '', newUrl);
+      window.history.pushState({ page: currentPage, investigation: item }, '', newUrl);
     } catch (_) { }
   };
 
   const resetUrlToCurrentPage = () => {
     try {
-      window.history.pushState(null, '', `/?page=${currentPage}`);
+      window.history.pushState({ page: currentPage }, '', `/?page=${currentPage}`);
     } catch (_) { }
   };
 
   const handleOpenQueryInvestigation = (invId: string, _payload?: any) => {
     const item: InvestigationHistoryItem = { kind: 'query', id: invId };
-    setInvestigationHistory(prev => {
-      // If navigating from another state, preserve it in stack
-      return [...prev, item];
-    });
+    setInvestigationHistory(prev => [...prev, item]);
     setActiveQueryInvestigation(invId);
     setActiveInvestigation(null);
     setIsSidebarOpen(false);
@@ -276,7 +320,8 @@ export default function App() {
   const handleNavigate = (type: 'role' | 'user', id: string, name: string, initialTab?: string) => {
     const entity = { type, id, name, initialTab };
     const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab };
-    setInvestigationHistory(prev => [...prev, item]);
+    const nextInv = [...investigationHistory, item];
+    setInvestigationHistory(nextInv);
     setActiveInvestigation(entity);
     updateUrlForInvestigation(item);
   };
@@ -284,10 +329,9 @@ export default function App() {
   const handleInvestigateFromQuery = (type: 'role' | 'user', id: string, name: string) => {
     const entity = { type, id, name };
     const item: InvestigationHistoryItem = { kind: 'entity', type, id, name };
-    setInvestigationHistory(prev => {
-      const base = prev.length > 0 ? prev : (activeQueryInvestigation ? [{ kind: 'query', id: activeQueryInvestigation } as InvestigationHistoryItem] : []);
-      return [...base, item];
-    });
+    const base = investigationHistory.length > 0 ? investigationHistory : (activeQueryInvestigation ? [{ kind: 'query', id: activeQueryInvestigation } as InvestigationHistoryItem] : []);
+    const nextInv = [...base, item];
+    setInvestigationHistory(nextInv);
     setActiveInvestigation(entity);
     updateUrlForInvestigation(item);
   };
@@ -330,6 +374,16 @@ export default function App() {
   // Browser back & forward navigation listener (popstate)
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
+      const token = getActiveAuthToken();
+      if (!token) {
+        setIsLoggedIn(false);
+        setCurrentUser('');
+        setIsAdmin(false);
+        setUserRole('');
+        setUserPermissions([]);
+        return;
+      }
+
       if (e.state && e.state.investigation) {
         const item = e.state.investigation as InvestigationHistoryItem;
         if (item.kind === 'query') {
@@ -345,7 +399,12 @@ export default function App() {
           setActiveQueryInvestigation(null);
         }
       } else {
-        // Returned to base page state
+        const params = new URLSearchParams(window.location.search);
+        const urlPage = params.get('page');
+        if (urlPage && (TOP_LEVEL_PAGE_IDS.has(urlPage) || RISK_CHILD_IDS.has(urlPage))) {
+          setCurrentPage(urlPage);
+          sessionStorage.setItem('activePage', urlPage);
+        }
         setActiveInvestigation(null);
         setActiveQueryInvestigation(null);
         setInvestigationHistory([]);
@@ -355,6 +414,22 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Support Alt + ArrowLeft and Alt + ArrowRight keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (isInput) return;
+
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleNavigateBack();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   // Check URL on startup for direct link or refresh
   useEffect(() => {
@@ -378,12 +453,30 @@ export default function App() {
   }, []);
 
   const handlePageSelect = (pageId: string, filter?: string) => {
+    const rolesCat = pageId === 'roles' ? (filter || 'ALL') : 'ALL';
+    const usersFilt = pageId === 'users' ? (filter || 'ALL') : 'ALL';
+    const auditBO = pageId === 'audit' ? (filter || 'document_records') : 'document_records';
+    const certId = pageId === 'risk-certificates' ? (filter || null) : null;
+
+    if (
+      currentPage === pageId &&
+      !activeInvestigation &&
+      !activeQueryInvestigation &&
+      (pageId !== 'roles' || initialRolesCategory === rolesCat) &&
+      (pageId !== 'users' || initialUsersFilter === usersFilt) &&
+      (pageId !== 'audit' || initialAuditBO === auditBO) &&
+      (pageId !== 'risk-certificates' || initialCertId === certId)
+    ) {
+      return;
+    }
+
     setCurrentPage(pageId);
     sessionStorage.setItem('activePage', pageId);
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('page', pageId);
-      window.history.replaceState(null, '', url.toString());
+      url.searchParams.delete('investigationId');
+      window.history.pushState({ page: pageId }, '', url.toString());
     } catch (_) {
       /* URL sync is best-effort; sessionStorage remains authoritative */
     }
@@ -394,34 +487,18 @@ export default function App() {
       return next;
     });
     handleClose(); // Clear investigation when switching screens
-    if (pageId === 'roles') {
-      setInitialRolesCategory(filter || 'ALL');
-    } else {
-      setInitialRolesCategory('ALL');
-    }
-    if (pageId === 'users') {
-      setInitialUsersFilter(filter || 'ALL');
-    } else {
-      setInitialUsersFilter('ALL');
-    }
-    if (pageId === 'audit') {
-      setInitialAuditBO(filter || 'document_records');
-    }
-    if (pageId === 'risk-certificates') {
-      setInitialCertId(filter || null);
-    }
+    setInternalPageBack(null); // Clear internal page back state for the newly selected page
+    setInitialRolesCategory(rolesCat);
+    setInitialUsersFilter(usersFilt);
+    setInitialAuditBO(auditBO);
+    setInitialCertId(certId);
+
     if (pageId === 'assistant') {
       setIsSidebarOpen(false); // Ask VEYRA defaults to full width
     } else {
       setIsSidebarOpen(true); // Normal pages default to visible sidebar
     }
   };
-
-  // States to pass down filters when navigating from cards
-  const [initialRolesCategory, setInitialRolesCategory] = useState('ALL');
-  const [initialUsersFilter, setInitialUsersFilter] = useState('ALL');
-  const [initialAuditBO, setInitialAuditBO] = useState('document_records');
-  const [initialCertId, setInitialCertId] = useState<string | null>(null);
 
   // Synchronize settings for administrator sessions
   useEffect(() => {
@@ -495,9 +572,7 @@ export default function App() {
     handleClose();
     setVisitedPages(new Set(['dashboard']));
     setFaqQuestion('');
-    try {
-      window.history.replaceState(null, '', window.location.pathname);
-    } catch (_) { }
+    setInternalPageBack(null);
 
     if (reason === 'EXPIRED') {
       setSessionExpiredNotice('Your session has expired due to inactivity. Please log in again.');
@@ -518,22 +593,6 @@ export default function App() {
     timeoutSeconds: 5 * 60, // 5 minutes inactivity (AC1)
     warningSeconds: 30       // 30 seconds warning (AC2)
   });
-
-  // Browser Back Button Protection (AC8)
-  useEffect(() => {
-    const handlePopState = () => {
-      const token = getActiveAuthToken();
-      if (!token) {
-        setIsLoggedIn(false);
-        setCurrentUser('');
-        setIsAdmin(false);
-        setUserRole('');
-        setUserPermissions([]);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
 
   const handleFAQSelect = (question: string) => {
     setFaqQuestion(question);
@@ -644,24 +703,13 @@ export default function App() {
   return (
     <div className="app-container">
 
-      {/* Redesigned Enterprise Dark Navy Navigation Sidebar */}
+      {/* Crisp White Enterprise Navigation Sidebar */}
       <aside className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}>
 
         {/* Brand Header */}
         <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => handlePageSelect('dashboard')}>
-          <img
-            src="/logo.png"
-            alt="CLAAPS VEYRA Logo"
-            style={{
-              width: '34px',
-              height: '34px',
-              objectFit: 'contain',
-              flexShrink: 0,
-              filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))'
-            }}
-          />
-          <span className="logo-text" style={{ letterSpacing: '0.01em', fontSize: '1.14rem', fontWeight: 800 }}>
-            CLAAPS <span className="logo-accent">VEYRA</span>
+          <span className="logo-text" style={{ letterSpacing: '-0.01em', fontSize: '1.24rem', fontWeight: 800 }}>
+            CLAAPS VEYRA
           </span>
         </div>
 
@@ -754,7 +802,7 @@ export default function App() {
 
         {/* Topbar matching Blue Gradient Theme */}
         <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <button
               onClick={() => setIsSidebarOpen(prev => !prev)}
               className="topbar-menu-btn"
@@ -763,38 +811,88 @@ export default function App() {
               <PanelLeft size={16} />
             </button>
 
-            {/* Drill-down Back Arrow (investigation views only) */}
-            {(activeInvestigation || activeQueryInvestigation) && (
-              <button
-                onClick={handleBack}
-                className="topbar-menu-btn"
-                title={investigationHistory.length > 1 ? 'Back to previous profile' : 'Back to previous view'}
-                aria-label="Go back to previous view"
-              >
-                <ArrowLeft size={16} />
-              </button>
-            )}
+            {/* Dedicated Top-Left Back Button for Switching Pages Back for Every Page */}
+            <button
+              type="button"
+              onClick={handleNavigateBack}
+              disabled={!canGoBack}
+              className={`topbar-menu-btn topbar-nav-back-btn ${canGoBack ? 'active' : 'disabled'}`}
+              title={canGoBack ? `Back to ${backTargetTitle}` : 'No previous page'}
+              aria-label={canGoBack ? `Back to ${backTargetTitle}` : 'Back button disabled, no previous page'}
+            >
+              <ArrowLeft size={15} />
+              <span>Back</span>
+            </button>
 
-            {/* Breadcrumb Context Indicator */}
+            {/* Subtle separator */}
+            <div style={{ width: '1px', height: '18px', backgroundColor: 'rgba(255, 255, 255, 0.22)', margin: '0 0.15rem' }} />
+
+            {/* Breadcrumb Context Indicator with Clickable Navigation */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, fontFamily: 'var(--font-header)' }}>
               {activeInvestigation ? (
                 <>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }} onClick={handleClose}>Ask VEYRA</span>
+                  <span
+                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                    onClick={handleNavigateBack}
+                    title="Back to previous view"
+                  >
+                    Ask VEYRA
+                  </span>
                   <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
                   <span>{activeInvestigation.name}</span>
                 </>
               ) : activeQueryInvestigation ? (
-                <span>Investigation Details</span>
+                <>
+                  <span
+                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                    onClick={handleNavigateBack}
+                    title="Back to previous view"
+                  >
+                    Ask VEYRA
+                  </span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span>Investigation Details</span>
+                </>
+              ) : currentPage === 'dashboard' ? (
+                <span>Dashboard</span>
               ) : currentPage === 'assistant' ? (
-                <span>Ask VEYRA</span>
+                <>
+                  <span
+                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }}
+                    onClick={() => handlePageSelect('dashboard')}
+                    title="Back to Dashboard"
+                  >
+                    Dashboard
+                  </span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span>Ask VEYRA</span>
+                </>
               ) : RISK_CHILD_IDS.has(currentPage) ? (
                 <>
+                  <span
+                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }}
+                    onClick={() => handlePageSelect('dashboard')}
+                    title="Back to Dashboard"
+                  >
+                    Dashboard
+                  </span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
                   <span style={{ color: 'rgba(255, 255, 255, 0.75)' }}>Risk Management</span>
                   <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
                   <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
                 </>
               ) : (
-                <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
+                <>
+                  <span
+                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }}
+                    onClick={() => handlePageSelect('dashboard')}
+                    title="Back to Dashboard"
+                  >
+                    Dashboard
+                  </span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
+                </>
               )}
             </div>
           </div>
@@ -1027,9 +1125,12 @@ export default function App() {
             <div style={{ display: currentPage === 'users' ? 'block' : 'none', height: '100%' }}>
               <UsersPage
                 initialFilter={initialUsersFilter}
+                isActive={currentPage === 'users'}
                 onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
                 onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
+                onBack={handleNavigateBack}
+                onRegisterBack={setInternalPageBack}
               />
             </div>
           )}
@@ -1045,23 +1146,37 @@ export default function App() {
             <div style={{ display: currentPage === 'roles' ? 'block' : 'none', height: '100%' }}>
               <RolesPage
                 initialCategory={initialRolesCategory}
+                isActive={currentPage === 'roles'}
                 onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                onBack={handleNavigateBack}
+                onRegisterBack={setInternalPageBack}
               />
             </div>
           )}
           {visitedPages.has('audit') && (
             <div style={{ display: currentPage === 'audit' ? 'block' : 'none', height: '100%' }}>
-              <AuditPage initialBOId={initialAuditBO} />
+              <AuditPage initialBOId={initialAuditBO} onBack={handleNavigateBack} onRegisterBack={setInternalPageBack} />
             </div>
           )}
           {visitedPages.has('risk-controls') && (
             <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
-              <AdvancedControlsPage environmentMode={environmentMode} />
+              <AdvancedControlsPage
+                environmentMode={environmentMode}
+                isActive={currentPage === 'risk-controls'}
+                onBack={handleNavigateBack}
+                onRegisterBack={setInternalPageBack}
+              />
             </div>
           )}
           {visitedPages.has('risk-certificates') && (
             <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
-              <AccessCertificatesPage environmentMode={environmentMode} initialCertificationId={initialCertId} />
+              <AccessCertificatesPage
+                environmentMode={environmentMode}
+                initialCertificationId={initialCertId}
+                isActive={currentPage === 'risk-certificates'}
+                onBack={handleNavigateBack}
+                onRegisterBack={setInternalPageBack}
+              />
             </div>
           )}
           {visitedPages.has('reports') && (
@@ -1069,8 +1184,11 @@ export default function App() {
               <ReportsPage
                 environmentMode={environmentMode}
                 canGenerate={isAdmin || userPermissions.map((p) => String(p).toUpperCase()).includes('ALL')}
+                isActive={currentPage === 'reports'}
                 onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName)}
                 onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName)}
+                onBack={handleNavigateBack}
+                onRegisterBack={setInternalPageBack}
               />
             </div>
           )}
@@ -1100,12 +1218,10 @@ export default function App() {
               environmentMode={environmentMode}
               onInvestigate={handleInvestigateFromQuery}
               onNavigatePage={(pageId, filter) => {
-                handlePageSelect(pageId);
-                if (pageId === 'roles' && filter) setInitialRolesCategory(filter);
-                if (pageId === 'users' && filter) setInitialUsersFilter(filter);
+                handlePageSelect(pageId, filter);
                 handleClose();
               }}
-              onBack={handleBack}
+              onBack={handleNavigateBack}
             />
           </div>
         )}
@@ -1117,11 +1233,10 @@ export default function App() {
               entity={activeInvestigation}
               onClose={handleClose}
               onNavigate={handleNavigate}
-              onBack={handleBack}
+              onBack={handleNavigateBack}
               historyCount={investigationHistory.length}
               onNavigateToPage={(pageId) => {
-                setCurrentPage(pageId);
-                handleClose();
+                handlePageSelect(pageId);
               }}
               environmentMode={environmentMode}
             />

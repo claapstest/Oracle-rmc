@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Award,
   RefreshCw,
@@ -21,6 +21,9 @@ import { api } from '../services/api.js';
 interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
   initialCertificationId?: string | null;
+  isActive?: boolean;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
 interface WorksheetColumn {
@@ -56,7 +59,13 @@ export function wsVal(row: any, keys: string[]): string {
   return '';
 }
 
-export default function AccessCertificates({ environmentMode, initialCertificationId }: AccessCertificatesProps) {
+export default function AccessCertificates({
+  environmentMode,
+  initialCertificationId,
+  isActive = true,
+  onBack,
+  onRegisterBack
+}: AccessCertificatesProps) {
   // Main Certification List State
   const [certifications, setCertifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +85,37 @@ export default function AccessCertificates({ environmentMode, initialCertificati
   const [worksheetSearchTerm, setWorksheetSearchTerm] = useState('');
   const [worksheetPageSize, setWorksheetPageSize] = useState(10);
   const [worksheetCurrentPage, setWorksheetCurrentPage] = useState(1);
+
+  const backToList = useCallback(() => {
+    setDrillDownCertId(null);
+    setDrillDownSummary(null);
+    setWorksheetRows([]);
+    setDetailsError('');
+    setWorksheetSearchTerm('');
+  }, []);
+
+  // Synchronize internal worksheet drilldown with topbar Back button
+  useEffect(() => {
+    if (onRegisterBack) {
+      if (isActive && drillDownCertId) {
+        onRegisterBack({
+          canGoBack: true,
+          onBack: backToList,
+          label: 'Access Certificates'
+        });
+      } else if (isActive) {
+        onRegisterBack(null);
+      }
+    }
+  }, [isActive, drillDownCertId, onRegisterBack, backToList]);
+
+  useEffect(() => {
+    return () => {
+      if (onRegisterBack) {
+        onRegisterBack(null);
+      }
+    };
+  }, [onRegisterBack]);
 
   const fetchCertifications = async (isManualRefresh = false) => {
     setLoading(true);
@@ -170,14 +210,6 @@ export default function AccessCertificates({ environmentMode, initialCertificati
     } finally {
       setLoadingDetails(false);
     }
-  };
-
-  const backToList = () => {
-    setDrillDownCertId(null);
-    setDrillDownSummary(null);
-    setWorksheetRows([]);
-    setDetailsError('');
-    setWorksheetSearchTerm('');
   };
 
   useEffect(() => {
@@ -333,40 +365,6 @@ export default function AccessCertificates({ environmentMode, initialCertificati
 
     return (
       <div style={{ padding: '1.75rem 2rem', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
-        {/* Navigation Breadcrumb / Back Button */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <button
-            type="button"
-            onClick={backToList}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #CBD5E1',
-              borderRadius: '8px',
-              padding: '0.55rem 1.1rem',
-              color: '#1E293B',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#F8FAFC';
-              e.currentTarget.style.borderColor = '#94A3B8';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#FFFFFF';
-              e.currentTarget.style.borderColor = '#CBD5E1';
-            }}
-          >
-            <ArrowLeft size={16} style={{ color: '#2563EB' }} />
-            <span>Back to Access Certificates</span>
-          </button>
-        </div>
-
         {/* Top Header Banner Matching VEYRA Style */}
         <div
           className="page-header-banner animate-fade-in"

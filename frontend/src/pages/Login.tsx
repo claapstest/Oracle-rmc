@@ -220,10 +220,9 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
 
       {/* Left brand panel — Mock Screen 1 */}
       <div className="veyra-login-brand">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <img src="/logo.png" alt="CLAAPS VEYRA logo" style={{ height: '44px', width: 'auto', objectFit: 'contain' }} />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ fontSize: '1.9rem', fontWeight: 800, letterSpacing: '0.04em', color: '#FFFFFF' }}>
-            CLAAPS <span style={{ color: '#38BDF8' }}>VEYRA</span>
+            CLAAPS VEYRA
           </span>
         </div>
         <div>

@@ -1842,7 +1842,7 @@
       },
       "message": "Security role \"Pricing Manager\" with 17 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792426006319
+    "timestamp": 1792588375105
   },
   "role_privileges:ora_qp_pricing_manager_job": {
     "data": {
@@ -1973,7 +1973,7 @@
       },
       "message": "Security role \"Pricing Manager\" with 17 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792426006359
+    "timestamp": 1792588375123
   },
   "role_privileges:fscm load interface administration": {
     "data": {
@@ -30158,7 +30158,7 @@
       },
       "message": "Security role \"IT Security Manager\" with 69 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792406371331
+    "timestamp": 1792586760684
   },
   "role_privileges:ora_fnd_it_security_manager_job": {
     "data": {
@@ -30601,7 +30601,7 @@
       },
       "message": "Security role \"IT Security Manager\" with 69 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792406371366
+    "timestamp": 1792586760715
   },
   "role_privileges:bi author role": {
     "data": {
@@ -64152,5 +64152,1129 @@
       "message": "Security role \"BI Author Role\" with 2791 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1792407416089
+  },
+  "role_privileges:it auditor": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "IT Auditor",
+      "roleCode": "ORA_ASE_IT_AUDITOR_JOB",
+      "role": {
+        "name": "IT Auditor",
+        "code": "ORA_ASE_IT_AUDITOR_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "View Sensitive Data Access Audit",
+          "code": "PER_VIEW_SENSITIVE_DATA_ACCESS_AUDIT_PRIV",
+          "description": "Allows viewing of HCM sensitive data access audit information.",
+          "inheritedFrom": "IT Auditor"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 1,
+        "directPrivileges": 1,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"IT Auditor\" (ORA_ASE_IT_AUDITOR_JOB) with 1 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "3 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"IT Auditor\" with 1 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792586788419
+  },
+  "role_privileges:ora_ase_it_auditor_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "IT Auditor",
+      "roleCode": "ORA_ASE_IT_AUDITOR_JOB",
+      "role": {
+        "name": "IT Auditor",
+        "code": "ORA_ASE_IT_AUDITOR_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "View Sensitive Data Access Audit",
+          "code": "PER_VIEW_SENSITIVE_DATA_ACCESS_AUDIT_PRIV",
+          "description": "Allows viewing of HCM sensitive data access audit information.",
+          "inheritedFrom": "IT Auditor"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 1,
+        "directPrivileges": 1,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"IT Auditor\" (ORA_ASE_IT_AUDITOR_JOB) with 1 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "3 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"IT Auditor\" with 1 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792586788441
+  },
+  "role_privileges:recruiter": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Recruiter",
+      "roleCode": "ORA_IRC_RECRUITER_JOB",
+      "role": {
+        "name": "Recruiter",
+        "code": "ORA_IRC_RECRUITER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Candidate Sourcing Activity Center",
+          "code": "IRC_ACCESS_CANDIDATE_SOURCING_ACTIVITY_CENTER_PRIV",
+          "description": "Allow to access the candidate sourcing activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access Interview Activity Center",
+          "code": "IRC_ACCESS_INTERVIEW_ACTIVITY_CENTER_PRIV",
+          "description": "Allow access to the interview activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access LinkedIn Candidate Search",
+          "code": "IRC_ACCESS_LINKEDIN_CANDIDATE_SEARCH_PRIV",
+          "description": "Allows to access LinkedIn candidate search from the candidate search results in Recruiting.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access My Candidate Interviews and Feedback",
+          "code": "IRC_ACCESS_MY_CANDIDATE_INTERVIEWS_AND_FEEDBACK_PRIV",
+          "description": "Allows to access my candidate interviews and feedback.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access to Hiring as Recruiter",
+          "code": "IRC_ACCESS_TO_HIRING_AS_RECRUITER_PRIV",
+          "description": "Allows to access to hiring as a recruiter.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Add Candidate to Job Requisition",
+          "code": "IRC_ADD_CANDIDATE_TO_JOB_REQUISITION_PRIV",
+          "description": "Allows to add the candidate to the job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Associate Job Requisition to Pipeline Requisition",
+          "code": "IRC_ASSOCIATE_JOB_REQUISITION_TO_PIPELINE_REQUISITION_PRIV",
+          "description": "Allows to associate an existing standard job requisition to a pipeline requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Communicate Job Offer",
+          "code": "IRC_COMMUNICATE_JOB_OFFER_PRIV",
+          "description": "Allows to communicate the job offer to the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Communicate Job Offer Ignoring Number of Openings",
+          "code": "IRC_COMMUNICATE_JOB_OFFER_IGNORING_NUMBER_OF_OPENINGS_PRIV",
+          "description": "Allows to extend more job offers than the number of openings.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Confirm Candidate Job Application and Talent Community Subscription",
+          "code": "IRC_CONFIRM_CANDIDATE_JOB_APPLICATION_PRIV",
+          "description": "Allows to confirm a candidate job application and talent community subscription on behalf of the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Coordinate Candidate Interviews and Feedback",
+          "code": "IRC_COORDINATE_CANDIDATE_INTERVIEWS_AND_FEEDBACK_PRIV",
+          "description": "Allows to coordinate candidate interviews and feedback.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Copy Job Offer",
+          "code": "IRC_COPY_JOB_OFFER_PRIV",
+          "description": "Allows to copy a single job offer to create multiple new job offers.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Create Candidate Job Application",
+          "code": "IRC_CREATE_CANDIDATE_JOB_APPLICATION_PRIV",
+          "description": "Allows to create the candidate job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Create or Update Candidate",
+          "code": "IRC_CREATE_OR_UPDATE_CANDIDATE_PRIV",
+          "description": "Allows to create or update the candidate file.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Delete Candidate",
+          "code": "IRC_DELETE_CANDIDATE_PRIV",
+          "description": "Allows to delete the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Delete Candidate Job Application",
+          "code": "IRC_DELETE_JOB_APPLICATION_PRIV",
+          "description": "Allows to delete the candidate job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Delete Completed Job Requisition Questionnaire",
+          "code": "IRC_DELETE_JOB_REQUISITION_QUESTIONNAIRE_PRIV",
+          "description": "Allows to delete the completed job requisition questionnaire.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Display Recruiting Duplicate Check with Sensitive Info Match",
+          "code": "IRC_DISPLAY_RECRUITING_DUPLICATE_CHECK_WITH_SENSITIVE_INFO_MATCH_PRIV",
+          "description": "Allows to view after performing a duplicate check whether the candidate&apos;s sensitive information matches the information of any possible duplicate person.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Offer",
+          "code": "IRC_INITIATE_JOB_OFFER_PRIV",
+          "description": "Allows to create the job offer.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Blank Requisition",
+          "code": "IRC_INITIATE_JOB_REQUISITION_USING_BLANK_REQUISITION_PRIV",
+          "description": "Allows to create the job requisition using a blank requisition with no values.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Existing Requisition",
+          "code": "IRC_INITIATE_JOB_REQUISITION_USING_EXISTING_REQUISITION_PRIV",
+          "description": "Allows to create the job requisition based on an existing requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Job",
+          "code": "IRC_INITIATE_JOB_REQUISITION_FROM_JOB_PRIV",
+          "description": "Allows to create the job requisition based on a job.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Position",
+          "code": "IRC_INITIATE_POSITION_BASED_JOB_REQUISITION_PRIV",
+          "description": "Allows to create the job requisition based on a position.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Template",
+          "code": "IRC_INITIATE_JOB_REQUISITION_USING_TEMPLATE_PRIV",
+          "description": "Allows to create the job requisition based on a requisition template.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Pipeline Job Requisition",
+          "code": "IRC_INITIATE_PIPELINE_JOB_REQUISITION_PRIV",
+          "description": "Allows to create pipeline job requisitions.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Interact with Candidate",
+          "code": "IRC_INTERACT_WITH_CANDIDATE_PRIV",
+          "description": "Allows to interact with the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Interview Schedule",
+          "code": "IRC_MANAGE_JOB_REQUISITION_INTERVIEW_SCHEDULE_PRIV",
+          "description": "Allows to create or update interview schedules for job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Questionnaire Request",
+          "code": "IRC_MANAGE_JOB_REQUISITION_QUESTIONNAIRE_REQUEST_PRIV",
+          "description": "Allows to manage the list of questionnaires associated with a job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Screening",
+          "code": "IRC_MANAGE_JOB_REQUISITION_SCREENING_PRIV",
+          "description": "Allows to manage the job requisition screening page.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Recruiting QR Codes",
+          "code": "IRC_MANAGE_RECRUITING_QR_CODES_PRIV",
+          "description": "Allows to manage Recruiting QR codes.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Recruitment Campaign",
+          "code": "IRC_MANAGE_RECRUITMENT_CAMPAIGN_PRIV",
+          "description": "Allows to manage recruitment campaigns.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manually Trigger Screening Packages",
+          "code": "IRC_MANUALLY_TRIGGER_SCREENING_PACKAGES_PRIV",
+          "description": "Allows to manually initiate or cancel screening packages from candidate job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Move Candidate Job Applications",
+          "code": "IRC_MOVE_CANDIDATE_JOB_APPLICATIONS_PRIV",
+          "description": "Allows to change the phase and state of candidate job applications.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Move Candidate Job Applications Ignoring Constraints",
+          "code": "IRC_MOVE_CANDIDATE_JOB_APPLICATION_SKIPPING_MANDATORY_PHASES_PRIV",
+          "description": "Allows to change the phase and state of candidate job applications while ignoring constraints such as mandatory phases and conditions for leaving a state.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Perform Candidate Duplicate Check and Merge",
+          "code": "IRC_PERFORM_CANDIDATE_DUPLICATE_CHECK_AND_MERGE_PRIV",
+          "description": "Allows to perform a duplicate check on candidate files and merge duplicate files.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Personalize Candidates Lists",
+          "code": "IRC_PERSONALIZE_CANDIDATE_JOB_APPLICATION_LISTS_PRIV",
+          "description": "Allows to personalize candidate job application and candidate lists.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Post Job Requisition to Company Career Site",
+          "code": "IRC_POST_JOB_REQUISITION_PRIV",
+          "description": "Allows to post the job requisition to career sites.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Post Job Requisition to Job Distributor&apos;s Portal",
+          "code": "IRC_POST_JOB_REQUISITION_TO_JOB_DISTRIBUTORS_PORTAL_PRIV",
+          "description": "Allows access to partner portal for job posting and job posting removal.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Provide Unsolicited Feedback",
+          "code": "IRC_PROVIDE_UNSOLICITED_FEEDBACK_PRIV",
+          "description": "Allows to provide feedback for a job application without having received a feedback request.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Provide Unsolicited Feedback with Questionnaire Selection",
+          "code": "IRC_PROVIDE_UNSOLICITED_FEEDBACK_WITH_QUESTIONNAIRE_SELECTION_PRIV",
+          "description": "Allows to select a questionnaire when providing unsolicited feedback for a job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Request More Information from Candidates",
+          "code": "IRC_REQUEST_MORE_INFORMATION_FROM_CANDIDATES_PRIV",
+          "description": "Allows to send a request to external candidates to get more information from them.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Save Candidate Profile or Job Application as PDF",
+          "code": "IRC_SAVE_CANDIDATE_PROFILE_OR_JOB_APPLICATION_AS_PDF_PRIV",
+          "description": "Allows to create a PDF of a candidate profile or candidate job application.  The BI Publisher reports used to create the PDF are secured using separate privileges. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Candidate Application Ranking",
+          "code": "IRC_UPDATE_CANDIDATE_APPLICATION_RANKING_PRIV",
+          "description": "Allows to update candidate job application ranking.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Candidate Job Application Screening Package",
+          "code": "IRC_UPDATE_CANDIDATE_JOB_APPLICATION_SCREENING_PACKAGE_PRIV",
+          "description": "Allows to update candidate job application screening packages.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Email Created from Template",
+          "code": "IRC_UPDATE_EMAIL_CREATED_FROM_TEMPLATE_PRIV",
+          "description": "Allows to update the content of the email created from a template before sending it.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Person Address for Recruiting",
+          "code": "IRC_UPDATE_PERSON_ADDRESS_FOR_RECRUITING_PRIV",
+          "description": "Allows to update the external candidate address. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Person Email for Recruiting",
+          "code": "IRC_UPDATE_PERSON_EMAIL_FOR_RECRUITING_PRIV",
+          "description": "Allows to update the external candidate email for Recruiting. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Person Phone for Recruiting",
+          "code": "IRC_UPDATE_PERSON_PHONE_FOR_RECRUITING_PRIV",
+          "description": "Allows to update the phone number of the external candidate. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Referral Additional Information",
+          "code": "IRC_UPDATE_REFERRAL_ADDITIONAL_INFORMATION_PRIV",
+          "description": "Allows to update the referral additional personal information provided by referrers.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Candidates List of Values",
+          "code": "IRC_REST_SERVICE_ACCESS_CANDIDATES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the candidate lists of values REST service.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Salary Bases List of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_SALARY_BASES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Salary Bases list of values REST Service.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use Recruiting",
+          "code": "IRC_USE_RECRUITING_PRIV",
+          "description": "Allows to view the progress panel in job requisitions, candidate job applications, and job offers.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Completed Job Requisition Questionnaire",
+          "code": "IRC_REVIEW_COMPLETE_JOB_REQUISITION_QUESTIONNAIRE_PRIV",
+          "description": "Allows to review the completed job requisition questionnaire.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Data Visualization Configuration",
+          "code": "ZCA_VIEW_DATA_VISUALIZATION_CONFIGURATION_PRIV",
+          "description": "Allows viewing of data visualization configurations.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Employment Screening Results",
+          "code": "IRC_VIEW_EMPLOYMENT_SCREENING_RESULTS_PRIV",
+          "description": "Allows to view the job application employment screening results page.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Recommended Candidates",
+          "code": "IRC_VIEW_RECOMMENDED_CANDIDATES_PRIV",
+          "description": "Allows to view recommended candidates for a job requisition and to sort job applications using recommended ranking.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Similar Candidates",
+          "code": "IRC_VIEW_SIMILAR_CANDIDATES_PRIV",
+          "description": "Allows to view application-generated list of candidates that are similar to an existing candidate. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Associate Job Requisition With Applications to Pipeline Requisition",
+          "code": "IRC_ASSOCIATE_JOB_REQUISITION_WITH_PIPELINE_REQUISITION_PRIV",
+          "description": "Allows to associate an existing standard job requisition that has candidate job applications to a pipeline requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Create Prescreening Question for Job Requisition",
+          "code": "IRC_CREATE_PRESCREENING_QUESTION_FOR_JOB_REQUISITION_PRIV",
+          "description": "Allows to create prescreening question for a job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Edit Candidate Sourcing Activity Center Layout",
+          "code": "IRC_EDIT_CANDIDATE_SOURCING_ACTIVITY_CENTER_LAYOUT_PRIV",
+          "description": "Allows to edit the page layout of the candidate sourcing activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Edit Interview Activity Center Layout",
+          "code": "IRC_EDIT_INTERVIEW_ACTIVITY_CENTER_LAYOUT_PRIV",
+          "description": "Allows the user to edit the page layout of the interview activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Edit Recruiting Activity Center Layout",
+          "code": "IRC_EDIT_RECRUITING_ACTIVITY_CENTER_LAYOUT_PRIV",
+          "description": "Allows to edit the page layout of the Recruiting activity center. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Candidates Lists",
+          "code": "IRC_MANAGE_CANDIDATE_JOB_APPLICATION_LISTS_PRIV",
+          "description": "Allows to manage candidate job application and candidate lists.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Data Visualization Configuration",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_CONFIGURATION_PRIV",
+          "description": "Allows creation, modification and deletion of data visualization configurations either through UI pages or through REST service calls. For example, a data visualization could be configured to be displayed as a Bar chart.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Interview Schedule Before Job Formatting Phase",
+          "code": "IRC_MANAGE_JOB_REQUISITION_INTERVIEW_SCHEDULE_BEFORE_JOB_FORMATTING_PHASE_PRIV",
+          "description": "Allows to create or update interview schedules for a job requisition before the job formatting phase.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Provide Feedback on Behalf of Someone Else",
+          "code": "IRC_PROVIDE_FEEDBACK_ON_BEHALF_PRIV",
+          "description": "Allows to provide feedback for a job application on behalf of someone else.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Unlink Pipeline Requisition from Standard Requisition",
+          "code": "IRC_UNLINK_PIPELINE_REQUISITION_FROM_STANDARD_REQUISITION_PRIV",
+          "description": "Allows to unlink a pipeline requisition from a standard job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Candidate Job Offer Letter",
+          "code": "IRC_UPDATE_CANDIDATE_JOB_OFFER_LETTER_PRIV",
+          "description": "Allows to update the candidate job application offer letter before sending it.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Job Requisition After Draft Phase",
+          "code": "IRC_UPDATE_JOB_REQUISITION_AFTER_DRAFT_PHASE_PRIV",
+          "description": "Allows to update some job requisition fields when a requisition is not in draft phase.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Job Requisition Posting Locations",
+          "code": "IRC_UPDATE_JOB_REQUISITION_POSTING_LOCATIONS_PRIV",
+          "description": "Allows to update a job requisition&apos;s primary location and other locations when a requisition can&apos;t be redrafted.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Posting Locations of Job Requisitions Which Can Be Redrafted",
+          "code": "IRC_UPDATE_POSTING_LOCATIONS_OF_JOB_REQUISITION_WHICH_CAN_BE_REDRAFTED_PRIV",
+          "description": "Allows to update a job requisition&apos;s primary location and other locations when the requisition can be redrafted.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Confidential Questionnaire Responses",
+          "code": "IRC_VIEW_CONFIDENTIAL_QUESTIONNAIRE_RESPONSES_PRIV",
+          "description": "Allows to view a candidate&apos;s answers in a confidential questionnaire.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Interview Transcripts",
+          "code": "IRC_VIEW_INTERVIEW_TRANSCRIPTS_PRIV",
+          "description": "Allows to view the interview transcripts when you are not the interviewer.",
+          "inheritedFrom": "Recruiter"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 83,
+        "directPrivileges": 83,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Recruiter\" (ORA_IRC_RECRUITER_JOB) with 83 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "40 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Recruiter\" with 83 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792589290952
+  },
+  "role_privileges:ora_irc_recruiter_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Recruiter",
+      "roleCode": "ORA_IRC_RECRUITER_JOB",
+      "role": {
+        "name": "Recruiter",
+        "code": "ORA_IRC_RECRUITER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Candidate Sourcing Activity Center",
+          "code": "IRC_ACCESS_CANDIDATE_SOURCING_ACTIVITY_CENTER_PRIV",
+          "description": "Allow to access the candidate sourcing activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access Interview Activity Center",
+          "code": "IRC_ACCESS_INTERVIEW_ACTIVITY_CENTER_PRIV",
+          "description": "Allow access to the interview activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access LinkedIn Candidate Search",
+          "code": "IRC_ACCESS_LINKEDIN_CANDIDATE_SEARCH_PRIV",
+          "description": "Allows to access LinkedIn candidate search from the candidate search results in Recruiting.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access My Candidate Interviews and Feedback",
+          "code": "IRC_ACCESS_MY_CANDIDATE_INTERVIEWS_AND_FEEDBACK_PRIV",
+          "description": "Allows to access my candidate interviews and feedback.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Access to Hiring as Recruiter",
+          "code": "IRC_ACCESS_TO_HIRING_AS_RECRUITER_PRIV",
+          "description": "Allows to access to hiring as a recruiter.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Add Candidate to Job Requisition",
+          "code": "IRC_ADD_CANDIDATE_TO_JOB_REQUISITION_PRIV",
+          "description": "Allows to add the candidate to the job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Associate Job Requisition to Pipeline Requisition",
+          "code": "IRC_ASSOCIATE_JOB_REQUISITION_TO_PIPELINE_REQUISITION_PRIV",
+          "description": "Allows to associate an existing standard job requisition to a pipeline requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Communicate Job Offer",
+          "code": "IRC_COMMUNICATE_JOB_OFFER_PRIV",
+          "description": "Allows to communicate the job offer to the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Communicate Job Offer Ignoring Number of Openings",
+          "code": "IRC_COMMUNICATE_JOB_OFFER_IGNORING_NUMBER_OF_OPENINGS_PRIV",
+          "description": "Allows to extend more job offers than the number of openings.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Confirm Candidate Job Application and Talent Community Subscription",
+          "code": "IRC_CONFIRM_CANDIDATE_JOB_APPLICATION_PRIV",
+          "description": "Allows to confirm a candidate job application and talent community subscription on behalf of the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Coordinate Candidate Interviews and Feedback",
+          "code": "IRC_COORDINATE_CANDIDATE_INTERVIEWS_AND_FEEDBACK_PRIV",
+          "description": "Allows to coordinate candidate interviews and feedback.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Copy Job Offer",
+          "code": "IRC_COPY_JOB_OFFER_PRIV",
+          "description": "Allows to copy a single job offer to create multiple new job offers.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Create Candidate Job Application",
+          "code": "IRC_CREATE_CANDIDATE_JOB_APPLICATION_PRIV",
+          "description": "Allows to create the candidate job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Create or Update Candidate",
+          "code": "IRC_CREATE_OR_UPDATE_CANDIDATE_PRIV",
+          "description": "Allows to create or update the candidate file.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Delete Candidate",
+          "code": "IRC_DELETE_CANDIDATE_PRIV",
+          "description": "Allows to delete the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Delete Candidate Job Application",
+          "code": "IRC_DELETE_JOB_APPLICATION_PRIV",
+          "description": "Allows to delete the candidate job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Delete Completed Job Requisition Questionnaire",
+          "code": "IRC_DELETE_JOB_REQUISITION_QUESTIONNAIRE_PRIV",
+          "description": "Allows to delete the completed job requisition questionnaire.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Display Recruiting Duplicate Check with Sensitive Info Match",
+          "code": "IRC_DISPLAY_RECRUITING_DUPLICATE_CHECK_WITH_SENSITIVE_INFO_MATCH_PRIV",
+          "description": "Allows to view after performing a duplicate check whether the candidate&apos;s sensitive information matches the information of any possible duplicate person.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Offer",
+          "code": "IRC_INITIATE_JOB_OFFER_PRIV",
+          "description": "Allows to create the job offer.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Blank Requisition",
+          "code": "IRC_INITIATE_JOB_REQUISITION_USING_BLANK_REQUISITION_PRIV",
+          "description": "Allows to create the job requisition using a blank requisition with no values.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Existing Requisition",
+          "code": "IRC_INITIATE_JOB_REQUISITION_USING_EXISTING_REQUISITION_PRIV",
+          "description": "Allows to create the job requisition based on an existing requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Job",
+          "code": "IRC_INITIATE_JOB_REQUISITION_FROM_JOB_PRIV",
+          "description": "Allows to create the job requisition based on a job.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Position",
+          "code": "IRC_INITIATE_POSITION_BASED_JOB_REQUISITION_PRIV",
+          "description": "Allows to create the job requisition based on a position.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Job Requisition Using Template",
+          "code": "IRC_INITIATE_JOB_REQUISITION_USING_TEMPLATE_PRIV",
+          "description": "Allows to create the job requisition based on a requisition template.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Initiate Pipeline Job Requisition",
+          "code": "IRC_INITIATE_PIPELINE_JOB_REQUISITION_PRIV",
+          "description": "Allows to create pipeline job requisitions.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Interact with Candidate",
+          "code": "IRC_INTERACT_WITH_CANDIDATE_PRIV",
+          "description": "Allows to interact with the candidate.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Interview Schedule",
+          "code": "IRC_MANAGE_JOB_REQUISITION_INTERVIEW_SCHEDULE_PRIV",
+          "description": "Allows to create or update interview schedules for job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Questionnaire Request",
+          "code": "IRC_MANAGE_JOB_REQUISITION_QUESTIONNAIRE_REQUEST_PRIV",
+          "description": "Allows to manage the list of questionnaires associated with a job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Screening",
+          "code": "IRC_MANAGE_JOB_REQUISITION_SCREENING_PRIV",
+          "description": "Allows to manage the job requisition screening page.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Recruiting QR Codes",
+          "code": "IRC_MANAGE_RECRUITING_QR_CODES_PRIV",
+          "description": "Allows to manage Recruiting QR codes.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Recruitment Campaign",
+          "code": "IRC_MANAGE_RECRUITMENT_CAMPAIGN_PRIV",
+          "description": "Allows to manage recruitment campaigns.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manually Trigger Screening Packages",
+          "code": "IRC_MANUALLY_TRIGGER_SCREENING_PACKAGES_PRIV",
+          "description": "Allows to manually initiate or cancel screening packages from candidate job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Move Candidate Job Applications",
+          "code": "IRC_MOVE_CANDIDATE_JOB_APPLICATIONS_PRIV",
+          "description": "Allows to change the phase and state of candidate job applications.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Move Candidate Job Applications Ignoring Constraints",
+          "code": "IRC_MOVE_CANDIDATE_JOB_APPLICATION_SKIPPING_MANDATORY_PHASES_PRIV",
+          "description": "Allows to change the phase and state of candidate job applications while ignoring constraints such as mandatory phases and conditions for leaving a state.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Perform Candidate Duplicate Check and Merge",
+          "code": "IRC_PERFORM_CANDIDATE_DUPLICATE_CHECK_AND_MERGE_PRIV",
+          "description": "Allows to perform a duplicate check on candidate files and merge duplicate files.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Personalize Candidates Lists",
+          "code": "IRC_PERSONALIZE_CANDIDATE_JOB_APPLICATION_LISTS_PRIV",
+          "description": "Allows to personalize candidate job application and candidate lists.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Post Job Requisition to Company Career Site",
+          "code": "IRC_POST_JOB_REQUISITION_PRIV",
+          "description": "Allows to post the job requisition to career sites.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Post Job Requisition to Job Distributor&apos;s Portal",
+          "code": "IRC_POST_JOB_REQUISITION_TO_JOB_DISTRIBUTORS_PORTAL_PRIV",
+          "description": "Allows access to partner portal for job posting and job posting removal.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Provide Unsolicited Feedback",
+          "code": "IRC_PROVIDE_UNSOLICITED_FEEDBACK_PRIV",
+          "description": "Allows to provide feedback for a job application without having received a feedback request.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Provide Unsolicited Feedback with Questionnaire Selection",
+          "code": "IRC_PROVIDE_UNSOLICITED_FEEDBACK_WITH_QUESTIONNAIRE_SELECTION_PRIV",
+          "description": "Allows to select a questionnaire when providing unsolicited feedback for a job application.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Request More Information from Candidates",
+          "code": "IRC_REQUEST_MORE_INFORMATION_FROM_CANDIDATES_PRIV",
+          "description": "Allows to send a request to external candidates to get more information from them.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Save Candidate Profile or Job Application as PDF",
+          "code": "IRC_SAVE_CANDIDATE_PROFILE_OR_JOB_APPLICATION_AS_PDF_PRIV",
+          "description": "Allows to create a PDF of a candidate profile or candidate job application.  The BI Publisher reports used to create the PDF are secured using separate privileges. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Candidate Application Ranking",
+          "code": "IRC_UPDATE_CANDIDATE_APPLICATION_RANKING_PRIV",
+          "description": "Allows to update candidate job application ranking.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Candidate Job Application Screening Package",
+          "code": "IRC_UPDATE_CANDIDATE_JOB_APPLICATION_SCREENING_PACKAGE_PRIV",
+          "description": "Allows to update candidate job application screening packages.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Email Created from Template",
+          "code": "IRC_UPDATE_EMAIL_CREATED_FROM_TEMPLATE_PRIV",
+          "description": "Allows to update the content of the email created from a template before sending it.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Person Address for Recruiting",
+          "code": "IRC_UPDATE_PERSON_ADDRESS_FOR_RECRUITING_PRIV",
+          "description": "Allows to update the external candidate address. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Person Email for Recruiting",
+          "code": "IRC_UPDATE_PERSON_EMAIL_FOR_RECRUITING_PRIV",
+          "description": "Allows to update the external candidate email for Recruiting. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Person Phone for Recruiting",
+          "code": "IRC_UPDATE_PERSON_PHONE_FOR_RECRUITING_PRIV",
+          "description": "Allows to update the phone number of the external candidate. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Referral Additional Information",
+          "code": "IRC_UPDATE_REFERRAL_ADDITIONAL_INFORMATION_PRIV",
+          "description": "Allows to update the referral additional personal information provided by referrers.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Candidates List of Values",
+          "code": "IRC_REST_SERVICE_ACCESS_CANDIDATES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the candidate lists of values REST service.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use REST Service - Salary Bases List of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_SALARY_BASES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Salary Bases list of values REST Service.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Use Recruiting",
+          "code": "IRC_USE_RECRUITING_PRIV",
+          "description": "Allows to view the progress panel in job requisitions, candidate job applications, and job offers.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Completed Job Requisition Questionnaire",
+          "code": "IRC_REVIEW_COMPLETE_JOB_REQUISITION_QUESTIONNAIRE_PRIV",
+          "description": "Allows to review the completed job requisition questionnaire.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Data Visualization Configuration",
+          "code": "ZCA_VIEW_DATA_VISUALIZATION_CONFIGURATION_PRIV",
+          "description": "Allows viewing of data visualization configurations.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Employment Screening Results",
+          "code": "IRC_VIEW_EMPLOYMENT_SCREENING_RESULTS_PRIV",
+          "description": "Allows to view the job application employment screening results page.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Recommended Candidates",
+          "code": "IRC_VIEW_RECOMMENDED_CANDIDATES_PRIV",
+          "description": "Allows to view recommended candidates for a job requisition and to sort job applications using recommended ranking.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Similar Candidates",
+          "code": "IRC_VIEW_SIMILAR_CANDIDATES_PRIV",
+          "description": "Allows to view application-generated list of candidates that are similar to an existing candidate. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Associate Job Requisition With Applications to Pipeline Requisition",
+          "code": "IRC_ASSOCIATE_JOB_REQUISITION_WITH_PIPELINE_REQUISITION_PRIV",
+          "description": "Allows to associate an existing standard job requisition that has candidate job applications to a pipeline requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Create Prescreening Question for Job Requisition",
+          "code": "IRC_CREATE_PRESCREENING_QUESTION_FOR_JOB_REQUISITION_PRIV",
+          "description": "Allows to create prescreening question for a job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Edit Candidate Sourcing Activity Center Layout",
+          "code": "IRC_EDIT_CANDIDATE_SOURCING_ACTIVITY_CENTER_LAYOUT_PRIV",
+          "description": "Allows to edit the page layout of the candidate sourcing activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Edit Interview Activity Center Layout",
+          "code": "IRC_EDIT_INTERVIEW_ACTIVITY_CENTER_LAYOUT_PRIV",
+          "description": "Allows the user to edit the page layout of the interview activity center.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Edit Recruiting Activity Center Layout",
+          "code": "IRC_EDIT_RECRUITING_ACTIVITY_CENTER_LAYOUT_PRIV",
+          "description": "Allows to edit the page layout of the Recruiting activity center. This applies to Recruiting Redwood experience only.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Candidates Lists",
+          "code": "IRC_MANAGE_CANDIDATE_JOB_APPLICATION_LISTS_PRIV",
+          "description": "Allows to manage candidate job application and candidate lists.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Data Visualization Configuration",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_CONFIGURATION_PRIV",
+          "description": "Allows creation, modification and deletion of data visualization configurations either through UI pages or through REST service calls. For example, a data visualization could be configured to be displayed as a Bar chart.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Manage Job Requisition Interview Schedule Before Job Formatting Phase",
+          "code": "IRC_MANAGE_JOB_REQUISITION_INTERVIEW_SCHEDULE_BEFORE_JOB_FORMATTING_PHASE_PRIV",
+          "description": "Allows to create or update interview schedules for a job requisition before the job formatting phase.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Provide Feedback on Behalf of Someone Else",
+          "code": "IRC_PROVIDE_FEEDBACK_ON_BEHALF_PRIV",
+          "description": "Allows to provide feedback for a job application on behalf of someone else.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Unlink Pipeline Requisition from Standard Requisition",
+          "code": "IRC_UNLINK_PIPELINE_REQUISITION_FROM_STANDARD_REQUISITION_PRIV",
+          "description": "Allows to unlink a pipeline requisition from a standard job requisition.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Candidate Job Offer Letter",
+          "code": "IRC_UPDATE_CANDIDATE_JOB_OFFER_LETTER_PRIV",
+          "description": "Allows to update the candidate job application offer letter before sending it.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Job Requisition After Draft Phase",
+          "code": "IRC_UPDATE_JOB_REQUISITION_AFTER_DRAFT_PHASE_PRIV",
+          "description": "Allows to update some job requisition fields when a requisition is not in draft phase.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Job Requisition Posting Locations",
+          "code": "IRC_UPDATE_JOB_REQUISITION_POSTING_LOCATIONS_PRIV",
+          "description": "Allows to update a job requisition&apos;s primary location and other locations when a requisition can&apos;t be redrafted.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "Update Posting Locations of Job Requisitions Which Can Be Redrafted",
+          "code": "IRC_UPDATE_POSTING_LOCATIONS_OF_JOB_REQUISITION_WHICH_CAN_BE_REDRAFTED_PRIV",
+          "description": "Allows to update a job requisition&apos;s primary location and other locations when the requisition can be redrafted.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Confidential Questionnaire Responses",
+          "code": "IRC_VIEW_CONFIDENTIAL_QUESTIONNAIRE_RESPONSES_PRIV",
+          "description": "Allows to view a candidate&apos;s answers in a confidential questionnaire.",
+          "inheritedFrom": "Recruiter"
+        },
+        {
+          "name": "View Interview Transcripts",
+          "code": "IRC_VIEW_INTERVIEW_TRANSCRIPTS_PRIV",
+          "description": "Allows to view the interview transcripts when you are not the interviewer.",
+          "inheritedFrom": "Recruiter"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 83,
+        "directPrivileges": 83,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Recruiter\" (ORA_IRC_RECRUITER_JOB) with 83 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "40 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Recruiter\" with 83 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792589291000
   }
 }

@@ -5,9 +5,17 @@ import { AdvancedControlsModule, type AdvancedControlRecord } from '../component
 
 interface AdvancedControlsProps {
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
+  isActive?: boolean;
+  onBack?: () => void;
+  onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
-export default function AdvancedControls({ environmentMode }: AdvancedControlsProps) {
+export default function AdvancedControls({
+  environmentMode,
+  isActive = true,
+  onBack,
+  onRegisterBack
+}: AdvancedControlsProps) {
   const [controls, setControls] = useState<AdvancedControlRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -142,6 +150,9 @@ export default function AdvancedControls({ environmentMode }: AdvancedControlsPr
           lastRefreshed={lastRefreshed}
           controlsRefreshing={controlsRefreshing}
           onRefreshControls={handleRefreshControls}
+          isActive={isActive}
+          onBack={onBack}
+          onRegisterBack={onRegisterBack}
           embedded
           hideSectionHeader
         />

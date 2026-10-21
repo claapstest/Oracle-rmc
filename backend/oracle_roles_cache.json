@@ -1,11 +1,11 @@
 {
-  "syncedAt": "2026-10-19T16:19:25.657Z",
-  "totalResults": 708,
+  "syncedAt": "2026-10-21T12:45:40.268Z",
+  "totalResults": 711,
   "counts": {
-    "Job": 511,
+    "Job": 513,
     "Duty": 2,
     "Data": 48,
-    "Abstract": 108,
+    "Abstract": 109,
     "GRC": 12,
     "Other": 27
   },
@@ -522,6 +522,10 @@
         },
         {
           "value": "36AD6540A71D476D8321861A61997518",
+          "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
           "display": ""
         },
         {
@@ -1402,6 +1406,10 @@
         },
         {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
+          "display": ""
+        },
+        {
+          "value": "C7E31AC4FD6946F0823CB78D2231447D",
           "display": ""
         },
         {
@@ -2683,6 +2691,10 @@
         },
         {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
+          "display": ""
+        },
+        {
+          "value": "AAD81819BF9F4E8F96839AF958ED81B9",
           "display": ""
         },
         {
@@ -6424,6 +6436,10 @@
           "display": ""
         },
         {
+          "value": "38D8F328DC3B41FD8D97AEE2C462EFF5",
+          "display": ""
+        },
+        {
           "value": "588845523B402935E063B9131CAC0EC8",
           "display": ""
         },
@@ -9347,6 +9363,10 @@
           "display": ""
         },
         {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
+          "display": ""
+        },
+        {
           "value": "6C45649893354B0393450316FA30C565",
           "display": ""
         },
@@ -9496,6 +9516,10 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
           "display": ""
         },
         {
@@ -11134,6 +11158,10 @@
           "display": ""
         },
         {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
+          "display": ""
+        },
+        {
           "value": "925970D6C2AA47F984FCE887340DDB7C",
           "display": ""
         },
@@ -11716,6 +11744,10 @@
           "display": ""
         },
         {
+          "value": "925970D6C2AA47F984FCE887340DDB7C",
+          "display": ""
+        },
+        {
           "value": "1BDFA21D8FB24CDC8FE7DB7DDE7DE729",
           "display": ""
         },
@@ -11733,6 +11765,10 @@
         },
         {
           "value": "AAD81819BF9F4E8F96839AF958ED81B9",
+          "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
           "display": ""
         },
         {
@@ -12037,6 +12073,10 @@
         },
         {
           "value": "36AD6540A71D476D8321861A61997518",
+          "display": ""
+        },
+        {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
           "display": ""
         },
         {
@@ -13608,6 +13648,10 @@
         },
         {
           "value": "A5C07767B53780C2E0501A0AC89C6E29",
+          "display": ""
+        },
+        {
+          "value": "C7E31AC4FD6946F0823CB78D2231447D",
           "display": ""
         },
         {
@@ -15859,6 +15903,10 @@
         },
         {
           "value": "A7B4CD97BC5C4162B8840909C9361F3F",
+          "display": ""
+        },
+        {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
           "display": ""
         },
         {
@@ -24003,6 +24051,10 @@
           "display": ""
         },
         {
+          "value": "3DE01DDAD5F340D9A01649E5D4590CD2",
+          "display": ""
+        },
+        {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
           "display": ""
         },
@@ -29211,6 +29263,10 @@
           "display": ""
         },
         {
+          "value": "925970D6C2AA47F984FCE887340DDB7C",
+          "display": ""
+        },
+        {
           "value": "C19F0AB32EE24672A46331FD9160DCDA",
           "display": ""
         },
@@ -32992,6 +33048,10 @@
           "display": ""
         },
         {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
+          "display": ""
+        },
+        {
           "value": "34D3B6657FF0097AE063B9131CAC0A4E",
           "display": ""
         },
@@ -35115,7 +35175,15 @@
           "display": ""
         },
         {
+          "value": "AAD81819BF9F4E8F96839AF958ED81B9",
+          "display": ""
+        },
+        {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
+          "display": ""
+        },
+        {
+          "value": "698564C004544787BF1D53B4F7F06DCB",
           "display": ""
         },
         {
@@ -39913,6 +39981,10 @@
           "display": ""
         },
         {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
+          "display": ""
+        },
+        {
           "value": "621628F7F0064A9E845C38591ED1D6E3",
           "display": ""
         },
@@ -40812,6 +40884,10 @@
           "display": ""
         },
         {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
+          "display": ""
+        },
+        {
           "value": "77AB16C3F72C4160BE560F0781AD801D",
           "display": ""
         },
@@ -40829,6 +40905,10 @@
         },
         {
           "value": "2DD06AFF79AA481080AB3661C87E9E84",
+          "display": ""
+        },
+        {
+          "value": "38D8F328DC3B41FD8D97AEE2C462EFF5",
           "display": ""
         },
         {
@@ -44477,6 +44557,10 @@
           "display": ""
         },
         {
+          "value": "38D8F328DC3B41FD8D97AEE2C462EFF5",
+          "display": ""
+        },
+        {
           "value": "36AD6540A71D476D8321861A61997518",
           "display": ""
         },
@@ -44514,6 +44598,14 @@
         },
         {
           "value": "05D2FA9951864B6194EBED7EA22DB70E",
+          "display": ""
+        },
+        {
+          "value": "DA94599A1ADD491DA99E5E8C42A28FC9",
+          "display": ""
+        },
+        {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
           "display": ""
         },
         {
@@ -45740,6 +45832,10 @@
         },
         {
           "value": "9E3E45A45ADE45D1AF73B72FD8AA51F3",
+          "display": ""
+        },
+        {
+          "value": "925970D6C2AA47F984FCE887340DDB7C",
           "display": ""
         },
         {
@@ -47951,6 +48047,10 @@
         },
         {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
+          "display": ""
+        },
+        {
+          "value": "C7E31AC4FD6946F0823CB78D2231447D",
           "display": ""
         },
         {
@@ -51083,6 +51183,10 @@
         },
         {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
+          "display": ""
+        },
+        {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
           "display": ""
         },
         {
@@ -55398,6 +55502,10 @@
           "display": ""
         },
         {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
+          "display": ""
+        },
+        {
           "value": "717C499E7DA24037A848CBE1FD29DEF3",
           "display": ""
         },
@@ -55587,6 +55695,10 @@
         },
         {
           "value": "D77587DD7528492D8AC8AE1A713FBF6D",
+          "display": ""
+        },
+        {
+          "value": "0ABCDC24BC654C4ABF31DFF4B2FF864A",
           "display": ""
         },
         {
@@ -55781,6 +55893,10 @@
         },
         {
           "value": "698564C004544787BF1D53B4F7F06DCB",
+          "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
           "display": ""
         },
         {
@@ -57895,6 +58011,10 @@
         {
           "value": "8C985434082142E5AE33E8BA3EEBF168",
           "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
+          "display": ""
         }
       ],
       "parentRoles": [],
@@ -59412,6 +59532,10 @@
         },
         {
           "value": "F9E9874834D547CEA098292DD717AB3E",
+          "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
           "display": ""
         },
         {
@@ -70277,10 +70401,6 @@
         {
           "value": "4D87E2D3E54FC96DE063B9131CAC1290",
           "display": ""
-        },
-        {
-          "value": "3E210388C1BDC9BEE063B9131CAC1D25",
-          "display": ""
         }
       ],
       "parentRoles": [],
@@ -70373,12 +70493,7 @@
       "roleCode": "LEDGER_AGENT_TEST_ROLE",
       "category": "Abstract",
       "description": "Oracle Fusion Security Abstract Role",
-      "members": [
-        {
-          "value": "3E210388C1BDC9BEE063B9131CAC1D25",
-          "display": ""
-        }
-      ],
+      "members": [],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []
@@ -71100,6 +71215,10 @@
           "display": ""
         },
         {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
+          "display": ""
+        },
+        {
           "value": "717C499E7DA24037A848CBE1FD29DEF3",
           "display": ""
         }
@@ -71402,7 +71521,12 @@
       "roleCode": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy",
       "category": "Job",
       "description": "Individual responsible for creating accounts payable invoices.",
-      "members": [],
+      "members": [
+        {
+          "value": "925970D6C2AA47F984FCE887340DDB7C",
+          "display": ""
+        }
+      ],
       "parentRoles": [],
       "childRoles": [],
       "privileges": []
@@ -71414,6 +71538,10 @@
       "category": "Abstract",
       "description": "Oracle Fusion Security Abstract Role",
       "members": [
+        {
+          "value": "A3DABB5624D043C2A6DE9C0719EDA492",
+          "display": ""
+        },
         {
           "value": "56964B8F231FE981E063B9131CACD7F0",
           "display": ""
@@ -72486,6 +72614,10 @@
         {
           "value": "AAD81819BF9F4E8F96839AF958ED81B9",
           "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
+          "display": ""
         }
       ],
       "parentRoles": [],
@@ -72501,6 +72633,10 @@
       "members": [
         {
           "value": "717C499E7DA24037A848CBE1FD29DEF3",
+          "display": ""
+        },
+        {
+          "value": "E2BE8BBDF0F442E29688B816FEBEABD0",
           "display": ""
         },
         {
@@ -72529,6 +72665,54 @@
       "members": [
         {
           "value": "2EF343CEE7C5AAD5E063B9131CACEE3E",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "2B8F121353A74534819A38123810F8A6",
+      "displayName": "Deloitte Employee Agent Test",
+      "roleCode": "DEL_PER_EMPLOYEE_AGENT_JOB",
+      "category": "Abstract",
+      "description": "Identifies the person as an employee.",
+      "members": [
+        {
+          "value": "FEFED54E657240C2B5E34E2479E1D6A5",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "3DBC18F044394900987CD95FA38E4CBE",
+      "displayName": "Ledger Agentic Custom Role",
+      "roleCode": "LEDGER_AGENTIC_CUSTOM_ROLE",
+      "category": "Job",
+      "description": "Oracle Fusion Security Job Role",
+      "members": [
+        {
+          "value": "3E210388C1BDC9BEE063B9131CAC1D25",
+          "display": ""
+        }
+      ],
+      "parentRoles": [],
+      "childRoles": [],
+      "privileges": []
+    },
+    {
+      "id": "E9D05AAA81FD4ACF8A19BCA11D43F844",
+      "displayName": "Sensors Prompt Admin Custom Role",
+      "roleCode": "SENSORS_PROMPT_ADMIN_CUSTOM_ROLE_211026",
+      "category": "Job",
+      "description": "Oracle Fusion Security Job Role",
+      "members": [
+        {
+          "value": "3E210388C1BDC9BEE063B9131CAC1D25",
           "display": ""
         }
       ],
