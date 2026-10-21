@@ -102,13 +102,11 @@ export default function InvestigationWorkspace({
   const [hierarchyLoading, setHierarchyLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
 
-  // Functional Privileges Filtering, Pagination & Inspection States
+  // Functional Privileges Filtering and Pagination States
   const [privilegeSearch, setPrivilegeSearch] = useState('');
   const [privilegeTypeFilter, setPrivilegeTypeFilter] = useState<'ALL' | 'FUNCTION' | 'DATA'>('ALL');
   const [privilegePage, setPrivilegePage] = useState(1);
   const [privilegePageSize, setPrivilegePageSize] = useState(25);
-  const [expandedPrivilegeCode, setExpandedPrivilegeCode] = useState<string | null>(null);
-  const [inspectingPrivilege, setInspectingPrivilege] = useState<any | null>(null);
 
   // Saved bookmark state
   const [isSaved, setIsSaved] = useState(false);
@@ -1418,8 +1416,8 @@ export default function InvestigationWorkspace({
                     data={(filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges).map(p => ({
                       'Privilege Name': p.name || '',
                       'Permission Code': p.code || '',
+                      'Role Code': p.roleCode || p.role_code || privilegeData?.roleCode || data?.roleCode || entity.id || '',
                       'Type': p.type || 'Function',
-                      'Inherited From': p.inheritedFrom || entity.name,
                       'Description': p.description || ''
                     }))}
                     totalCount={(filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges).length}
@@ -1582,99 +1580,45 @@ export default function InvestigationWorkspace({
                     <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
                       <thead>
                         <tr>
-                          <th style={{ width: '40%' }}>Privilege Name & Description</th>
-                          <th style={{ width: '22%' }}>Permission Code</th>
+                          <th style={{ width: '38%' }}>Privilege Name & Description</th>
+                          <th style={{ width: '26%' }}>Permission Code</th>
+                          <th style={{ width: '24%' }}>Role Code</th>
                           <th style={{ width: '12%' }}>Type</th>
-                          <th style={{ width: '16%' }}>Inherited From</th>
-                          <th style={{ width: '10%', textAlign: 'right' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {isRole ? (
                           currentPrivileges && currentPrivileges.length > 0 ? (
                             currentPrivileges.map((p: any, idx: number) => {
-                              const isExpanded = expandedPrivilegeCode === (p.code || idx.toString());
+                              const roleCode = p.roleCode || p.role_code || privilegeData?.roleCode || data?.roleCode || entity.id;
                               return (
-                                <React.Fragment key={p.code || idx}>
-                                  <tr 
-                                    style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}
-                                    onClick={() => setExpandedPrivilegeCode(isExpanded ? null : (p.code || idx.toString()))}
-                                  >
-                                    <td>
-                                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
-                                        <span style={{ 
-                                          display: 'inline-block', 
-                                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', 
-                                          transition: 'transform 0.15s',
-                                          color: 'var(--text-muted)',
-                                          fontSize: '0.7rem',
-                                          marginTop: '0.15rem'
-                                        }}>
-                                          ▶
-                                        </span>
-                                        <div>
-                                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</div>
-                                          {p.description && (
-                                            <div style={{ 
-                                              fontSize: '0.73rem', 
-                                              color: 'var(--text-muted)', 
-                                              marginTop: '0.15rem',
-                                              overflow: 'hidden',
-                                              textOverflow: 'ellipsis',
-                                              whiteSpace: isExpanded ? 'normal' : 'nowrap',
-                                              maxWidth: '380px'
-                                            }}>
-                                              {p.description}
-                                            </div>
-                                          )}
-                                        </div>
+                                <tr key={p.code || idx}>
+                                  <td>
+                                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</div>
+                                    {p.description && (
+                                      <div style={{ 
+                                        fontSize: '0.73rem', 
+                                        color: 'var(--text-muted)', 
+                                        marginTop: '0.15rem',
+                                        lineHeight: '1.4'
+                                      }}>
+                                        {p.description}
                                       </div>
-                                    </td>
-                                    <td><code>{p.code}</code></td>
-                                    <td>
-                                      <span className={`badge ${p.type === 'Data' ? 'badge-gold' : 'badge-blue'}`}>
-                                        {p.type || 'Function'}
-                                      </span>
-                                    </td>
-                                    <td style={{ color: 'var(--text-secondary)' }}>{p.inheritedFrom || entity.name}</td>
-                                    <td style={{ textAlign: 'right' }}>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setInspectingPrivilege(p);
-                                        }}
-                                        className="btn btn-secondary"
-                                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', color: 'var(--accent-blue)' }}
-                                        title="Inspect full privilege definition"
-                                      >
-                                        Inspect
-                                      </button>
-                                    </td>
-                                  </tr>
-                                  {isExpanded && p.description && (
-                                    <tr style={{ backgroundColor: 'var(--accent-blue-subtle)' }}>
-                                      <td colSpan={5} style={{ padding: '0.75rem 1rem 0.75rem 2rem', borderTop: 'none' }}>
-                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                                          <Info size={16} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: '0.15rem' }} />
-                                          <div style={{ fontSize: '0.78rem', lineHeight: '1.5', color: 'var(--text-secondary)' }}>
-                                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-                                              Functional Definition & Scope:
-                                            </div>
-                                            <p style={{ margin: 0 }}>{p.description}</p>
-                                            <div style={{ marginTop: '0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                              Resource Code: <code>{p.code}</code> • Source Role: <strong>{p.inheritedFrom || entity.name}</strong>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  )}
-                                </React.Fragment>
+                                    )}
+                                  </td>
+                                  <td><code>{p.code}</code></td>
+                                  <td><code style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{roleCode}</code></td>
+                                  <td>
+                                    <span className={`badge ${p.type === 'Data' ? 'badge-gold' : 'badge-blue'}`}>
+                                      {p.type || 'Function'}
+                                    </span>
+                                  </td>
+                                </tr>
                               );
                             })
                           ) : (
                             <tr>
-                              <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                              <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                                 {privilegeLoading 
                                   ? 'Extracting functional privileges from Oracle Fusion...'
                                   : privilegeSearch 
@@ -1690,35 +1634,31 @@ export default function InvestigationWorkspace({
                               <tr>
                                 <td style={{ fontWeight: 600 }}>Create Purchase Invoice</td>
                                 <td><code>CREATE_PURCHASE_INVOICE</code></td>
+                                <td><code>ORA_AP_INVOICE_DUTY</code></td>
                                 <td><span className="badge badge-blue">Function</span></td>
-                                <td>Accounts Payable Invoice Creation Duty</td>
-                                <td></td>
                               </tr>
                               <tr>
                                 <td style={{ fontWeight: 600 }}>Approve Purchase Invoice</td>
                                 <td><code>APPROVE_PURCHASE_INVOICE</code></td>
+                                <td><code>ORA_AP_INVOICE_DUTY</code></td>
                                 <td><span className="badge badge-blue">Function</span></td>
-                                <td>Accounts Payable Invoice Approval Duty</td>
-                                <td></td>
                               </tr>
                               <tr>
                                 <td style={{ fontWeight: 600 }}>Access Security Console</td>
                                 <td><code>ACCESS_SECURITY_CONSOLE</code></td>
+                                <td><code>ORA_SECURITY_CONSOLE_DUTY</code></td>
                                 <td><span className="badge badge-blue">Function</span></td>
-                                <td>Security Console Access Duty</td>
-                                <td></td>
                               </tr>
                               <tr>
                                 <td style={{ fontWeight: 600 }}>Manage User Accounts</td>
                                 <td><code>MANAGE_USER_ACCOUNTS</code></td>
+                                <td><code>ORA_USER_MANAGEMENT_DUTY</code></td>
                                 <td><span className="badge badge-blue">Function</span></td>
-                                <td>User Management Duty</td>
-                                <td></td>
                               </tr>
                             </>
                           ) : (
                             <tr>
-                              <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                              <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                                 No high-sensitivity privileges inherited by this user identity.
                               </td>
                             </tr>
@@ -1858,82 +1798,7 @@ export default function InvestigationWorkspace({
 
       </div>
 
-      {/* Privilege Inspection Modal */}
-      {inspectingPrivilege && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 17, 46, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div className="glass-panel animate-scale-up" style={{
-            maxWidth: '600px',
-            width: '100%',
-            backgroundColor: '#ffffff',
-            padding: '1.75rem',
-            borderRadius: '12px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-            border: '1px solid var(--border-color)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <span className="badge badge-blue" style={{ fontSize: '0.7rem', marginBottom: '0.4rem' }}>
-                  {inspectingPrivilege.type || 'Functional Permission'}
-                </span>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                  {inspectingPrivilege.name}
-                </h3>
-              </div>
-              <button 
-                onClick={() => setInspectingPrivilege(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', margin: '1rem 0' }}>
-              <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Technical Permission Code</div>
-                <code style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', fontWeight: 600 }}>{inspectingPrivilege.code}</code>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Functional Definition & Purpose</div>
-                <p style={{ fontSize: '0.85rem', lineHeight: '1.5', color: 'var(--text-secondary)', margin: 0 }}>
-                  {inspectingPrivilege.description || 'No detailed description provided by Oracle catalog.'}
-                </p>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Inherited Through</div>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {inspectingPrivilege.inheritedFrom || entity.name}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-              <button
-                onClick={() => setInspectingPrivilege(null)}
-                className="btn btn-primary"
-                style={{ padding: '0.45rem 1.25rem', fontSize: '0.82rem' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
+
