@@ -1127,18 +1127,18 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
     const incidents = incidentsRes.success ? incidentsRes.items : [];
 
     const counts = (oracleService as any).getCachedCounts ? (oracleService as any).getCachedCounts() : {
-      totalUsers: 7915,
-      activeUsers: 7731,
-      inactiveUsers: 184,
-      totalRoles: 6989,
-      jobRolesCount: 6014,
-      dutyRolesCount: 55,
-      dataRolesCount: 336,
-      abstractRolesCount: 521,
+      totalUsers: 3055,
+      activeUsers: 1020,
+      inactiveUsers: 2035,
+      totalRoles: 4713,
+      jobRolesCount: 513,
+      dutyRolesCount: 4004,
+      dataRolesCount: 48,
+      abstractRolesCount: 109,
       grcRolesCount: 12,
-      otherRolesCount: 51,
-      rolesWithoutUsersCount: 4918,
-      rolesWithUsersCount: 2071,
+      otherRolesCount: 27,
+      rolesWithoutUsersCount: 4231,
+      rolesWithUsersCount: 482,
       highRiskRolesCount: 12
     };
 
@@ -1228,12 +1228,12 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
         };
       });
 
-    const jobRolesCount = counts.jobRolesCount !== undefined ? counts.jobRolesCount : 6014;
-    const dutyRolesCount = counts.dutyRolesCount !== undefined ? counts.dutyRolesCount : 55;
-    const dataRolesCount = counts.dataRolesCount !== undefined ? counts.dataRolesCount : 336;
-    const abstractRolesCount = counts.abstractRolesCount !== undefined ? counts.abstractRolesCount : 521;
+    const jobRolesCount = counts.jobRolesCount !== undefined ? counts.jobRolesCount : 513;
+    const dutyRolesCount = counts.dutyRolesCount !== undefined ? counts.dutyRolesCount : 4004;
+    const dataRolesCount = counts.dataRolesCount !== undefined ? counts.dataRolesCount : 48;
+    const abstractRolesCount = counts.abstractRolesCount !== undefined ? counts.abstractRolesCount : 109;
     const grcRolesCount = counts.grcRolesCount !== undefined ? counts.grcRolesCount : 12;
-    const otherRolesCount = counts.otherRolesCount !== undefined ? counts.otherRolesCount : 51;
+    const otherRolesCount = counts.otherRolesCount !== undefined ? counts.otherRolesCount : 27;
     const categorySum = jobRolesCount + dutyRolesCount + dataRolesCount + abstractRolesCount + grcRolesCount + otherRolesCount;
     const totalRoles = Math.max(counts.totalRoles || 0, categorySum, rolesRes.totalResults || 0, roles.length);
 

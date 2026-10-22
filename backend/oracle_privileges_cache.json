@@ -66768,5 +66768,615 @@
       "message": "Security role \"Integration Specialist\" with 1 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1792673023370
+  },
+  "role_privileges:learning specialist": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Learning Specialist",
+      "roleCode": "ORA_WLF_LEARNING_SPECIALIST_JOB",
+      "role": {
+        "name": "Learning Specialist",
+        "code": "ORA_WLF_LEARNING_SPECIALIST_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Access Learning and Development Agents",
+          "code": "WLF_ACCESS_BULK_ADVISORS_FOR_HCM_PRIV",
+          "description": "Allows the user to access learning and development agents.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Configure Questionnaire Templates",
+          "code": "HRQ_CONFIGURE_QUESTIONNAIRE_TEMPLATES_PRIV",
+          "description": "Allows users to manage questionnaire templates. This privilege applies to only the Redwood experience.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Configure Questionnaires",
+          "code": "HRQ_CONFIGURE_QUESTIONNAIRES_PRIV",
+          "description": "Allows users to manage questionnaires. This privilege applies to only the Redwood experience.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Configure Questions",
+          "code": "HRQ_CONFIGURE_QUESTIONS_PRIV",
+          "description": "Allows users to manage questions. This privilege applies to only the Redwood experience.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Learning User Groups",
+          "code": "WLF_CREATE_LEARNING_ORGANIZATIONS_PRIV",
+          "description": "Allows the user to create learning user groups.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Recommended Learning Assignment by Administrator",
+          "code": "WLF_CREATE_RECOMMENDED_LEARNING_ASSIGNMENT_BY_ADMIN_PRIV",
+          "description": "Allows creation of recommended learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Required Learning Assignment by Administrator",
+          "code": "WLF_CREATE_REQUIRED_LEARNING_ASSIGNMENT_BY_ADMIN_PRIV",
+          "description": "Allows creation of required learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Voluntary Learning Assignment by Administrator",
+          "code": "WLF_CREATE_VOLUNTARY_LEARNING_ASSIGNMENT_BY_ADMIN_PRIV",
+          "description": "Allows creation of voluntary learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Catalog Administration Profile",
+          "code": "WLF_MANAGE_CATALOG_ADMINISTRATION_PROFILE_PRIV",
+          "description": "Allows the user to manage catalog administration profiles.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Catalog Learning Item Access",
+          "code": "WLF_MANAGE_CATALOG_LEARNING_ITEM_ACCESS_PRIV",
+          "description": "Allows management of catalog learning items access",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Catalog Learning Item Access Group",
+          "code": "WLF_MANAGE_CATALOG_LEARNING_ITEM_ACCESS_GROUP_PRIV",
+          "description": "Allows management of catalog learning items access groups",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage External eLearning Content",
+          "code": "WLF_MANAGE_EXTERNAL_ELEARNING_CONTENT_PRIV",
+          "description": "Allows users to manage integration to external eLearning content providers.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Assignment Record Activities",
+          "code": "WLF_MANAGE_LEARNING_ASSIGNMENT_RECORD_ACTIVITIES_PRIV",
+          "description": "Allows access to manage assignment record activities in the administrator work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Catalog Item Description Agent",
+          "code": "WLF_MANAGE_LEARNING_CATALOG_ITEM_DESCRIPTION_AGENT_PRIV",
+          "description": "Allows the user to manage the Learning Catalog Item Description Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Catalog Topic Enrichment Agent",
+          "code": "WLF_MANAGE_LEARNING_BULK_TOPIC_ADVISOR_PRIV",
+          "description": "Allows the user to manage the Learning Catalog Topic Enrichment Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Catalog Translation Agent",
+          "code": "WLF_MANAGE_LEARNING_BULK_TRANSLATION_ADVISOR_PRIV",
+          "description": "Allows the user to manage the Learning Catalog Translation Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Community Members using OTBI",
+          "code": "WLF_MANAGE_LEARNING_COMMUNITY_MEMBERS_OTBI_PRIV",
+          "description": "Allows adding members to communities using OTBI analysis objects.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Community Required Learning",
+          "code": "WLF_MANAGE_LEARNING_COMMUNITY_REQUIRED_LEARNING_PRIV",
+          "description": "Allows creation and management of required community assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Media Platform",
+          "code": "WLF_MANAGE_LEARNING_MEDIA_PLATFORM_PRIV",
+          "description": "Allows access to provisioning the media platform.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Plan",
+          "code": "WLF_MANAGE_LEARNING_PLAN_PRIV",
+          "description": "Allows users to manage learning plans.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Plan Record",
+          "code": "WLF_MANAGE_LEARNING_PLAN_RECORD_PRIV",
+          "description": "Allows users to manage learning plan records.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Setup",
+          "code": "WLF_MANAGE_LEARNING_SETUP_PRIV",
+          "description": "Allows access Learning Administration settings.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Skills Enrichment Agent",
+          "code": "WLF_ACCESS_LEARNING_BULK_SKILLS_ADVISOR_PRIV",
+          "description": "Allows the user to manage the Learning Skills Enrichment Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Questionnaire Templates",
+          "code": "HRT_MANAGE_QUESTIONNAIRE_TEMPLATES_PRIV",
+          "description": "Allows creating, updating, and deleting of questionnaire templates.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Questionnaires",
+          "code": "HRT_MANAGE_QUESTIONNAIRES_PRIV",
+          "description": "Allows creating, updating, and deleting of questionnaires.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Questions",
+          "code": "HRT_MANAGE_QUESTIONS_PRIV",
+          "description": "Allows creating, updating, and deleting of questions that will be included in the library.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Recommended Learning Assignment Records by Administrator",
+          "code": "WLF_MANAGE_RECOMMENDED_LEARNING_ASSIGNMENT_RECORDS_BY_ADMIN_PRIV",
+          "description": "Allows managing recommended learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Required Learning Assignment Records by Administrator",
+          "code": "WLF_MANAGE_REQUIRED_LEARNING_ASSIGNMENT_RECORDS_BY_ADMIN_PRIV",
+          "description": "Allows managing required learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Voluntary Learning Assignment Records by Administrator",
+          "code": "WLF_MANAGE_VOLUNTARY_LEARNING_ASSIGNMENT_RECORDS_BY_ADMIN_PRIV",
+          "description": "Allows managing voluntary learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Activate Learning Assignments",
+          "code": "WLF_MASS_ACTIVATE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass activate on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Bypass and Approve Learning Assignments",
+          "code": "WLF_MASS_BYPASS_APPROVE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass bypass and approve on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Bypass and Complete Learning Assignments",
+          "code": "WLF_MASS_BYPASS_COMPLETE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass bypass and complete on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Bypass and Reject Learning Assignments",
+          "code": "WLF_MASS_BYPASS_REJECT_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass bypass and reject on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Complete Learning Assignment Activities",
+          "code": "WLF_MASS_COMPLETTE_LEARNING_ASSIGNMENT_ACTIVITIES_PRIV",
+          "description": "Allows the user to perform mass mark activities complete on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Delete Learning Assignments",
+          "code": "WLF_MASS_DELETE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass delete on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Send Learning Assignment Alerts",
+          "code": "WLF_MASS_SEND_LEARNING_ASSIGNMENT_ALERTS_PRIV",
+          "description": "Allows the user to perform mass send alert on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Update Learning Assignment Dates",
+          "code": "WLF_MASS_UPDATE_LEARNING_ASSIGNMENT_DATES_PRIV",
+          "description": "Allows the user to perform mass update learning date on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Withdraw Learning Assignments",
+          "code": "WLF_MASS_WITHDRAW_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass withdraw on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Perform Mass Actions on Learning Assignments",
+          "code": "WLF_PERFORM_MASS_ACTIONS_ON_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass actions on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Recommend by Analysis",
+          "code": "WLF_RECOMMEND_BY_ANALYSIS_PRIV",
+          "description": "Allows the user to define a recommendation audience using analysis reports",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Recommend by Filtered List",
+          "code": "WLF_RECOMMEND_BY_FILTERED_LIST_PRIV",
+          "description": "Allows the user to define a recommendation audience using filtered lists",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Recommend by Learning User Group",
+          "code": "WLF_RECOMMEND_BY_LEARNING_USER_GROUP_PRIV",
+          "description": "Allows the user to define a recommendation audience using learning user groups",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Select Learning Audience by Analysis",
+          "code": "WLF_SELECT_LEARNING_AUDIENCE_BY_ANALYSIS_PRIV",
+          "description": "Allows the user to define a learning audience using analysis reports",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Select Learning Audience by Filtered List",
+          "code": "WLF_SELECT_LEARNING_AUDIENCE_BY_FILTERED_LIST_PRIV",
+          "description": "Allows the user to define a learning audience using filtered lists",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "View Learning Plan Record",
+          "code": "WLF_VIEW_LEARNING_PLAN_RECORD_PRIV",
+          "description": "Allows users to view learning plan records.",
+          "inheritedFrom": "Learning Specialist"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 46,
+        "directPrivileges": 46,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Learning Specialist\" (ORA_WLF_LEARNING_SPECIALIST_JOB) with 46 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "42 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Learning Specialist\" with 46 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792675997482
+  },
+  "role_privileges:ora_wlf_learning_specialist_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Learning Specialist",
+      "roleCode": "ORA_WLF_LEARNING_SPECIALIST_JOB",
+      "role": {
+        "name": "Learning Specialist",
+        "code": "ORA_WLF_LEARNING_SPECIALIST_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Access Learning and Development Agents",
+          "code": "WLF_ACCESS_BULK_ADVISORS_FOR_HCM_PRIV",
+          "description": "Allows the user to access learning and development agents.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Configure Questionnaire Templates",
+          "code": "HRQ_CONFIGURE_QUESTIONNAIRE_TEMPLATES_PRIV",
+          "description": "Allows users to manage questionnaire templates. This privilege applies to only the Redwood experience.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Configure Questionnaires",
+          "code": "HRQ_CONFIGURE_QUESTIONNAIRES_PRIV",
+          "description": "Allows users to manage questionnaires. This privilege applies to only the Redwood experience.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Configure Questions",
+          "code": "HRQ_CONFIGURE_QUESTIONS_PRIV",
+          "description": "Allows users to manage questions. This privilege applies to only the Redwood experience.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Learning User Groups",
+          "code": "WLF_CREATE_LEARNING_ORGANIZATIONS_PRIV",
+          "description": "Allows the user to create learning user groups.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Recommended Learning Assignment by Administrator",
+          "code": "WLF_CREATE_RECOMMENDED_LEARNING_ASSIGNMENT_BY_ADMIN_PRIV",
+          "description": "Allows creation of recommended learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Required Learning Assignment by Administrator",
+          "code": "WLF_CREATE_REQUIRED_LEARNING_ASSIGNMENT_BY_ADMIN_PRIV",
+          "description": "Allows creation of required learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Create Voluntary Learning Assignment by Administrator",
+          "code": "WLF_CREATE_VOLUNTARY_LEARNING_ASSIGNMENT_BY_ADMIN_PRIV",
+          "description": "Allows creation of voluntary learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Catalog Administration Profile",
+          "code": "WLF_MANAGE_CATALOG_ADMINISTRATION_PROFILE_PRIV",
+          "description": "Allows the user to manage catalog administration profiles.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Catalog Learning Item Access",
+          "code": "WLF_MANAGE_CATALOG_LEARNING_ITEM_ACCESS_PRIV",
+          "description": "Allows management of catalog learning items access",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Catalog Learning Item Access Group",
+          "code": "WLF_MANAGE_CATALOG_LEARNING_ITEM_ACCESS_GROUP_PRIV",
+          "description": "Allows management of catalog learning items access groups",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage External eLearning Content",
+          "code": "WLF_MANAGE_EXTERNAL_ELEARNING_CONTENT_PRIV",
+          "description": "Allows users to manage integration to external eLearning content providers.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Assignment Record Activities",
+          "code": "WLF_MANAGE_LEARNING_ASSIGNMENT_RECORD_ACTIVITIES_PRIV",
+          "description": "Allows access to manage assignment record activities in the administrator work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Catalog Item Description Agent",
+          "code": "WLF_MANAGE_LEARNING_CATALOG_ITEM_DESCRIPTION_AGENT_PRIV",
+          "description": "Allows the user to manage the Learning Catalog Item Description Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Catalog Topic Enrichment Agent",
+          "code": "WLF_MANAGE_LEARNING_BULK_TOPIC_ADVISOR_PRIV",
+          "description": "Allows the user to manage the Learning Catalog Topic Enrichment Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Catalog Translation Agent",
+          "code": "WLF_MANAGE_LEARNING_BULK_TRANSLATION_ADVISOR_PRIV",
+          "description": "Allows the user to manage the Learning Catalog Translation Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Community Members using OTBI",
+          "code": "WLF_MANAGE_LEARNING_COMMUNITY_MEMBERS_OTBI_PRIV",
+          "description": "Allows adding members to communities using OTBI analysis objects.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Community Required Learning",
+          "code": "WLF_MANAGE_LEARNING_COMMUNITY_REQUIRED_LEARNING_PRIV",
+          "description": "Allows creation and management of required community assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Media Platform",
+          "code": "WLF_MANAGE_LEARNING_MEDIA_PLATFORM_PRIV",
+          "description": "Allows access to provisioning the media platform.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Plan",
+          "code": "WLF_MANAGE_LEARNING_PLAN_PRIV",
+          "description": "Allows users to manage learning plans.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Plan Record",
+          "code": "WLF_MANAGE_LEARNING_PLAN_RECORD_PRIV",
+          "description": "Allows users to manage learning plan records.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Setup",
+          "code": "WLF_MANAGE_LEARNING_SETUP_PRIV",
+          "description": "Allows access Learning Administration settings.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Learning Skills Enrichment Agent",
+          "code": "WLF_ACCESS_LEARNING_BULK_SKILLS_ADVISOR_PRIV",
+          "description": "Allows the user to manage the Learning Skills Enrichment Agent.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Questionnaire Templates",
+          "code": "HRT_MANAGE_QUESTIONNAIRE_TEMPLATES_PRIV",
+          "description": "Allows creating, updating, and deleting of questionnaire templates.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Questionnaires",
+          "code": "HRT_MANAGE_QUESTIONNAIRES_PRIV",
+          "description": "Allows creating, updating, and deleting of questionnaires.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Questions",
+          "code": "HRT_MANAGE_QUESTIONS_PRIV",
+          "description": "Allows creating, updating, and deleting of questions that will be included in the library.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Recommended Learning Assignment Records by Administrator",
+          "code": "WLF_MANAGE_RECOMMENDED_LEARNING_ASSIGNMENT_RECORDS_BY_ADMIN_PRIV",
+          "description": "Allows managing recommended learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Required Learning Assignment Records by Administrator",
+          "code": "WLF_MANAGE_REQUIRED_LEARNING_ASSIGNMENT_RECORDS_BY_ADMIN_PRIV",
+          "description": "Allows managing required learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Manage Voluntary Learning Assignment Records by Administrator",
+          "code": "WLF_MANAGE_VOLUNTARY_LEARNING_ASSIGNMENT_RECORDS_BY_ADMIN_PRIV",
+          "description": "Allows managing voluntary learning assignments in the learning administration work area.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Activate Learning Assignments",
+          "code": "WLF_MASS_ACTIVATE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass activate on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Bypass and Approve Learning Assignments",
+          "code": "WLF_MASS_BYPASS_APPROVE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass bypass and approve on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Bypass and Complete Learning Assignments",
+          "code": "WLF_MASS_BYPASS_COMPLETE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass bypass and complete on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Bypass and Reject Learning Assignments",
+          "code": "WLF_MASS_BYPASS_REJECT_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass bypass and reject on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Complete Learning Assignment Activities",
+          "code": "WLF_MASS_COMPLETTE_LEARNING_ASSIGNMENT_ACTIVITIES_PRIV",
+          "description": "Allows the user to perform mass mark activities complete on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Delete Learning Assignments",
+          "code": "WLF_MASS_DELETE_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass delete on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Send Learning Assignment Alerts",
+          "code": "WLF_MASS_SEND_LEARNING_ASSIGNMENT_ALERTS_PRIV",
+          "description": "Allows the user to perform mass send alert on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Update Learning Assignment Dates",
+          "code": "WLF_MASS_UPDATE_LEARNING_ASSIGNMENT_DATES_PRIV",
+          "description": "Allows the user to perform mass update learning date on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Mass Withdraw Learning Assignments",
+          "code": "WLF_MASS_WITHDRAW_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass withdraw on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Perform Mass Actions on Learning Assignments",
+          "code": "WLF_PERFORM_MASS_ACTIONS_ON_LEARNING_ASSIGNMENTS_PRIV",
+          "description": "Allows the user to perform mass actions on learning assignments.",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Recommend by Analysis",
+          "code": "WLF_RECOMMEND_BY_ANALYSIS_PRIV",
+          "description": "Allows the user to define a recommendation audience using analysis reports",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Recommend by Filtered List",
+          "code": "WLF_RECOMMEND_BY_FILTERED_LIST_PRIV",
+          "description": "Allows the user to define a recommendation audience using filtered lists",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Recommend by Learning User Group",
+          "code": "WLF_RECOMMEND_BY_LEARNING_USER_GROUP_PRIV",
+          "description": "Allows the user to define a recommendation audience using learning user groups",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Select Learning Audience by Analysis",
+          "code": "WLF_SELECT_LEARNING_AUDIENCE_BY_ANALYSIS_PRIV",
+          "description": "Allows the user to define a learning audience using analysis reports",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "Select Learning Audience by Filtered List",
+          "code": "WLF_SELECT_LEARNING_AUDIENCE_BY_FILTERED_LIST_PRIV",
+          "description": "Allows the user to define a learning audience using filtered lists",
+          "inheritedFrom": "Learning Specialist"
+        },
+        {
+          "name": "View Learning Plan Record",
+          "code": "WLF_VIEW_LEARNING_PLAN_RECORD_PRIV",
+          "description": "Allows users to view learning plan records.",
+          "inheritedFrom": "Learning Specialist"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 46,
+        "directPrivileges": 46,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Learning Specialist\" (ORA_WLF_LEARNING_SPECIALIST_JOB) with 46 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "42 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Learning Specialist\" with 46 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792675997523
   }
 }

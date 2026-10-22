@@ -41,10 +41,10 @@ interface RoleLandscapeProps {
 
 export function RoleLandscape({ stats, onNavigatePage }: RoleLandscapeProps) {
   const roleCategories: Array<{ id: string; label: string; count: number; desc: string; icon: any; color: string; bg: string; isHighlight?: boolean }> = [
-    { id: 'JOB', label: 'Job Roles', count: stats.jobRolesCount || 6014, desc: 'Business responsibilities', icon: Award, color: '#2563EB', bg: '#EFF6FF' },
-    { id: 'DUTY', label: 'Duty Roles', count: stats.dutyRolesCount || 55, desc: 'Tasks & granular permissions', icon: Key, color: '#EC4899', bg: '#FDF2F8' },
-    { id: 'DATA', label: 'Data Roles', count: stats.dataRolesCount || 336, desc: 'Data security & visibility', icon: FileText, color: '#F59E0B', bg: '#FFFBEB' },
-    { id: 'ABSTRACT', label: 'Abstract Roles', count: stats.abstractRolesCount || 521, desc: 'Standard employee identities', icon: Layers, color: '#8B5CF6', bg: '#F5F3FF' },
+    { id: 'JOB', label: 'Job Roles', count: stats.jobRolesCount || 513, desc: 'Business responsibilities', icon: Award, color: '#2563EB', bg: '#EFF6FF' },
+    { id: 'DUTY', label: 'Duty Roles', count: stats.dutyRolesCount || 4004, desc: 'Tasks & granular permissions', icon: Key, color: '#EC4899', bg: '#FDF2F8' },
+    { id: 'DATA', label: 'Data Roles', count: stats.dataRolesCount || 48, desc: 'Data security & visibility', icon: FileText, color: '#F59E0B', bg: '#FFFBEB' },
+    { id: 'ABSTRACT', label: 'Abstract Roles', count: stats.abstractRolesCount || 109, desc: 'Standard employee identities', icon: Layers, color: '#8B5CF6', bg: '#F5F3FF' },
     { id: 'GRC', label: 'GRC Roles', count: stats.grcRolesCount || 12, desc: 'Governance & SoD definitions', icon: Lock, color: '#10B981', bg: '#ECFDF5' },
   ];
 
@@ -572,15 +572,15 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
   const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
 
   const segments = [
-    { label: 'Job Roles', count: stats.jobRolesCount || 6014, color: '#2563EB', category: 'JOB' },
-    { label: 'Duty Roles', count: stats.dutyRolesCount || 55, color: '#EC4899', category: 'DUTY' },
-    { label: 'Data Roles', count: stats.dataRolesCount || 336, color: '#F59E0B', category: 'DATA' },
-    { label: 'Abstract Roles', count: stats.abstractRolesCount || 521, color: '#8B5CF6', category: 'ABSTRACT' },
+    { label: 'Job Roles', count: stats.jobRolesCount || 513, color: '#2563EB', category: 'JOB' },
+    { label: 'Duty Roles', count: stats.dutyRolesCount || 4004, color: '#EC4899', category: 'DUTY' },
+    { label: 'Data Roles', count: stats.dataRolesCount || 48, color: '#F59E0B', category: 'DATA' },
+    { label: 'Abstract Roles', count: stats.abstractRolesCount || 109, color: '#8B5CF6', category: 'ABSTRACT' },
     { label: 'GRC Roles', count: stats.grcRolesCount || 12, color: '#10B981', category: 'GRC' }
   ];
 
   const segmentSum = segments.reduce((acc, s) => acc + (s.count || 0), 0);
-  const total = segmentSum > 0 ? (stats.totalRoles && stats.totalRoles >= segmentSum ? stats.totalRoles : segmentSum) : (stats.totalRoles || 6989);
+  const total = segmentSum > 0 ? (stats.totalRoles && stats.totalRoles >= segmentSum ? stats.totalRoles : segmentSum) : (stats.totalRoles || 4713);
 
   // Calculate SVG donut stroke arcs on a large prominent radius
   const radius = 76;

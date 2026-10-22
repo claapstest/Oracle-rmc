@@ -16,7 +16,26 @@ import { controlRawDbService } from './controlRawDbService.js';
 import { accessCertRawDbService } from './accessCertRawDbService.js';
 export { classifyRoleRecord };
 
-const ROLES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_roles_cache.json');
+function getRolesCachePath(): string {
+  const candidates = [
+    path.resolve(process.cwd(), 'oracle_roles_cache.json'),
+    path.resolve(process.cwd(), 'backend/oracle_roles_cache.json'),
+    path.resolve(process.cwd(), '../oracle_roles_cache.json')
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(c, 'utf8'));
+        if (parsed?.roles && parsed.roles.length > 1000) return c;
+      } catch (_) {}
+    }
+  }
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+const ROLES_CACHE_FILE = getRolesCachePath();
 const PRIVILEGES_CACHE_FILE = path.resolve(process.cwd(), 'oracle_privileges_cache.json');
 const USERS_METRICS_CACHE_FILE = path.resolve(process.cwd(), 'oracle_users_metrics_cache.json');
 import {
@@ -1863,12 +1882,35 @@ class OracleService {
     try {
       // Use batched getUsersByRole with canonicalName or canonicalCode
       const users = await this.getUsersByRole(canonicalName || canonicalCode);
-      const members = users.map(u => ({
+      let members = users.map(u => ({
         id: u.id,
         userName: u.userName || u.id,
         displayName: u.displayName || u.userName || 'Unknown User',
         active: u.active !== false
       }));
+
+      // If direct members are empty and role has parentRoles (Duty role inheritance),
+      // resolve members through parent Job roles that grant this duty
+      if (members.length === 0 && knownRole?.parentRoles && knownRole.parentRoles.length > 0) {
+        const parentMemberMap = new Map<string, any>();
+        for (const pRole of knownRole.parentRoles.slice(0, 3)) {
+          try {
+            const pUsers = await this.getUsersByRole(pRole);
+            for (const u of pUsers) {
+              if (!parentMemberMap.has(u.id)) {
+                parentMemberMap.set(u.id, {
+                  id: u.id,
+                  userName: u.userName || u.id,
+                  displayName: u.displayName || u.userName || 'Unknown User',
+                  active: u.active !== false
+                });
+              }
+            }
+          } catch (_) {}
+        }
+        members = Array.from(parentMemberMap.values());
+      }
+
       if (members.length > 0) {
         this.setInCache(`role_members:${canonicalName.toLowerCase()}`, members, 15 * 60 * 1000);
         this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, members, 15 * 60 * 1000);
