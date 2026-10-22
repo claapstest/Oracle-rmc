@@ -165,9 +165,16 @@ export const SEED_PERSONAS = [
   },
 ];
 
-export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
+  const isRemote = Boolean(
+    process.env.DATABASE_URL &&
+    !process.env.DATABASE_URL.includes('127.0.0.1') &&
+    !process.env.DATABASE_URL.includes('localhost')
+  );
   let localClient: pg.Client | null = null;
-  const db: pg.ClientBase = client || (localClient = new pg.Client({ connectionString }));
+  const db: pg.ClientBase = client || (localClient = new pg.Client({
+    connectionString,
+    ssl: isRemote || process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+  }));
 
   if (localClient) {
     await localClient.connect();

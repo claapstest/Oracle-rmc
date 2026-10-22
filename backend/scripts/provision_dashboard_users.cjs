@@ -12,7 +12,16 @@ const connectionString =
   process.env.DATABASE_URL ||
   `postgresql://${process.env.POSTGRES_USER || 'postgres'}:${process.env.POSTGRES_PASSWORD || 'postgres'}@${process.env.POSTGRES_HOST || '127.0.0.1'}:${process.env.POSTGRES_PORT || '5433'}/${process.env.POSTGRES_DB || 'veyra_db'}`;
 
-const pool = new Pool({ connectionString });
+const isRemote = Boolean(
+  process.env.DATABASE_URL &&
+  !process.env.DATABASE_URL.includes('127.0.0.1') &&
+  !process.env.DATABASE_URL.includes('localhost')
+);
+
+const pool = new Pool({
+  connectionString,
+  ssl: isRemote || process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+});
 
 async function provisionUsers() {
   console.log('Connecting to PostgreSQL to provision Audit Manager & Audit Supervisor users...');

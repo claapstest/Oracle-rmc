@@ -25,5 +25,5 @@ ENV PORT=5000
 
 EXPOSE 5000
 
-# Start production server
-CMD ["node", "index.js"]
+# Start production server with automated DB migrations & seed
+CMD ["npm", "run", "start:migrate"]

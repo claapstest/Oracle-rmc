@@ -26,7 +26,15 @@ export async function provisionAdminPassword(customPassword?: string): Promise<v
   console.log(`   Target DB   : ${connectionString.replace(/:[^:@]+@/, ':****@')}`);
   console.log(`===========================================================`);
 
-  const client = new pg.Client({ connectionString });
+  const isRemote = Boolean(
+    process.env.DATABASE_URL &&
+    !process.env.DATABASE_URL.includes('127.0.0.1') &&
+    !process.env.DATABASE_URL.includes('localhost')
+  );
+  const client = new pg.Client({
+    connectionString,
+    ssl: isRemote || process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+  });
   await client.connect();
 
   try {
