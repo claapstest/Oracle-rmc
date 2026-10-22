@@ -11,6 +11,7 @@ export interface TableColumnSchema {
     onInvestigate: (type: 'role' | 'user', id: string, name: string, initialTab?: string) => void;
     onInspectRole: (roleName: string) => void;
     onNavigatePage?: (pageId: string, filter?: string) => void;
+    onAskQuestion?: (question: string) => void;
   }) => React.ReactNode;
 }
 
@@ -554,12 +555,12 @@ function getTableColumns(
     ];
   }
 
-  if (tableType === 'access_certifications') {
+  if (tableType === 'access_certifications' || tableType === 'certifications') {
     return [
       {
         key: 'certificationId',
         header: 'ID',
-        width: '9%',
+        width: '10%',
         align: 'center',
         render: (row) => (
           <code style={{ 
@@ -571,32 +572,53 @@ function getTableColumns(
             border: '1px solid #BFDBFE',
             fontWeight: 700
           }}>
-            {row.certificationId || row.id || '—'}
+            {row.certificationId || row.certificate || row.id || '—'}
           </code>
         )
       },
       {
         key: 'certificationName',
         header: 'CERTIFICATION NAME',
-        width: '32%',
+        width: '30%',
         align: 'left',
-        render: (row) => (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.84rem' }}>
-              {row.certificationName || '—'}
-            </span>
-            {row.certifierName && row.certifierName !== '—' && (
-              <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
-                Certifier: {row.certifierName}
+        render: (row, _idx, { onAskQuestion, onNavigatePage }: any) => {
+          const certId = String(row.certificationId || row.certificate || row.id || '');
+          const certName = row.certificationName || row.name || certId;
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span 
+                onClick={() => {
+                  if (onAskQuestion && certId) {
+                    onAskQuestion(`Show certifier worksheet for certification ${certId}`);
+                  } else if (onNavigatePage && certId) {
+                    onNavigatePage('risk-certificates', certId);
+                  }
+                }}
+                style={{ 
+                  fontWeight: 600, 
+                  color: 'var(--accent-blue)', 
+                  fontSize: '0.84rem', 
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '2px'
+                }}
+                title={`Click to view worksheet for ${certName}`}
+              >
+                {certName || '—'}
               </span>
-            )}
-          </div>
-        )
+              {(row.certifierName || row.owner) && (
+                <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                  Owner: {row.certifierName || row.owner}
+                </span>
+              )}
+            </div>
+          );
+        }
       },
       {
         key: 'type',
         header: 'TYPE',
-        width: '14%',
+        width: '12%',
         align: 'center',
         render: (row) => (
           <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
@@ -607,7 +629,7 @@ function getTableColumns(
       {
         key: 'status',
         header: 'STATUS',
-        width: '12%',
+        width: '11%',
         align: 'center',
         render: (row) => {
           const isActive = String(row.status || '').toLowerCase() === 'active';
@@ -634,55 +656,84 @@ function getTableColumns(
         header: '% COMPLETE',
         width: '11%',
         align: 'center',
-        render: (row) => (
-          <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-            {row.percentComplete !== undefined ? `${row.percentComplete}%` : '0%'}
-          </span>
-        )
+        render: (row) => {
+          const comp = row.percentComplete !== undefined ? row.percentComplete : (row.complete !== undefined && row.complete !== '—' ? row.complete : '0');
+          const str = String(comp).replace('%', '');
+          return (
+            <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+              {str}%
+            </span>
+          );
+        }
       },
       {
         key: 'dueDate',
         header: 'DUE DATE',
-        width: '12%',
+        width: '11%',
         align: 'center',
         render: (row) => (
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            {row.dueDate || '—'}
+            {row.dueDate || row.due || '—'}
           </span>
         )
       },
       {
         key: 'actions',
         header: 'ACTIONS',
-        width: '10%',
+        width: '15%',
         align: 'center',
-        render: (row, _idx, { onNavigatePage }) => (
-          <button 
-            onClick={() => {
-              if (onNavigatePage) {
-                onNavigatePage('risk-certificates', String(row.certificationId || row.id));
-              }
-            }}
-            className="btn btn-secondary" 
-            style={{ 
-              padding: '0.2rem 0.55rem', 
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              color: 'var(--accent-blue)',
-              borderColor: 'rgba(53, 99, 233, 0.3)',
-              backgroundColor: 'rgba(53, 99, 233, 0.05)',
-              borderRadius: '4px',
-              whiteSpace: 'nowrap'
-            }}
-            title="Open in Access Certificates"
-          >
-            <span>View</span>
-            <ArrowRight size={11} />
-          </button>
-        )
+        render: (row, _idx, { onNavigatePage, onAskQuestion }: any) => {
+          const certId = String(row.certificationId || row.certificate || row.id || '');
+          return (
+            <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+              {onAskQuestion && (
+                <button 
+                  onClick={() => onAskQuestion(`Show certifier worksheet for certification ${certId}`)}
+                  className="btn btn-secondary" 
+                  style={{ 
+                    padding: '0.2rem 0.5rem', 
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    color: 'var(--accent-blue)',
+                    borderColor: 'rgba(53, 99, 233, 0.3)',
+                    backgroundColor: 'rgba(53, 99, 233, 0.05)',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="View worksheet directly in chat"
+                >
+                  <span>Worksheet</span>
+                  <ArrowRight size={11} />
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  if (onNavigatePage) {
+                    onNavigatePage('risk-certificates', certId);
+                  }
+                }}
+                className="btn btn-secondary" 
+                style={{ 
+                  padding: '0.2rem 0.5rem', 
+                  fontSize: '0.72rem',
+                  fontWeight: 500,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.2rem',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '4px',
+                  whiteSpace: 'nowrap'
+                }}
+                title="Open in Access Certificates Screen"
+              >
+                <span>Open</span>
+              </button>
+            </div>
+          );
+        }
       }
     ];
   }
@@ -694,38 +745,41 @@ function getTableColumns(
         header: 'USER NAME',
         width: '18%',
         align: 'left',
-        render: (row, _idx, { onInvestigate }) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
-              {row.userName || '—'}
-            </span>
-            {row.userName && row.userName !== '—' && (
-              <button
-                onClick={() => onInvestigate && onInvestigate('user', row.userName, row.userName)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--accent-blue)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'inline-flex'
-                }}
-                title={`Inspect user ${row.userName}`}
-              >
-                <ArrowRight size={11} />
-              </button>
-            )}
-          </div>
-        )
+        render: (row, _idx, { onInvestigate }) => {
+          const u = row.userName && row.userName !== '—' ? row.userName : row.user && row.user !== '—' ? row.user : '';
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
+                {u || '—'}
+              </span>
+              {u && (
+                <button
+                  onClick={() => onInvestigate && onInvestigate('user', u, u)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent-blue)',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'inline-flex'
+                  }}
+                  title={`Inspect user ${u}`}
+                >
+                  <ArrowRight size={11} />
+                </button>
+              )}
+            </div>
+          );
+        }
       },
       {
         key: 'roleName',
         header: 'ROLE NAME',
-        width: '26%',
+        width: '24%',
         align: 'left',
         render: (row) => (
           <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
-            {row.roleName || '—'}
+            {row.roleName && row.roleName !== '—' ? row.roleName : row.role || '—'}
           </span>
         )
       },
@@ -734,19 +788,22 @@ function getTableColumns(
         header: 'ROLE CODE',
         width: '20%',
         align: 'left',
-        render: (row) => (
-          <code style={{ 
-            fontSize: '0.74rem', 
-            backgroundColor: '#F1F5F9', 
-            color: '#0F172A',
-            padding: '0.12rem 0.35rem', 
-            borderRadius: '4px',
-            border: '1px solid #E2E8F0',
-            wordBreak: 'break-all'
-          }}>
-            {row.roleCode || '—'}
-          </code>
-        )
+        render: (row) => {
+          const rc = row.roleCode && row.roleCode !== '—' ? row.roleCode : row.code || '';
+          return rc ? (
+            <code style={{ 
+              fontSize: '0.74rem', 
+              backgroundColor: '#F1F5F9', 
+              color: '#0F172A',
+              padding: '0.12rem 0.35rem', 
+              borderRadius: '4px',
+              border: '1px solid #E2E8F0',
+              wordBreak: 'break-all'
+            }}>
+              {rc}
+            </code>
+          ) : <span>—</span>;
+        }
       },
       {
         key: 'directManager',
@@ -755,7 +812,7 @@ function getTableColumns(
         align: 'left',
         render: (row) => (
           <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            {row.directManager || '—'}
+            {row.directManager && row.directManager !== '—' ? row.directManager : row.manager || '—'}
           </span>
         )
       },
@@ -766,19 +823,20 @@ function getTableColumns(
         align: 'left',
         render: (row) => (
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            {row.businessUnit || '—'}
+            {row.businessUnit && row.businessUnit !== '—' ? row.businessUnit : row.unit || '—'}
           </span>
         )
       },
       {
         key: 'action',
         header: 'ACTION',
-        width: '10%',
+        width: '12%',
         align: 'center',
         render: (row) => {
           const act = String(row.action || 'Pending').toLowerCase();
-          const isPending = act === 'pending';
-          const isApproved = act === 'approved';
+          const isPending = act.includes('pending');
+          const isApproved = act.includes('approv') || act.includes('keep') || act.includes('certif');
+          const isRevoked = act.includes('revok') || act.includes('remove');
           return (
             <span
               style={{
@@ -787,9 +845,9 @@ function getTableColumns(
                 borderRadius: '9999px',
                 fontSize: '0.7rem',
                 fontWeight: 600,
-                backgroundColor: isPending ? '#FEF3C7' : isApproved ? '#DCFCE7' : '#F1F5F9',
-                color: isPending ? '#D97706' : isApproved ? '#15803D' : '#475569',
-                border: isPending ? '1px solid #FCD34D' : isApproved ? '1px solid #86EFAC' : '1px solid #CBD5E1'
+                backgroundColor: isPending ? '#FEF3C7' : isApproved ? '#DCFCE7' : isRevoked ? '#FEE2E2' : '#F1F5F9',
+                color: isPending ? '#D97706' : isApproved ? '#15803D' : isRevoked ? '#B91C1C' : '#475569',
+                border: isPending ? '1px solid #FCD34D' : isApproved ? '1px solid #86EFAC' : isRevoked ? '1px solid #FCA5A5' : '1px solid #CBD5E1'
               }}
             >
               {row.action || 'Pending'}
@@ -827,6 +885,7 @@ export const PaginatedTable = React.memo(function PaginatedTable({
   onNavigatePage,
   onInvestigate,
   onInspectRole,
+  onAskQuestion,
   initialPage = 1,
   initialPageSize = 10,
   initialFilterText = '',
@@ -837,6 +896,7 @@ export const PaginatedTable = React.memo(function PaginatedTable({
   onNavigatePage?: (pageId: string, filter?: string) => void;
   onInvestigate: (type: 'role' | 'user', id: string, name: string, initialTab?: string) => void;
   onInspectRole: (roleName: string) => void;
+  onAskQuestion?: (question: string) => void;
   initialPage?: number;
   initialPageSize?: number;
   initialFilterText?: string;
@@ -1059,7 +1119,7 @@ export const PaginatedTable = React.memo(function PaginatedTable({
                       }}
                     >
                       {col.render 
-                        ? col.render(row, rIdx, { onInvestigate, onInspectRole, onNavigatePage }) 
+                        ? col.render(row, rIdx, { onInvestigate, onInspectRole, onNavigatePage, onAskQuestion }) 
                         : (row[col.key] !== undefined ? String(row[col.key]) : '—')}
                     </td>
                   ))}

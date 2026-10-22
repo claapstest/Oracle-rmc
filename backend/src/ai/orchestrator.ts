@@ -808,17 +808,42 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
-  // 7. Users by Role (Who has role X)
-  if (clean.includes('who has') && clean.includes('role')) {
-    let roleName = 'Advanced Access Controls Analyst';
-    if (context && context.entityType === 'ROLE' && context.entityName) {
-      roleName = context.entityName;
-    } else if (clean.includes('ap manager') || clean.includes('payables')) roleName = 'AP Manager';
-    else if (clean.includes('it security')) roleName = 'IT Security Manager';
-    else if (clean.includes('payroll')) roleName = 'Payroll Administrator';
-    else if (clean.includes('employee')) roleName = 'Employee';
-    else if (clean.includes('security administrator')) roleName = 'Security Administrator';
+  // 7. Users by Role (Who has role X / Users with role X / Users containing both role X and Y)
+  if (
+    (clean.includes('who has') && clean.includes('role')) ||
+    (clean.includes('users') && (clean.includes('role') || clean.includes('roles')) && !clean.includes('no role') && !clean.includes('without role'))
+  ) {
+    const detectedRoles: string[] = [];
+    if (clean.includes('ap manager') || clean.includes('accounts payable manager') || clean.includes('payables')) detectedRoles.push('AP Manager');
+    if (clean.includes('it security') || clean.includes('security administrator') || clean.includes('security manager')) detectedRoles.push('IT Security Manager');
+    if (clean.includes('payroll')) detectedRoles.push('Payroll Administrator');
+    if (clean.includes('employee')) detectedRoles.push('Employee');
+    if (clean.includes('controls analyst') || clean.includes('advanced access controls')) detectedRoles.push('Advanced Access Controls Analyst');
 
+    const quotedRoles = clean.match(/["']([^"']+)["']/g);
+    if (quotedRoles) {
+      for (const qr of quotedRoles) {
+        const val = qr.replace(/["']/g, '').trim();
+        if (val && !detectedRoles.includes(val)) detectedRoles.push(val);
+      }
+    }
+
+    const uniqueRoles = [...new Set(detectedRoles)];
+    if (uniqueRoles.length > 1) {
+      return {
+        intent: 'USERS_BY_ROLE',
+        parameters: { roles: uniqueRoles, matchMode: 'AND' },
+        explanation: `Extracting users assigned to all specified roles: ${uniqueRoles.join(' and ')}.`
+      };
+    } else if (uniqueRoles.length === 1) {
+      return {
+        intent: 'USERS_BY_ROLE',
+        parameters: { roleName: uniqueRoles[0] },
+        explanation: `Extracting users assigned to the "${uniqueRoles[0]}" role.`
+      };
+    }
+
+    let roleName = context && context.entityType === 'ROLE' && context.entityName ? context.entityName : 'Advanced Access Controls Analyst';
     return {
       intent: 'USERS_BY_ROLE',
       parameters: { roleName },
@@ -1326,7 +1351,9 @@ Analyze the user query and output a strict JSON object mapping to:
 {
   "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "CERTIFICATIONS_OVERVIEW" | "CERTIFICATIONS_LIST" | "CERTIFICATION_DETAILS" | "CERTIFIER_WORKSHEET" | "UNKNOWN",
   "parameters": {
+    "roles": "Array of role names if multiple roles specified, e.g. ['IT Security Manager', 'AP Manager'] (array of strings, optional)",
     "roleName": "Extracted role display name or code (string, optional)",
+    "matchMode": "'AND' if users must have all/both roles, or 'OR' (string, optional)",
     "privilegeName": "Extracted privilege name for reverse lookup (e.g. 'Maintain Supplier Contact', 'Create Purchase Order') (string, optional)",
     "userId": "Extracted user identifier like JSMITH or HCM_IMPL (string, optional)",
     "username": "Extracted audit username (string, optional)",
@@ -1372,7 +1399,7 @@ Intent definitions:
 - GET_USER: Details about a specific user by username/id (e.g. "Who is John Smith" or "who is JSMITH").
 - LIST_ROLES: Display all roles in the environment.
 - GET_ROLE / ROLE_DETAILS: Search details of a specific role by name.
-- USERS_BY_ROLE: Find who has a specific role (e.g. "Who has the Advanced Access Controls Analyst role?").
+- USERS_BY_ROLE: Find who has specific role(s) (e.g. "Who has the Advanced Access Controls Analyst role?", "Which users have both IT Security Manager and Accounts Payable Manager?", "users containing two roles X and Y"). Use "roles": ["Role 1", "Role 2"] with "matchMode": "AND" for multiple roles.
 - ROLES_BY_USER: Show what roles are assigned to a specific user (e.g. "which roles are assigned to JSMITH?").
 - ROLE_SEARCH: Find roles matching keywords (e.g. "find roles containing Manager").
 - ROLE_HIERARCHY: Show role children, parent, and hierarchy.
@@ -2183,21 +2210,26 @@ function buildStructuredResponse(
       totalCount = data?.total ?? cl.length;
       matchingCount = data?.totalMatching ?? cl.length;
       table = {
-        type: 'certifications',
-        columns: ['Certificate', 'Name', 'Type', 'Status', 'Complete', 'Due', 'Owner'],
+        type: 'access_certifications',
+        columns: ['ID', 'Certification Name', 'Type', 'Status', '% Complete', 'Due Date', 'Owner'],
         rows: cl.map((c: any) => ({
-          id: c.certificate,
-          certificate: c.certificate,
-          name: c.name,
-          type: c.type || '—',
-          status: c.status || '—',
+          id: String(c.certificate || c.id || ''),
+          certificationId: String(c.certificate || c.id || ''),
+          certificate: String(c.certificate || c.id || ''),
+          certificationName: c.name || c.certificationName || '',
+          name: c.name || c.certificationName || '',
+          type: c.type || 'Standard',
+          status: c.status || 'Active',
+          percentComplete: c.complete !== null && c.complete !== undefined ? c.complete : 0,
           complete: c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—',
-          due: c.due || '—',
-          owner: c.owner || '—'
+          dueDate: c.due || c.dueDate || '—',
+          due: c.due || c.dueDate || '—',
+          owner: c.owner || '—',
+          certifierName: c.owner || c.manager || '—'
         }))
       };
       actions = [
-        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk-certificates' } }
       ];
       break;
     }
@@ -2208,13 +2240,22 @@ function buildStructuredResponse(
         const amb = Array.isArray(data?.matches) ? data.matches : [];
         if (amb.length > 0) {
           table = {
-            type: 'certifications',
-            columns: ['Certificate', 'Name', 'Type', 'Status', 'Complete', 'Due', 'Owner'],
+            type: 'access_certifications',
+            columns: ['ID', 'Certification Name', 'Type', 'Status', '% Complete', 'Due Date', 'Owner'],
             rows: amb.map((c: any) => ({
-              id: c.certificate, certificate: c.certificate, name: c.name,
-              type: c.type || '—', status: c.status || '—',
+              id: String(c.certificate || c.id || ''),
+              certificationId: String(c.certificate || c.id || ''),
+              certificate: String(c.certificate || c.id || ''),
+              certificationName: c.name || c.certificationName || '',
+              name: c.name || c.certificationName || '',
+              type: c.type || 'Standard',
+              status: c.status || 'Active',
+              percentComplete: c.complete !== null && c.complete !== undefined ? c.complete : 0,
               complete: c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—',
-              due: c.due || '—', owner: c.owner || '—'
+              dueDate: c.due || c.dueDate || '—',
+              due: c.due || c.dueDate || '—',
+              owner: c.owner || '—',
+              certifierName: c.owner || c.manager || '—'
             }))
           };
         }
@@ -2237,7 +2278,7 @@ function buildStructuredResponse(
       totalCount = cRows.length;
       matchingCount = cRows.length;
       actions = [
-        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk-certificates' } }
       ];
       break;
     }
@@ -2248,13 +2289,22 @@ function buildStructuredResponse(
         const amb = Array.isArray(data?.matches) ? data.matches : [];
         if (amb.length > 0) {
           table = {
-            type: 'certifications',
-            columns: ['Certificate', 'Name', 'Type', 'Status', 'Complete', 'Due', 'Owner'],
+            type: 'access_certifications',
+            columns: ['ID', 'Certification Name', 'Type', 'Status', '% Complete', 'Due Date', 'Owner'],
             rows: amb.map((c: any) => ({
-              id: c.certificate, certificate: c.certificate, name: c.name,
-              type: c.type || '—', status: c.status || '—',
+              id: String(c.certificate || c.id || ''),
+              certificationId: String(c.certificate || c.id || ''),
+              certificate: String(c.certificate || c.id || ''),
+              certificationName: c.name || c.certificationName || '',
+              name: c.name || c.certificationName || '',
+              type: c.type || 'Standard',
+              status: c.status || 'Active',
+              percentComplete: c.complete !== null && c.complete !== undefined ? c.complete : 0,
               complete: c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—',
-              due: c.due || '—', owner: c.owner || '—'
+              dueDate: c.due || c.dueDate || '—',
+              due: c.due || c.dueDate || '—',
+              owner: c.owner || '—',
+              certifierName: c.owner || c.manager || '—'
             }))
           };
         }
@@ -2266,20 +2316,27 @@ function buildStructuredResponse(
       matchingCount = data?.totalMatching ?? wRows.length;
       table = {
         type: 'certifier_worksheet',
-        columns: ['Certificate', 'User', 'Role', 'Action', 'Manager', 'Unit', 'Comments'],
+        columns: ['User Name', 'Role Name', 'Role Code', 'Direct Manager', 'Business Unit', 'Action'],
         rows: wRows.map((r: any, idx: number) => ({
-          id: `${r.certificate}-${idx}`,
+          id: `${r.certificate || 'row'}-${idx}`,
           certificate: r.certificate || '—',
-          user: r.user || '—',
-          role: r.role || '—',
-          action: r.action || '—',
-          manager: r.manager || '—',
-          unit: r.unit || '—',
+          certificationId: r.certificate || '—',
+          userName: r.user || r.userName || '—',
+          user: r.user || r.userName || '—',
+          roleName: r.role || r.roleName || '—',
+          role: r.role || r.roleName || '—',
+          roleCode: r.roleCode || '—',
+          code: r.roleCode || '—',
+          directManager: r.manager || r.directManager || '—',
+          manager: r.manager || r.directManager || '—',
+          businessUnit: r.unit || r.businessUnit || '—',
+          unit: r.unit || r.businessUnit || '—',
+          action: r.action || 'Pending',
           comments: r.comments || '—'
         }))
       };
       actions = [
-        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk' } }
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk-certificates' } }
       ];
       break;
     }

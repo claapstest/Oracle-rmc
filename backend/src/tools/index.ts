@@ -169,16 +169,71 @@ export async function getRolesTool(params: { filter?: string; category?: string;
   }
 }
 
-export async function getUsersByRoleTool(params: { roleName: string }): Promise<ToolExecutionResult> {
+export async function getUsersByRoleTool(params: { roleName?: string; roles?: string[]; matchMode?: 'AND' | 'OR' }): Promise<ToolExecutionResult> {
   try {
-    if (!params.roleName) {
-      return createResult('getUsersByRole', params, false, null, 'Parameter "roleName" is required.');
+    let roleList: string[] = [];
+    if (Array.isArray(params.roles) && params.roles.length > 0) {
+      roleList = params.roles.map(r => String(r).trim()).filter(Boolean);
+    } else if (params.roleName) {
+      if (params.roleName.includes(' and ') || params.roleName.includes(' & ') || params.roleName.includes(',')) {
+        roleList = params.roleName.split(/\s+(?:and|&)\s+|,\s*/i).map(r => r.trim()).filter(Boolean);
+      } else {
+        roleList = [params.roleName.trim()];
+      }
     }
-    const data = await oracleService.getUsersByRole(params.roleName);
+
+    if (roleList.length === 0) {
+      return createResult('getUsersByRole', params, false, null, 'Parameter "roleName" or "roles" is required.');
+    }
+
+    if (roleList.length === 1) {
+      const data = await oracleService.getUsersByRole(roleList[0]);
+      return createResult('getUsersByRole', params, true, {
+        users: data,
+        totalMatching: data.length,
+        roleName: roleList[0]
+      });
+    }
+
+    // Multiple roles: fetch users for each role and calculate intersection (AND) or union (OR)
+    const matchMode = params.matchMode || 'AND';
+    const roleResults = await Promise.all(
+      roleList.map(async r => {
+        try {
+          const uList = await oracleService.getUsersByRole(r);
+          return { role: r, users: uList || [] };
+        } catch {
+          return { role: r, users: [] };
+        }
+      })
+    );
+
+    let finalUsers: any[] = [];
+    if (matchMode === 'AND') {
+      const [first, ...rest] = roleResults;
+      finalUsers = (first?.users || []).filter(u => {
+        const uId = String(u.userName || u.id || u.email || '').toLowerCase();
+        return rest.every(r => r.users.some(other => String(other.userName || other.id || other.email || '').toLowerCase() === uId));
+      });
+    } else {
+      const seen = new Set<string>();
+      for (const r of roleResults) {
+        for (const u of r.users) {
+          const uId = String(u.userName || u.id || u.email || '').toLowerCase();
+          if (!seen.has(uId)) {
+            seen.add(uId);
+            finalUsers.push(u);
+          }
+        }
+      }
+    }
+
     return createResult('getUsersByRole', params, true, {
-      users: data,
-      totalMatching: data.length,
-      roleName: params.roleName
+      users: finalUsers,
+      totalMatching: finalUsers.length,
+      roles: roleList,
+      roleName: roleList.join(matchMode === 'AND' ? ' AND ' : ' OR '),
+      matchMode
     });
   } catch (err) {
     return createResult('getUsersByRole', params, false, null, (err as Error).message);

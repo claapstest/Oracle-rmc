@@ -637,6 +637,7 @@ export default function Assistant({
             onNavigatePage={onNavigatePage}
             onInvestigate={onInvestigate}
             onInspectRole={(roleName) => onInvestigate('role', roleName, roleName)}
+            onAskQuestion={(q) => handleSend(q)}
             initialPage={tableStates[index]?.currentPage ?? 1}
             initialPageSize={tableStates[index]?.pageSize ?? 10}
             initialFilterText={tableStates[index]?.filterText ?? ''}
@@ -728,6 +729,7 @@ export default function Assistant({
                   onNavigatePage={onNavigatePage}
                   onInvestigate={onInvestigate}
                   onInspectRole={(roleName) => onInvestigate('role', roleName, roleName)}
+                  onAskQuestion={(q) => handleSend(q)}
                   initialPage={tableStates[index]?.currentPage ?? 1}
                   initialPageSize={tableStates[index]?.pageSize ?? 10}
                   initialFilterText={tableStates[index]?.filterText ?? ''}
