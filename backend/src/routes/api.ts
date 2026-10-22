@@ -334,7 +334,7 @@ export function requireUsersListAccess(req: Request, res: Response, next: () => 
 
 // POST /auth/login - VEYRA User Sign In (AC1-AC8)
 apiRouter.post('/auth/login', async (req: Request, res: Response) => {
-  const { email: rawEmail, password } = req.body;
+  const { email: rawEmail, password, force } = req.body;
   if (!rawEmail || !password) {
     logAudit(rawEmail || 'unknown', 'LOGIN_REJECTED', 'Missing email or password (400 Bad Request)');
     return res.status(400).json({ success: false, message: 'Please provide email and password.' });
@@ -343,7 +343,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   try {
     const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
     const userAgent = req.get('user-agent') || 'Unknown Client';
-    const result = await authService.login(rawEmail, password, { ipAddress: rawIp, userAgent });
+    const result = await authService.login(rawEmail, password, { ipAddress: rawIp, userAgent, force: Boolean(force) });
 
     if (!result.success) {
       if (result.code === 'ACTIVE_SESSION_EXISTS') {

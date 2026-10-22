@@ -534,7 +534,7 @@ export const api = {
   },
 
   // Authentication APIs
-  async login(params: { email: string; password?: string }) {
+  async login(params: { email: string; password?: string; force?: boolean }) {
     return apiRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify(params),

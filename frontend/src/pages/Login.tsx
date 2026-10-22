@@ -16,6 +16,8 @@ interface LoginProps {
 export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [pendingPassword, setPendingPassword] = useState('');
+  const [overridePassword, setOverridePassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [loading, setLoading] = useState(false);
@@ -43,9 +45,39 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
   const handleBackToLogin = () => {
     setView('LOGIN');
     setPassword('');
+    setPendingPassword('');
+    setOverridePassword('');
     setError('');
     setFieldErrors({});
     setSuccessMsg('');
+  };
+
+  const handleForceLogin = async () => {
+    const pw = pendingPassword || overridePassword;
+    if (loading || !email || !pw) return;
+    setLoading(true);
+    setError('');
+    try {
+      const cleanEmail = normalizeEmail(email);
+      const res = await api.login({ email: cleanEmail, password: pw, force: true });
+      if (res.success && res.token) {
+        onLoginSuccess(res.email, res.token, res.environmentMode, {
+          role: res.role,
+          permissions: res.permissions,
+          isAdmin: res.isAdmin
+        });
+      } else {
+        setError(mapLoginError(res));
+        setView('LOGIN');
+      }
+    } catch (err: any) {
+      setError(mapLoginError(err));
+      setView('LOGIN');
+    } finally {
+      setLoading(false);
+      setPendingPassword('');
+      setOverridePassword('');
+    }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -77,6 +109,7 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
         });
       } else if (isActiveSessionError(res)) {
         // Backend returned active session conflict in 200 payload wrapper
+        setPendingPassword(password);
         setView('ACTIVE_SESSION');
         setPassword('');
         setError('');
@@ -87,7 +120,8 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
     } catch (err: any) {
       if (isActiveSessionError(err)) {
         // HTTP 409 Conflict: Active Session Exists
-        // Do NOT call logout, do NOT touch existing session, show dedicated screen
+        // Show dedicated screen and offer to terminate existing session
+        setPendingPassword(password);
         setView('ACTIVE_SESSION');
         setPassword('');
         setError('');
@@ -398,30 +432,74 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
                 </span>
               </div>
 
-              {/* Action: Back to Login */}
-              <button
-                type="button"
-                id="veyra-back-to-login-btn"
-                onClick={handleBackToLogin}
-                className="btn btn-primary"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: '#1d4ed8',
-                  borderColor: '#1d4ed8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  marginTop: '0.25rem'
-                }}
-              >
-                <ArrowLeft size={16} />
-                <span>Back to Login</span>
-              </button>
+              {/* Actions: Terminate session or return */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
+                {!pendingPassword && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', marginBottom: '0.35rem', fontWeight: 600 }}>
+                      Enter Password to Confirm & Terminate
+                    </label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="Enter your password"
+                      value={overridePassword}
+                      onChange={(e) => setOverridePassword(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  id="veyra-terminate-session-btn"
+                  onClick={handleForceLogin}
+                  disabled={loading || (!pendingPassword && !overridePassword)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#dc2626',
+                    border: '1px solid #b91c1c',
+                    color: '#ffffff',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    cursor: (loading || (!pendingPassword && !overridePassword)) ? 'not-allowed' : 'pointer',
+                    opacity: (loading || (!pendingPassword && !overridePassword)) ? 0.7 : 1
+                  }}
+                >
+                  <ShieldAlert size={16} />
+                  <span>{loading ? 'Terminating & Signing In...' : 'Terminate Previous Session & Sign In'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="veyra-back-to-login-btn"
+                  onClick={handleBackToLogin}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem',
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    color: '#475569',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  <span>Return to Sign In</span>
+                </button>
+              </div>
             </div>
           ) : view === 'LOGIN' ? (
             <form onSubmit={handleLoginSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>

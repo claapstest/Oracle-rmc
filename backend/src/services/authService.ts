@@ -558,7 +558,7 @@ export class AuthService {
   public async login(
     rawEmail: string,
     rawPassword: string,
-    clientMeta?: { ipAddress?: string; userAgent?: string }
+    clientMeta?: { ipAddress?: string; userAgent?: string; force?: boolean }
   ): Promise<LoginResult> {
     // 1. Normalization: trim and lowercase email before database lookup
     const normalized = this.normalizeEmail(rawEmail);
@@ -700,7 +700,7 @@ export class AuthService {
         const existingLastAct = existingRow.last_activity_at ? new Date(existingRow.last_activity_at).getTime() : new Date(existingRow.created_at).getTime();
         const existingExpires = existingRow.expires_at ? new Date(existingRow.expires_at).getTime() : (existingLastAct + inactivityTimeout);
 
-        if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout)) {
+        if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout) || clientMeta?.force) {
           await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE id = $1`, [existingRow.id]);
           activeSessions.delete(existingRow.session_id);
         } else {
