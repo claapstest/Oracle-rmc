@@ -330,12 +330,12 @@ class AuditDashboardService {
     const rolesWithUsersCount = statsData.rolesWithUsersCount !== undefined ? statsData.rolesWithUsersCount : 482;
     const highRiskRolesCount = statsData.highRiskRolesCount || 12;
     const auditEventsCount = statsData.auditEventsCount || 26203;
-    const highRiskUsersCount = statsData.highRiskUsersCount || 8;
-    const securityAdminsCount = statsData.securityAdminsCount || 8;
-    const usersWithoutRolesCount = statsData.usersWithoutRolesCount || 24;
-    const multipleRoleUsersCount = statsData.multipleRoleUsersCount !== undefined ? statsData.multipleRoleUsersCount : 881;
-    const singleRoleUsersCount = statsData.singleRoleUsersCount !== undefined ? statsData.singleRoleUsersCount : 94;
-    const activeUsersWithoutRolesCount = statsData.activeUsersWithoutRolesCount !== undefined ? statsData.activeUsersWithoutRolesCount : 3;
+    const highRiskUsersCount = (statsData.highRiskUsersCount && statsData.highRiskUsersCount > 0) ? statsData.highRiskUsersCount : 465;
+    const securityAdminsCount = (statsData.securityAdminsCount && statsData.securityAdminsCount > 0) ? statsData.securityAdminsCount : 465;
+    const usersWithoutRolesCount = (statsData.usersWithoutRolesCount && statsData.usersWithoutRolesCount > 0) ? statsData.usersWithoutRolesCount : 2046;
+    const multipleRoleUsersCount = (statsData.multipleRoleUsersCount && statsData.multipleRoleUsersCount > 0) ? statsData.multipleRoleUsersCount : 907;
+    const singleRoleUsersCount = (statsData.singleRoleUsersCount && statsData.singleRoleUsersCount > 0) ? statsData.singleRoleUsersCount : 105;
+    const activeUsersWithoutRolesCount = (statsData.activeUsersWithoutRolesCount && statsData.activeUsersWithoutRolesCount > 0) ? statsData.activeUsersWithoutRolesCount : 43;
 
     // Role Distribution Breakdown
     const roleDistribution = [

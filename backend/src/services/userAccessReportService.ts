@@ -40,7 +40,19 @@ export interface UserAccessReportResult {
   source?: string;
 }
 
-const CACHE_FILE = path.resolve(process.cwd(), 'oracle_user_access_report_cache.json');
+function getUserAccessReportCachePath(): string {
+  const candidates = [
+    path.resolve(process.cwd(), 'oracle_user_access_report_cache.json'),
+    path.resolve(process.cwd(), 'backend/oracle_user_access_report_cache.json'),
+    path.resolve(process.cwd(), '../oracle_user_access_report_cache.json')
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
+const CACHE_FILE = getUserAccessReportCachePath();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours TTL
 
 export class UserAccessReportService {
