@@ -23,7 +23,7 @@ const isRemoteDb = Boolean(
 
 export const pool = new pg.Pool({
   connectionString,
-  max: 10,
+  max: isRemoteDb ? 4 : 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
   ssl: isRemoteDb || process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,

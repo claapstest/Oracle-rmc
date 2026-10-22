@@ -963,19 +963,19 @@ export class ControlRawDbService {
    * Starts the automatic background synchronization scheduler.
    * Periodically checks controls for updates in Oracle Fusion Cloud and updates the database automatically.
    */
-  public startAutoSyncScheduler(oracleServiceOrClient: any, intervalMinutes = 15): void {
+  public startAutoSyncScheduler(oracleServiceOrClient: any, intervalMinutes = 360): void {
     if (this.schedulerTimer) return;
 
     console.log(`[AutoSyncScheduler] Initialized. Background sync interval: ${intervalMinutes} minutes.`);
 
-    // Run initial discovery and sync 5 seconds after server startup
+    // Delay initial sync by 5 minutes after server startup to allow clean boot and steady-state memory
     setTimeout(() => {
       this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
         console.error('[AutoSyncScheduler] Initial run error:', err.message);
       });
-    }, 5000);
+    }, 5 * 60 * 1000);
 
-    // Run recurring periodic checks
+    // Run recurring periodic checks (every 6 hours)
     this.schedulerTimer = setInterval(() => {
       this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
         console.error('[AutoSyncScheduler] Cycle error:', err.message);
@@ -1089,6 +1089,9 @@ export class ControlRawDbService {
         } catch (ctrlErr: any) {
           console.warn(`[AutoSyncScheduler] Warning syncing control ${ctrl.id}:`, ctrlErr.message);
         }
+
+        // Pacing delay between controls to allow PostgreSQL WAL and memory to clear smoothly
+        await new Promise((r) => setTimeout(r, 1500));
       }
 
       console.log(`[AutoSyncScheduler] Auto-sync cycle completed across all ${catalogControls.length} controls.`);
