@@ -17,6 +17,10 @@ backend/oracle_role_hierarchy_cache.json
 role_privilege_catalog.json
 backend/role_privilege_catalog.json
 oracle_roles_cache.json
+backend/oracle_*_cache.json
+backend/oracle_roles_cache.json
+backend/oracle_privileges_cache.json
+backend/oracle_users_metrics_cache.json
 
 # Log Files
 *.log
