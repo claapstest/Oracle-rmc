@@ -165,6 +165,7 @@ export const SEED_PERSONAS = [
   },
 ];
 
+export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
   const isRemote = Boolean(
     process.env.DATABASE_URL &&
     !process.env.DATABASE_URL.includes('127.0.0.1') &&
