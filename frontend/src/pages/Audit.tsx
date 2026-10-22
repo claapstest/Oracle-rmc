@@ -299,7 +299,7 @@ export default function Audit({
 
   // Quick range preset handler - updates dates AND triggers immediate search
   const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd' | '2025') => {
-    const todayStr = '2026-10-13';
+    const todayStr = getTodayIsoDate();
     let newFrom = fromDate;
     let newTo = toDate;
     if (range === 'today') {
@@ -796,7 +796,7 @@ export default function Audit({
               />
             </div>
             <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Allowed: Jan 01, 2025 – Oct 13, 2026
+              Allowed: Jan 01, 2025 – Present
             </span>
           </div>
 
@@ -818,7 +818,7 @@ export default function Audit({
               />
             </div>
             <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Allowed: Jan 01, 2025 – Oct 13, 2026
+              Allowed: Jan 01, 2025 – Present
             </span>
           </div>
 
