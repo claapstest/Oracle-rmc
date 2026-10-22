@@ -4276,7 +4276,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                 dataSource={dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}
                 entityName={activeEntityName}
                 categoryLabel={activeEntityName}
-                buttonText={`Export ${activeEntityName}`}
+                buttonText="Export Excel"
                 currentPageData={paginatedControls}
                 filteredCount={filteredControls.length}
                 totalCount={activeSubsectionControls.length}

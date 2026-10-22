@@ -312,6 +312,66 @@
       "isActive": true,
       "lastLoginAt": null,
       "resetCode": null
+    },
+    "veerasrikavya.kudipudi@claaps.com": {
+      "userId": "usr_mvj4689q_cnc9",
+      "email": "veerasrikavya.kudipudi@claaps.com",
+      "displayName": "kavya kudipudi",
+      "passwordHash": "$2b$10$VimoPlDG87WfKRqdPxoX9OTwRiVvfiujswuyDj/hiYJVSfIzujqXW",
+      "status": "ACTIVE",
+      "role": "AUDIT_MANAGER",
+      "permissions": [
+        "ASK_VEYRA",
+        "USERS_LIST",
+        "USER_READ",
+        "ROLES_CATALOG",
+        "ROLE_READ",
+        "PRIVILEGE_READ",
+        "AUDIT_TRAIL",
+        "AUDIT_READ",
+        "RISK_MANAGEMENT",
+        "RISK_READ",
+        "REPORTS",
+        "REPORTS_READ",
+        "SECURITY_READ",
+        "INVESTIGATIONS_READ",
+        "INVESTIGATIONS_WRITE"
+      ],
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "lastLoginAt": null,
+      "resetCode": null
+    },
+    "user@claaps.com": {
+      "userId": "usr_mvj4hwj6_n8ua",
+      "email": "user@claaps.com",
+      "displayName": "user",
+      "passwordHash": "$2b$10$/tqkaB5UVuJLgj4l8erWjO7szlb5ApY9iW2B2yty6abaCqhL8X2b.",
+      "status": "ACTIVE",
+      "role": "AUDIT_MANAGER",
+      "permissions": [
+        "ASK_VEYRA",
+        "USERS_LIST",
+        "USER_READ",
+        "ROLES_CATALOG",
+        "ROLE_READ",
+        "PRIVILEGE_READ",
+        "AUDIT_TRAIL",
+        "AUDIT_READ",
+        "RISK_MANAGEMENT",
+        "RISK_READ",
+        "REPORTS",
+        "REPORTS_READ",
+        "SECURITY_READ",
+        "INVESTIGATIONS_READ",
+        "INVESTIGATIONS_WRITE"
+      ],
+      "setupCompleted": true,
+      "isAdmin": false,
+      "isActive": true,
+      "lastLoginAt": null,
+      "resetCode": null
     }
   }
 }

@@ -16,6 +16,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { api } from '../services/api.js';
+import { exportToExcel } from '../utils/excelExport';
 
 interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
@@ -253,61 +254,87 @@ export default function AccessCertificates({
     return filteredWorksheetRows.slice(start, start + worksheetPageSize);
   }, [filteredWorksheetRows, worksheetCurrentPage, worksheetPageSize]);
 
-  // Export functions
-  const exportToCsv = () => {
+  // Export functions to Microsoft Excel (.xlsx)
+  const exportCertificationsToExcel = () => {
     if (filteredCertifications.length === 0) return;
-    const headers = [
-      '#',
-      'Certification ID',
-      'Certification Name',
-      'Type',
-      'Status',
-      'Certification % Complete',
-      'Due Date',
-      'Creation Date'
-    ];
-    const rows = filteredCertifications.map((item, idx) => [
-      idx + 1,
-      `"${String(item.certificationId ?? item.id ?? '').replace(/"/g, '""')}"`,
-      `"${String(item.name ?? item.certificationName ?? '').replace(/"/g, '""')}"`,
-      `"${String(item.type || '').replace(/"/g, '""')}"`,
-      `"${String(item.status || '').replace(/"/g, '""')}"`,
-      `"${String(item.certificationPercentComplete ?? '0%').replace(/"/g, '""')}"`,
-      `"${String(item.dueDate || '').replace(/"/g, '""')}"`,
-      `"${String(item.creationDate || '').replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Access_Certifications_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel({
+      filename: `Access_Certifications_${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Access Certifications',
+      reportTitle: 'Oracle Fusion Access Certifications Report',
+      dataSource: environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data',
+      appliedFilters: searchTerm.trim() ? [{ label: 'Filter', value: searchTerm }] : [],
+      data: filteredCertifications,
+      columns: [
+        {
+          key: '_index',
+          label: '#',
+          getValue: (_item: any, idx?: number) => (idx !== undefined ? idx + 1 : '')
+        },
+        {
+          key: 'certificationId',
+          label: 'Certification ID',
+          getValue: (item: any) => item.certificationId ?? item.id ?? ''
+        },
+        {
+          key: 'name',
+          label: 'Certification Name',
+          getValue: (item: any) => item.name ?? item.certificationName ?? ''
+        },
+        {
+          key: 'type',
+          label: 'Type',
+          getValue: (item: any) => item.type || ''
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          getValue: (item: any) => item.status || ''
+        },
+        {
+          key: 'certificationPercentComplete',
+          label: 'Certification % Complete',
+          getValue: (item: any) => item.certificationPercentComplete ?? '0%'
+        },
+        {
+          key: 'dueDate',
+          label: 'Due Date',
+          getValue: (item: any) => formatDueDate(item.dueDate)
+        },
+        {
+          key: 'creationDate',
+          label: 'Creation Date',
+          getValue: (item: any) => formatDueDate(item.creationDate)
+        }
+      ]
+    });
   };
 
-  const exportWorksheetToCsv = () => {
+  const exportWorksheetToExcel = () => {
     if (filteredWorksheetRows.length === 0) return;
-    const headers = ['#', ...WORKSHEET_COLUMNS.map((c) => c.header)];
-    const rows = filteredWorksheetRows.map((r, idx) => [
-      idx + 1,
-      ...WORKSHEET_COLUMNS.map((c) => `"${wsVal(r, c.keys).replace(/"/g, '""')}"`)
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `Certifier_Worksheet_${drillDownCertId}_${new Date().toISOString().split('T')[0]}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const certTitle = drillDownSummary?.name || drillDownSummary?.certificationName || `Certification #${drillDownCertId || ''}`;
+    exportToExcel({
+      filename: `Certifier_Worksheet_${drillDownCertId || 'export'}_${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Certifier Worksheet',
+      reportTitle: `Oracle Access Certification Worksheet - ${certTitle}`,
+      dataSource: environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data',
+      appliedFilters: [
+        ...(drillDownCertId ? [{ label: 'Certification ID', value: String(drillDownCertId) }] : []),
+        ...(worksheetSearchTerm.trim() ? [{ label: 'Filter', value: worksheetSearchTerm }] : [])
+      ],
+      data: filteredWorksheetRows,
+      columns: [
+        {
+          key: '_index',
+          label: '#',
+          getValue: (_r: any, idx?: number) => (idx !== undefined ? idx + 1 : '')
+        },
+        ...WORKSHEET_COLUMNS.map((c) => ({
+          key: c.keys[0],
+          label: c.header,
+          getValue: (r: any) => wsVal(r, c.keys)
+        }))
+      ]
+    });
   };
 
   const getPercentValue = (val: any): number => {
@@ -755,8 +782,9 @@ export default function AccessCertificates({
               {/* Export Button */}
               <button
                 type="button"
-                onClick={exportWorksheetToCsv}
+                onClick={exportWorksheetToExcel}
                 disabled={filteredWorksheetRows.length === 0}
+                title="Export Certifier Worksheet table to Excel (.xlsx)"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -772,8 +800,8 @@ export default function AccessCertificates({
                   opacity: filteredWorksheetRows.length === 0 ? 0.6 : 1
                 }}
               >
-                <Download size={14} />
-                <span>Export CSV</span>
+                <FileSpreadsheet size={14} style={{ color: '#10B981' }} />
+                <span>Export Excel</span>
               </button>
             </div>
           </div>
@@ -1198,8 +1226,9 @@ export default function AccessCertificates({
 
             <button
               type="button"
-              onClick={exportToCsv}
+              onClick={exportCertificationsToExcel}
               disabled={filteredCertifications.length === 0}
+              title="Export Access Certifications table to Excel (.xlsx)"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1215,8 +1244,8 @@ export default function AccessCertificates({
                 opacity: filteredCertifications.length === 0 ? 0.6 : 1
               }}
             >
-              <Download size={14} />
-              <span>Export</span>
+              <FileSpreadsheet size={14} style={{ color: '#10B981' }} />
+              <span>Export Excel</span>
             </button>
           </div>
         </div>

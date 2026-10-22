@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, ChevronDown, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Download, ChevronDown, RefreshCw, AlertCircle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { exportToExcel, type ExcelColumn } from '../utils/excelExport';
 
 export interface TableExportControlProps<T = any> {
@@ -27,7 +27,7 @@ export const TableExportControl: React.FC<TableExportControlProps> = ({
   onFetchData,
   align = 'right',
   size = 'sm',
-  buttonText = 'Download',
+  buttonText = 'Export Excel',
   title = 'Export table records to Excel (.xlsx)',
   disabled = false
 }) => {
@@ -231,11 +231,11 @@ export const TableExportControl: React.FC<TableExportControlProps> = ({
         aria-expanded={isOpen}
       >
         {isDownloading ? (
-          <RefreshCw size={13} className="animate-spin" style={{ color: 'var(--accent-blue)' }} />
+          <RefreshCw size={13} className="animate-spin" style={{ color: '#10B981' }} />
         ) : (
-          <Download size={13} style={{ color: 'var(--accent-blue)' }} />
+          <FileSpreadsheet size={13} style={{ color: '#10B981' }} />
         )}
-        <span>{isDownloading ? 'Downloading...' : buttonText}</span>
+        <span>{isDownloading ? 'Exporting...' : buttonText}</span>
         <ChevronDown 
           size={11} 
           style={{ 
@@ -269,14 +269,14 @@ export const TableExportControl: React.FC<TableExportControlProps> = ({
           {/* Header Info */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
             <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
-              Download Options
+              Excel Export Options
             </span>
             <span 
               className="badge" 
               style={{ 
                 fontSize: '0.65rem', 
-                backgroundColor: 'var(--accent-blue-light)', 
-                color: 'var(--accent-blue)', 
+                backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                color: '#10B981', 
                 padding: '0.1rem 0.45rem',
                 fontWeight: 600 
               }}
@@ -285,7 +285,7 @@ export const TableExportControl: React.FC<TableExportControlProps> = ({
             </span>
           </div>
 
-          {/* Option 1: Download All */}
+          {/* Option 1: Export All */}
           <div>
             <button
               type="button"
@@ -303,18 +303,18 @@ export const TableExportControl: React.FC<TableExportControlProps> = ({
                 borderRadius: '6px'
               }}
             >
-              <Download size={13} style={{ color: 'var(--accent-blue)' }} />
-              <span>Download All ({effectiveTotal.toLocaleString()})</span>
+              <FileSpreadsheet size={13} style={{ color: '#10B981' }} />
+              <span>Export All ({effectiveTotal.toLocaleString()})</span>
             </button>
           </div>
 
           {/* Divider */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '0.1rem 0' }} />
 
-          {/* Option 2: Download N Rows */}
+          {/* Option 2: Export N Rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              Rows to download:
+              Rows to export:
             </label>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               <input
@@ -356,7 +356,7 @@ export const TableExportControl: React.FC<TableExportControlProps> = ({
                   whiteSpace: 'nowrap'
                 }}
               >
-                {isDownloading ? '...' : 'Download'}
+                {isDownloading ? '...' : 'Export'}
               </button>
             </div>
 

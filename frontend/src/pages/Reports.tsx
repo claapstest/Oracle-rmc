@@ -1755,7 +1755,7 @@ export default function Reports({
                 reportTitle="Oracle Fusion Advanced Controls Summary Report"
                 dataSource="Oracle Fusion Risk Management Cloud"
                 entityName="Controls"
-                buttonText="Export Controls"
+                buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={filteredControls.length}
                 totalCount={controlsData.length}
@@ -1792,7 +1792,7 @@ export default function Reports({
                 reportTitle={`Oracle Advanced Control ${selectedIncidentsControlId} Incident Detailed Audit`}
                 dataSource="Oracle Fusion Continuous Monitoring"
                 entityName="Incidents"
-                buttonText="Export Incidents"
+                buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={filteredIncidents.length}
                 totalCount={incidentsData.length}
@@ -1828,7 +1828,7 @@ export default function Reports({
                 reportTitle="Oracle Fusion User Role Mapping Report"
                 dataSource="Oracle Fusion Security Cloud"
                 entityName="Mappings"
-                buttonText="Export Mappings"
+                buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={filteredUserRoleData.length}
                 totalCount={userRoleData.length}
@@ -1879,7 +1879,7 @@ export default function Reports({
                 reportTitle="Oracle Fusion Role Hierarchy & Inheritance Report"
                 dataSource="Oracle Fusion Security Cloud"
                 entityName="Relationships"
-                buttonText="Export Hierarchy"
+                buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={filteredHierarchyData.length}
                 totalCount={hierarchyData.length}
@@ -1921,7 +1921,7 @@ export default function Reports({
                 reportTitle="Oracle Fusion Enterprise Security Audit History"
                 dataSource="Oracle Fusion Audit Vault"
                 entityName="Audit Events"
-                buttonText="Export Audit"
+                buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={filteredAuditLogs.length}
                 totalCount={auditLogs.length}
@@ -1951,7 +1951,7 @@ export default function Reports({
                 reportTitle="Oracle Fusion User Detail Report"
                 dataSource="Oracle Fusion Cloud (SCIM & Public Workers)"
                 entityName="User Access Records"
-                buttonText="Export Access Report"
+                buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={filteredUserAccessData.length}
                 totalCount={userAccessData.length}

@@ -399,7 +399,7 @@ export default function Roles({
             dataSource={dataSource}
             entityName="Roles"
             categoryLabel={categoryFilter !== 'ALL' ? activeCategoryName : undefined}
-            buttonText={categoryFilter !== 'ALL' ? `Export ${activeCategoryName}` : 'Export Roles'}
+            buttonText="Export Excel"
             currentPageData={roles}
             filteredCount={totalResults}
             totalCount={totalResults}
@@ -723,7 +723,7 @@ export default function Roles({
                           sheetName="Role Privileges"
                           reportTitle={`Role ${selectedRole.displayName} Entitlements`}
                           entityName="Privileges"
-                          buttonText="Export"
+                          buttonText="Export Excel"
                           size="sm"
                           currentPageData={privilegeData.privileges}
                           filteredCount={privilegeData.privileges.length}

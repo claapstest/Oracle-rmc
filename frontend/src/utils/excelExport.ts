@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 export interface ExcelColumn<T = any> {
   key: string;
   label?: string;
-  getValue?: (item: T) => any;
+  getValue?: (item: T, index?: number) => any;
 }
 
 export interface AppliedFilterInfo {
@@ -124,11 +124,11 @@ export function exportToExcel<T = any>({
     const headerRow = effectiveColumns.map(c => c.label || c.key);
     const dataRows: any[][] = [];
 
-    data.forEach(item => {
+    data.forEach((item, itemIdx) => {
       const rowVals = effectiveColumns.map(col => {
         let rawVal: any;
         if (col.getValue) {
-          rawVal = col.getValue(item);
+          rawVal = col.getValue(item, itemIdx);
         } else if (item && typeof item === 'object') {
           rawVal = (item as any)[col.key];
         }
@@ -244,11 +244,11 @@ export function exportToCsv<T = any>({
     lines.push(effectiveColumns.map(c => escapeCsvCell(c.label || c.key)).join(','));
 
     // Data Rows
-    data.forEach(item => {
+    data.forEach((item, itemIdx) => {
       const row = effectiveColumns.map(col => {
         let rawVal: any;
         if (col.getValue) {
-          rawVal = col.getValue(item);
+          rawVal = col.getValue(item, itemIdx);
         } else if (item && typeof item === 'object') {
           rawVal = (item as any)[col.key];
         }

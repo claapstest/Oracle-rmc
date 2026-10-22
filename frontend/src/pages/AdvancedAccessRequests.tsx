@@ -378,7 +378,7 @@ export default function AdvancedAccessRequests({ environmentMode }: AdvancedAcce
             dataSource={dataSource}
             entityName="Requests"
             categoryLabel="Requests"
-            buttonText="Export"
+            buttonText="Export Excel"
             currentPageData={paginatedRequests}
             filteredCount={filteredRequests.length}
             totalCount={accessRequests.length}

@@ -1,37 +1,37 @@
 {
   "2026-09-28": {
-    "count": 33,
-    "inserts": 33,
+    "count": 39,
+    "inserts": 39,
     "updates": 0,
     "deletes": 0
   },
   "2026-09-30": {
-    "count": 152,
-    "inserts": 152,
+    "count": 158,
+    "inserts": 158,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-01": {
-    "count": 320,
-    "inserts": 320,
+    "count": 332,
+    "inserts": 332,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-02": {
-    "count": 161,
-    "inserts": 161,
+    "count": 167,
+    "inserts": 167,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-06": {
-    "count": 287,
-    "inserts": 287,
+    "count": 293,
+    "inserts": 293,
     "updates": 0,
     "deletes": 0
   },
   "2026-10-07": {
-    "count": 257,
-    "inserts": 257,
+    "count": 263,
+    "inserts": 263,
     "updates": 0,
     "deletes": 0
   },
@@ -42,9 +42,9 @@
     "deletes": 144
   },
   "2026-10-09": {
-    "count": 47,
+    "count": 49,
     "inserts": 46,
-    "updates": 1,
+    "updates": 3,
     "deletes": 0
   },
   "2026-10-08": {
@@ -60,8 +60,8 @@
     "deletes": 0
   },
   "2026-10-13": {
-    "count": 223,
-    "inserts": 202,
+    "count": 257,
+    "inserts": 236,
     "updates": 0,
     "deletes": 21
   },
@@ -120,38 +120,74 @@
     "deletes": 0
   },
   "2026-10-19": {
-    "count": 15,
-    "inserts": 8,
-    "updates": 2,
+    "count": 446,
+    "inserts": 362,
+    "updates": 79,
     "deletes": 5
   },
   "2026-10-17": {
-    "count": 2,
-    "inserts": 0,
+    "count": 135,
+    "inserts": 133,
     "updates": 2,
     "deletes": 0
   },
   "2026-10-16": {
-    "count": 33,
-    "inserts": 19,
+    "count": 165,
+    "inserts": 151,
     "updates": 0,
     "deletes": 14
   },
   "2026-10-15": {
-    "count": 8,
-    "inserts": 6,
-    "updates": 2,
+    "count": 492,
+    "inserts": 479,
+    "updates": 13,
     "deletes": 0
   },
   "2026-10-21": {
-    "count": 3004,
-    "inserts": 1763,
-    "updates": 185,
-    "deletes": 1056
+    "count": 3657,
+    "inserts": 2192,
+    "updates": 217,
+    "deletes": 1248
   },
   "2026-10-20": {
-    "count": 1394,
-    "inserts": 1394,
+    "count": 1804,
+    "inserts": 1804,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-10-22": {
+    "count": 381,
+    "inserts": 357,
+    "updates": 24,
+    "deletes": 0
+  },
+  "2026-09-24": {
+    "count": 12,
+    "inserts": 12,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-09-23": {
+    "count": 18,
+    "inserts": 18,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-09-17": {
+    "count": 6,
+    "inserts": 6,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-09-15": {
+    "count": 54,
+    "inserts": 54,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-09-14": {
+    "count": 12,
+    "inserts": 12,
     "updates": 0,
     "deletes": 0
   }

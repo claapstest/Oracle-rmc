@@ -47,7 +47,7 @@ export const EnterpriseExportControl: React.FC<EnterpriseExportControlProps> = (
   dataSource,
   entityName = 'Records',
   categoryLabel,
-  buttonText = 'Export',
+  buttonText = 'Export Excel',
   title = 'Export data to Excel (.xlsx) or CSV (.csv)',
   disabled = false,
   align = 'right',
@@ -257,7 +257,7 @@ export const EnterpriseExportControl: React.FC<EnterpriseExportControlProps> = (
           transition: 'all 0.15s ease'
         }}
       >
-        <Download size={size === 'sm' ? 14 : 16} style={{ color: 'var(--accent-blue)' }} />
+        <FileSpreadsheet size={size === 'sm' ? 14 : 16} style={{ color: '#10B981' }} />
         <span>{buttonText}</span>
       </button>
 

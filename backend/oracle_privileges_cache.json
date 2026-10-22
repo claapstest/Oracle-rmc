@@ -15844,7 +15844,7 @@
       },
       "message": "Security role \"FSCM Load Interface Administration\" with 2307 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1791956020866
+    "timestamp": 1792649043870
   },
   "role_privileges:ora_xla_accounting_hub_integration_duty": {
     "data": {
@@ -29715,7 +29715,7 @@
       },
       "message": "Security role \"FSCM Load Interface Administration\" with 2307 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1791956020875
+    "timestamp": 1792649043892
   },
   "role_privileges:it security manager": {
     "data": {

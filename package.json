@@ -10,6 +10,8 @@
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "share": "ngrok http 5000",
+    "share:dev": "ngrok http 5173",
     "build:backend": "npm run build --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "build:all": "npm run build:backend && npm run build:frontend",

@@ -452,7 +452,7 @@ export default function Users({
             reportTitle={`Oracle Fusion Identity & Access Management Directory${statusFilter === 'INACTIVE' ? ' (Inactive Users)' : statusFilter === 'ACTIVE' ? ' (Active Users)' : ''}`}
             dataSource={dataSource}
             entityName="Users"
-            buttonText="Export Users"
+            buttonText="Export Excel"
             currentPageData={filteredUsers}
             filteredCount={effectiveTotal}
             totalCount={directoryTotal || effectiveTotal}
