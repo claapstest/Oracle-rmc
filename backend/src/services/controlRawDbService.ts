@@ -555,9 +555,13 @@ export class ControlRawDbService {
     const exactUser = (options.user || '').trim();
     if (exactUser) {
       if (exactUser.toLowerCase() === 'unknown') {
-        conds.push(`(COALESCE(NULLIF(TRIM(el->>'GlobalUserName'), ''), 'Unknown') = 'Unknown')`);
+        conds.push(`(COALESCE(NULLIF(TRIM(el->>'GlobalUserName'), ''), NULLIF(TRIM(REGEXP_REPLACE(el->>'IncidentInformation', '^Person\\.Full Name:\\s*', '', 'i')), ''), 'Unknown') = 'Unknown')`);
       } else {
-        conds.push(`(LOWER(TRIM(COALESCE(el->>'GlobalUserName',el->>'globalUserName',''))) = LOWER($${p}))`);
+        conds.push(`(
+          LOWER(TRIM(COALESCE(el->>'GlobalUserName', el->>'globalUserName', ''))) = LOWER($${p})
+          OR LOWER(TRIM(REGEXP_REPLACE(COALESCE(el->>'IncidentInformation', ''), '^Person\\.Full Name:\\s*', '', 'i'))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(el->>'UserFirstName', ''))) = LOWER($${p})
+        )`);
         params.push(exactUser);
         p++;
       }
@@ -565,9 +569,14 @@ export class ControlRawDbService {
     const exactRole = (options.role || '').trim();
     if (exactRole) {
       if (exactRole.toLowerCase() === 'unknown') {
-        conds.push(`(COALESCE(NULLIF(TRIM(el->>'Role'), ''), 'Unknown') = 'Unknown')`);
+        conds.push(`(COALESCE(NULLIF(TRIM(el->>'Role'), ''), NULLIF(TRIM(t.control_name), ''), NULLIF(TRIM(el->>'ControlName'), ''), 'Unknown') = 'Unknown')`);
       } else {
-        conds.push(`(LOWER(TRIM(COALESCE(el->>'Role',el->>'role',''))) = LOWER($${p}))`);
+        conds.push(`(
+          LOWER(TRIM(COALESCE(el->>'Role', el->>'role', ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(t.control_name, ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(el->>'ControlName', ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(el->>'ResultGroup', ''))) = LOWER($${p})
+        )`);
         params.push(exactRole);
         p++;
       }

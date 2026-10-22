@@ -3434,7 +3434,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Users size={17} style={{ color: '#1D4ED8' }} />
                 <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                  Top 10 Users with Most Incidents
+                  {activeSubSection === 'TRANSACTION' ? 'Top 10 Users / Persons with Most Incidents' : 'Top 10 Users with Most Incidents'}
                 </h4>
                 <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(29, 78, 216, 0.1)', color: '#1D4ED8', border: '1px solid rgba(29, 78, 216, 0.25)', fontWeight: 600 }}>
                   Top Violators
@@ -3455,7 +3455,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </button>
                 </div>
               ) : (
-                <RankedBars bare title="Top 10 Users with Most Incidents" subtitle="" items={domainRankings.users} color="#1D4ED8" onSelect={(item) => setRankingSelection({ kind: 'user', item })} selectedLabel={rankingSelection?.kind === 'user' ? rankingSelection.item.label : null} />
+                <RankedBars bare title={activeSubSection === 'TRANSACTION' ? 'Top 10 Users / Persons with Most Incidents' : 'Top 10 Users with Most Incidents'} subtitle="" items={domainRankings.users} color="#1D4ED8" onSelect={(item) => setRankingSelection({ kind: 'user', item })} selectedLabel={rankingSelection?.kind === 'user' ? rankingSelection.item.label : null} />
               )}
             </div>
             {/* Analytics Card: Top 10 Roles (replaces Incident Status donut) */}
@@ -3471,7 +3471,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Key size={17} style={{ color: '#7C3AED' }} />
                 <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                  Top 10 Roles with Most Incidents
+                  {activeSubSection === 'TRANSACTION' ? 'Top 10 Incident & Role Types with Most Incidents' : 'Top 10 Roles with Most Incidents'}
                 </h4>
                 <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(124, 58, 237, 0.1)', color: '#7C3AED', border: '1px solid rgba(124, 58, 237, 0.25)', fontWeight: 600 }}>
                   Top Violators
@@ -3492,7 +3492,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </button>
                 </div>
               ) : (
-                <RankedBars bare title="Top 10 Roles with Most Incidents" subtitle="" items={domainRankings.roles} color="#7C3AED" onSelect={(item) => setRankingSelection({ kind: 'role', item })} selectedLabel={rankingSelection?.kind === 'role' ? rankingSelection.item.label : null} />
+                <RankedBars bare title={activeSubSection === 'TRANSACTION' ? 'Top 10 Incident & Role Types with Most Incidents' : 'Top 10 Roles with Most Incidents'} subtitle="" items={domainRankings.roles} color="#7C3AED" onSelect={(item) => setRankingSelection({ kind: 'role', item })} selectedLabel={rankingSelection?.kind === 'role' ? rankingSelection.item.label : null} />
               )}
             </div>
             {rankingSelection && (

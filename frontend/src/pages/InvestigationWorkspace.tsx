@@ -96,6 +96,9 @@ export default function InvestigationWorkspace({
   const [membersPage, setMembersPage] = useState(1);
   const [membersPageSize, setMembersPageSize] = useState(25);
 
+  // User assigned roles search
+  const [rolesSearch, setRolesSearch] = useState('');
+
   // Role briefing status & note (isolated from core role data)
   const [briefingNote, setBriefingNote] = useState<string | null>(null);
 
@@ -113,6 +116,18 @@ export default function InvestigationWorkspace({
 
   // Saved bookmark state
   const [isSaved, setIsSaved] = useState(false);
+
+  // Filtered assigned roles for user inspection
+  const filteredAssignedRoles = useMemo(() => {
+    const list: any[] = data?.assignedRoles || [];
+    const q = rolesSearch.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((role: any) => {
+      const rName = typeof role === 'string' ? role : (role.roleName || role.displayName || role.roleCode || '');
+      const rCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
+      return rName.toLowerCase().includes(q) || rCode.toLowerCase().includes(q);
+    });
+  }, [data?.assignedRoles, rolesSearch]);
 
   // Check if investigation is already bookmarked
   useEffect(() => {
@@ -142,6 +157,7 @@ export default function InvestigationWorkspace({
       setMembersLoading(false);
       setMembersSearch('');
       setMembersPage(1);
+      setRolesSearch('');
       setBriefingNote(null);
 
       if (entity.type === 'role') {
@@ -857,9 +873,9 @@ export default function InvestigationWorkspace({
               ) : (
                 /* User Account Details — Oracle console layout, VEYRA blue theme, live instance data only */
                 <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1rem', alignItems: 'stretch' }}>
                     {/* User Information */}
-                    <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)' }}>
+                    <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)', height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
                         User Information
                       </h4>
@@ -878,56 +894,97 @@ export default function InvestigationWorkspace({
                       ))}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {/* Account Information */}
-                      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
-                          Account Information
-                        </h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
-                          <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>Password Expiration Date</span>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>—</span>
+                    {/* Associated Worker Information */}
+                    <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
+                        Associated Worker Information
+                      </h4>
+                      {[
+                        ['Worker Name', data?.displayName || '—'],
+                        ['Person Number', data?.personNumber || '—'],
+                        ['Manager', data?.manager || '—'],
+                        ['Job', data?.job || '—'],
+                        ['Business Unit', data?.businessUnit || '—'],
+                        ['Department', data?.department || '—'],
+                      ].map(([label, value]) => (
+                        <div key={label} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
+                          <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{label}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, wordBreak: 'break-word' }}>{value}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: data?.active ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600 }}>
-                            <input type="checkbox" checked={!!data?.active} readOnly style={{ accentColor: '#2563EB' }} /> Active
-                          </label>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)' }} title="Locked status is not exposed by Oracle REST APIs">
-                            <input type="checkbox" checked={false} readOnly style={{ accentColor: '#2563EB' }} /> Locked
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Associated Worker Information */}
-                      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
-                          Associated Worker Information
-                        </h4>
-                        {[
-                          ['Worker Name', data?.displayName || '—'],
-                          ['Person Number', data?.personNumber || '—'],
-                          ['Manager', data?.manager || '—'],
-                          ['Job', data?.job || '—'],
-                          ['Business Unit', data?.businessUnit || '—'],
-                          ['Department', data?.department || '—'],
-                        ].map(([label, value]) => (
-                          <div key={label} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
-                            <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{label}</span>
-                            <span style={{ color: 'var(--text-primary)', fontWeight: 500, wordBreak: 'break-word' }}>{value}</span>
-                          </div>
-                        ))}
-                      </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* Roles — live SCIM + BIP merge */}
                   <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: '0 0 1rem 0', fontFamily: 'var(--font-header)' }}>
-                      Roles ({data?.assignedRoles?.length || 0})
-                    </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 500, color: '#1E40AF', margin: 0, fontFamily: 'var(--font-header)' }}>
+                        Roles ({filteredAssignedRoles.length}{rolesSearch.trim() && data?.assignedRoles?.length ? ` of ${data.assignedRoles.length}` : ''})
+                      </h4>
+                      {data?.assignedRoles && data.assignedRoles.length > 0 && (
+                        <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+                          <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                          <input
+                            type="text"
+                            placeholder="Search roles by name or role code..."
+                            value={rolesSearch}
+                            onChange={(e) => setRolesSearch(e.target.value)}
+                            className="input-search"
+                            style={{
+                              width: '100%',
+                              paddingLeft: '2.2rem',
+                              paddingRight: rolesSearch ? '2rem' : '0.75rem',
+                              height: '34px',
+                              fontSize: '0.82rem',
+                              borderRadius: '6px',
+                              border: '1px solid var(--border-color)',
+                              background: 'var(--bg-secondary)',
+                              color: 'var(--text-primary)',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          {rolesSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setRolesSearch('')}
+                              style={{
+                                position: 'absolute',
+                                right: '0.5rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '2px',
+                                display: 'flex'
+                              }}
+                              title="Clear search"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {(!data?.assignedRoles || data.assignedRoles.length === 0) ? (
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
                         No roles directly assigned to this account.
+                      </div>
+                    ) : filteredAssignedRoles.length === 0 ? (
+                      <div style={{ padding: '1.75rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>
+                          No roles match "{rolesSearch}".
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setRolesSearch('')}
+                          className="btn btn-secondary"
+                          style={{ fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
+                        >
+                          Clear Search
+                        </button>
                       </div>
                     ) : (
                       <div className="table-container" style={{ margin: 0 }}>
@@ -940,13 +997,19 @@ export default function InvestigationWorkspace({
                             </tr>
                           </thead>
                           <tbody>
-                            {data.assignedRoles.map((role: any, idx: number) => {
+                            {filteredAssignedRoles.map((role: any, idx: number) => {
                               const rName = typeof role === 'string' ? role : (role.roleName || role.displayName || role.roleCode || '');
                               const rCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
                               const rAuto = typeof role === 'object' ? (role.autoProvisioned ?? '—') : '—';
                               return (
                                 <tr key={idx}>
-                                  <td style={{ fontWeight: 600 }}>{rName}</td>
+                                  <td
+                                    style={{ fontWeight: 600, color: 'var(--accent-blue)', cursor: 'pointer' }}
+                                    onClick={() => onNavigate('role', rCode, rName)}
+                                    title={`Click to inspect role ${rName}`}
+                                  >
+                                    {rName}
+                                  </td>
                                   <td><code style={{ fontSize: '0.75rem' }}>{rCode}</code></td>
                                   <td>{rAuto}</td>
                                 </tr>
@@ -1250,21 +1313,90 @@ export default function InvestigationWorkspace({
           {/* Tab 3: Assigned Roles */}
           {activeTab === 'ROLES' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Assigned Security Roles ({data?.assignedRoles?.length || 0})</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>
+                  Assigned Security Roles ({filteredAssignedRoles.length}{rolesSearch.trim() && data?.assignedRoles?.length ? ` of ${data.assignedRoles.length}` : ''})
+                </h3>
                 <TableExportControl
                   filename={`${entity.id}_assigned_roles`}
-                  data={data?.assignedRoles?.map((r: any) => ({ Role: typeof r === 'string' ? r : (r.roleName || r.roleCode || '') })) || []}
-                  totalCount={data?.assignedRoles?.length || 0}
+                  data={filteredAssignedRoles.map((r: any) => ({ Role: typeof r === 'string' ? r : (r.roleName || r.roleCode || '') }))}
+                  totalCount={filteredAssignedRoles.length}
                   columns={[
                     { key: 'Role', label: 'Role Name' }
                   ]}
                 />
               </div>
 
+              {/* Search Bar for Assigned Roles */}
+              {data?.assignedRoles && data.assignedRoles.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search assigned roles by name or role code..."
+                      value={rolesSearch}
+                      onChange={(e) => setRolesSearch(e.target.value)}
+                      className="input-search"
+                      style={{
+                        width: '100%',
+                        paddingLeft: '2.2rem',
+                        paddingRight: rolesSearch ? '2rem' : '0.75rem',
+                        height: '36px',
+                        fontSize: '0.82rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {rolesSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setRolesSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: '0.5rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex'
+                        }}
+                        title="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {data?.assignedRoles && data.assignedRoles.length > 0 ? (
-                  data.assignedRoles.map((role: any, idx: number) => {
+                {(!data?.assignedRoles || data.assignedRoles.length === 0) ? (
+                  <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    No roles directly assigned to this account.
+                  </div>
+                ) : filteredAssignedRoles.length === 0 ? (
+                  <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <p style={{ margin: '0 0 0.5rem 0', fontWeight: 500 }}>
+                      No roles match "{rolesSearch}".
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setRolesSearch('')}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                    >
+                      Clear Search
+                    </button>
+                  </div>
+                ) : (
+                  filteredAssignedRoles.map((role: any, idx: number) => {
                     const rName = typeof role === 'string' ? role : (role.roleName || 'Unknown Role Name');
                     const rCode = typeof role === 'string' ? role : (role.roleCode || '');
                     const isCustom = typeof role === 'string' ? (role.startsWith('CLAAPS_') || role.startsWith('CUSTOM_')) : (role.isCustom || false);
@@ -1336,10 +1468,6 @@ export default function InvestigationWorkspace({
                       </div>
                     );
                   })
-                ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No assigned roles were returned for this user.
-                  </div>
                 )}
               </div>
             </div>

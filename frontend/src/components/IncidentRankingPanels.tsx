@@ -44,8 +44,8 @@ export function RankedBars({ title, subtitle, items, color, bare, onSelect, sele
   const axisMax = niceCeil(max);
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(axisMax * f));
   const rowH = 34;
-  const labelW = 190;
-  const chartW = 460;
+  const labelW = 210;
+  const chartW = 440;
   const height = items.length * rowH + 34;
   const x = (v: number) => labelW + (v / axisMax) * chartW;
   const chart = (
@@ -77,7 +77,7 @@ export function RankedBars({ title, subtitle, items, color, bare, onSelect, sele
             style={clickable ? { cursor: 'pointer', outline: 'none' } : undefined}
           >
             <text x={labelW - 10} y={y + 15} textAnchor="end" fontSize="11" fontWeight={isHot ? 800 : 600} fill="var(--text-primary)" textDecoration={isHot && clickable ? 'underline' : 'none'}>
-              {item.label.length > 26 ? `${item.label.slice(0, 25)}…` : item.label}
+              {item.label.length > 30 ? `${item.label.slice(0, 29)}…` : item.label}
               <title>{item.label}</title>
             </text>
             <rect x={labelW} y={y + 2} width={bw} height={18} rx={3} fill={color} opacity={isHot ? 1 : 0.92} stroke={isSelected ? '#0F172A' : 'none'} strokeWidth={isSelected ? 1.5 : 0}>
@@ -241,14 +241,16 @@ export function RankingDrilldownModal({ selection, controlIds, scopeCaption, onC
                   <tr style={{ textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
                     <th style={{ padding: '0.5rem 0.6rem', fontWeight: 700 }}>Incident</th>
                     <th style={{ padding: '0.5rem 0.6rem', fontWeight: 700 }}>Control</th>
-                    <th style={{ padding: '0.5rem 0.6rem', fontWeight: 700 }}>{selection.kind === 'user' ? 'Role' : 'User'}</th>
+                    <th style={{ padding: '0.5rem 0.6rem', fontWeight: 700 }}>{selection.kind === 'user' ? 'Role / Control' : 'User / Person'}</th>
                     <th style={{ padding: '0.5rem 0.6rem', fontWeight: 700 }}>Status</th>
                     <th style={{ padding: '0.5rem 0.6rem', fontWeight: 700 }}>Updated</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((inc: any, idx: number) => {
-                    const counterpart = selection.kind === 'user' ? (inc.role || '—') : (inc.globalUserName || inc.globalUser || '—');
+                    const rawUser = inc.globalUserName || inc.globalUser || inc.user || (inc.userFirstName ? `${inc.userFirstName} ${inc.userLastName || ''}` : null) || (inc.incidentInformation ? String(inc.incidentInformation).replace(/^Person\.Full Name:\s*/i, '') : null);
+                    const rawRole = inc.role || inc.roleName || (inc.controlName ? `${inc.controlName}` : null);
+                    const counterpart = selection.kind === 'user' ? (rawRole || '—') : (rawUser || '—');
                     const updated = inc.lastUpdateDate || inc.lastUpdatedDate || null;
                     return (
                       <tr key={`${inc.id || idx}_${idx}`} style={{ borderBottom: '1px solid var(--border-color)' }}>

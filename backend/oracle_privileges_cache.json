@@ -66698,5 +66698,75 @@
       "message": "Security role \"Academic Coordinator\" with 61 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1792666158630
+  },
+  "role_privileges:integration specialist": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Integration Specialist",
+      "roleCode": "ORA_FND_INTEGRATION_SPECIALIST_JOB",
+      "role": {
+        "name": "Integration Specialist",
+        "code": "ORA_FND_INTEGRATION_SPECIALIST_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Manage Web Service Information",
+          "code": "ATK_WEB_SERVICE_INFO_ACCESS_PRIV",
+          "description": "Allows extraction, loading, and discovery of application Web service information on an Oracle Sales Cloud instance.",
+          "inheritedFrom": "Integration Specialist"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 1,
+        "directPrivileges": 1,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Integration Specialist\" (ORA_FND_INTEGRATION_SPECIALIST_JOB) with 1 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "7 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Integration Specialist\" with 1 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792673023292
+  },
+  "role_privileges:ora_fnd_integration_specialist_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Integration Specialist",
+      "roleCode": "ORA_FND_INTEGRATION_SPECIALIST_JOB",
+      "role": {
+        "name": "Integration Specialist",
+        "code": "ORA_FND_INTEGRATION_SPECIALIST_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Manage Web Service Information",
+          "code": "ATK_WEB_SERVICE_INFO_ACCESS_PRIV",
+          "description": "Allows extraction, loading, and discovery of application Web service information on an Oracle Sales Cloud instance.",
+          "inheritedFrom": "Integration Specialist"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 1,
+        "directPrivileges": 1,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Integration Specialist\" (ORA_FND_INTEGRATION_SPECIALIST_JOB) with 1 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "7 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Integration Specialist\" with 1 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792673023370
   }
 }

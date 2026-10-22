@@ -42,6 +42,19 @@ export default function Users({
   const [inactiveCount, setInactiveCount] = useState<number | null>(null);
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState(initialFilter);
+  const [drawerRoleSearch, setDrawerRoleSearch] = useState('');
+
+  // Filtered assigned roles in drawer
+  const filteredDrawerRoles = useMemo(() => {
+    const roles: any[] = selectedUser?.assignedRoles || [];
+    const q = drawerRoleSearch.trim().toLowerCase();
+    if (!q) return roles;
+    return roles.filter((role: any) => {
+      const rName = typeof role === 'string' ? role : (role.roleName || role.displayName || role.roleCode || '');
+      const rCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
+      return rName.toLowerCase().includes(q) || rCode.toLowerCase().includes(q);
+    });
+  }, [selectedUser?.assignedRoles, drawerRoleSearch]);
 
   // Synchronize internal selected user drawer with topbar Back button
   useEffect(() => {
@@ -70,9 +83,14 @@ export default function Users({
     setActiveCategoryFilter(initialFilter);
     setStatusFilter('ALL');
     setSearchTerm('');
+    setDrawerRoleSearch('');
     setCurrentPage(1);
     setSelectedUser(null);
   }, [initialFilter]);
+
+  useEffect(() => {
+    setDrawerRoleSearch('');
+  }, [selectedUser]);
 
   // Helper for human-readable category filter label
   const getCategoryBadgeLabel = (filterKey: string) => {
@@ -728,17 +746,82 @@ export default function Users({
 
             {/* Assigned Roles List */}
             <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                Directly Assigned Roles ({selectedUser.assignedRoles?.length || 0})
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Directly Assigned Roles ({filteredDrawerRoles.length}{drawerRoleSearch.trim() && selectedUser.assignedRoles?.length ? ` of ${selectedUser.assignedRoles.length}` : ''})
+                </div>
               </div>
+
+              {selectedUser.assignedRoles && selectedUser.assignedRoles.length > 0 && (
+                <div style={{ position: 'relative', marginBottom: '0.65rem' }}>
+                  <Search size={13} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search roles..."
+                    value={drawerRoleSearch}
+                    onChange={(e) => setDrawerRoleSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.35rem 1.8rem 0.35rem 2rem',
+                      fontSize: '0.78rem',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {drawerRoleSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDrawerRoleSearch('')}
+                      style={{
+                        position: 'absolute',
+                        right: '0.45rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        display: 'flex'
+                      }}
+                      title="Clear search"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
                 {(!selectedUser.assignedRoles || selectedUser.assignedRoles.length === 0) ? (
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic', padding: '0.5rem 0' }}>
                     No roles directly assigned to this account.
                   </div>
+                ) : filteredDrawerRoles.length === 0 ? (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                    <div>No roles match "{drawerRoleSearch}".</div>
+                    <button
+                      type="button"
+                      onClick={() => setDrawerRoleSearch('')}
+                      style={{
+                        marginTop: '0.35rem',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--accent-blue)',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Clear search
+                    </button>
+                  </div>
                 ) : (
-                  selectedUser.assignedRoles.map((role: any, idx: number) => {
+                  filteredDrawerRoles.map((role: any, idx: number) => {
                     const roleCode = typeof role === 'string' ? role : (role.roleCode || role.value || '');
                     const roleName = typeof role === 'string' ? role : (role.roleName || role.displayName || roleCode);
                     const autoProvisioned = typeof role === 'object' ? (role.autoProvisioned ?? null) : null;
