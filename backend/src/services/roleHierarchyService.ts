@@ -536,6 +536,16 @@ export class RoleHierarchyService {
   }
 
   /**
+   * Returns cached hierarchy items synchronously (loading from disk/seed if needed)
+   */
+  public getCachedItems(): RoleHierarchyItem[] {
+    if (!this.memoryCache || this.memoryCache.length === 0) {
+      this.loadCacheFromDisk();
+    }
+    return this.memoryCache || [];
+  }
+
+  /**
    * Constructs an interactive multi-level hierarchy tree for a given role name.
    * Pulls authoritative duty role inheritances and functional privileges directly from the database role hierarchy.
    */

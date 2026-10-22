@@ -428,7 +428,24 @@ class OracleService {
           const catSum = this.cachedJobRoles + this.cachedDutyRoles + this.cachedDataRoles + this.cachedAbstractRoles + this.cachedGrcRoles + this.cachedOtherRoles;
           this.cachedTotalRoles = Math.max(parsed.totalResults || 0, this.authoritativeRoles.length, catSum);
           this.lastRolesSyncTime = parsed.syncedAt || new Date().toISOString();
-          console.log(`[Oracle Service] Authoritative Role Dataset ready: ${this.cachedTotalRoles} records loaded (Synced: ${this.lastRolesSyncTime}).`);
+
+          // Auto-enrich Duty roles from hierarchy if dataset contains only SCIM direct roles
+          const dutyCount = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
+          if (this.authoritativeRoles.length > 0 && dutyCount < 100) {
+            console.log(`[Oracle Service] Loaded ${this.authoritativeRoles.length} roles with only ${dutyCount} duty roles. Auto-enriching from hierarchy report dataset...`);
+            this.authoritativeRoles = this.enrichWithDutyRolesFromHierarchy(this.authoritativeRoles);
+            this.cachedJobRoles = this.authoritativeRoles.filter(r => r.category === 'Job').length;
+            this.cachedDutyRoles = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
+            this.cachedDataRoles = this.authoritativeRoles.filter(r => r.category === 'Data').length;
+            this.cachedAbstractRoles = this.authoritativeRoles.filter(r => r.category === 'Abstract').length;
+            this.cachedGrcRoles = this.authoritativeRoles.filter(r => r.category === 'GRC').length;
+            this.cachedOtherRoles = this.authoritativeRoles.filter(r => r.category === 'Other').length;
+            this.cachedTotalRoles = this.authoritativeRoles.length;
+            this.lastRolesSyncTime = new Date().toISOString();
+            this.saveAuthoritativeRolesToCache();
+          }
+
+          console.log(`[Oracle Service] Authoritative Role Dataset ready: ${this.cachedTotalRoles} records loaded (Duty: ${this.cachedDutyRoles}, Synced: ${this.lastRolesSyncTime}).`);
           return true;
         }
       }
@@ -438,8 +455,138 @@ class OracleService {
     return false;
   }
 
+  public enrichWithDutyRolesFromHierarchy(roles: Role[]): Role[] {
+    try {
+      const hierItems = roleHierarchyService.getCachedItems();
+      if (!hierItems || hierItems.length === 0) return roles;
+
+      const roleMapByCode = new Map<string, Role>();
+      const roleMapByName = new Map<string, Role>();
+
+      roles.forEach(r => {
+        if (r.roleCode) roleMapByCode.set(r.roleCode.toUpperCase().trim(), r);
+        if (r.displayName) roleMapByName.set(r.displayName.toLowerCase().trim(), r);
+      });
+
+      const dutyRoles = new Map<string, {
+        displayName: string;
+        roleCode: string;
+        category: string;
+        description: string;
+        members: any[];
+        parentRoles: string[];
+        childRoles: string[];
+        privileges: any[];
+      }>();
+
+      for (const item of hierItems) {
+        if (item.parentRoleType === 'DUTY' && item.parentRole) {
+          const dName = item.parentRole.trim();
+          const dKey = dName.toLowerCase();
+          let dCode = 'ORA_' + dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+          if (dCode.length > 50) dCode = dCode.substring(0, 50);
+          const parentJob = item.roleName || item.childRole;
+
+          if (!dutyRoles.has(dKey)) {
+            dutyRoles.set(dKey, {
+              displayName: dName,
+              roleCode: dCode,
+              category: 'Duty',
+              description: 'Oracle Fusion Security Duty Role granting modular functional capabilities through role hierarchy.',
+              members: [],
+              parentRoles: parentJob ? [parentJob] : [],
+              childRoles: [],
+              privileges: item.privileges || []
+            });
+          } else {
+            const entry = dutyRoles.get(dKey)!;
+            if (parentJob && !entry.parentRoles.includes(parentJob)) {
+              entry.parentRoles.push(parentJob);
+            }
+            if ((!entry.privileges || entry.privileges.length === 0) && item.privileges && item.privileges.length > 0) {
+              entry.privileges = item.privileges;
+            }
+          }
+        }
+
+        if (item.childRoleType === 'DUTY' && item.childRole) {
+          const dName = item.childRole.trim();
+          const dKey = dName.toLowerCase();
+          let dCode = item.roleCode || ('ORA_' + dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, ''));
+          if (dCode.length > 50) dCode = dCode.substring(0, 50);
+          const parentJob = item.parentRole;
+
+          if (!dutyRoles.has(dKey)) {
+            dutyRoles.set(dKey, {
+              displayName: dName,
+              roleCode: dCode,
+              category: 'Duty',
+              description: 'Oracle Fusion Security Duty Role granting modular functional capabilities through role hierarchy.',
+              members: [],
+              parentRoles: parentJob ? [parentJob] : [],
+              childRoles: [],
+              privileges: item.privileges || []
+            });
+          } else {
+            const entry = dutyRoles.get(dKey)!;
+            if (parentJob && !entry.parentRoles.includes(parentJob)) {
+              entry.parentRoles.push(parentJob);
+            }
+            if ((!entry.privileges || entry.privileges.length === 0) && item.privileges && item.privileges.length > 0) {
+              entry.privileges = item.privileges;
+            }
+          }
+        }
+      }
+
+      for (const [dKey, dRole] of dutyRoles.entries()) {
+        const existingByName = roleMapByName.get(dKey);
+        const existingByCode = roleMapByCode.get(dRole.roleCode.toUpperCase());
+        const existing = existingByName || existingByCode;
+
+        if (existing) {
+          if (!existing.parentRoles) existing.parentRoles = [];
+          dRole.parentRoles.forEach(p => {
+            if (!existing.parentRoles.includes(p)) existing.parentRoles.push(p);
+          });
+          if ((!existing.privileges || existing.privileges.length === 0) && dRole.privileges?.length > 0) {
+            existing.privileges = dRole.privileges;
+          }
+        } else {
+          const newEntry: Role = {
+            id: `DUTY_${dRole.roleCode}`,
+            displayName: dRole.displayName,
+            roleCode: dRole.roleCode,
+            category: 'Duty',
+            description: dRole.description,
+            members: [],
+            parentRoles: dRole.parentRoles,
+            childRoles: [],
+            privileges: dRole.privileges
+          };
+          roles.push(newEntry);
+          roleMapByName.set(dKey, newEntry);
+          roleMapByCode.set(dRole.roleCode.toUpperCase(), newEntry);
+        }
+      }
+    } catch (e: any) {
+      console.warn('[Oracle Service] Hierarchy duty role enrichment warning:', e.message);
+    }
+    return roles;
+  }
+
   public saveAuthoritativeRolesToCache(): void {
     try {
+      this.authoritativeRoles = this.enrichWithDutyRolesFromHierarchy(this.authoritativeRoles);
+      this.cachedJobRoles = this.authoritativeRoles.filter(r => r.category === 'Job').length;
+      this.cachedDutyRoles = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
+      this.cachedDataRoles = this.authoritativeRoles.filter(r => r.category === 'Data').length;
+      this.cachedAbstractRoles = this.authoritativeRoles.filter(r => r.category === 'Abstract').length;
+      this.cachedGrcRoles = this.authoritativeRoles.filter(r => r.category === 'GRC').length;
+      this.cachedOtherRoles = this.authoritativeRoles.filter(r => r.category === 'Other').length;
+      const catSum = this.cachedJobRoles + this.cachedDutyRoles + this.cachedDataRoles + this.cachedAbstractRoles + this.cachedGrcRoles + this.cachedOtherRoles;
+      this.cachedTotalRoles = Math.max(this.authoritativeRoles.length, catSum);
+
       const counts = {
         Job: this.cachedJobRoles,
         Duty: this.cachedDutyRoles,
@@ -454,7 +601,7 @@ class OracleService {
         counts,
         roles: this.authoritativeRoles
       }, null, 2));
-      console.log('[Oracle Service] Successfully saved authoritative role dataset to disk.');
+      console.log(`[Oracle Service] Successfully saved authoritative role dataset to disk. Total: ${this.authoritativeRoles.length} (Job: ${this.cachedJobRoles}, Duty: ${this.cachedDutyRoles}, Data: ${this.cachedDataRoles}, Abstract: ${this.cachedAbstractRoles}, GRC: ${this.cachedGrcRoles})`);
 
       // Also persist raw roles to PostgreSQL oracle_raw_roles table
       userRoleRawDbService.saveRawRolesBatch(this.authoritativeRoles).catch((err) => {
@@ -489,19 +636,6 @@ class OracleService {
 
   public clearInstanceCache(): void {
     this.queryCache.clear();
-    this.authoritativeRoles = [];
-    this.cachedTotalUsers = 0;
-    this.cachedActiveUsers = 0;
-    this.cachedInactiveUsers = 0;
-    this.cachedTotalRoles = 0;
-    try {
-      if (fs.existsSync(ROLES_CACHE_FILE)) {
-        fs.unlinkSync(ROLES_CACHE_FILE);
-        console.log('[Oracle Service] Cleared old disk roles cache for fresh instance sync.');
-      }
-    } catch (err) {
-      console.warn('[Oracle Service] Failed to remove disk roles cache file:', (err as Error).message);
-    }
   }
 
   recreateClient() {
@@ -510,14 +644,10 @@ class OracleService {
     this.controlCatalogService.recreateClient(this.client);
     this.controlSummaryService.recreateClient(this.client);
 
-    if (config.environmentMode === 'ORACLE_FUSION') {
-      console.log('[Oracle Service] Live ORACLE_FUSION mode active. Invalidating old cache and initiating live dynamic data sync...');
-      this.clearInstanceCache();
-      this.triggerBackgroundCounting(true);
-    } else {
-      this.loadAuthoritativeRolesFromCache();
-      this.triggerBackgroundCounting(false);
-    }
+    this.loadAuthoritativeRolesFromCache();
+    this.loadUsersMetricsFromCache();
+    this.loadPersistentPrivilegesFromDisk();
+    this.triggerBackgroundCounting(false);
   }
 
   isDemoMode(): boolean {
