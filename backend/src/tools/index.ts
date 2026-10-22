@@ -329,7 +329,9 @@ export async function getAuditHistoryTool(params: {
 
     return createResult('getAuditHistory', params, true, {
       ...data,
-      logs: rows,
+      logs: flat,
+      allLogs: flat,
+      chatRows: rows,
       totalMatching,
       authoritativeTotal,
       page,

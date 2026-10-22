@@ -2001,7 +2001,7 @@ function buildStructuredResponse(
       const pName = data?.productDisplayName || parameters.product || 'Oracle Fusion';
       const boName = data?.businessObjectDisplayName || parameters.businessObjectType;
       title = `Oracle Fusion Audit Trail: ${pName}${boName ? ` (${boName})` : ''}`;
-      const logArray = data?.logs || (Array.isArray(data) ? data : []);
+      const logArray = data?.allLogs || data?.flat || data?.logs || (Array.isArray(data) ? data : []);
       totalCount = data?.authoritativeTotal ?? data?.totalRecords ?? logArray.length;
       matchingCount = data?.totalMatching ?? logArray.length;
       table = {
