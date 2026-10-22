@@ -420,20 +420,31 @@ export class AuditRawDbService {
 
     const selectedProduct = filter.product || 'ALL';
     if (selectedProduct !== 'ALL') {
-      conditions.push(`(product = $${paramIdx} OR product ILIKE $${paramIdx + 1})`);
-      values.push(selectedProduct, `%${selectedProduct}%`);
-      paramIdx += 2;
+      const p = selectedProduct.toLowerCase();
+      if (p.includes('security services') || p.includes('opss') || p.includes('platform security')) {
+        conditions.push(`(product ILIKE '%Security Services%' OR product ILIKE '%OPSS%' OR product ILIKE '%Platform Security%')`);
+      } else if (p.includes('human resources') || p.includes('hcm') || p.includes('per')) {
+        conditions.push(`(product ILIKE '%Human Resources%' OR product ILIKE '%HCM%')`);
+      } else if (p.includes('risks and controls') || p.includes('rmc') || p.includes('racm')) {
+        conditions.push(`(product ILIKE '%Risks and Controls%' OR product ILIKE '%RMC%' OR product ILIKE '%RACM%')`);
+      } else if (p.includes('common crm') || p.includes('public sector') || p.includes('applications common')) {
+        conditions.push(`(product ILIKE '%Common CRM%' OR product ILIKE '%Public Sector Common Components%' OR product ILIKE '%Applications Common Components%')`);
+      } else {
+        conditions.push(`(product = $${paramIdx} OR product ILIKE $${paramIdx + 1})`);
+        values.push(selectedProduct, `%${selectedProduct}%`);
+        paramIdx += 2;
+      }
     }
 
     if (fromDate) {
       conditions.push(`event_timestamp >= $${paramIdx}::timestamptz`);
-      values.push(`${fromDate} 00:00:00`);
+      values.push(`${fromDate} 00:00:00+00`);
       paramIdx++;
     }
 
     if (toDate) {
       conditions.push(`event_timestamp <= $${paramIdx}::timestamptz`);
-      values.push(`${toDate} 23:59:59.999`);
+      values.push(`${toDate} 23:59:59.999+00`);
       paramIdx++;
     }
 
@@ -457,14 +468,14 @@ export class AuditRawDbService {
 
     const sql = `
       SELECT 
-        TO_CHAR(event_timestamp, 'YYYY-MM-DD') AS date,
+        TO_CHAR(event_timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS date,
         COUNT(*)::int AS count,
         COUNT(*) FILTER (WHERE event_type ILIKE '%INSERT%' OR event_type ILIKE '%CREATE%' OR event_type ILIKE '%ADD%' OR event_type ILIKE '%GRANT%')::int AS inserts,
         COUNT(*) FILTER (WHERE event_type ILIKE '%UPDATE%' OR event_type ILIKE '%MODIFY%')::int AS updates,
         COUNT(*) FILTER (WHERE event_type ILIKE '%DELETE%' OR event_type ILIKE '%REMOVE%' OR event_type ILIKE '%REVOKE%')::int AS deletes
       FROM oracle_raw_audit_records
       WHERE ${whereClause}
-      GROUP BY TO_CHAR(event_timestamp, 'YYYY-MM-DD')
+      GROUP BY TO_CHAR(event_timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD')
       ORDER BY date ASC
     `;
 

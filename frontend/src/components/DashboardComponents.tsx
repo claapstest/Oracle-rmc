@@ -818,7 +818,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
    ========================================================== */
 interface RiskTrendProps {
   activityTrend?: Array<{ date: string; count: number; inserts: number; updates: number; deletes: number }>;
-  onNavigatePage?: (pageId: string) => void;
+  onNavigatePage?: (pageId: string, filter?: any) => void;
 }
 
 const DEFAULT_PRODUCTS = [
@@ -905,6 +905,9 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
 
   React.useEffect(() => {
     fetchTrend();
+    const onFocus = () => fetchTrend();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [fetchTrend]);
 
   // Fallback data if completely empty
@@ -1018,7 +1021,29 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
             </button>
           )}
           <span
-            onClick={() => onNavigatePage?.('audit')}
+            onClick={() => {
+              const today = new Date().toISOString().split('T')[0];
+              let fDate = customFrom;
+              let tDate = customTo;
+              if (selectedInterval === '7d') {
+                fDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                tDate = today;
+              } else if (selectedInterval === '30d') {
+                fDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                tDate = today;
+              } else if (selectedInterval === '90d') {
+                fDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                tDate = today;
+              } else if (selectedInterval === 'jan_to_now') {
+                fDate = '2026-01-01';
+                tDate = today;
+              }
+              onNavigatePage?.('audit', {
+                product: selectedProduct !== 'ALL' ? selectedProduct : undefined,
+                fromDate: fDate,
+                toDate: tDate
+              });
+            }}
             style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
           >
             Audit Trail &rarr;
@@ -1389,6 +1414,13 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
                 key={i}
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(null)}
+                onClick={() => {
+                  onNavigatePage?.('audit', {
+                    product: selectedProduct !== 'ALL' ? selectedProduct : undefined,
+                    fromDate: p.date,
+                    toDate: p.date
+                  });
+                }}
                 style={{ cursor: 'pointer' }}
               >
                 {/* Invisible hover target */}
@@ -1491,6 +1523,9 @@ export function RiskTrend({ activityTrend = [], onNavigatePage }: RiskTrendProps
               <span style={{ color: '#F87171', fontWeight: 700 }}>🔴 Inserts / Additions: {hoveredPoint.inserts || 0}</span>
               <span style={{ color: '#93C5FD' }}>🔵 Updates: {hoveredPoint.updates || 0}</span>
               <span style={{ color: '#C4B5FD' }}>🟣 Deletions: {hoveredPoint.deletes || 0}</span>
+              <div style={{ marginTop: '3px', fontSize: '0.67rem', color: '#60A5FA', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '3px' }}>
+                Click point to inspect in Audit Trail &rarr;
+              </div>
             </div>
           </div>
         )}
