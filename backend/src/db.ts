@@ -35,19 +35,35 @@ pool.on('error', (err) => {
 
 export async function query<T extends pg.QueryResultRow = any>(
   text: string,
-  params?: any[]
+  params?: any[],
+  retries = 2
 ): Promise<pg.QueryResult<T>> {
   const start = Date.now();
-  try {
-    const res = await pool.query<T>(text, params);
-    return res;
-  } catch (err) {
-    const duration = Date.now() - start;
-    console.error('[PostgreSQL Query Error]', {
-      text,
-      duration,
-      error: (err as Error).message,
-    });
-    throw err;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await pool.query<T>(text, params);
+      return res;
+    } catch (err: any) {
+      const isConnectionError =
+        err.message?.includes('ECONNREFUSED') ||
+        err.message?.includes('ECONNRESET') ||
+        err.message?.includes('Connection terminated') ||
+        err.message?.includes('timeout');
+
+      if (isConnectionError && attempt < retries) {
+        console.warn(`[PostgreSQL Transient Notice] Retrying query due to connection blip (attempt ${attempt + 1}/${retries})...`);
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+
+      const duration = Date.now() - start;
+      console.error('[PostgreSQL Query Error]', {
+        text,
+        duration,
+        error: err.message,
+      });
+      throw err;
+    }
   }
+  throw new Error('PostgreSQL query failed after retries');
 }
