@@ -1556,11 +1556,14 @@ interface ProductActivityMonitorProps {
 }
 
 export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonitorProps) {
-  const [timeframe, setTimeframe] = React.useState<string>('24h');
+  const [timeframe, setTimeframe] = React.useState<string>('today');
   const [loading, setLoading] = React.useState<boolean>(false);
   const [syncingProduct, setSyncingProduct] = React.useState<string | null>(null);
   const [syncFeedback, setSyncFeedback] = React.useState<string | null>(null);
   const [expandedProducts, setExpandedProducts] = React.useState<Set<string>>(new Set());
+
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const yesterdayDateStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   const [data, setData] = React.useState<{
     timeframe: string;
@@ -1586,9 +1589,9 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     totalActiveProducts: number;
     totalRecordsAcrossProducts: number;
   }>({
-    timeframe: '24h',
-    effectiveDateLabel: 'Last 24 Hours (Daily Sync Window)',
-    targetDate: '',
+    timeframe: 'today',
+    effectiveDateLabel: `Today (${todayDateStr})`,
+    targetDate: todayDateStr,
     products: [],
     totalActiveProducts: 0,
     totalRecordsAcrossProducts: 0
@@ -1610,6 +1613,9 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
 
   React.useEffect(() => {
     loadData(timeframe);
+    const onFocus = () => loadData(timeframe);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [timeframe, loadData]);
 
   const handleInspect = (productName: string, businessObject?: string) => {
@@ -1617,8 +1623,12 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     let fromDate = today;
     let toDate = today;
 
-    if (timeframe === '24h' || timeframe === 'today') {
+    if (timeframe === 'today') {
       fromDate = today;
+      toDate = today;
+    } else if (timeframe === '24h') {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      fromDate = yesterday;
       toDate = today;
     } else if (timeframe === 'yesterday') {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -1705,9 +1715,6 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
     return { category: 'COMMON', color: '#64748B', bg: '#F8FAFC' };
   };
 
-  const todayDateStr = new Date().toISOString().split('T')[0];
-  const yesterdayDateStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
   return (
     <div className="glass-panel" style={{ padding: '1.4rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
       {/* Header */}
@@ -1758,8 +1765,8 @@ export function ProductActivityMonitor({ onNavigatePage }: ProductActivityMonito
                 outline: 'none'
               }}
             >
-              <option value="24h">Last 24 Hours (Daily Sync Window)</option>
               <option value="today">Today ({todayDateStr})</option>
+              <option value="24h">Last 24 Hours (Rolling)</option>
               <option value="yesterday">Yesterday ({yesterdayDateStr})</option>
               <option value="previous_active">Previous Active Day</option>
               <option value="7d">Last 7 Days</option>

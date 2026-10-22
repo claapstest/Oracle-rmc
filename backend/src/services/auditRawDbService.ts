@@ -574,12 +574,12 @@ export class AuditRawDbService {
       effectiveDateLabel = 'Last 24 Hours (Rolling)';
       targetDate = todayStr;
     } else if (timeframe === 'today') {
-      whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
+      whereClause += ` AND (TO_CHAR(event_timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD') = $2 OR TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2)`;
       values.push(todayStr);
       effectiveDateLabel = `Today (${todayStr})`;
       targetDate = todayStr;
     } else if (timeframe === 'yesterday') {
-      whereClause += ` AND TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2`;
+      whereClause += ` AND (TO_CHAR(event_timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD') = $2 OR TO_CHAR(event_timestamp, 'YYYY-MM-DD') = $2)`;
       values.push(yesterdayStr);
       effectiveDateLabel = `Yesterday (${yesterdayStr})`;
       targetDate = yesterdayStr;
