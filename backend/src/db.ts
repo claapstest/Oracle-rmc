@@ -11,14 +11,28 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../database/.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const connectionString =
+function normalizeConnectionString(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  // Fix Render short hostname when DNS cannot resolve across regions or without region suffix
+  // e.g. @dpg-dbcpkhqvcj2c73fes340-a:5432/ or @dpg-dbcpkhqvcj2c73fes340-a/
+  return rawUrl.replace(/@(dpg-[a-z0-9]+-[a-z0-9]+)(:\d+|\/|$)/i, (match, host, suffix) => {
+    if (!host.includes('.')) {
+      return `@${host}.singapore-postgres.render.com${suffix}`;
+    }
+    return match;
+  });
+}
+
+const rawConnectionString =
   process.env.DATABASE_URL ||
   `postgresql://${process.env.POSTGRES_USER || 'postgres'}:${process.env.POSTGRES_PASSWORD || 'postgres'}@${process.env.POSTGRES_HOST || '127.0.0.1'}:${process.env.POSTGRES_PORT || '5433'}/${process.env.POSTGRES_DB || 'veyra_db'}`;
 
+const connectionString = normalizeConnectionString(rawConnectionString);
+
 const isRemoteDb = Boolean(
-  process.env.DATABASE_URL &&
-  !process.env.DATABASE_URL.includes('127.0.0.1') &&
-  !process.env.DATABASE_URL.includes('localhost')
+  connectionString &&
+  !connectionString.includes('127.0.0.1') &&
+  !connectionString.includes('localhost')
 );
 
 export const pool = new pg.Pool({

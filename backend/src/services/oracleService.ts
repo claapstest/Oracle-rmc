@@ -3543,51 +3543,55 @@ class OracleService {
       const authoritativeTotal = scopedControls.reduce((s, c) => s + (c.incidentCount || 0), 0);
 
       if (scopeIds.length > 0) {
-        const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
-        const pageSize = Math.min(100, Math.max(1, options?.limit || 25));
-        const page = Math.max(1, options?.page || (options?.offset ? Math.floor(options.offset / pageSize) + 1 : 1));
-        const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
-          controlIds: scopeIds,
-          offset: (page - 1) * pageSize,
-          limit: pageSize,
-          search: options?.search,
-          status: options?.status,
-          state: options?.state,
-          user: options?.user,
-          role: options?.role
-        });
-        const items = pg.rows.map(r =>
-          this.controlCatalogService.normalizeIncident(r.raw, r.control_id, scopeNames.get(r.control_id))
-        );
-        const openOrActive = coverage.assigned + coverage.remediate;
-        const fullySynced = coverage.synced >= authoritativeTotal && authoritativeTotal > 0;
-        return {
-          success: true,
-          dataSource: 'Live Oracle Fusion API',
-          selectedControlId: 'ALL',
-          selectedControl: null,
-          items,
-          totalCount: authoritativeTotal,
-          filteredCount: pg.filteredTotal,
-          page,
-          pageSize,
-          cacheStatus: fullySynced ? 'READY' : 'PARTIAL',
-          fetchedCount: coverage.synced,
-          lastSyncedAt: new Date().toISOString(),
-          availableControls,
-          message: `Aggregated ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls (authoritative total ${authoritativeTotal.toLocaleString()}).`,
-          kpis: {
-            total: authoritativeTotal,
-            assigned: coverage.assigned,
-            inRemediation: coverage.remediate,
-            openOrActive,
-            accepted: coverage.accepted,
-            closedOrResolved: coverage.resolved,
-            status: 'READY'
-          }
-        };
+        try {
+          const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
+          const pageSize = Math.min(100, Math.max(1, options?.limit || 25));
+          const page = Math.max(1, options?.page || (options?.offset ? Math.floor(options.offset / pageSize) + 1 : 1));
+          const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
+            controlIds: scopeIds,
+            offset: (page - 1) * pageSize,
+            limit: pageSize,
+            search: options?.search,
+            status: options?.status,
+            state: options?.state,
+            user: options?.user,
+            role: options?.role
+          });
+          const items = pg.rows.map(r =>
+            this.controlCatalogService.normalizeIncident(r.raw, r.control_id, scopeNames.get(r.control_id))
+          );
+          const openOrActive = coverage.assigned + coverage.remediate;
+          const fullySynced = coverage.synced >= authoritativeTotal && authoritativeTotal > 0;
+          return {
+            success: true,
+            dataSource: 'Live Oracle Fusion API',
+            selectedControlId: 'ALL',
+            selectedControl: null,
+            items,
+            totalCount: authoritativeTotal,
+            filteredCount: pg.filteredTotal,
+            page,
+            pageSize,
+            cacheStatus: fullySynced ? 'READY' : 'PARTIAL',
+            fetchedCount: coverage.synced,
+            lastSyncedAt: new Date().toISOString(),
+            availableControls,
+            message: `Aggregated ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls (authoritative total ${authoritativeTotal.toLocaleString()}).`,
+            kpis: {
+              total: authoritativeTotal,
+              assigned: coverage.assigned,
+              inRemediation: coverage.remediate,
+              openOrActive,
+              accepted: coverage.accepted,
+              closedOrResolved: coverage.resolved,
+              status: 'READY'
+            }
+          };
+        } catch (dbErr: any) {
+          console.warn('[getRiskIncidents] Database aggregation note (falling back to lightweight list):', dbErr.message);
+        }
       }
-      // No controls in scope: fall through to the top live control.
+      // No controls in scope or DB query fallback: fall through to the top live control.
       targetControlId = topLiveControlId;
     } else if (!availableControls.some(c => c.id === targetControlId)) {
       // Unknown control in this live instance (e.g. stale demo default):
