@@ -1765,8 +1765,14 @@ function buildStructuredResponse(
     }
 
     case 'USERS_BY_ROLE': {
-      const roleName = parameters.roleName || 'Advanced Access Controls Analyst';
-      title = `Assigned Members: ${roleName}`;
+      const roleName = 
+        data?.roleName || 
+        (Array.isArray(parameters?.roles) && parameters.roles.length > 0
+          ? parameters.roles.join(parameters.matchMode === 'OR' ? ' OR ' : ' AND ')
+          : parameters?.roleName) || 
+        'Role';
+      const isMulti = (Array.isArray(data?.roles) && data.roles.length > 1) || (Array.isArray(parameters?.roles) && parameters.roles.length > 1);
+      title = isMulti ? `Assigned Members: ${roleName}` : `Assigned Members: ${roleName}`;
       const memberArray = Array.isArray(data?.users) ? data.users : (Array.isArray(data) ? data : []);
       totalCount = data?.totalMatching !== undefined ? data.totalMatching : memberArray.length;
       matchingCount = totalCount;
