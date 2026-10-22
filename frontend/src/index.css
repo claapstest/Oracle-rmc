@@ -956,3 +956,172 @@ details div.glass-panel div {
   display: inline-block;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
+
+/* ==========================================================================
+   Enterprise Real Loading Animations
+   ========================================================================== */
+
+@keyframes enterpriseOrbitalSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes enterpriseCounterSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes enterpriseCorePulse {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.6;
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    box-shadow: 0 0 16px 4px rgba(37, 99, 235, 0.28);
+  }
+}
+
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.real-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  width: 100%;
+  position: relative;
+}
+
+.real-loading-spinner-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.15rem;
+}
+
+.real-loading-outer-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #2563EB;
+  border-right-color: #60A5FA;
+  animation: enterpriseOrbitalSpin 0.95s cubic-bezier(0.65, 0.05, 0.36, 1) infinite;
+  box-shadow: 0 0 14px rgba(37, 99, 235, 0.22);
+}
+
+.real-loading-inner-ring {
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  border-bottom-color: #38BDF8;
+  border-left-color: #818CF8;
+  animation: enterpriseCounterSpin 1.3s ease-in-out infinite;
+}
+
+.real-loading-core {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563EB 0%, #38BDF8 100%);
+  animation: enterpriseCorePulse 1.6s ease-in-out infinite;
+}
+
+.real-loading-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.real-loading-subtitle {
+  font-size: 0.8rem;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.real-loading-dots {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.real-loading-dots span {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 1.5px;
+  border-radius: 50%;
+  background-color: #2563EB;
+  animation: dotPulse 1.4s infinite ease-in-out both;
+}
+.real-loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.real-loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+.real-loading-dots span:nth-child(3) { animation-delay: 0s; }
+
+.real-table-skeleton-rows {
+  width: 100%;
+  max-width: 860px;
+  margin-top: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.real-table-skeleton-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.9rem;
+  background-color: #F8FAFC;
+  border-radius: 8px;
+  border: 1px solid #F1F5F9;
+}
+
+.real-skeleton-bar {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #E2E8F0 0%, #F1F5F9 50%, #E2E8F0 100%);
+  background-size: 200% 100%;
+  animation: shimmerWave 1.6s infinite linear;
+}

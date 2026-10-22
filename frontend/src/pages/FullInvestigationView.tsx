@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { PaginatedTable, AssignedRolesList } from '../components/InvestigationComponents';
+import { ContentLoadingState } from '../components/TableLoadingState';
 import { api } from '../services/api';
 import InvestigationWorkspace from './InvestigationWorkspace';
 
@@ -193,10 +194,10 @@ export default function FullInvestigationView({
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid var(--accent-blue)', borderTopColor: 'transparent', borderRadius: '50%' }} />
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading investigation workspace...</p>
-        </div>
+        <ContentLoadingState
+          title="Loading Investigation Workspace..."
+          subtitle="Fetching security snapshot and graph from Oracle Fusion..."
+        />
       </div>
     );
   }

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl, type EnterpriseExportColumn } from '../components/EnterpriseExportControl';
+import { ContentLoadingState } from '../components/TableLoadingState';
 
 interface AdvancedAccessRequestsProps {
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
@@ -214,17 +215,13 @@ export default function AdvancedAccessRequests({ environmentMode }: AdvancedAcce
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }} aria-busy="true" aria-label="Loading Advanced Access Requests">
-        <div style={{ height: '35px', width: '260px', marginBottom: '1rem' }} className="skeleton" />
-        <div style={{ height: '20px', width: '450px', marginBottom: '2rem' }} className="skeleton" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-          <div style={{ height: '90px' }} className="skeleton" />
-          <div style={{ height: '90px' }} className="skeleton" />
-          <div style={{ height: '90px' }} className="skeleton" />
-          <div style={{ height: '90px' }} className="skeleton" />
+      <div style={{ padding: '3rem 2rem', maxWidth: '1400px', margin: '0 auto', textAlign: 'center' }} aria-busy="true" aria-label="Loading Advanced Access Requests">
+        <div className="glass-panel" style={{ padding: '3rem 2rem', maxWidth: '600px', margin: '2rem auto' }}>
+          <ContentLoadingState
+            title="Loading Advanced Access Requests..."
+            subtitle="Fetching requests and separation-of-duties simulations from Oracle Fusion..."
+          />
         </div>
-        <div style={{ height: '300px' }} className="skeleton" />
-        <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Loading Oracle Fusion data...</p>
       </div>
     );
   }

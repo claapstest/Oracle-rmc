@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Award, X, Users, Network, KeyRound, AlertTriangle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
+import { TableLoadingState } from '../components/TableLoadingState';
 
 function highlightMatch(text: string, query: string) {
   if (!query || !query.trim() || !text) return text;
@@ -460,22 +461,24 @@ export default function Roles({
               </tr>
             </thead>
             <tbody>
-              {roles.length === 0 ? (
+              {loading ? (
+                <TableLoadingState
+                  title="Searching Oracle Fusion Roles Catalog..."
+                  subtitle="Retrieving security roles, categories, and assigned permissions"
+                  colSpan={4}
+                  skeletonRows={4}
+                />
+              ) : roles.length === 0 ? (
                 <tr>
                   <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
-                      {loading && (
-                        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--accent-blue)', opacity: 0.8 }} />
-                      )}
                       <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {loading ? 'Searching roles catalog...' : 'No roles matched your search criteria.'}
+                        No roles matched your search criteria.
                       </div>
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        {loading
-                          ? 'Checking Oracle Fusion security roles catalog...'
-                          : (searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.')}
+                        {searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.'}
                       </p>
-                      {!loading && (searchTerm || categoryFilter !== 'ALL') && (
+                      {(searchTerm || categoryFilter !== 'ALL') && (
                         <button
                           onClick={() => {
                             setSearchTerm('');

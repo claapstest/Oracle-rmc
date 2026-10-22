@@ -65276,5 +65276,1427 @@
       "message": "Security role \"Recruiter\" with 83 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1792589291000
+  },
+  "role_privileges:customer service representative": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Customer Service Representative",
+      "roleCode": "ORA_SVC_CUSTOMER_SERVICE_REPRESENTATIVE_JOB",
+      "role": {
+        "name": "Customer Service Representative",
+        "code": "ORA_SVC_CUSTOMER_SERVICE_REPRESENTATIVE_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Export Workspace Data",
+          "code": "ZCA_WORKSPACE_EXPORT_PRIV",
+          "description": "Allows users to export data in Workspace",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Smart Actions",
+          "code": "ZCA_VIEW_SMART_ACTIONS_PRIV",
+          "description": "Allows read and view access to Smart Actions Framework data.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Customer 360",
+          "code": "UER_CUSTOMER360_USER_PRIV",
+          "description": "Allows a user to access the entire Utility Customer 360 experience, including viewing, searching and taking action on the customer 360 pages",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Customer List on Home Page",
+          "code": "ATC_MYDAY_CUSTOMERS_PRIV",
+          "description": "Allows a user to see a tab on the &quot;my day&quot; page when they log in that has a complete customer list",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Knowledge Management on Home Page",
+          "code": "ATC_MYDAY_KM_PRIV",
+          "description": "Allows a user to see the knowledge management tab on the my-day page when they enter the call center application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access MCA Panel",
+          "code": "ATC_MCA_PANEL_PRIV",
+          "description": "Allows a user to access the MCA panel to set availability of phone/chat",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Premise Page",
+          "code": "UER_PREMISE_PAGE_USER_PRIV",
+          "description": "Allows user to go to Premise page",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Premium Service Actions in CIS",
+          "code": "UER_PREMIUM_SERVICE_ACTIONS_CIS_PRIV",
+          "description": "Allows a user to access Premium Service Actions in the CIS",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Utilities Tile under Service Folder",
+          "code": "UER_UTILITIES_TILE_SERVICE_FOLDER_USER_PRIV",
+          "description": "Allows a user to see Utilities Tile under Service Folder",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Utility Smart Actions",
+          "code": "UER_UTILITY_SMART_ACTIONS_PRIV",
+          "description": "Allows a user to access utility smart actions",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Create Sales Organization",
+          "code": "ZCM_CREATE_SALES_ORGANIZATION_PRIV",
+          "description": "Allows creating a sales organization.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Conversation Message References",
+          "code": "UER_MAINTAIN_CONVERSATION_MESSAGE_REFERENCES_PRIV",
+          "description": "Allows a user to maintain conversation message reference values.via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Service Request References",
+          "code": "UER_MAINTAIN_SERVICE_REQUEST_REFERENCES_PRIV",
+          "description": "Allows a user to maintain service request reference values.via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Wrapup References",
+          "code": "UER_MAINTAIN_WRAPUP_REFERENCES_PRIV",
+          "description": "Allows a user to maintain wrapup reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain note reference",
+          "code": "UER_MAINTAIN_NOTE_REFERENCES_PRIV",
+          "description": "Allows a user to maintain note reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Update Sales Organization",
+          "code": "ZCM_UPDATE_SALES_ORGANIZATION_PRIV",
+          "description": "Allows updating the sales organization.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Conversation Message References",
+          "code": "UER_VIEW_CONVERSATION_MESSAGE_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve conversation message reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Industries Class MetaData",
+          "code": "UER_VIEW_INDUSTRIES_CLASS_DATA_PRIV",
+          "description": "Alllows a user to retrieve values from Industries class entities via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View My Day Work Queue",
+          "code": "ATC_MYDAY_WORKQUEUE_PRIV",
+          "description": "Allows a user to see the work queue tab after the enter the call center application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Service Request References",
+          "code": "UER_VIEW_SERVICE_REQUEST_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve service request reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Utilities Agent Desktop",
+          "code": "ATC_UTILITIES_AGENT_DESKTOP_PRIV",
+          "description": "Allows a user access to entire Utility Customer 360 experience including all transactional data surfaced through the embedded application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Utilities Call Center module",
+          "code": "ATC_UTILITIES_CALL_CENTER_PRIV",
+          "description": "Allows a user to see a new module under the application homepage in the b2b service section",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Utilities Create Contact Flows",
+          "code": "ATC_CREATE_CONTACT_PRIV",
+          "description": "Allows a user to navigate the various create contact flows from the customer list in the call center application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Wrapup References",
+          "code": "UER_VIEW_WRAPUP_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve wrapup reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View note",
+          "code": "UER_VIEW_NOTE_REFERENCES_PRIV",
+          "description": "Allow user to see note",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Business Customer Hierarchy",
+          "code": "UER_BUSINESSCUSTOMER_HIERARCHY_USER_PRIV",
+          "description": "Allows a user to access the business hierarchy feature, including viewing and editing the hierarchy",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Business List on Home Page",
+          "code": "UER_KAM_BUSINESS_LIST_USER_PRIV",
+          "description": "Allows a user to access the KAM Home Page, including Account List, Account Search and Left Panel Navigation.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access C360 Leads and Opportunities tab",
+          "code": "UER_LEADS_OPPORTUNITIES_TAB_USER_PRIV",
+          "description": "Allows a user to see C360 Leads and Opportunities tab",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Utilities Tile under Sales Folder",
+          "code": "UER_UTILITIES_TILE_SALES_FOLDER_USER_PRIV",
+          "description": "Allows a user to see Utilities Tile under Sales Folder",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Interview References",
+          "code": "UER_MAINTAIN_INTERVIEW_REFERENCES_PRIV",
+          "description": "Allows a user to maintain Interview reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Lead References",
+          "code": "UER_MAINTAIN_LEAD_REFERENCES_PRIV",
+          "description": "Allows a user to maintain Lead reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Opportunity References",
+          "code": "UER_MAINTAIN_OPPORTUNITY_REFERENCES_PRIV",
+          "description": "Allows a user to maintain Opportunity reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Interview References",
+          "code": "UER_VIEW_INTERVIEW_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve Interview reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Lead References",
+          "code": "UER_VIEW_LEAD_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve Lead reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Opportunity External References",
+          "code": "UER_VIEW_OPPORTUNITY_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve Opportunity reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 35,
+        "directPrivileges": 35,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Customer Service Representative\" (ORA_SVC_CUSTOMER_SERVICE_REPRESENTATIVE_JOB) with 35 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "22 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Customer Service Representative\" with 35 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792666111682
+  },
+  "role_privileges:ora_svc_customer_service_representative_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Customer Service Representative",
+      "roleCode": "ORA_SVC_CUSTOMER_SERVICE_REPRESENTATIVE_JOB",
+      "role": {
+        "name": "Customer Service Representative",
+        "code": "ORA_SVC_CUSTOMER_SERVICE_REPRESENTATIVE_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Export Workspace Data",
+          "code": "ZCA_WORKSPACE_EXPORT_PRIV",
+          "description": "Allows users to export data in Workspace",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Smart Actions",
+          "code": "ZCA_VIEW_SMART_ACTIONS_PRIV",
+          "description": "Allows read and view access to Smart Actions Framework data.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Customer 360",
+          "code": "UER_CUSTOMER360_USER_PRIV",
+          "description": "Allows a user to access the entire Utility Customer 360 experience, including viewing, searching and taking action on the customer 360 pages",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Customer List on Home Page",
+          "code": "ATC_MYDAY_CUSTOMERS_PRIV",
+          "description": "Allows a user to see a tab on the &quot;my day&quot; page when they log in that has a complete customer list",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Knowledge Management on Home Page",
+          "code": "ATC_MYDAY_KM_PRIV",
+          "description": "Allows a user to see the knowledge management tab on the my-day page when they enter the call center application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access MCA Panel",
+          "code": "ATC_MCA_PANEL_PRIV",
+          "description": "Allows a user to access the MCA panel to set availability of phone/chat",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Premise Page",
+          "code": "UER_PREMISE_PAGE_USER_PRIV",
+          "description": "Allows user to go to Premise page",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Premium Service Actions in CIS",
+          "code": "UER_PREMIUM_SERVICE_ACTIONS_CIS_PRIV",
+          "description": "Allows a user to access Premium Service Actions in the CIS",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Utilities Tile under Service Folder",
+          "code": "UER_UTILITIES_TILE_SERVICE_FOLDER_USER_PRIV",
+          "description": "Allows a user to see Utilities Tile under Service Folder",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Utility Smart Actions",
+          "code": "UER_UTILITY_SMART_ACTIONS_PRIV",
+          "description": "Allows a user to access utility smart actions",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Create Sales Organization",
+          "code": "ZCM_CREATE_SALES_ORGANIZATION_PRIV",
+          "description": "Allows creating a sales organization.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Conversation Message References",
+          "code": "UER_MAINTAIN_CONVERSATION_MESSAGE_REFERENCES_PRIV",
+          "description": "Allows a user to maintain conversation message reference values.via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Service Request References",
+          "code": "UER_MAINTAIN_SERVICE_REQUEST_REFERENCES_PRIV",
+          "description": "Allows a user to maintain service request reference values.via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Wrapup References",
+          "code": "UER_MAINTAIN_WRAPUP_REFERENCES_PRIV",
+          "description": "Allows a user to maintain wrapup reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain note reference",
+          "code": "UER_MAINTAIN_NOTE_REFERENCES_PRIV",
+          "description": "Allows a user to maintain note reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Update Sales Organization",
+          "code": "ZCM_UPDATE_SALES_ORGANIZATION_PRIV",
+          "description": "Allows updating the sales organization.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Conversation Message References",
+          "code": "UER_VIEW_CONVERSATION_MESSAGE_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve conversation message reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Industries Class MetaData",
+          "code": "UER_VIEW_INDUSTRIES_CLASS_DATA_PRIV",
+          "description": "Alllows a user to retrieve values from Industries class entities via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View My Day Work Queue",
+          "code": "ATC_MYDAY_WORKQUEUE_PRIV",
+          "description": "Allows a user to see the work queue tab after the enter the call center application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Service Request References",
+          "code": "UER_VIEW_SERVICE_REQUEST_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve service request reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Utilities Agent Desktop",
+          "code": "ATC_UTILITIES_AGENT_DESKTOP_PRIV",
+          "description": "Allows a user access to entire Utility Customer 360 experience including all transactional data surfaced through the embedded application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Utilities Call Center module",
+          "code": "ATC_UTILITIES_CALL_CENTER_PRIV",
+          "description": "Allows a user to see a new module under the application homepage in the b2b service section",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Utilities Create Contact Flows",
+          "code": "ATC_CREATE_CONTACT_PRIV",
+          "description": "Allows a user to navigate the various create contact flows from the customer list in the call center application",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Wrapup References",
+          "code": "UER_VIEW_WRAPUP_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve wrapup reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View note",
+          "code": "UER_VIEW_NOTE_REFERENCES_PRIV",
+          "description": "Allow user to see note",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Business Customer Hierarchy",
+          "code": "UER_BUSINESSCUSTOMER_HIERARCHY_USER_PRIV",
+          "description": "Allows a user to access the business hierarchy feature, including viewing and editing the hierarchy",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Business List on Home Page",
+          "code": "UER_KAM_BUSINESS_LIST_USER_PRIV",
+          "description": "Allows a user to access the KAM Home Page, including Account List, Account Search and Left Panel Navigation.",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access C360 Leads and Opportunities tab",
+          "code": "UER_LEADS_OPPORTUNITIES_TAB_USER_PRIV",
+          "description": "Allows a user to see C360 Leads and Opportunities tab",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Access Utilities Tile under Sales Folder",
+          "code": "UER_UTILITIES_TILE_SALES_FOLDER_USER_PRIV",
+          "description": "Allows a user to see Utilities Tile under Sales Folder",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Interview References",
+          "code": "UER_MAINTAIN_INTERVIEW_REFERENCES_PRIV",
+          "description": "Allows a user to maintain Interview reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Lead References",
+          "code": "UER_MAINTAIN_LEAD_REFERENCES_PRIV",
+          "description": "Allows a user to maintain Lead reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "Maintain Opportunity References",
+          "code": "UER_MAINTAIN_OPPORTUNITY_REFERENCES_PRIV",
+          "description": "Allows a user to maintain Opportunity reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Interview References",
+          "code": "UER_VIEW_INTERVIEW_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve Interview reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Lead References",
+          "code": "UER_VIEW_LEAD_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve Lead reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        },
+        {
+          "name": "View Opportunity External References",
+          "code": "UER_VIEW_OPPORTUNITY_REFERENCES_PRIV",
+          "description": "Allows a user to retrieve Opportunity reference values via REST APIs",
+          "inheritedFrom": "Customer Service Representative"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 35,
+        "directPrivileges": 35,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Customer Service Representative\" (ORA_SVC_CUSTOMER_SERVICE_REPRESENTATIVE_JOB) with 35 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "22 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Customer Service Representative\" with 35 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792666111711
+  },
+  "role_privileges:product portfolio manager": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Product Portfolio Manager",
+      "roleCode": "ORA_ACE_PRODUCT_PORTFOLIO_MANAGER_JOB",
+      "role": {
+        "name": "Product Portfolio Manager",
+        "code": "ORA_ACE_PRODUCT_PORTFOLIO_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Clipboard",
+          "code": "ACA_ACCESS_CLIPBOARD_PRIV",
+          "description": "Allows you to access the clipboard across the product management work areas.",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Create Product Concept",
+          "code": "ACD_CREATE_PRODUCT_CONCEPT_PRIV",
+          "description": "Allows for the creation of a Product Concept",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Create Product Idea",
+          "code": "ACN_CREATE_PRODUCT_IDEA_PRIV",
+          "description": "Allows for the creation of an Idea",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Manage Product Component",
+          "code": "ACD_MANAGE_PRODUCT_COMPONENT_PRIV",
+          "description": "Allows for managing of Components for create, update and delete within a Concept Product Structure and assigning requirements to components",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Manage Product Concept",
+          "code": "ACD_MANAGE_PRODUCT_CONCEPT_PRIV",
+          "description": "Allows for managing of a Product Concept - creating, updating of Concept attributes, deleting, managing goals and metrics for the Concept",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Manage Product Idea",
+          "code": "ACN_MANAGE_PRODUCT_IDEA_PRIV",
+          "description": "Allows managing of an Idea - creating and updating",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Review Product Concept",
+          "code": "ACD_REVIEW_PRODUCT_CONCEPT_PRIV",
+          "description": "Allows for reviewing a Concept with all its details",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Review Product Ideas",
+          "code": "ACN_REVIEW_PRODUCT_IDEAS_PRIV",
+          "description": "Allows reviewing of product ideas",
+          "inheritedFrom": "Product Portfolio Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 8,
+        "directPrivileges": 8,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Product Portfolio Manager\" (ORA_ACE_PRODUCT_PORTFOLIO_MANAGER_JOB) with 8 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "5 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Product Portfolio Manager\" with 8 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792666129867
+  },
+  "role_privileges:ora_ace_product_portfolio_manager_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Product Portfolio Manager",
+      "roleCode": "ORA_ACE_PRODUCT_PORTFOLIO_MANAGER_JOB",
+      "role": {
+        "name": "Product Portfolio Manager",
+        "code": "ORA_ACE_PRODUCT_PORTFOLIO_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Clipboard",
+          "code": "ACA_ACCESS_CLIPBOARD_PRIV",
+          "description": "Allows you to access the clipboard across the product management work areas.",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Create Product Concept",
+          "code": "ACD_CREATE_PRODUCT_CONCEPT_PRIV",
+          "description": "Allows for the creation of a Product Concept",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Create Product Idea",
+          "code": "ACN_CREATE_PRODUCT_IDEA_PRIV",
+          "description": "Allows for the creation of an Idea",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Manage Product Component",
+          "code": "ACD_MANAGE_PRODUCT_COMPONENT_PRIV",
+          "description": "Allows for managing of Components for create, update and delete within a Concept Product Structure and assigning requirements to components",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Manage Product Concept",
+          "code": "ACD_MANAGE_PRODUCT_CONCEPT_PRIV",
+          "description": "Allows for managing of a Product Concept - creating, updating of Concept attributes, deleting, managing goals and metrics for the Concept",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Manage Product Idea",
+          "code": "ACN_MANAGE_PRODUCT_IDEA_PRIV",
+          "description": "Allows managing of an Idea - creating and updating",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Review Product Concept",
+          "code": "ACD_REVIEW_PRODUCT_CONCEPT_PRIV",
+          "description": "Allows for reviewing a Concept with all its details",
+          "inheritedFrom": "Product Portfolio Manager"
+        },
+        {
+          "name": "Review Product Ideas",
+          "code": "ACN_REVIEW_PRODUCT_IDEAS_PRIV",
+          "description": "Allows reviewing of product ideas",
+          "inheritedFrom": "Product Portfolio Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 8,
+        "directPrivileges": 8,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Product Portfolio Manager\" (ORA_ACE_PRODUCT_PORTFOLIO_MANAGER_JOB) with 8 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "5 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Product Portfolio Manager\" with 8 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792666129882
+  },
+  "role_privileges:academic coordinator": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Academic Coordinator",
+      "roleCode": "ORA_HER_ACADEMIC_COORDINATOR_JOB",
+      "role": {
+        "name": "Academic Coordinator",
+        "code": "ORA_HER_ACADEMIC_COORDINATOR_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "(OBSOLETE) - Manage Student Management Queries",
+          "code": "HEY_MANAGE_STUDENT_MANAGEMENT_DATA_QUERIES_PRIV",
+          "description": "Allows creating, editing, and viewing student management queries and viewing query results.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) Manage Student Management Calendars",
+          "code": "HEY_MANAGE_STUDENT_MANAGEMENT_CALENDARS_PRIV",
+          "description": "Allows managing of student management calendars.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) Manage Student Management Rule Test Cases",
+          "code": "HEY_MANAGE_RULE_TEST_CASES_PRIV",
+          "description": "Allows management of rule test cases.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) View All Task and Checklist Assignments",
+          "code": "HEY_VIEW_ALL_TASK_CHECKLIST_ASSIGNMENTS_PRIV",
+          "description": "Allows viewing of all task and checklist assignments.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) View Student Management Calendars",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_CALENDARS_PRIV",
+          "description": "Allows viewing of student management calendars.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Administer User Registration",
+          "code": "HEY_ADMINISTER_USER_REGISTRATION_PRIV",
+          "description": "Allows administration of user registrations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Apply Manual Discount",
+          "code": "HES_APPLY_MANUAL_DISCOUNT_PRIV",
+          "description": "Allows an administrator to manually apply a discount to an account.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Assign Person Tags",
+          "code": "HEY_ASSIGN_PERSON_TAGS_PRIV",
+          "description": "Allows assignment of person tags.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Create Organization Record",
+          "code": "HEY_CREATE_ORGANIZATION_RECORD_PRIV",
+          "description": "Allows creation of an organization record.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Credentials",
+          "code": "HER_MAINTAIN_ACADEMIC_CREDENTIALS_PRIV",
+          "description": "Set up and maintain academic credentials.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Hierarchy",
+          "code": "HER_MAINTAIN_ACADEMIC_HIERARCHY_PRIV",
+          "description": "Set up and maintain hierarchies of academic organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Institution",
+          "code": "HER_MAINTAIN_ACADEMIC_INSTITUTIONS_PRIV",
+          "description": "Set up and maintain academic institutions.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Organization",
+          "code": "HER_MAINTAIN_ACADEMIC_ORGANIZATIONS_PRIV",
+          "description": "Set up and maintain academic organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Period Sequences",
+          "code": "HER_MAINTAIN_ACADEMIC_PERIOD_SEQUENCES_PRIV",
+          "description": "Allows maintenance of academic period sequences.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Periods",
+          "code": "HER_MAINTAIN_ACADEMIC_PERIODS_PRIV",
+          "description": "Set up and maintain academic periods.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Staff",
+          "code": "HER_MAINTAIN_ACADEMIC_STAFF_PRIV",
+          "description": "Define assignment attributes for academic staff.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Curriculum Configuration",
+          "code": "HER_MAINTAIN_CURRICULUM_CONFIGURATION_PRIV",
+          "description": "Set up and maintain curriculum configuration.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Facilities",
+          "code": "HER_MAINTAIN_FACILITIES_PRIV",
+          "description": "Set up and maintain facilities used in section scheduling.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Institution Settings",
+          "code": "HER_MAINTAIN_INSTITUTION_SETTINGS_PRIV",
+          "description": "Set up and maintain institution settings.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Organization Contacts",
+          "code": "HEY_MAINTAIN_ORGANIZATION_CONTACTS_PRIV",
+          "description": "Allows maintenance of organization contacts.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Organization Locations",
+          "code": "HEY_MAINTAIN_ORGANIZATION_LOCATIONS_PRIV",
+          "description": "Allows maintenance of organization location.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Population Selection Settings",
+          "code": "HEY_MAINTAIN_POPULATION_SELECTION_SETTINGS_PRIV",
+          "description": "Allows configuration of scheduled processes that use population selection.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Result Sets",
+          "code": "HER_MAINTAIN_RESULT_SETS_PRIV",
+          "description": "Set up and maintain grading result sets.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Academic Campuses",
+          "code": "HER_MANAGE_CAMPUSES_PRIV",
+          "description": "Allows management of academic campuses.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Academic Levels",
+          "code": "HER_MANAGE_ACADEMIC_LEVELS_PRIV",
+          "description": "Allows management of academic levels.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Academic Subjects",
+          "code": "HER_MANAGE_ACADEMIC_SUBJECTS_PRIV",
+          "description": "Allows management of academic subjects.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Communications",
+          "code": "HEY_MANAGE_COMMUNICATIONS_PRIV",
+          "description": "Allows management of student management communications.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage External Organizations",
+          "code": "HER_MANAGE_EXTERNAL_ORGANIZATIONS_PRIV",
+          "description": "Allows management of external organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Organization Contacts",
+          "code": "HER_MANAGE_ORGANIZATION_CONTACTS_PRIV",
+          "description": "Allows management of organization contacts.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Organization Identifiers",
+          "code": "HER_MANAGE_ORGANIZATION_IDENTIFIERS_PRIV",
+          "description": "Allows management of organization identifiers.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Organization Locations",
+          "code": "HER_MANAGE_ORGANIZATION_LOCATIONS_PRIV",
+          "description": "Allows management of organization locations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage System Offices",
+          "code": "HER_MANAGE_SYSTEM_OFFICES_PRIV",
+          "description": "Allows management of system offices.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Run Student Management Queries",
+          "code": "HEY_RUN_STUDENT_MANAGEMENT_QUERIES_PRIV",
+          "description": "Allows running student management queries and viewing query results.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Run Student Management Rule Test Cases",
+          "code": "HEY_RUN_STUDENT_MANAGEMENT_RULES_PRIV",
+          "description": "Allows rule test cases to be run.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Search Person Profile",
+          "code": "HEY_SEARCH_PERSON_PROFILE_PRIV",
+          "description": "Allows searching for an existing person profile in student management.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Search for Organization Record",
+          "code": "HEY_SEARCH_ORGANIZATION_RECORD_PRIV",
+          "description": "Allows searching for an organization record.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Update Task and Checklist Assignments",
+          "code": "HEY_UPDATE_TASK_AND_CHECKLIST_ASSIGNMENTS_PRIV",
+          "description": "Allows updating of assigned tasks and checklists statuses.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Use Population Selection Process Parameters",
+          "code": "HEY_USE_POPULATION_SELECTION_PARAMETERS_PRIV",
+          "description": "Allows using population selection parameters in a scheduled process.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Campuses",
+          "code": "HER_VIEW_CAMPUSES_PRIV",
+          "description": "Allows viewing of academic campuses.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Institution",
+          "code": "HER_VIEW_ACADEMIC_INSTITUTIONS_PRIV",
+          "description": "View academic institutions.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Levels",
+          "code": "HER_VIEW_ACADEMIC_LEVELS_PRIV",
+          "description": "Allows viewing of academic levels.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Organization",
+          "code": "HER_VIEW_ACADEMIC_ORGANIZATIONS_PRIV",
+          "description": "View academic organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Subjects",
+          "code": "HER_VIEW_ACADEMIC_SUBJECTS_PRIV",
+          "description": "Allows viewing of academic subjects.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Communication Send Profiles",
+          "code": "HEY_VIEW_COMMUNICATION_SEND_PROFILE_PRIV",
+          "description": "Allows viewing of student management communication send profiles.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Data Registry",
+          "code": "HEY_VIEW_DATA_REGISTRY_PRIV",
+          "description": "Allows viewing of student management data registry.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View External Organizations",
+          "code": "HER_VIEW_EXTERNAL_ORGANIZATIONS_PRIV",
+          "description": "Allows viewing of external organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Geography Information",
+          "code": "HZ_VIEW_GEOGRAPHY_INFORMATION_PRIV",
+          "description": "",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Organization Contacts",
+          "code": "HER_VIEW_ORGANIZATION_CONTACTS_PRIV",
+          "description": "Allows viewing of organization contacts.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Organization Identifiers",
+          "code": "HER_VIEW_ORGANIZATION_IDENTIFIERS_PRIV",
+          "description": "Allows viewing of organization identifiers.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Organization Locations",
+          "code": "HER_VIEW_ORGANIZATION_LOCATIONS_PRIV",
+          "description": "Allows viewing of organization locations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Person Test",
+          "code": "HEY_VIEW_PERSON_TEST_PRIV",
+          "description": "Allows viewing of tests selected by a person for individual processes.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Self-Service Communications",
+          "code": "HEY_VIEW_SELF_SERVICE_COMMUNICATIONS_PRIV",
+          "description": "Allows viewing of communications in self-service.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Home Page Setups",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+          "description": "Allows viewing of Student Management home page setups.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Queries",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_QUERIES_PRIV",
+          "description": "Allows viewing of student management queries.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Query Consumers",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_QUERY_CONSUMERS_PRIV",
+          "description": "Allows viewing of all consumers of student management queries.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Rules",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_RULES_PRIV",
+          "description": "Allows viewing of student management rules.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Settings",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_SETTINGS_PRIV",
+          "description": "Allows viewing of Student Management settings.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Official Residency",
+          "code": "HEY_VIEW_STUDENT_OFFICIAL_RESIDENCY_PRIV",
+          "description": "Allows viewing of student official residencies.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Official Residency Comment",
+          "code": "HEY_VIEW_STUDENT_OFFICIAL_RESIDENCY_COMMENT_PRIV",
+          "description": "Allows viewing of student official residency comments.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View System Offices",
+          "code": "HER_VIEW_SYSTEM_OFFICES_PRIV",
+          "description": "Allows viewing of system offices.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Trading Community Location",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_LOCATION_PRIV",
+          "description": "Allows the invocation of location web services.",
+          "inheritedFrom": "Academic Coordinator"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 61,
+        "directPrivileges": 61,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Academic Coordinator\" (ORA_HER_ACADEMIC_COORDINATOR_JOB) with 61 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "34 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Academic Coordinator\" with 61 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792666158598
+  },
+  "role_privileges:ora_her_academic_coordinator_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Academic Coordinator",
+      "roleCode": "ORA_HER_ACADEMIC_COORDINATOR_JOB",
+      "role": {
+        "name": "Academic Coordinator",
+        "code": "ORA_HER_ACADEMIC_COORDINATOR_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "(OBSOLETE) - Manage Student Management Queries",
+          "code": "HEY_MANAGE_STUDENT_MANAGEMENT_DATA_QUERIES_PRIV",
+          "description": "Allows creating, editing, and viewing student management queries and viewing query results.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) Manage Student Management Calendars",
+          "code": "HEY_MANAGE_STUDENT_MANAGEMENT_CALENDARS_PRIV",
+          "description": "Allows managing of student management calendars.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) Manage Student Management Rule Test Cases",
+          "code": "HEY_MANAGE_RULE_TEST_CASES_PRIV",
+          "description": "Allows management of rule test cases.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) View All Task and Checklist Assignments",
+          "code": "HEY_VIEW_ALL_TASK_CHECKLIST_ASSIGNMENTS_PRIV",
+          "description": "Allows viewing of all task and checklist assignments.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "(OBSOLETE) View Student Management Calendars",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_CALENDARS_PRIV",
+          "description": "Allows viewing of student management calendars.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Administer User Registration",
+          "code": "HEY_ADMINISTER_USER_REGISTRATION_PRIV",
+          "description": "Allows administration of user registrations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Apply Manual Discount",
+          "code": "HES_APPLY_MANUAL_DISCOUNT_PRIV",
+          "description": "Allows an administrator to manually apply a discount to an account.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Assign Person Tags",
+          "code": "HEY_ASSIGN_PERSON_TAGS_PRIV",
+          "description": "Allows assignment of person tags.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Create Organization Record",
+          "code": "HEY_CREATE_ORGANIZATION_RECORD_PRIV",
+          "description": "Allows creation of an organization record.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Credentials",
+          "code": "HER_MAINTAIN_ACADEMIC_CREDENTIALS_PRIV",
+          "description": "Set up and maintain academic credentials.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Hierarchy",
+          "code": "HER_MAINTAIN_ACADEMIC_HIERARCHY_PRIV",
+          "description": "Set up and maintain hierarchies of academic organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Institution",
+          "code": "HER_MAINTAIN_ACADEMIC_INSTITUTIONS_PRIV",
+          "description": "Set up and maintain academic institutions.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Organization",
+          "code": "HER_MAINTAIN_ACADEMIC_ORGANIZATIONS_PRIV",
+          "description": "Set up and maintain academic organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Period Sequences",
+          "code": "HER_MAINTAIN_ACADEMIC_PERIOD_SEQUENCES_PRIV",
+          "description": "Allows maintenance of academic period sequences.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Periods",
+          "code": "HER_MAINTAIN_ACADEMIC_PERIODS_PRIV",
+          "description": "Set up and maintain academic periods.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Academic Staff",
+          "code": "HER_MAINTAIN_ACADEMIC_STAFF_PRIV",
+          "description": "Define assignment attributes for academic staff.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Curriculum Configuration",
+          "code": "HER_MAINTAIN_CURRICULUM_CONFIGURATION_PRIV",
+          "description": "Set up and maintain curriculum configuration.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Facilities",
+          "code": "HER_MAINTAIN_FACILITIES_PRIV",
+          "description": "Set up and maintain facilities used in section scheduling.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Institution Settings",
+          "code": "HER_MAINTAIN_INSTITUTION_SETTINGS_PRIV",
+          "description": "Set up and maintain institution settings.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Organization Contacts",
+          "code": "HEY_MAINTAIN_ORGANIZATION_CONTACTS_PRIV",
+          "description": "Allows maintenance of organization contacts.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Organization Locations",
+          "code": "HEY_MAINTAIN_ORGANIZATION_LOCATIONS_PRIV",
+          "description": "Allows maintenance of organization location.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Population Selection Settings",
+          "code": "HEY_MAINTAIN_POPULATION_SELECTION_SETTINGS_PRIV",
+          "description": "Allows configuration of scheduled processes that use population selection.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Maintain Result Sets",
+          "code": "HER_MAINTAIN_RESULT_SETS_PRIV",
+          "description": "Set up and maintain grading result sets.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Academic Campuses",
+          "code": "HER_MANAGE_CAMPUSES_PRIV",
+          "description": "Allows management of academic campuses.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Academic Levels",
+          "code": "HER_MANAGE_ACADEMIC_LEVELS_PRIV",
+          "description": "Allows management of academic levels.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Academic Subjects",
+          "code": "HER_MANAGE_ACADEMIC_SUBJECTS_PRIV",
+          "description": "Allows management of academic subjects.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Communications",
+          "code": "HEY_MANAGE_COMMUNICATIONS_PRIV",
+          "description": "Allows management of student management communications.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage External Organizations",
+          "code": "HER_MANAGE_EXTERNAL_ORGANIZATIONS_PRIV",
+          "description": "Allows management of external organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Organization Contacts",
+          "code": "HER_MANAGE_ORGANIZATION_CONTACTS_PRIV",
+          "description": "Allows management of organization contacts.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Organization Identifiers",
+          "code": "HER_MANAGE_ORGANIZATION_IDENTIFIERS_PRIV",
+          "description": "Allows management of organization identifiers.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage Organization Locations",
+          "code": "HER_MANAGE_ORGANIZATION_LOCATIONS_PRIV",
+          "description": "Allows management of organization locations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Manage System Offices",
+          "code": "HER_MANAGE_SYSTEM_OFFICES_PRIV",
+          "description": "Allows management of system offices.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Run Student Management Queries",
+          "code": "HEY_RUN_STUDENT_MANAGEMENT_QUERIES_PRIV",
+          "description": "Allows running student management queries and viewing query results.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Run Student Management Rule Test Cases",
+          "code": "HEY_RUN_STUDENT_MANAGEMENT_RULES_PRIV",
+          "description": "Allows rule test cases to be run.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Search Person Profile",
+          "code": "HEY_SEARCH_PERSON_PROFILE_PRIV",
+          "description": "Allows searching for an existing person profile in student management.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Search for Organization Record",
+          "code": "HEY_SEARCH_ORGANIZATION_RECORD_PRIV",
+          "description": "Allows searching for an organization record.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Update Task and Checklist Assignments",
+          "code": "HEY_UPDATE_TASK_AND_CHECKLIST_ASSIGNMENTS_PRIV",
+          "description": "Allows updating of assigned tasks and checklists statuses.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "Use Population Selection Process Parameters",
+          "code": "HEY_USE_POPULATION_SELECTION_PARAMETERS_PRIV",
+          "description": "Allows using population selection parameters in a scheduled process.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Campuses",
+          "code": "HER_VIEW_CAMPUSES_PRIV",
+          "description": "Allows viewing of academic campuses.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Institution",
+          "code": "HER_VIEW_ACADEMIC_INSTITUTIONS_PRIV",
+          "description": "View academic institutions.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Levels",
+          "code": "HER_VIEW_ACADEMIC_LEVELS_PRIV",
+          "description": "Allows viewing of academic levels.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Organization",
+          "code": "HER_VIEW_ACADEMIC_ORGANIZATIONS_PRIV",
+          "description": "View academic organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Academic Subjects",
+          "code": "HER_VIEW_ACADEMIC_SUBJECTS_PRIV",
+          "description": "Allows viewing of academic subjects.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Communication Send Profiles",
+          "code": "HEY_VIEW_COMMUNICATION_SEND_PROFILE_PRIV",
+          "description": "Allows viewing of student management communication send profiles.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Data Registry",
+          "code": "HEY_VIEW_DATA_REGISTRY_PRIV",
+          "description": "Allows viewing of student management data registry.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View External Organizations",
+          "code": "HER_VIEW_EXTERNAL_ORGANIZATIONS_PRIV",
+          "description": "Allows viewing of external organizations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Geography Information",
+          "code": "HZ_VIEW_GEOGRAPHY_INFORMATION_PRIV",
+          "description": "",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Organization Contacts",
+          "code": "HER_VIEW_ORGANIZATION_CONTACTS_PRIV",
+          "description": "Allows viewing of organization contacts.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Organization Identifiers",
+          "code": "HER_VIEW_ORGANIZATION_IDENTIFIERS_PRIV",
+          "description": "Allows viewing of organization identifiers.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Organization Locations",
+          "code": "HER_VIEW_ORGANIZATION_LOCATIONS_PRIV",
+          "description": "Allows viewing of organization locations.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Person Test",
+          "code": "HEY_VIEW_PERSON_TEST_PRIV",
+          "description": "Allows viewing of tests selected by a person for individual processes.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Self-Service Communications",
+          "code": "HEY_VIEW_SELF_SERVICE_COMMUNICATIONS_PRIV",
+          "description": "Allows viewing of communications in self-service.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Home Page Setups",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+          "description": "Allows viewing of Student Management home page setups.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Queries",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_QUERIES_PRIV",
+          "description": "Allows viewing of student management queries.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Query Consumers",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_QUERY_CONSUMERS_PRIV",
+          "description": "Allows viewing of all consumers of student management queries.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Rules",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_RULES_PRIV",
+          "description": "Allows viewing of student management rules.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Management Settings",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_SETTINGS_PRIV",
+          "description": "Allows viewing of Student Management settings.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Official Residency",
+          "code": "HEY_VIEW_STUDENT_OFFICIAL_RESIDENCY_PRIV",
+          "description": "Allows viewing of student official residencies.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Student Official Residency Comment",
+          "code": "HEY_VIEW_STUDENT_OFFICIAL_RESIDENCY_COMMENT_PRIV",
+          "description": "Allows viewing of student official residency comments.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View System Offices",
+          "code": "HER_VIEW_SYSTEM_OFFICES_PRIV",
+          "description": "Allows viewing of system offices.",
+          "inheritedFrom": "Academic Coordinator"
+        },
+        {
+          "name": "View Trading Community Location",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_LOCATION_PRIV",
+          "description": "Allows the invocation of location web services.",
+          "inheritedFrom": "Academic Coordinator"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 61,
+        "directPrivileges": 61,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Academic Coordinator\" (ORA_HER_ACADEMIC_COORDINATOR_JOB) with 61 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "34 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Academic Coordinator\" with 61 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792666158630
   }
 }

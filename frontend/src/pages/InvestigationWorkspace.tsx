@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { TableExportControl } from '../components/TableExportControl';
+import { TableLoadingState } from '../components/TableLoadingState';
 
 // Global in-memory cache of user profiles to prevent repeated or N+1 lookups
 const globalUserLookupCache: Record<string, { id?: string; userName?: string; displayName?: string; active?: boolean }> = {};
@@ -58,6 +59,8 @@ export default function InvestigationWorkspace({
   onNavigateToPage,
   environmentMode 
 }: InvestigationWorkspaceProps) {
+  const isRole = entity.type === 'role';
+
   // Tabs based on entity type
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'MEMBERS' | 'ROLES' | 'HIERARCHY' | 'PRIVILEGES' | 'AUDIT'>('OVERVIEW');
   const [highlightedRoleCode, setHighlightedRoleCode] = useState<string | null>(null);
@@ -256,12 +259,24 @@ export default function InvestigationWorkspace({
     }
 
     loadWorkspaceData();
-    setActiveTab((entity as any).initialTab || 'OVERVIEW');
+    const initTab = (entity as any).initialTab;
+    if (!isRole && (initTab === 'PRIVILEGES' || initTab === 'AUDIT' || initTab === 'MEMBERS' || initTab === 'HIERARCHY')) {
+      setActiveTab('OVERVIEW');
+    } else {
+      setActiveTab(initTab || 'OVERVIEW');
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [entity, environmentMode]);
+  }, [entity, environmentMode, isRole]);
+
+  // Ensure activeTab is always valid for user entities
+  useEffect(() => {
+    if (!isRole && (activeTab === 'PRIVILEGES' || activeTab === 'AUDIT' || activeTab === 'MEMBERS' || activeTab === 'HIERARCHY')) {
+      setActiveTab('OVERVIEW');
+    }
+  }, [isRole, activeTab]);
 
   // Lazy-load audit logs only when the user navigates to the AUDIT tab (Non-blocking)
   useEffect(() => {
@@ -358,7 +373,6 @@ export default function InvestigationWorkspace({
   };
 
   // Determine categories
-  const isRole = entity.type === 'role';
   const roleCategory = data?.category || 'Job';
 
   // Memoized Functional Privileges filtering & pagination (Must precede any conditional early returns)
@@ -724,12 +738,12 @@ export default function InvestigationWorkspace({
               label: isRole 
                 ? `Privileges Matrix (${privilegeLoading ? '...' : (privilegeData?.privileges?.length || hierarchyData?.privileges?.length || 0)})`
                 : 'Privileges Matrix', 
-              show: true 
+              show: isRole 
             },
             { 
               id: 'AUDIT', 
               label: `Audit Timeline ${auditLoading ? '(Loading...)' : auditData.length > 0 ? `(${auditData.length})` : ''}`, 
-              show: !isRole 
+              show: false 
             }
           ].map(tab => {
             if (!tab.show) return null;
@@ -1151,20 +1165,22 @@ export default function InvestigationWorkspace({
                         );
                       })
                     ) : (
-                      <tr>
-                        <td colSpan={3} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                          {membersLoading 
-                            ? (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <RefreshCw size={16} className="animate-spin" style={{ color: 'var(--accent-blue)' }} />
-                                <span>Resolving assigned members from Oracle Fusion...</span>
-                              </div>
-                            )
-                            : membersSearch 
+                      membersLoading ? (
+                        <TableLoadingState
+                          colSpan={3}
+                          title="Resolving Assigned Members from Oracle Fusion..."
+                          subtitle="Querying role membership hierarchy and identity accounts..."
+                          skeletonRows={3}
+                        />
+                      ) : (
+                        <tr>
+                          <td colSpan={3} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                            {membersSearch 
                               ? `No members match the search query "${membersSearch}".` 
                               : 'No members assigned directly to this role.'}
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
+                      )
                     )}
                   </tbody>
                 </table>
@@ -1380,7 +1396,7 @@ export default function InvestigationWorkspace({
           )}
 
           {/* Tab 5: Privileges Matrix */}
-          {activeTab === 'PRIVILEGES' && (
+          {activeTab === 'PRIVILEGES' && isRole && (
             <div>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -1614,15 +1630,22 @@ export default function InvestigationWorkspace({
                               );
                             })
                           ) : (
-                            <tr>
-                              <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                                {privilegeLoading 
-                                  ? 'Extracting functional privileges from Oracle Fusion...'
-                                  : privilegeSearch 
+                            privilegeLoading ? (
+                              <TableLoadingState
+                                colSpan={4}
+                                title="Extracting Functional Privileges from Oracle Fusion..."
+                                subtitle="Querying permissions from security database role hierarchy..."
+                                skeletonRows={4}
+                              />
+                            ) : (
+                              <tr>
+                                <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                                  {privilegeSearch 
                                     ? `No privileges match the search query "${privilegeSearch}".`
                                     : 'No privileges mapped to this role.'}
-                              </td>
-                            </tr>
+                                </td>
+                              </tr>
+                            )
                           )
                         ) : (
                           // User identity fallback (retains standard view)
@@ -1730,7 +1753,7 @@ export default function InvestigationWorkspace({
           )}
 
           {/* Tab 6: Audit History */}
-          {activeTab === 'AUDIT' && !isRole && (
+          {activeTab === 'AUDIT' && false && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Security Configuration Logs</h3>

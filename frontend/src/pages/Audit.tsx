@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { TableExportControl } from '../components/TableExportControl';
+import { TableLoadingState } from '../components/TableLoadingState';
 
 interface AuditProductBO {
   id: string;
@@ -1083,19 +1084,12 @@ export default function Audit({
           <tbody>
             {/* Loading State */}
             {isSearching ? (
-              <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                    <RefreshCw size={26} className="animate-spin" style={{ color: 'var(--accent-blue)' }} />
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                      Retrieving audit history from Oracle Fusion...
-                    </span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Querying live audit trail logs within the selected scope.
-                    </span>
-                  </div>
-                </td>
-              </tr>
+              <TableLoadingState
+                title="Retrieving Audit History from Oracle Fusion..."
+                subtitle="Querying live audit trail logs within the selected scope"
+                colSpan={10}
+                skeletonRows={4}
+              />
             ) : !hasSearched ? (
               /* Before Search Empty State */
               <tr>

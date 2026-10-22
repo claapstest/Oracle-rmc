@@ -41,6 +41,7 @@ import {
   formatControlTypeName, 
   formatSecondaryTypeBadge 
 } from '../utils/controlTypeMapping';
+import { ContentLoadingState, TableLoadingState } from './TableLoadingState';
 
 export interface AdvancedControlRecord {
   id: string;
@@ -2097,25 +2098,14 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       {/* Detail Modal / Screen Override */}
       {selectedControlId ? (
         <div className="animate-fade-in">
-          {/* Detail View Header Bar */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Endpoint: <code>/fscmRestApi/resources/11.13.18.05/advancedControls/{selectedControlId}</code>
-            </div>
-          </div>
 
           {/* Loading State */}
           {detailLoading && (
-            <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div className="animate-spin" style={{ display: 'inline-block', marginBottom: '1rem', color: 'var(--accent-gold)' }}>
-                <RefreshCw size={36} />
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                Loading control details...
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
-                Querying continuous monitoring incidents and configuration from Oracle Fusion...
-              </p>
+            <div className="glass-panel" style={{ padding: '2rem 1.5rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+              <ContentLoadingState
+                title="Loading Control Details..."
+                subtitle="Querying continuous monitoring incidents and configuration from Oracle Fusion..."
+              />
             </div>
           )}
 
@@ -2484,14 +2474,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                 {/* Initial Loading State */}
                 {incidentsLoading && incidentsList.length === 0 && (
-                  <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
-                    <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }} />
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                      Retrieving first {incidentPageSize} incidents from Oracle Fusion...
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Querying endpoint with offset={(incidentPage - 1) * incidentPageSize}&limit={incidentPageSize}
-                    </div>
+                  <div style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
+                    <ContentLoadingState
+                      title={`Retrieving first ${incidentPageSize} incidents from Oracle Fusion...`}
+                      subtitle={`Querying endpoint with offset=${(incidentPage - 1) * incidentPageSize}&limit=${incidentPageSize}`}
+                    />
                   </div>
                 )}
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { exportToExcel } from '../utils/excelExport';
+import { TableLoadingState } from '../components/TableLoadingState';
 
 interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
@@ -839,14 +840,12 @@ export default function AccessCertificates({
               </thead>
               <tbody>
                 {loadingDetails ? (
-                  <tr>
-                    <td colSpan={WORKSHEET_COLUMNS.length + 1} style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                        <RefreshCw size={24} className="animate-spin" style={{ color: '#2563EB' }} />
-                        <span style={{ fontWeight: 600 }}>Loading certification details...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <TableLoadingState
+                    title="Loading Certifier Worksheet from Oracle Fusion..."
+                    subtitle="Retrieving user access details and assignment actions"
+                    colSpan={WORKSHEET_COLUMNS.length + 1}
+                    skeletonRows={4}
+                  />
                 ) : paginatedWorksheetRows.length === 0 ? (
                   <tr>
                     <td colSpan={WORKSHEET_COLUMNS.length + 1} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
@@ -1039,35 +1038,6 @@ export default function AccessCertificates({
             />
             <span>Live Oracle Fusion BIP</span>
           </div>
-
-          <button
-            type="button"
-            onClick={() => fetchCertifications(true)}
-            disabled={loading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.45rem 1.05rem',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              borderRadius: '9999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.16)',
-              border: '1px solid rgba(255, 255, 255, 0.28)',
-              color: '#ffffff',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.26)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
-            }}
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
 
@@ -1287,14 +1257,12 @@ export default function AccessCertificates({
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                      <RefreshCw size={24} className="animate-spin" style={{ color: '#2563EB' }} />
-                      <span style={{ fontWeight: 600 }}>Loading Access Certifications from Oracle Fusion...</span>
-                    </div>
-                  </td>
-                </tr>
+                <TableLoadingState
+                  title="Loading Access Certifications from Oracle Fusion..."
+                  subtitle="Retrieving active certifications and compliance schedules"
+                  colSpan={8}
+                  skeletonRows={4}
+                />
               ) : paginatedCertifications.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
@@ -1326,51 +1294,25 @@ export default function AccessCertificates({
                     >
                       <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#334155' }}>{rowNum}</td>
                       <td style={{ padding: '0.9rem 1rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                          <button
-                            type="button"
-                            onClick={() => openCertificationDrillDown(item)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              padding: 0,
-                              margin: 0,
-                              textAlign: 'left',
-                              fontWeight: 700,
-                              fontSize: '0.88rem',
-                              color: '#1D4ED8',
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-                          >
-                            {certName}
-                          </button>
-                          {certId && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              <button
-                                type="button"
-                                onClick={() => openCertificationDrillDown(item)}
-                                title="Open certification drill-down"
-                                style={{
-                                  display: 'inline-block',
-                                  padding: '0.1rem 0.45rem',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  backgroundColor: '#EFF6FF',
-                                  color: '#2563EB',
-                                  borderRadius: '4px',
-                                  border: '1px solid #DBEAFE',
-                                  cursor: 'pointer'
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-                              >
-                                ID: {certId}
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openCertificationDrillDown(item)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            margin: 0,
+                            textAlign: 'left',
+                            fontWeight: 700,
+                            fontSize: '0.88rem',
+                            color: '#1D4ED8',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                        >
+                          {certName}
+                        </button>
                       </td>
                       <td style={{ padding: '0.9rem 1rem', color: '#334155' }}>{item.type || 'Standard'}</td>
                       <td style={{ padding: '0.9rem 1rem' }}>

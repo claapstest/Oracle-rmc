@@ -511,7 +511,7 @@ export class ControlRawDbService {
     if (statusKey && statusKey !== 'ALL') {
       const lc = this.lifecycleCondition('el');
       if (statusKey === 'ACCEPTED') conds.push(`(${lc.accepted})`);
-      else if (statusKey === 'REMEDIATE' || statusKey === 'IN_REMEDIATION') conds.push(`(${lc.remediate})`);
+      else if (statusKey === 'REMEDIATE' || statusKey === 'IN_REMEDIATION' || statusKey === 'REMEDIATION') conds.push(`(${lc.remediate})`);
       else if (statusKey === 'RESOLVED' || statusKey === 'CLOSED') conds.push(`(${lc.resolved})`);
       else if (statusKey === 'ASSIGNED') conds.push(`(NOT (${lc.accepted} OR ${lc.remediate} OR ${lc.resolved}))`);
       else {
@@ -521,11 +521,17 @@ export class ControlRawDbService {
       }
     }
 
-    const stateKey = (options.state || 'ALL').trim();
-    if (stateKey && stateKey.toUpperCase() !== 'ALL') {
-      conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) = UPPER($${p}))`);
-      params.push(stateKey);
-      p++;
+    const stateKey = (options.state || 'ALL').trim().toUpperCase();
+    if (stateKey && stateKey !== 'ALL') {
+      if (stateKey === 'APPROVED') {
+        conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) LIKE '%APPROV%')`);
+      } else if (stateKey === 'IN_INVESTIGATION' || stateKey === 'INVESTIGATION') {
+        conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) LIKE '%INVESTIGAT%')`);
+      } else {
+        conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) = $${p})`);
+        params.push(stateKey);
+        p++;
+      }
     }
 
     const q = (options.search || '').trim().toLowerCase();

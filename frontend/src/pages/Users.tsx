@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
+import { TableLoadingState } from '../components/TableLoadingState';
 
 interface UsersProps {
   initialFilter?: string;
@@ -546,10 +547,17 @@ export default function Users({
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length === 0 ? (
+              {loading && filteredUsers.length === 0 ? (
+                <TableLoadingState
+                  title="Searching Oracle Fusion User Directory..."
+                  subtitle="Retrieving user profiles, active statuses, and assigned roles"
+                  colSpan={16}
+                  skeletonRows={4}
+                />
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={16} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                    {loading ? 'Searching users directory...' : 'No security users match the filter criteria.'}
+                    No security users match the filter criteria.
                   </td>
                 </tr>
               ) : (

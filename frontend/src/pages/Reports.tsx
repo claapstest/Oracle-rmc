@@ -42,6 +42,7 @@ import { api } from '../services/api';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { ReportSelectorDropdown } from '../components/ReportSelectorDropdown';
 import ReportsList from '../components/ReportsList';
+import { TableLoadingState, ContentLoadingState } from '../components/TableLoadingState';
 import { formatControlTypeName, isAccessControl, isTransactionControl } from '../utils/controlTypeMapping';
 
 interface ReportsProps {
@@ -157,6 +158,46 @@ function getEventBadgeClass(event?: string): string {
   if (e.includes('INSERT') || e.includes('CREATE') || e.includes('ASSIGN') || e.includes('ADD')) return 'badge-active';
   if (e.includes('UPDATE') || e.includes('MODIFY')) return 'badge-gold';
   return 'badge-secondary';
+}
+
+export function getIncidentLifecycleCategory(item: any): 'ASSIGNED' | 'IN_REMEDIATION' | 'ACCEPTED' | 'RESOLVED' {
+  if (!item) return 'ASSIGNED';
+  const st = String(item.status || '').trim().toUpperCase();
+  const se = String(item.state || item.stateCode || '').trim().toUpperCase();
+  const hasClosedDate = Boolean(item.closedDate && item.closedDate !== 'Not available');
+
+  if (st.includes('ACCEPT') || se.includes('ACCEPT')) {
+    return 'ACCEPTED';
+  }
+  if (st.includes('REMEDIAT') || se.includes('REMEDIAT')) {
+    return 'IN_REMEDIATION';
+  }
+  if (st.includes('RESOLV') || st.includes('CLOSE') || se.includes('RESOLV') || se.includes('CLOSE') || hasClosedDate) {
+    return 'RESOLVED';
+  }
+  return 'ASSIGNED';
+}
+
+export function matchesIncidentLifecycleStatus(item: any, filter: string): boolean {
+  if (!filter || filter === 'ALL') return true;
+  const cat = getIncidentLifecycleCategory(item);
+  const f = filter.trim().toUpperCase();
+  if (f === 'ASSIGNED') return cat === 'ASSIGNED';
+  if (f === 'IN_REMEDIATION' || f === 'REMEDIATION' || f === 'REMEDIATE') return cat === 'IN_REMEDIATION';
+  if (f === 'ACCEPTED') return cat === 'ACCEPTED';
+  if (f === 'RESOLVED' || f === 'CLOSED') return cat === 'RESOLVED';
+  return cat === f || String(item.status || '').toUpperCase() === f;
+}
+
+export function matchesIncidentLifecycleState(item: any, filter: string): boolean {
+  if (!filter || filter === 'ALL') return true;
+  const se = String(item.state || item.stateCode || '').trim().toUpperCase();
+  const f = filter.trim().toUpperCase();
+  if (f === 'IN_INVESTIGATION' || f === 'INVESTIGATION') return se.includes('INVESTIGAT') || se === 'IN_INVESTIGATION';
+  if (f === 'APPROVED') return se.includes('APPROV') || se === 'APPROVED';
+  if (f === 'ACCEPTED') return se.includes('ACCEPT') || se === 'ACCEPTED';
+  if (f === 'CLOSED') return se.includes('CLOSE') || se === 'CLOSED';
+  return se === f;
 }
 
 export default function Reports({
@@ -475,19 +516,33 @@ export default function Reports({
   // Loader 2: Incidents Detailed Report (Operational & Live)
   // In ALL-controls mode the backend pages/filters server-side (60K+ rows);
   // single-control mode keeps the existing full-download + client filtering.
-  const loadRiskIncidents = async (controlId = selectedIncidentsControlId, forceRefresh = false, pageOverride?: number, limitOverride?: number) => {
+  const loadRiskIncidents = async (
+    controlId = selectedIncidentsControlId,
+    forceRefresh = false,
+    pageOverride?: number,
+    limitOverride?: number,
+    searchOverride?: string,
+    statusOverride?: string,
+    stateOverride?: string
+  ) => {
     setIncidentsLoading(true);
     setIncidentsError('');
     try {
       const serverMode = (controlId || '') === 'ALL';
+      const effSearch = searchOverride !== undefined ? searchOverride : incidentsSearch;
+      const effStatus = statusOverride !== undefined ? statusOverride : incidentsStatusFilter;
+      const effState = stateOverride !== undefined ? stateOverride : incidentsStateFilter;
+      const effPage = pageOverride ?? currentPage;
+      const effLimit = limitOverride ?? pageSize;
+
       const res = await api.getRiskIncidents({
         controlId,
         refresh: forceRefresh,
-        page: serverMode ? (pageOverride ?? currentPage) : undefined,
-        limit: serverMode ? (limitOverride ?? pageSize) : undefined,
-        search: serverMode ? incidentsSearch : undefined,
-        status: serverMode ? incidentsStatusFilter : undefined,
-        state: serverMode ? incidentsStateFilter : undefined
+        page: serverMode ? effPage : undefined,
+        limit: serverMode ? effLimit : undefined,
+        search: serverMode ? effSearch : undefined,
+        status: serverMode ? effStatus : undefined,
+        state: serverMode ? effState : undefined
       });
       if (res && res.success) {
         setIncidentsData(res.items || []);
@@ -942,13 +997,11 @@ export default function Reports({
   const renderHierarchyTreeContent = (isModal = false) => {
     if (rhTreeLoading) {
       return (
-        <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <RefreshCw size={30} className="animate-spin" style={{ margin: '0 auto 0.75rem auto', color: 'var(--accent-blue)' }} />
-          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Loading Role Hierarchy Tree...</div>
-          <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>
-            Tracing Job ➔ Duty ➔ Privileges relationships from Oracle Fusion
-          </div>
-        </div>
+        <ContentLoadingState
+          title="Loading Role Hierarchy Tree..."
+          subtitle="Tracing Job ➔ Duty ➔ Privileges relationships from Oracle Fusion"
+          minHeight="280px"
+        />
       );
     }
 
@@ -1157,33 +1210,25 @@ export default function Reports({
   }, [activeReportId]);
 
   // Server-mode incidents paging: shared pager drives backend page fetches.
-  // Skips the first load (covered by the initial loader) and loads triggered
-  // directly with an explicit page (guarded via incidentsPageReloadGuard).
   useEffect(() => {
     if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
-    if (incidentsData.length === 0) return;
     if (incidentsPageReloadGuard.current) {
       incidentsPageReloadGuard.current = false;
       return;
     }
-    loadRiskIncidents('ALL', false, currentPage, pageSize);
+    loadRiskIncidents('ALL', false, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize]);
 
-  // Server-mode incidents search/filters (debounced): reset to page 1 and refetch.
+  // Server-mode incidents search (debounced): reset to page 1 and refetch.
   useEffect(() => {
     if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
-    if (incidentsData.length === 0 && incidentsServerTotal === 0) return;
     const t = setTimeout(() => {
-      if (currentPage !== 1) {
-        incidentsPageReloadGuard.current = true;
-        setCurrentPage(1);
-      }
-      loadRiskIncidents('ALL', false, 1, pageSize);
+      loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter);
     }, 450);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
+  }, [incidentsSearch]);
 
   // Load role tree when tree view mode is active
   useEffect(() => {
@@ -1258,8 +1303,6 @@ export default function Reports({
 
   // 2. Incidents Detailed Filtered
   const filteredIncidents = useMemo(() => {
-    // ALL-controls mode is already filtered + paged server-side.
-    if (selectedIncidentsControlId === 'ALL') return incidentsData;
     return incidentsData.filter(item => {
       const q = incidentsSearch.toLowerCase().trim();
       const matchesSearch = !q ||
@@ -1272,11 +1315,8 @@ export default function Reports({
         (item.role && item.role.toLowerCase().includes(q)) ||
         (item.incidentInformation && item.incidentInformation.toLowerCase().includes(q));
 
-      const matchesStatus = incidentsStatusFilter === 'ALL' ||
-        (item.status && item.status.toUpperCase() === incidentsStatusFilter.toUpperCase());
-
-      const matchesState = incidentsStateFilter === 'ALL' ||
-        (item.state && item.state.toUpperCase() === incidentsStateFilter.toUpperCase());
+      const matchesStatus = matchesIncidentLifecycleStatus(item, incidentsStatusFilter);
+      const matchesState = matchesIncidentLifecycleState(item, incidentsStateFilter);
 
       return matchesSearch && matchesStatus && matchesState;
     });
@@ -1483,10 +1523,10 @@ export default function Reports({
   const totalRows = isIncidentsServerPaging ? incidentsServerTotal : currentDataset.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const paginatedSlice = useMemo(() => {
-    if (isIncidentsServerPaging) return incidentsData;
+    if (isIncidentsServerPaging) return filteredIncidents;
     const start = (currentPage - 1) * pageSize;
     return currentDataset.slice(start, start + pageSize);
-  }, [currentDataset, currentPage, pageSize, isIncidentsServerPaging, incidentsData]);
+  }, [currentDataset, currentPage, pageSize, isIncidentsServerPaging, filteredIncidents]);
 
   const activeMeta = activeReportId ? REPORT_DEFINITIONS.find(r => r.id === activeReportId) : undefined;
 
@@ -1516,7 +1556,10 @@ export default function Reports({
     const list: { label: string; value: string }[] = [];
     list.push({ label: 'Control ID', value: selectedIncidentsControlId });
     if (incidentsSearch) list.push({ label: 'Search', value: `"${incidentsSearch}"` });
-    if (incidentsStatusFilter !== 'ALL') list.push({ label: 'Status', value: incidentsStatusFilter });
+    if (incidentsStatusFilter !== 'ALL') {
+      const displayStatus = incidentsStatusFilter === 'IN_REMEDIATION' ? 'In Remediation' : incidentsStatusFilter === 'RESOLVED' ? 'Closed / Resolved' : incidentsStatusFilter === 'ACCEPTED' ? 'Accepted' : incidentsStatusFilter === 'ASSIGNED' ? 'Assigned' : incidentsStatusFilter;
+      list.push({ label: 'Status', value: displayStatus });
+    }
     if (incidentsStateFilter !== 'ALL') list.push({ label: 'State', value: incidentsStateFilter });
     return list;
   }, [selectedIncidentsControlId, incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
@@ -1527,6 +1570,9 @@ export default function Reports({
     setIncidentsStatusFilter('ALL');
     setIncidentsStateFilter('ALL');
     setCurrentPage(1);
+    if (selectedIncidentsControlId === 'ALL') {
+      loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL');
+    }
   };
 
   // Active Filters for User Role Mapping
@@ -1552,6 +1598,18 @@ export default function Reports({
       return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not available</span>;
     }
     return String(val);
+  };
+
+  // Helper to resolve clean incident control name without raw ID prefix
+  const resolveIncidentControlName = (inc: any) => {
+    if (inc?.controlName && String(inc.controlName).trim()) return String(inc.controlName).trim();
+    const cid = String(inc?.controlId || '').trim();
+    if (cid === '11003') return '4079: Sensitive Human Resource Privileges';
+    const foundAvailable = availableIncidentControls.find((c: any) => String(c.id).trim() === cid);
+    if (foundAvailable?.name) return foundAvailable.name;
+    const foundCtrl = controlsData.find((c: any) => String(c.controlId || c.id).trim() === cid);
+    if (foundCtrl?.controlName || foundCtrl?.name) return foundCtrl.controlName || foundCtrl.name;
+    return cid ? `Control ${cid}` : '—';
   };
 
   // Helper to format Oracle timestamps safely
@@ -1719,19 +1777,6 @@ export default function Reports({
               </button>
             )}
 
-            {activeReportId === 'INCIDENTS_DETAILED' && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => loadRiskIncidents(selectedIncidentsControlId, true)}
-                disabled={incidentsLoading}
-                style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-                title="Refresh incident records from Oracle Fusion"
-              >
-                <RefreshCw size={13} className={incidentsLoading ? 'animate-spin' : ''} />
-                <span>{incidentsLoading ? 'Refreshing...' : 'Refresh'}</span>
-              </button>
-            )}
 
             {activeReportId === 'USER_ACCESS' && (
               <button
@@ -1798,9 +1843,8 @@ export default function Reports({
                 totalCount={incidentsData.length}
                 appliedFilters={incidentsActiveFilters}
                 availableColumns={[
-                  { key: 'id', label: 'Incident ID', defaultSelected: true },
-                  { key: 'controlId', label: 'Control ID', defaultSelected: true },
-                  { key: 'controlName', label: 'Control Name', defaultSelected: true, getValue: (i: any) => i.controlName || '—' },
+                  { key: 'id', label: 'Incident ID', defaultSelected: true, getValue: (i: any) => String(i.id || '').replace(/^#/, '') },
+                  { key: 'controlName', label: 'Control Name', defaultSelected: true, getValue: (i: any) => resolveIncidentControlName(i) },
                   { key: 'user', label: 'Global User', defaultSelected: true, getValue: (i: any) => i.globalUserName || (i.userFirstName ? `${i.userFirstName} ${i.userLastName || ''}` : 'Not available') },
                   { key: 'role', label: 'Role', defaultSelected: true, getValue: (i: any) => i.role || 'Not available' },
                   { key: 'priority', label: 'Priority', defaultSelected: true, getValue: (i: any) => i.priority !== undefined ? String(i.priority) : '—' },
@@ -1810,7 +1854,7 @@ export default function Reports({
                   { key: 'entitlement', label: 'Entitlement', defaultSelected: false, getValue: (i: any) => i.entitlement || 'Not available' },
                   { key: 'accessPointName', label: 'Access Point', defaultSelected: false, getValue: (i: any) => i.accessPointName || 'Not available' },
                   { key: 'accessPointType', label: 'Access Point Type', defaultSelected: false, getValue: (i: any) => i.accessPointType || 'Not available' },
-                  { key: 'creationDate', label: 'Creation Date', defaultSelected: true, getValue: (i: any) => i.creationDate ? new Date(i.creationDate).toLocaleString() : 'Not available' },
+                  { key: 'creationDate', label: 'Created Date', defaultSelected: true, getValue: (i: any) => i.creationDate ? new Date(i.creationDate).toLocaleString() : 'Not available' },
                   { key: 'closedDate', label: 'Closed Date', defaultSelected: false, getValue: (i: any) => i.closedDate ? new Date(i.closedDate).toLocaleString() : 'Not available' }
                 ]}
                 onFetchScopeData={async (scope) => {
@@ -2246,82 +2290,275 @@ export default function Reports({
         {/* -------------------------------------------------------------
             REPORT 2: INCIDENTS DETAILED (PART 3, 4, 5, 6)
             ------------------------------------------------------------- */}
-        {activeReportId === 'INCIDENTS_DETAILED' && (
-          <div>
-            {/* Top KPI Metrics Cards (Matches Risk.tsx Style) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              
-              {/* KPI 1: Total Incidents */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-gold)' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <FileText size={16} style={{ color: 'var(--accent-gold)' }} />
-                  Total Incidents
+        {activeReportId === 'INCIDENTS_DETAILED' && (() => {
+          const isTotalCardActive = incidentsStatusFilter === 'ALL';
+          const isAssignedCardActive = incidentsStatusFilter === 'ASSIGNED';
+          const isRemediationCardActive = incidentsStatusFilter === 'IN_REMEDIATION';
+          const isAcceptedCardActive = incidentsStatusFilter === 'ACCEPTED';
+          const isResolvedCardActive = incidentsStatusFilter === 'RESOLVED' || incidentsStatusFilter === 'CLOSED';
+
+          const handleIncidentKpiCardClick = (targetStatus: string) => {
+            const nextStatus = (incidentsStatusFilter === targetStatus && targetStatus !== 'ALL') ? 'ALL' : targetStatus;
+            setIncidentsStatusFilter(nextStatus);
+            setCurrentPage(1);
+            if (selectedIncidentsControlId === 'ALL') {
+              loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, nextStatus, incidentsStateFilter);
+            }
+          };
+
+          return (
+            <div>
+              {/* Top KPI Metrics Cards (Interactive Filter Cards) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                
+                {/* KPI 1: Total Incidents */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('ALL')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('ALL'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-gold)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isTotalCardActive
+                      ? '0 0 0 2px var(--accent-gold), 0 8px 20px rgba(234, 179, 8, 0.2)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isTotalCardActive ? 'rgba(234, 179, 8, 0.08)' : 'var(--bg-secondary)',
+                    transform: isTotalCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to view all incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <FileText size={16} style={{ color: 'var(--accent-gold)' }} />
+                      Total Incidents
+                    </div>
+                    {isTotalCardActive && (
+                      <span className="badge badge-gold" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Showing All
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {incidentsKpis.total !== undefined ? incidentsKpis.total.toLocaleString() : (incidentsLoading ? 'Calculating...' : 'Not available')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Authoritative continuous monitoring
+                  </div>
                 </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {incidentsKpis.total !== undefined ? incidentsKpis.total.toLocaleString() : (incidentsLoading ? 'Calculating...' : 'Not available')}
+
+                {/* KPI 2: Assigned Incidents */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('ASSIGNED')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('ASSIGNED'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-blue)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isAssignedCardActive
+                      ? '0 0 0 2px var(--accent-blue), 0 8px 20px rgba(37, 99, 235, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isAssignedCardActive ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-secondary)',
+                    transform: isAssignedCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by Assigned incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldAlert size={16} style={{ color: 'var(--accent-blue)' }} />
+                      Assigned
+                    </div>
+                    {isAssignedCardActive && (
+                      <span className="badge badge-primary" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.assigned || 0) > 0 ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                    {incidentsKpis.assigned !== undefined ? incidentsKpis.assigned.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Awaiting investigation
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Authoritative continuous monitoring
+
+                {/* KPI 3: In Remediation Incidents */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('IN_REMEDIATION')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('IN_REMEDIATION'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-red)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isRemediationCardActive
+                      ? '0 0 0 2px var(--accent-red), 0 8px 20px rgba(239, 68, 68, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isRemediationCardActive ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)',
+                    transform: isRemediationCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by In Remediation incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldAlert size={16} style={{ color: 'var(--accent-red)' }} />
+                      In Remediation
+                    </div>
+                    {isRemediationCardActive && (
+                      <span className="badge badge-danger" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.inRemediation || 0) > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
+                    {incidentsKpis.inRemediation !== undefined ? incidentsKpis.inRemediation.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Actively being remediated
+                  </div>
                 </div>
+
+                {/* KPI 4: Accepted */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('ACCEPTED')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('ACCEPTED'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid #F59E0B',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isAcceptedCardActive
+                      ? '0 0 0 2px #F59E0B, 0 8px 20px rgba(245, 158, 11, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isAcceptedCardActive ? 'rgba(245, 158, 11, 0.08)' : 'var(--bg-secondary)',
+                    transform: isAcceptedCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by Accepted Exceptions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <CheckCircle2 size={16} style={{ color: '#F59E0B' }} />
+                      Accepted Exceptions
+                    </div>
+                    {isAcceptedCardActive && (
+                      <span className="badge badge-gold" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {incidentsKpis.accepted !== undefined ? incidentsKpis.accepted.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Policy exception accepted
+                  </div>
+                </div>
+
+                {/* KPI 5: Closed / Resolved */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('RESOLVED')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('RESOLVED'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-green)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isResolvedCardActive
+                      ? '0 0 0 2px var(--accent-green), 0 8px 20px rgba(34, 197, 94, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isResolvedCardActive ? 'rgba(34, 197, 94, 0.08)' : 'var(--bg-secondary)',
+                    transform: isResolvedCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by Closed / Resolved incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldCheck size={16} style={{ color: 'var(--accent-green)' }} />
+                      Closed / Resolved
+                    </div>
+                    {isResolvedCardActive && (
+                      <span className="badge badge-active" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {incidentsKpis.closedOrResolved !== undefined ? incidentsKpis.closedOrResolved.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Remediated compliance records
+                  </div>
+                </div>
+
               </div>
 
-              {/* KPI 2: Assigned Incidents */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <ShieldAlert size={16} style={{ color: 'var(--accent-blue)' }} />
-                  Assigned
+              {/* Active Filter Linkage Bar */}
+              {incidentsStatusFilter !== 'ALL' && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 1rem',
+                  marginBottom: '1rem',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderLeft: `4px solid ${
+                    isAssignedCardActive ? 'var(--accent-blue)' :
+                    isRemediationCardActive ? 'var(--accent-red)' :
+                    isAcceptedCardActive ? '#F59E0B' :
+                    'var(--accent-green)'
+                  }`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Showing in table below:</span>
+                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                      {isAssignedCardActive ? 'Assigned Incidents' :
+                       isRemediationCardActive ? 'In Remediation Incidents' :
+                       isAcceptedCardActive ? 'Accepted Exceptions' :
+                       'Closed / Resolved Incidents'}
+                    </strong>
+                    <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
+                      {isIncidentsServerPaging ? `${incidentsServerTotal.toLocaleString()} records` : `${filteredIncidents.length.toLocaleString()} records`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleIncidentKpiCardClick('ALL')}
+                    style={{ fontSize: '0.76rem', padding: '0.25rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <RotateCcw size={12} />
+                    <span>Show All Incidents</span>
+                  </button>
                 </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.assigned || 0) > 0 ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
-                  {incidentsKpis.assigned !== undefined ? incidentsKpis.assigned.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Awaiting investigation
-                </div>
-              </div>
-
-              {/* KPI 3: In Remediation Incidents */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-red)' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <ShieldAlert size={16} style={{ color: 'var(--accent-red)' }} />
-                  In Remediation
-                </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.inRemediation || 0) > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
-                  {incidentsKpis.inRemediation !== undefined ? incidentsKpis.inRemediation.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Actively being remediated
-                </div>
-              </div>
-
-              {/* KPI 4: Accepted */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #F59E0B' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <CheckCircle2 size={16} style={{ color: '#F59E0B' }} />
-                  Accepted Exceptions
-                </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {incidentsKpis.accepted !== undefined ? incidentsKpis.accepted.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Policy exception accepted
-                </div>
-              </div>
-
-              {/* KPI 5: Closed / Resolved */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-green)' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <ShieldCheck size={16} style={{ color: 'var(--accent-green)' }} />
-                  Closed / Resolved
-                </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {incidentsKpis.closedOrResolved !== undefined ? incidentsKpis.closedOrResolved.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Remediated compliance records
-                </div>
-              </div>
-
-            </div>
+              )}
 
             {/* Sync Progress Banner if caching or syncing */}
             {incidentsSyncState.cacheStatus && incidentsSyncState.cacheStatus !== 'READY' && (
@@ -2372,7 +2609,7 @@ export default function Reports({
                   <option value="ALL">All Cached Controls</option>
                   {availableIncidentControls.map(c => (
                     <option key={c.id} value={c.id}>
-                      #{c.id} - {c.name ? c.name.substring(0, 32) : 'Control'}{c.incidentCount !== undefined ? ` (${c.incidentCount.toLocaleString()})` : ''}
+                      {c.id} - {c.name ? c.name.substring(0, 32) : 'Control'}{c.incidentCount !== undefined ? ` (${c.incidentCount.toLocaleString()})` : ''}
                     </option>
                   ))}
                   {/* Placeholder while the live control list loads */}
@@ -2399,27 +2636,55 @@ export default function Reports({
               <select
                 className="form-select"
                 value={incidentsStatusFilter}
-                onChange={(e) => { setIncidentsStatusFilter(e.target.value); setCurrentPage(1); }}
-                style={{ width: '135px', fontSize: '0.84rem' }}
+                onChange={(e) => {
+                  const newStatus = e.target.value;
+                  setIncidentsStatusFilter(newStatus);
+                  setCurrentPage(1);
+                  if (selectedIncidentsControlId === 'ALL') {
+                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, newStatus, incidentsStateFilter);
+                  }
+                }}
+                style={{ width: '155px', fontSize: '0.84rem' }}
               >
                 <option value="ALL">Status: All</option>
                 <option value="ASSIGNED">Assigned</option>
-                <option value="CLOSED">Closed</option>
-                <option value="RESOLVED">Resolved</option>
+                <option value="IN_REMEDIATION">In Remediation</option>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="RESOLVED">Closed / Resolved</option>
               </select>
 
               {/* State Filter */}
               <select
                 className="form-select"
                 value={incidentsStateFilter}
-                onChange={(e) => { setIncidentsStateFilter(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => {
+                  const newState = e.target.value;
+                  setIncidentsStateFilter(newState);
+                  setCurrentPage(1);
+                  if (selectedIncidentsControlId === 'ALL') {
+                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, newState);
+                  }
+                }}
                 style={{ width: '160px', fontSize: '0.84rem' }}
               >
                 <option value="ALL">State: All</option>
                 <option value="IN_INVESTIGATION">In Investigation</option>
+                <option value="APPROVED">Approved</option>
                 <option value="ACCEPTED">Accepted</option>
                 <option value="CLOSED">Closed</option>
               </select>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => loadRiskIncidents(selectedIncidentsControlId, true)}
+                disabled={incidentsLoading}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.42rem 0.85rem' }}
+                title="Refresh incident records from Oracle Fusion"
+              >
+                <RefreshCw size={13} className={incidentsLoading ? 'animate-spin' : ''} />
+                <span>{incidentsLoading ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
 
               {hasActiveIncidentsFilters && (
                 <button
@@ -2447,20 +2712,33 @@ export default function Reports({
                 )}
                 {incidentsStatusFilter !== 'ALL' && (
                   <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
-                    Status: {incidentsStatusFilter}
-                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setIncidentsStatusFilter('ALL'); setCurrentPage(1); }} />
+                    Status: {incidentsStatusFilter === 'IN_REMEDIATION' ? 'In Remediation' : incidentsStatusFilter === 'RESOLVED' ? 'Closed / Resolved' : incidentsStatusFilter === 'ACCEPTED' ? 'Accepted' : incidentsStatusFilter === 'ASSIGNED' ? 'Assigned' : incidentsStatusFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => {
+                      setIncidentsStatusFilter('ALL');
+                      setCurrentPage(1);
+                      if (selectedIncidentsControlId === 'ALL') {
+                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, 'ALL', incidentsStateFilter);
+                      }
+                    }} />
                   </span>
                 )}
                 {incidentsStateFilter !== 'ALL' && (
                   <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
-                    State: {incidentsStateFilter}
-                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setIncidentsStateFilter('ALL'); setCurrentPage(1); }} />
+                    State: {incidentsStateFilter === 'IN_INVESTIGATION' ? 'In Investigation' : incidentsStateFilter === 'APPROVED' ? 'Approved' : incidentsStateFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => {
+                      setIncidentsStateFilter('ALL');
+                      setCurrentPage(1);
+                      if (selectedIncidentsControlId === 'ALL') {
+                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL');
+                      }
+                    }} />
                   </span>
                 )}
               </div>
             )}
           </div>
-        )}
+        );
+      })()}
 
         {/* -------------------------------------------------------------
             REPORT 3: USER ROLE MAPPING FILTERS
@@ -3066,25 +3344,14 @@ export default function Reports({
                   </tr>
                 </thead>
                 <tbody>
-                  {controlsLoading && controlsData.length === 0 ? (
-                    Array.from({ length: 8 }).map((_, idx) => (
-                      <tr key={`skel-${idx}`} className="animate-pulse">
-                        <td><div style={{ height: '14px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '220px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
-                        <td><div style={{ height: '14px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
-                        <td><div style={{ height: '14px', width: '30px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
-                        <td><div style={{ height: '14px', width: '30px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
-                        <td><div style={{ height: '14px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '65px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                        <td><div style={{ height: '22px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', margin: '0 auto' }}></div></td>
-                      </tr>
-                    ))
+                  {controlsLoading ? (
+                    <TableLoadingState
+                      title="Loading Controls Summary from Oracle Fusion..."
+                      subtitle="Scanning enterprise controls, scheduled jobs, and incident exposure"
+                      colSpan={14}
+                      skeletonRows={5}
+                      minHeight="280px"
+                    />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
                       <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
@@ -3309,33 +3576,26 @@ export default function Reports({
                 <thead>
                   <tr>
                     <th style={{ width: '120px' }}>Incident ID</th>
-                    <th style={{ width: '220px' }}>Control</th>
+                    <th style={{ minWidth: '220px' }}>Control Name</th>
                     <th style={{ width: '160px' }}>User</th>
                     <th style={{ minWidth: '180px' }}>Role</th>
                     <th style={{ minWidth: '220px' }}>Incident Information</th>
                     <th style={{ width: '95px' }}>Status</th>
                     <th style={{ width: '130px' }}>State</th>
-                    <th style={{ width: '130px' }}>Created</th>
-                    <th style={{ width: '110px' }}>Closed</th>
+                    <th style={{ width: '140px' }}>Created Date</th>
+                    <th style={{ width: '130px' }}>Closed Date</th>
                     <th style={{ width: '95px', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {incidentsLoading && incidentsData.length === 0 ? (
-                    Array.from({ length: 8 }).map((_, idx) => (
-                      <tr key={`inc-skel-${idx}`} className="animate-pulse">
-                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '110px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '180px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                        <td><div style={{ height: '18px', width: '85px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '85px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                        <td><div style={{ height: '22px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', margin: '0 auto' }}></div></td>
-                      </tr>
-                    ))
+                  {incidentsLoading ? (
+                    <TableLoadingState
+                      title="Loading Incidents Detailed from Oracle Fusion..."
+                      subtitle="Retrieving continuous monitoring incidents and compliance records"
+                      colSpan={10}
+                      skeletonRows={5}
+                      minHeight="280px"
+                    />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
                       <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
@@ -3358,6 +3618,9 @@ export default function Reports({
                             setIncidentsStatusFilter('ALL');
                             setIncidentsStateFilter('ALL');
                             setCurrentPage(1);
+                            if (selectedIncidentsControlId === 'ALL') {
+                              loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL');
+                            }
                           }}
                           style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
                         >
@@ -3371,17 +3634,23 @@ export default function Reports({
                         {/* 1. Incident ID */}
                         <td>
                           <span style={{ fontWeight: 700, color: 'var(--accent-blue)', fontSize: '0.84rem' }}>
-                            #{inc.id}
+                            {String(inc.id || '').replace(/^#/, '')}
                           </span>
                         </td>
 
-                        {/* 2. Control */}
+                        {/* 2. Control Name */}
                         <td>
-                          <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                            #{inc.controlId}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={inc.controlName || `Control #${inc.controlId}`}>
-                            {inc.controlName || `Control #${inc.controlId}`}
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              fontSize: '0.82rem',
+                              color: 'var(--text-primary)',
+                              maxWidth: '250px',
+                              lineHeight: '1.3'
+                            }}
+                            title={resolveIncidentControlName(inc)}
+                          >
+                            {resolveIncidentControlName(inc)}
                           </div>
                         </td>
 
@@ -3413,14 +3682,36 @@ export default function Reports({
 
                         {/* 6. Status */}
                         <td>
-                          <span className={`badge ${(inc.status || '').toUpperCase() === 'ASSIGNED' ? 'badge-danger' : (inc.status || '').toUpperCase() === 'CLOSED' ? 'badge-active' : 'badge-neutral'}`} style={{ fontSize: '0.68rem' }}>
+                          <span
+                            className={`badge ${
+                              (inc.status || '').toUpperCase() === 'ASSIGNED'
+                                ? 'badge-danger'
+                                : (inc.status || '').toUpperCase().includes('REMEDIAT')
+                                ? 'badge-warning'
+                                : (inc.status || '').toUpperCase().includes('ACCEPT')
+                                ? 'badge-gold'
+                                : (inc.status || '').toUpperCase().includes('RESOLV') || (inc.status || '').toUpperCase().includes('CLOSE')
+                                ? 'badge-active'
+                                : 'badge-neutral'
+                            }`}
+                            style={{ fontSize: '0.68rem' }}
+                          >
                             {renderFieldVal(inc.status)}
                           </span>
                         </td>
 
                         {/* 7. State */}
                         <td>
-                          <span className="badge badge-gold" style={{ fontSize: '0.68rem' }}>
+                          <span
+                            className={`badge ${
+                              (inc.state || '').toUpperCase() === 'APPROVED'
+                                ? 'badge-primary'
+                                : (inc.state || '').toUpperCase().includes('INVESTIGAT')
+                                ? 'badge-gold'
+                                : 'badge-neutral'
+                            }`}
+                            style={{ fontSize: '0.68rem' }}
+                          >
                             {renderFieldVal(inc.state)}
                           </span>
                         </td>
@@ -4193,7 +4484,7 @@ export default function Reports({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                   <span className="badge badge-danger" style={{ fontSize: '0.72rem', fontWeight: 700 }}>
-                    Incident #{selectedIncidentDetail.id}
+                    Incident {String(selectedIncidentDetail.id || '').replace(/^#/, '')}
                   </span>
                   <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
                     {selectedIncidentDetail.state || 'IN_INVESTIGATION'}
@@ -4226,11 +4517,11 @@ export default function Reports({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control ID</span>
-                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>#{selectedIncidentDetail.controlId}</strong>
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{String(selectedIncidentDetail.controlId || '').replace(/^#/, '')}</strong>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.controlName)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{resolveIncidentControlName(selectedIncidentDetail)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Status</span>
@@ -4353,7 +4644,7 @@ export default function Reports({
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.createdBy)}</span>
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Created Date</span>
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.creationDate)}</span>
                   </div>
                   <div>
