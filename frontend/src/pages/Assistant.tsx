@@ -775,7 +775,7 @@ export default function Assistant({
         {/* AI Security Insights (Rendered Second) */}
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            AI Security Insights & Executive Summary
+            {structured.isAiInvestigation ? 'AI Risk Analysis & Root Cause Insights' : 'Executive Security Insight'}
           </span>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: '1.45', fontWeight: 500 }}>
             {summary}
