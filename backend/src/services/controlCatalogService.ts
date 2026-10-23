@@ -317,7 +317,7 @@ export class ControlCatalogService {
               Name: s.control_name || raw.Name || raw.name || `Control ${s.control_id}`,
               Status: raw.Status ?? raw.status ?? (raw.StatusId === 1 ? 'ACTIVE' : 'ACTIVE'),
               State: raw.State ?? raw.state ?? raw.StateCode ?? 'APPROVED',
-              Type: raw.Type ?? raw.ControlType ?? 'Access Control',
+              Type: raw.Type ?? raw.ControlType ?? 173,
               LastRunDate: raw.LastRunDate ?? raw.lastRunDate ?? s.last_oracle_update_date,
               LastUpdateDate: raw.LastUpdateDate ?? raw.lastUpdateDate ?? s.last_oracle_update_date,
               CreationDate: raw.CreationDate ?? raw.creationDate ?? null,
@@ -326,12 +326,21 @@ export class ControlCatalogService {
               raw
             });
 
-            ctrl.incidentCount = s.total_incidents;
+            const effTotal = Math.max(
+              Number(s.total_incidents) || 0,
+              (Number(s.assigned_incidents) || 0) + (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0)
+            );
+            const nonAssigned = (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0);
+            const assigned = (Number(s.assigned_incidents) > 0)
+              ? Number(s.assigned_incidents)
+              : Math.max(0, effTotal - nonAssigned);
+
+            ctrl.incidentCount = effTotal;
             ctrl.incidentBreakdown = {
-              assigned: s.assigned_incidents ?? s.total_incidents,
-              accepted: s.accepted_incidents ?? 0,
-              remediate: s.remediate_incidents ?? 0,
-              resolved: s.resolved_incidents ?? 0,
+              assigned,
+              accepted: Number(s.accepted_incidents) || 0,
+              remediate: Number(s.remediate_incidents) || 0,
+              resolved: Number(s.resolved_incidents) || 0,
             };
 
             // Seed fast incident count cache immediately

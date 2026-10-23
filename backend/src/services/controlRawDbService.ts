@@ -231,6 +231,22 @@ export class ControlRawDbService {
     last_synced_at: string | null;
   }>> {
     const host = this.getHost();
+    // Auto-heal any controls where raw_incidents array has more items than total_incidents
+    try {
+      await query(
+        `UPDATE oracle_control_incidents
+         SET total_incidents = jsonb_array_length(raw_incidents),
+             assigned_incidents = CASE 
+               WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
+                 GREATEST(0, jsonb_array_length(raw_incidents) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0))
+               ELSE assigned_incidents 
+             END,
+             updated_at = NOW()
+         WHERE jsonb_typeof(raw_incidents) = 'array' 
+           AND jsonb_array_length(raw_incidents) > COALESCE(total_incidents, 0)`
+      );
+    } catch (_) {}
+
     const res = await query<{
       control_id: string;
       control_name: string | null;
@@ -242,7 +258,27 @@ export class ControlRawDbService {
       last_oracle_update_date: string | null;
       last_synced_at: string | null;
     }>(
-      `SELECT control_id, control_name, total_incidents, assigned_incidents, accepted_incidents, remediate_incidents, resolved_incidents, last_oracle_update_date, last_synced_at
+      `SELECT 
+         control_id, 
+         control_name, 
+         GREATEST(
+           COALESCE(total_incidents, 0),
+           COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)
+         ) AS total_incidents,
+         CASE 
+           WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
+             GREATEST(
+               0, 
+               GREATEST(COALESCE(total_incidents, 0), COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)) 
+               - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0)
+             )
+           ELSE assigned_incidents 
+         END AS assigned_incidents,
+         COALESCE(accepted_incidents, 0) AS accepted_incidents,
+         COALESCE(remediate_incidents, 0) AS remediate_incidents,
+         COALESCE(resolved_incidents, 0) AS resolved_incidents,
+         last_oracle_update_date, 
+         last_synced_at
        FROM oracle_control_incidents
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), control_id ASC`,

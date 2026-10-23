@@ -61,23 +61,47 @@ export class IncidentCountCacheService {
         resolved_incidents: number;
         last_synced_at: string | null;
       }>(
-        `SELECT control_id, total_incidents, assigned_incidents, accepted_incidents, remediate_incidents, resolved_incidents, last_synced_at
+        `SELECT 
+           control_id, 
+           GREATEST(
+             COALESCE(total_incidents, 0),
+             COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)
+           ) AS total_incidents,
+           CASE 
+             WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
+               GREATEST(
+                 0, 
+                 GREATEST(COALESCE(total_incidents, 0), COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)) 
+                 - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0)
+               )
+             ELSE assigned_incidents 
+           END AS assigned_incidents,
+           COALESCE(accepted_incidents, 0) AS accepted_incidents,
+           COALESCE(remediate_incidents, 0) AS remediate_incidents,
+           COALESCE(resolved_incidents, 0) AS resolved_incidents,
+           last_synced_at
          FROM oracle_control_incidents
-         WHERE total_incidents IS NOT NULL`
+         WHERE total_incidents IS NOT NULL OR (jsonb_typeof(raw_incidents) = 'array' AND jsonb_array_length(raw_incidents) > 0)`
       );
 
       if (res.rows.length > 0) {
         for (const r of res.rows) {
           const cleanId = String(r.control_id).trim();
+          const tot = Number(r.total_incidents || 0);
+          const nonAssigned = (Number(r.accepted_incidents) || 0) + (Number(r.remediate_incidents) || 0) + (Number(r.resolved_incidents) || 0);
+          const assigned = (Number(r.assigned_incidents) > 0)
+            ? Number(r.assigned_incidents)
+            : Math.max(0, tot - nonAssigned);
+
           this.memoryCache.set(cleanId, {
             controlId: cleanId,
-            count: r.total_incidents,
+            count: tot,
             status: 'READY',
             updatedAt: r.last_synced_at ? new Date(r.last_synced_at).toISOString() : new Date().toISOString(),
-            assigned: r.assigned_incidents ?? r.total_incidents,
-            accepted: r.accepted_incidents ?? 0,
-            remediate: r.remediate_incidents ?? 0,
-            resolved: r.resolved_incidents ?? 0,
+            assigned,
+            accepted: Number(r.accepted_incidents) || 0,
+            remediate: Number(r.remediate_incidents) || 0,
+            resolved: Number(r.resolved_incidents) || 0,
           });
         }
         console.log(`[IncidentCountCache] Seeded ${this.memoryCache.size} control incident counts and breakdowns directly from PostgreSQL.`);

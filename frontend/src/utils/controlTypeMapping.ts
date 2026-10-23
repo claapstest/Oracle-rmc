@@ -16,11 +16,19 @@ export type ControlDomain = 'ACCESS' | 'TRANSACTION' | 'OTHER';
 
 export function isAccessControl(type: any): boolean {
   if (type === 173 || type === '173') return true;
+  if (typeof type === 'string') {
+    const lower = type.toLowerCase().trim();
+    if (lower === 'access' || lower === 'access control' || lower === 'access controls') return true;
+  }
   return false;
 }
 
 export function isTransactionControl(type: any): boolean {
   if (type === 174 || type === '174') return true;
+  if (typeof type === 'string') {
+    const lower = type.toLowerCase().trim();
+    if (lower === 'transaction' || lower === 'transaction control' || lower === 'transaction controls') return true;
+  }
   return false;
 }
 

@@ -443,16 +443,20 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       const cached = incidentCounts[c.id];
       const count = (cached?.count !== undefined && cached?.count !== null) ? cached.count : c.incidentCount;
       const cachedAssigned = (cached as any)?.assigned;
-      const breakdown = (typeof cachedAssigned === 'number')
+      const countVal = (typeof count === 'number') ? count : 0;
+      const hasCachedBreakdown = typeof cachedAssigned === 'number' && (cachedAssigned > 0 || ((cached as any)?.accepted || 0) + ((cached as any)?.remediate || 0) + ((cached as any)?.resolved || 0) > 0);
+      const breakdown = hasCachedBreakdown
         ? {
-            assigned: cachedAssigned,
+            assigned: cachedAssigned > 0 ? cachedAssigned : Math.max(0, countVal - (((cached as any)?.accepted || 0) + ((cached as any)?.remediate || 0) + ((cached as any)?.resolved || 0))),
             accepted: (cached as any)?.accepted ?? 0,
             remediate: (cached as any)?.remediate ?? 0,
             resolved: (cached as any)?.resolved ?? 0
           }
-        : (c.incidentBreakdown || (typeof count === 'number' && count > 0
-            ? { assigned: count, accepted: 0, remediate: 0, resolved: 0 }
-            : { assigned: 0, accepted: 0, remediate: 0, resolved: 0 }));
+        : (c.incidentBreakdown && ((c.incidentBreakdown.assigned || 0) + (c.incidentBreakdown.accepted || 0) + (c.incidentBreakdown.remediate || 0) + (c.incidentBreakdown.resolved || 0) > 0)
+            ? c.incidentBreakdown
+            : (countVal > 0
+                ? { assigned: countVal, accepted: 0, remediate: 0, resolved: 0 }
+                : { assigned: 0, accepted: 0, remediate: 0, resolved: 0 }));
       return {
         ...c,
         incidentCount: count,
@@ -585,7 +589,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     activeSubsectionControls.forEach(ctrl => {
       const cCount = ctrl.incidentCount ?? 0;
       const bd = ctrl.incidentBreakdown;
-      if (bd) {
+      const bdSum = (bd?.assigned ?? 0) + (bd?.accepted ?? 0) + (bd?.remediate ?? 0) + (bd?.resolved ?? 0);
+      if (bd && bdSum > 0) {
         assigned += (bd.assigned ?? 0);
         accepted += (bd.accepted ?? 0);
         remediate += (bd.remediate ?? 0);
