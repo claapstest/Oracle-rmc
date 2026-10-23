@@ -454,7 +454,19 @@ export default function Roles({
               { key: 'roleCode', label: 'Role Code', defaultSelected: true },
               { key: 'category', label: 'Category', defaultSelected: true },
               { key: 'description', label: 'Description', defaultSelected: true, getValue: (r: any) => r.description || '—' },
-              { key: 'userCount', label: 'User Count', defaultSelected: true, getValue: (r: any) => r.userCount !== undefined ? r.userCount : '—' },
+              {
+                key: 'assignedMembers',
+                label: 'Assigned Members',
+                defaultSelected: true,
+                getValue: (r: any) => {
+                  if (typeof r.assignedMembers === 'number') return r.assignedMembers;
+                  if (typeof r.memberCount === 'number') return r.memberCount;
+                  if (typeof r.userCount === 'number') return r.userCount;
+                  if (Array.isArray(r.members)) return r.members.length;
+                  if (Array.isArray(r.assignedIdentities)) return r.assignedIdentities.length;
+                  return 0;
+                }
+              },
               { key: 'classification', label: 'Classification', defaultSelected: false, getValue: (r: any) => r.roleCode?.startsWith('CLAAPS_') || r.roleCode?.startsWith('CUSTOM_') ? 'Custom' : 'Standard Oracle' }
             ]}
             onFetchScopeData={async (scope) => {

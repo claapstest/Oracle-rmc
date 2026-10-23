@@ -177,7 +177,7 @@ export class UserRoleRawDbService {
     );
     const totalCount = parseInt(countRes.rows[0]?.count || '0', 10);
 
-    let querySql = `SELECT raw_role FROM oracle_raw_roles WHERE ${whereClause} ORDER BY role_name ASC`;
+    let querySql = `SELECT raw_role, member_count FROM oracle_raw_roles WHERE ${whereClause} ORDER BY role_name ASC`;
     if (options.limit) {
       params.push(options.limit);
       querySql += ` LIMIT $${params.length}`;
@@ -187,8 +187,17 @@ export class UserRoleRawDbService {
       querySql += ` OFFSET $${params.length}`;
     }
 
-    const dataRes = await query<{ raw_role: any }>(querySql, params);
-    const roles = dataRes.rows.map(r => r.raw_role);
+    const dataRes = await query<{ raw_role: any; member_count: number }>(querySql, params);
+    const roles = dataRes.rows.map(r => {
+      const raw = r.raw_role || {};
+      const count = Array.isArray(raw.members) ? raw.members.length : (typeof r.member_count === 'number' ? r.member_count : 0);
+      return {
+        ...raw,
+        assignedMembers: count,
+        userCount: count,
+        memberCount: count,
+      };
+    });
 
     return { roles, totalCount };
   }

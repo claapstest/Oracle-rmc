@@ -25,6 +25,9 @@ export interface Role {
   category: 'Job' | 'Duty' | 'Data' | 'Abstract' | 'GRC' | 'Other';
   description: string;
   members: { value: string; display: string }[];
+  assignedMembers?: number;
+  userCount?: number;
+  memberCount?: number;
   parentRoles: string[]; // Role codes
   childRoles: string[]; // Role codes
   privileges: { code: string; name: string; type: 'Function' | 'Data' }[];

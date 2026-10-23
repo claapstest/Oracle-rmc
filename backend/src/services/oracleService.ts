@@ -939,6 +939,7 @@ class OracleService {
           else if (cat === 'GRC') grcRoles++;
           else otherRoles++;
 
+          const mCount = Array.isArray(r.members) ? r.members.length : 0;
           allRoles.push({
             id: r.id,
             displayName: r.displayName || '',
@@ -946,6 +947,9 @@ class OracleService {
             category: cat,
             description: r.description || `Oracle Fusion Security ${cat} Role`,
             members: r.members?.map((m: any) => ({ value: m.value, display: m.display || '' })) || [],
+            assignedMembers: mCount,
+            userCount: mCount,
+            memberCount: mCount,
             parentRoles: [],
             childRoles: [],
             privileges: []
@@ -1913,6 +1917,7 @@ class OracleService {
     const rawRoles: Role[] = resources.map((res: any) => {
       const cat = classifyRoleRecord(res);
 
+      const mCount = Array.isArray(res.members) ? res.members.length : 0;
       return {
         id: res.id,
         displayName: res.displayName || '',
@@ -1920,6 +1925,9 @@ class OracleService {
         category: cat,
         description: res.description || `Oracle Fusion Security ${cat} Role`,
         members: res.members?.map((m: any) => ({ value: m.value, display: m.display || '' })) || [],
+        assignedMembers: mCount,
+        userCount: mCount,
+        memberCount: mCount,
         parentRoles: [], // SCIM doesn't expose hierarchy by default
         childRoles: [],
         privileges: []

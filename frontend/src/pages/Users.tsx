@@ -528,10 +528,7 @@ export default function Users({
               { key: 'displayName', label: 'Display Name', defaultSelected: false },
               { key: 'email', label: 'Email Address', defaultSelected: true, getValue: (u: any) => u.email || 'N/A' },
               { key: 'status', label: 'Active', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
-              { key: 'roleName', label: 'Role Name (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.roleName || '' },
-              { key: 'roleCode', label: 'Role Code (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.roleCode || '' },
-              { key: 'autoProvisioned', label: 'Auto-Provisioned (primary)', defaultSelected: true, getValue: (u: any) => getPrimaryRole(u)?.autoProvisioned ?? '' },
-              { key: 'roleCount', label: 'Role Count', defaultSelected: true, getValue: (u: any) => u.assignedRoles?.length || 0 },
+              { key: 'roleCount', label: 'Number of Roles', defaultSelected: true, getValue: (u: any) => Array.isArray(u.assignedRoles) ? u.assignedRoles.length : (typeof u.roleCount === 'number' ? u.roleCount : 0) },
               { key: 'personNumber', label: 'Person Number', defaultSelected: true, getValue: (u: any) => u.personNumber || '' },
               { key: 'department', label: 'Department', defaultSelected: true, getValue: (u: any) => u.department || '' },
               { key: 'job', label: 'Job', defaultSelected: true, getValue: (u: any) => u.job || '' },
@@ -587,7 +584,7 @@ export default function Users({
 
         {/* Table Grid: live Oracle User Details Report (SCIM + HCM + BIP) */}
         <div className="table-container" style={{ margin: 0, overflowX: 'auto' }}>
-          <table className="enterprise-table" style={{ minWidth: '2100px' }}>
+          <table className="enterprise-table" style={{ minWidth: '1700px' }}>
             <thead>
               <tr>
                 <th>Username</th>
@@ -596,15 +593,13 @@ export default function Users({
                 <th>Last Name</th>
                 <th>Email Address</th>
                 <th>Active</th>
-                <th>Role Name</th>
-                <th>Role Code</th>
+                <th>Number of Roles</th>
                 <th>Person Number</th>
                 <th>Department</th>
                 <th>Job</th>
                 <th>Business Unit</th>
                 <th>Location</th>
                 <th>Manager</th>
-                <th>Roles</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -613,18 +608,20 @@ export default function Users({
                 <TableLoadingState
                   title="Searching Oracle Fusion User Directory..."
                   subtitle="Retrieving user profiles, active statuses, and assigned roles"
-                  colSpan={16}
+                  colSpan={14}
                   skeletonRows={4}
                 />
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={16} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={14} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No security users match the filter criteria.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map(user => {
-                  const primary = getPrimaryRole(user);
+                  const roleCount = Array.isArray(user.assignedRoles) 
+                    ? user.assignedRoles.length 
+                    : (typeof user.roleCount === 'number' ? user.roleCount : 0);
                   return (
                   <tr
                     key={user.id}
@@ -641,15 +638,13 @@ export default function Users({
                         {user.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>{primary?.roleName || '—'}</td>
-                    <td><code style={{ fontSize: '0.7rem' }}>{primary?.roleCode || '—'}</code></td>
+                    <td>{roleCount}</td>
                     <td>{user.personNumber || '—'}</td>
                     <td>{user.department || '—'}</td>
                     <td>{user.job || '—'}</td>
                     <td>{user.businessUnit || '—'}</td>
                     <td>{user.location || '—'}</td>
                     <td>{user.manager || '—'}</td>
-                    <td>{user.assignedRoles?.length || 0}</td>
                     <td>
                       <button 
                         type="button"
