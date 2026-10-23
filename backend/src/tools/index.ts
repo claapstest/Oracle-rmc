@@ -1169,8 +1169,29 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
     case 'DATA_ROLES':
     case 'ABSTRACT_ROLES':
     case 'GRC_ROLES': {
-      payload.title = 'Oracle RBAC Architecture & Classification Model';
-      payload.summary = `Oracle Fusion Cloud follows a strict 4-tier Role-Based Access Control (RBAC) hierarchy. There are ${counts.totalRoles.toLocaleString()} active roles configured in your catalog: 4,004 Duty Roles (85.0%), 513 Job Roles (10.9%), 109 Abstract Roles (2.3%), 48 Data Roles (1.0%), and 12 GRC Roles (0.3%).`;
+      if (rawQ.includes('duty role') || rawQ.includes('duty roles') || resolvedTopic === 'DUTY_ROLES') {
+        payload.title = 'Oracle RBAC — Duty Roles Architecture';
+        payload.summary = `A Duty Role in Oracle Fusion represents a modular bundle of functional privileges (e.g., Payables Invoice Processing, Purchase Order Approval). Duty Roles form the granular building blocks of Oracle security and are inherited hierarchically by Job Roles to enforce Segregation of Duties (SoD). In your environment, there are 4,004 Duty Roles configured, representing 85.0% of the ${counts.totalRoles.toLocaleString()} total roles.`;
+      } else if (rawQ.includes('job role') || rawQ.includes('job roles') || resolvedTopic === 'JOB_ROLES') {
+        payload.title = 'Oracle RBAC — Job Roles Architecture';
+        payload.summary = `A Job Role in Oracle Fusion represents a specific business personae assigned directly to identity users (e.g., Accounts Payable Manager, IT Security Manager). Job Roles inherit functional Duty Roles and define the complete scope of operational access for an employee. In your environment, there are 513 Job Roles configured (10.9% of the ${counts.totalRoles.toLocaleString()} total roles).`;
+      } else if (rawQ.includes('abstract role') || rawQ.includes('abstract roles') || resolvedTopic === 'ABSTRACT_ROLES') {
+        payload.title = 'Oracle RBAC — Abstract Roles Architecture';
+        payload.summary = `An Abstract Role in Oracle Fusion represents universal baseline worker personae across the enterprise (e.g., Employee, Contingent Worker, Line Manager). Abstract Roles grant standard self-service capabilities and are assigned widely to workers regardless of department. In your environment, there are 109 Abstract Roles configured (2.3% of the ${counts.totalRoles.toLocaleString()} total roles).`;
+      } else if (rawQ.includes('data role') || rawQ.includes('data roles') || resolvedTopic === 'DATA_ROLES') {
+        payload.title = 'Oracle RBAC — Data Roles Architecture';
+        payload.summary = `A Data Role in Oracle Fusion combines functional Job Role duties with specific enterprise data security dimensions (e.g., Ledger, Business Unit, Inventory Organization). Data Roles apply data security policies (DSP) to restrict row-level visibility. In your environment, there are 48 Data Roles configured (1.0% of the ${counts.totalRoles.toLocaleString()} total roles).`;
+      } else if (rawQ.includes('grc role') || rawQ.includes('grc roles') || resolvedTopic === 'GRC_ROLES') {
+        payload.title = 'Oracle RBAC — GRC Roles Architecture';
+        payload.summary = `A GRC Role in Oracle Fusion provides specialized administrative and auditor access for Governance, Risk, and Compliance teams (e.g., Internal Auditor, Advanced Access Controls Analyst). In your environment, there are 12 GRC Roles configured (0.3% of the ${counts.totalRoles.toLocaleString()} total roles).`;
+      } else if (rawQ.includes('difference') || rawQ.includes('vs') || (rawQ.includes('duty') && rawQ.includes('job'))) {
+        payload.title = 'Oracle RBAC — Duty Roles vs. Job Roles';
+        payload.summary = `In Oracle Fusion, Job Roles represent business personae assigned directly to users (e.g., Accounts Payable Manager, 513 roles), whereas Duty Roles represent modular privilege bundles (e.g., Payables Invoice Processing, 4,004 roles) that are inherited by Job Roles to enforce Segregation of Duties (SoD). Workers receive Job Roles, never individual Duty Roles.`;
+      } else {
+        payload.title = 'Oracle RBAC Architecture & Classification Model';
+        payload.summary = `Oracle Fusion Cloud follows a strict 4-tier Role-Based Access Control (RBAC) hierarchy. There are ${counts.totalRoles.toLocaleString()} active roles configured in your catalog: 4,004 Duty Roles (85.0%), 513 Job Roles (10.9%), 109 Abstract Roles (2.3%), 48 Data Roles (1.0%), and 12 GRC Roles (0.3%).`;
+      }
+
       payload.keyFindings = [
         'Job Roles (513) are assigned directly to identity users, defining primary business personae (e.g., Accounts Payable Manager, IT Security Manager).',
         'Duty Roles (4,004) encapsulate modular bundles of functional privileges. They are inherited hierarchically by Job Roles to enforce Segregation of Duties (SoD) and are not assigned directly to workers.',
@@ -1239,8 +1260,13 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
 
     case 'SOD_CONTROLS':
     case 'ADVANCED_CONTROLS': {
-      payload.title = 'Segregation of Duties (SoD) & Advanced Controls Engine';
-      payload.summary = 'Segregation of Duties (SoD) prevents internal fraud, financial misstatement, and unauthorized actions by ensuring conflicting business operations (toxic combinations) cannot be executed by the same individual.';
+      if (rawQ.includes('advanced control') || rawQ.includes('how do controls')) {
+        payload.title = 'Oracle Advanced Controls Engine';
+        payload.summary = 'Oracle Advanced Controls provides automated, continuous monitoring of user access entitlements and business transactions. VEYRA indexes 55 automated controls (31 numbered rules) to detect toxic Segregation of Duties combinations and fraudulent financial activities before they impact the enterprise.';
+      } else {
+        payload.title = 'Segregation of Duties (SoD) & Conflict Prevention';
+        payload.summary = 'Segregation of Duties (SoD) is an internal risk control policy that prevents fraud, financial misstatement, and unauthorized actions by ensuring that no single individual possesses conflicting permissions (toxic combinations) across critical business transactions — such as creating vendor invoices AND approving payments, or entering journal entries AND posting them to the General Ledger.';
+      }
       payload.keyFindings = [
         'VEYRA indexes 55 automated Oracle Advanced Controls (31 numbered rules) across Access Controls and Transaction Controls.',
         'Access Controls detect toxic entitlement combinations before actions occur (e.g., Payables Invoice Entry vs Purchase Order Approval).',
@@ -1465,8 +1491,22 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
     case 'SECURITY_POSTURE':
     case 'PLATFORM_OVERVIEW':
     default: {
-      payload.title = 'VEYRA Enterprise Access Governance Platform';
-      payload.summary = `VEYRA is an Enterprise Access Governance and Continuous Risk Intelligence platform purpose-built for Oracle Fusion Cloud (ERP, HCM, SCM, and Financials). It automates Segregation of Duties (SoD) monitoring, enforces role-based access control (RBAC), orchestrates access certification campaigns, and delivers real-time audit vault compliance.`;
+      if (rawQ.includes('feature') || rawQ.includes('capabilities') || rawQ.includes('what are the features')) {
+        payload.title = 'VEYRA — Core Enterprise Features';
+        payload.summary = 'VEYRA provides six core enterprise security and risk governance features: (1) Unified Roles & Privilege Catalog with 4,713 roles, (2) User Identity Demographics & Risk Scoring for 3,058 users, (3) Automated Segregation of Duties (SoD) Conflict Detection with 55 controls, (4) Access Certification Review Campaigns with manager worksheets, (5) Continuous Real-Time Audit Vault, and (6) Ask VEYRA Conversational AI Intelligence.';
+      } else if (rawQ.includes('what does this app do') || rawQ.includes('what does this application do') || rawQ.includes('what does veyra do')) {
+        payload.title = 'VEYRA — Application Capabilities & Scope';
+        payload.summary = 'This application provides enterprise-grade access governance, automated Segregation of Duties (SoD) conflict detection, and continuous audit monitoring for Oracle Fusion Cloud. VEYRA actively analyzes 4,713 security roles, 3,058 user identities, and 55 automated risk controls to ensure continuous audit readiness and eliminate unauthorized privileges.';
+      } else if (rawQ.includes('what can you do') || rawQ.includes('help') || rawQ.includes('how to use')) {
+        payload.title = 'Ask VEYRA — Conversational AI Assistant';
+        payload.summary = 'Ask VEYRA is your conversational security and compliance assistant. You can ask me to look up any user, inspect roles and privileges, analyze Segregation of Duties (SoD) violations, review access certifications, track audit history, and generate executive statistics across your Oracle Fusion environment.';
+      } else if (rawQ.includes('posture') || rawQ.includes('health') || rawQ.includes('summary')) {
+        payload.title = 'Enterprise Security Posture & Health Summary';
+        payload.summary = `Enterprise Security Health: Your Oracle Fusion environment currently manages ${counts.totalUsers.toLocaleString()} configured identities (${counts.activeUsers.toLocaleString()} active, ${counts.inactiveUsers.toLocaleString()} inactive) and ${counts.totalRoles.toLocaleString()} active security roles. Continuous monitoring is active across 55 Advanced Controls for Segregation of Duties, and the Audit Vault actively synchronizes administrative actions.`;
+      } else {
+        payload.title = 'About VEYRA — Enterprise Access Governance';
+        payload.summary = 'VEYRA is an Enterprise Access Governance and Continuous Risk Intelligence platform purpose-built for Oracle Fusion Cloud (ERP, HCM, SCM, and Financials). VEYRA provides automated Segregation of Duties (SoD) monitoring, role-based access control (RBAC) modeling, periodic access review campaigns, and continuous audit compliance.';
+      }
       payload.keyFindings = [
         `Enterprise Role Architecture: ${counts.totalRoles.toLocaleString()} configured roles (4,004 Duty Roles [85.0%], 513 Job Roles [10.9%], 109 Abstract Roles [2.3%], 48 Data Roles [1.0%], and 12 GRC Roles [0.3%]).`,
         `Identity Population Health: ${counts.totalUsers.toLocaleString()} total identities (${counts.activeUsers.toLocaleString()} active [${(((counts.activeUsers || 1023) / counts.totalUsers) * 100).toFixed(1)}%], ${counts.inactiveUsers.toLocaleString()} inactive).`,
