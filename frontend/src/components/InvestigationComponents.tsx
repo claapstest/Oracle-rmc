@@ -787,6 +787,307 @@ function getTableColumns(
     ];
   }
 
+  if (tableType === 'role_comparison') {
+    return [
+      {
+        key: 'roleCategory',
+        header: 'ROLE CLASSIFICATION',
+        width: '18%',
+        align: 'left',
+        render: (row) => {
+          const cat = (row.roleCategory || row.category || '').toUpperCase();
+          let bg = '#F1F5F9';
+          let color = '#334155';
+          let border = '#CBD5E1';
+          if (cat.includes('DUTY')) { bg = '#FEF3C7'; color = '#B45309'; border = '#FDE68A'; }
+          else if (cat.includes('JOB')) { bg = '#DBEAFE'; color = '#1D4ED8'; border = '#BFDBFE'; }
+          else if (cat.includes('DATA')) { bg = '#D1FAE5'; color = '#047857'; border = '#A7F3D0'; }
+          else if (cat.includes('ABSTRACT')) { bg = '#F3E8FF'; color = '#6D28D9'; border = '#DDD6FE'; }
+          else if (cat.includes('GRC')) { bg = '#FFE4E6'; color = '#BE123C'; border = '#FECDD3'; }
+          return (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.2rem 0.6rem',
+              borderRadius: '9999px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              backgroundColor: bg,
+              color: color,
+              border: `1px solid ${border}`
+            }}>
+              {row.roleCategory || row.category}
+            </span>
+          );
+        }
+      },
+      {
+        key: 'count',
+        header: 'CATALOG COUNT',
+        width: '14%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+            {row.count}
+          </span>
+        )
+      },
+      {
+        key: 'share',
+        header: 'SHARE %',
+        width: '12%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ 
+            display: 'inline-block',
+            padding: '0.15rem 0.5rem',
+            backgroundColor: '#F1F5F9',
+            borderRadius: '9999px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            color: '#1E293B',
+            border: '1px solid #E2E8F0'
+          }}>
+            {row.share || row.percentage || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'purpose',
+        header: 'ENTERPRISE PURPOSE',
+        width: '32%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {row.purpose}
+          </span>
+        )
+      },
+      {
+        key: 'directAssignment',
+        header: 'USER ASSIGNMENT',
+        width: '24%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ 
+            fontSize: '0.74rem', 
+            fontWeight: 600, 
+            color: (row.directAssignment || '').startsWith('Yes') ? '#047857' : '#475569' 
+          }}>
+            {row.directAssignment}
+          </span>
+        )
+      }
+    ];
+  }
+
+  if (tableType === 'platform_modules') {
+    return [
+      {
+        key: 'module',
+        header: 'GOVERNANCE MODULE',
+        width: '24%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 700, color: 'var(--accent-blue)', fontSize: '0.82rem' }}>
+            {row.module}
+          </span>
+        )
+      },
+      {
+        key: 'purpose',
+        header: 'ENTERPRISE PURPOSE',
+        width: '28%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
+            {row.purpose}
+          </span>
+        )
+      },
+      {
+        key: 'scope',
+        header: 'CATALOG SCOPE',
+        width: '20%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-primary)' }}>
+            {row.scope || row.monitored || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'capabilities',
+        header: 'KEY CAPABILITIES',
+        width: '28%',
+        align: 'left',
+        render: (row, _idx, { onNavigatePage }) => (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
+              {row.capabilities || row.events || row.benefit || '—'}
+            </span>
+            {row.route && (
+              <button
+                onClick={() => onNavigatePage ? onNavigatePage(row.route) : null}
+                className="btn btn-secondary"
+                style={{
+                  padding: '0.15rem 0.45rem',
+                  fontSize: '0.68rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.2rem',
+                  color: 'var(--accent-blue)',
+                  borderColor: 'rgba(53, 99, 233, 0.3)',
+                  backgroundColor: 'rgba(53, 99, 233, 0.05)',
+                  borderRadius: '4px',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer'
+                }}
+                title={`Open ${row.module}`}
+              >
+                <span>Open</span>
+                <ArrowRight size={10} />
+              </button>
+            )}
+          </div>
+        )
+      }
+    ];
+  }
+
+  if (tableType === 'sod_architecture') {
+    return [
+      {
+        key: 'controlId',
+        header: 'CONTROL ID',
+        width: '14%',
+        align: 'left',
+        render: (row) => (
+          <code style={{
+            fontSize: '0.76rem',
+            backgroundColor: '#F1F5F9',
+            color: '#0F172A',
+            padding: '0.15rem 0.4rem',
+            borderRadius: '4px',
+            border: '1px solid #E2E8F0'
+          }}>
+            {row.controlId || row.id}
+          </code>
+        )
+      },
+      {
+        key: 'ruleName',
+        header: 'RULE NAME',
+        width: '26%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
+            {row.ruleName || row.name}
+          </span>
+        )
+      },
+      {
+        key: 'controlType',
+        header: 'TYPE',
+        width: '14%',
+        align: 'center',
+        render: (row) => (
+          <span className={`badge ${String(row.controlType).includes('Access') ? 'badge-blue' : 'badge-green'}`} style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+            {row.controlType}
+          </span>
+        )
+      },
+      {
+        key: 'conflictNature',
+        header: 'CONFLICT NATURE & RISK',
+        width: '30%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
+            {row.conflictNature}
+          </span>
+        )
+      },
+      {
+        key: 'governanceStatus',
+        header: 'STATUS',
+        width: '16%',
+        align: 'center',
+        render: (row, _idx, { onNavigatePage }) => (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#047857' }}>
+              {row.governanceStatus || 'Active'}
+            </span>
+            <button
+              onClick={() => onNavigatePage ? onNavigatePage('risk') : null}
+              className="btn btn-secondary"
+              style={{
+                padding: '0.15rem 0.4rem',
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                color: 'var(--accent-blue)',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Inspect
+            </button>
+          </div>
+        )
+      }
+    ];
+  }
+
+  if (tableType === 'certification_workflow') {
+    return [
+      {
+        key: 'phase',
+        header: 'CAMPAIGN PHASE',
+        width: '22%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
+            {row.phase}
+          </span>
+        )
+      },
+      {
+        key: 'scope',
+        header: 'SCOPE & OBJECTIVE',
+        width: '26%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            {row.scope}
+          </span>
+        )
+      },
+      {
+        key: 'actor',
+        header: 'RESPONSIBLE ACTOR',
+        width: '22%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, fontSize: '0.78rem', color: '#1E293B' }}>
+            {row.actor}
+          </span>
+        )
+      },
+      {
+        key: 'outcome',
+        header: 'ACTION & OUTCOME',
+        width: '30%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+            {row.outcome}
+          </span>
+        )
+      }
+    ];
+  }
+
   if (tableType === 'audit') {
     return [
       {
@@ -1356,13 +1657,21 @@ export const PaginatedTable = React.memo(function PaginatedTable({
                 ? 'role classifications in enterprise catalog'
                 : table.type === 'user_distribution'
                   ? 'user identity metrics in enterprise population'
-                  : table.type === 'users' || table.type === 'users_by_privilege'
-                    ? 'users match this query'
-                    : table.type === 'privileges' || table.type === 'privileges_by_user'
-                      ? 'privileges match this query'
-                      : table.type === 'roles' || table.type === 'roles_by_privilege'
-                        ? 'roles match this query'
-                        : `${(table.type || 'records').replace(/_/g, ' ')} match this query`
+                  : table.type === 'role_comparison'
+                    ? 'architectural role classifications compared'
+                    : table.type === 'platform_modules'
+                      ? 'enterprise governance capabilities & modules'
+                      : table.type === 'sod_architecture'
+                        ? 'automated Segregation of Duties controls'
+                        : table.type === 'certification_workflow'
+                          ? 'access review campaign lifecycle phases'
+                          : table.type === 'users' || table.type === 'users_by_privilege'
+                            ? 'users match this query'
+                            : table.type === 'privileges' || table.type === 'privileges_by_user'
+                              ? 'privileges match this query'
+                              : table.type === 'roles' || table.type === 'roles_by_privilege'
+                                ? 'roles match this query'
+                                : `${(table.type || 'records').replace(/_/g, ' ')} match this query`
             }
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>

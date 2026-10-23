@@ -52,6 +52,108 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     }
   }
 
+  // -2. Enterprise Privacy Guardrail & Credential Redaction
+  if (
+    clean.includes('password') || clean.includes('secret') || clean.includes('credential') ||
+    clean.includes('api key') || clean.includes('connection string') || clean.includes('db password') ||
+    clean.includes('private key') || clean.includes('access token') || clean.includes('session secret')
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'PRIVACY_PROTECTION', query: clean },
+      explanation: 'Enterprise zero-trust guardrail: credential and password inquiries are redacted.'
+    };
+  }
+
+  // -1.5. Platform Knowledge, RBAC Architecture, SoD Concepts & Navigation
+  // A. Platform & Product questions
+  if (
+    clean.includes('what is veyra') || clean.includes('about veyra') || clean.includes('who are you') ||
+    clean.includes('what does veyra do') || clean.includes('what does this app do') || clean.includes('what does this application do') ||
+    clean.includes('what is this platform') || clean.includes('what is this product') || clean.includes('tell me about veyra') ||
+    clean.includes('features of veyra') || clean.includes('capabilities of veyra') || clean.includes('what can you do') ||
+    clean.includes('help me') || clean.includes('how to use ask veyra') || clean.includes('product level') || clean.includes('major product')
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'PLATFORM_OVERVIEW', query: clean },
+      explanation: 'Detected inquiry about the VEYRA platform architecture, capabilities, and governance features.'
+    };
+  }
+
+  // B. Role Architecture & Oracle RBAC definitions (e.g. "what is a duty role", "what is a job role", "what is an abstract role", "what is a data role", "role hierarchy")
+  if (
+    (clean.includes('what is a') || clean.includes('what is an') || clean.includes('what are') || clean.includes('explain') || clean.includes('difference between') || clean.includes('how do roles work') || clean.includes('role structure') || clean.includes('role architecture')) &&
+    (clean.includes('duty role') || clean.includes('job role') || clean.includes('abstract role') || clean.includes('data role') || clean.includes('grc role') || clean.includes('hierarchy') || clean.includes('rbac'))
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'ROLE_ARCHITECTURE', query: clean },
+      explanation: 'Detected inquiry about Oracle Fusion RBAC role architecture and classification model.'
+    };
+  }
+
+  // C. Segregation of Duties (SoD) & Toxic Combinations
+  if (
+    clean.includes('what is sod') || clean.includes('what is segregation of duties') || clean.includes('explain sod') ||
+    clean.includes('what is a toxic combination') || clean.includes('how do controls work') || clean.includes('how does sod work') ||
+    clean.includes('explain segregation') || clean.includes('what are advanced controls')
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'SOD_CONTROLS', query: clean },
+      explanation: 'Detected inquiry about Segregation of Duties (SoD) and Advanced Controls methodology.'
+    };
+  }
+
+  // D. Access Certifications & Campaigns
+  if (
+    clean.includes('what is access certification') || clean.includes('how do certifications work') || clean.includes('what is a certifier worksheet') ||
+    clean.includes('how to certify') || clean.includes('certification lifecycle') || clean.includes('review campaign') || clean.includes('what is access review')
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'ACCESS_CERTIFICATIONS', query: clean },
+      explanation: 'Detected inquiry about Access Certifications and periodic review workflows.'
+    };
+  }
+
+  // E. Audit Vault & Continuous Compliance
+  if (
+    clean.includes('what is audit vault') || clean.includes('what is the audit vault') || clean.includes('what is continuous audit') ||
+    clean.includes('what changes are audited') || clean.includes('how does audit work') || clean.includes('audit trail architecture')
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'AUDIT_VAULT', query: clean },
+      explanation: 'Detected inquiry about the Continuous Audit Vault and forensic event tracking.'
+    };
+  }
+
+  // F. Overall Security Posture / Environment Health
+  if (
+    clean.includes('security posture') || clean.includes('overall security health') || clean.includes('overall summary') ||
+    clean.includes('environment health') || clean.includes('platform summary') || clean.includes('health posture')
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'SECURITY_POSTURE', query: clean },
+      explanation: 'Detected inquiry about overall enterprise security health and governance posture.'
+    };
+  }
+
+  // G. Navigation / Sitemap
+  if (
+    (clean.includes('where') || clean.includes('how do i find') || clean.includes('how to go to') || clean.includes('how to navigate') || clean.includes('sitemap') || clean.includes('how do i access')) &&
+    (clean.includes('role') || clean.includes('user') || clean.includes('incident') || clean.includes('audit') || clean.includes('certif') || clean.includes('page') || clean.includes('screen') || clean.includes('catalog') || clean.includes('dashboard'))
+  ) {
+    return {
+      intent: 'APPLICATION_KNOWLEDGE',
+      parameters: { topic: 'NAVIGATION', query: clean },
+      explanation: 'Detected inquiry about platform navigation and functional workspaces.'
+    };
+  }
+
   // -1. Access Certification intents (live Oracle BIP data). First: the 'certif'
   // root never overlaps user/role/privilege/audit matchers. Incident-flavored
   // questions without worksheet context fall through to the controls block.
@@ -1122,6 +1224,12 @@ function generateFallbackExplanation(intent: string, parameters: any, toolResult
   const data = toolResult.data;
   
   switch (intent) {
+    case 'APPLICATION_KNOWLEDGE': {
+      const summary = data?.summary || 'VEYRA Enterprise Access Governance Intelligence';
+      const bullets = (data?.keyFindings || []).map((b: string) => `* ${b}`).join('\n');
+      return bullets ? `${summary}\n\n${bullets}` : summary;
+    }
+
     case 'SECURITY_STATISTICS': {
       const targetMetric = parameters?.targetMetric;
       const category = parameters?.category;
@@ -1521,8 +1629,10 @@ async function callGroqCompletions(payload: any): Promise<any> {
             content: `You are the NLU intent classification engine for an Oracle Fusion Security Assistant. 
 Analyze the user query and output a strict JSON object mapping to:
 {
-  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USERS_BY_PRIVILEGE" | "PRIVILEGES_BY_USER" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "CERTIFICATIONS_OVERVIEW" | "CERTIFICATIONS_LIST" | "CERTIFICATION_DETAILS" | "CERTIFIER_WORKSHEET" | "UNKNOWN",
+  "intent": "APPLICATION_KNOWLEDGE" | "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USERS_BY_PRIVILEGE" | "PRIVILEGES_BY_USER" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "CERTIFICATIONS_OVERVIEW" | "CERTIFICATIONS_LIST" | "CERTIFICATION_DETAILS" | "CERTIFIER_WORKSHEET" | "UNKNOWN",
   "parameters": {
+    "topic": "'PLATFORM_OVERVIEW' | 'ROLE_ARCHITECTURE' | 'DUTY_ROLES' | 'JOB_ROLES' | 'DATA_ROLES' | 'ABSTRACT_ROLES' | 'SOD_CONTROLS' | 'ADVANCED_CONTROLS' | 'ACCESS_CERTIFICATIONS' | 'AUDIT_VAULT' | 'PRIVACY_PROTECTION' | 'NAVIGATION' | 'SECURITY_POSTURE' (string, optional)",
+    "query": "Original user query for knowledge mapping (string, optional)",
     "roles": "Array of role names if multiple roles specified, e.g. ['IT Security Manager', 'AP Manager'] (array of strings, optional)",
     "roleName": "Extracted role display name or code (string, optional)",
     "matchMode": "'AND' if users must have all/both roles, or 'OR' (string, optional)",
@@ -1570,6 +1680,7 @@ Analyze the user query and output a strict JSON object mapping to:
 }
 
 Intent definitions:
+- APPLICATION_KNOWLEDGE: Questions about the VEYRA platform, product features, Oracle RBAC role definitions (what is a duty role, job role, abstract role, data role, role hierarchy), Segregation of Duties (SoD) concepts, toxic combinations, advanced controls methodology, access certifications workflow, audit vault architecture, platform navigation/sitemap, security health posture, or credential privacy protection. (e.g. "what is veyra", "what does this app do", "what is a duty role", "explain segregation of duties", "how do certifications work", "what is the audit vault", "what features do we have", "where do i see roles"). Extract "topic".
 - LIST_USERS: List or show all users.
 - GET_USER: Details about a specific user by username/id (e.g. "Who is John Smith" or "who is JSMITH").
 - LIST_ROLES: Display all roles in the environment.
@@ -1697,6 +1808,14 @@ Only output valid JSON matching the schema. Do not include markdown formatting o
       keyFindings: [],
       riskHighlights: []
     };
+  } else if (intentData.intent === 'APPLICATION_KNOWLEDGE' && toolResult && toolResult.success) {
+    const k = toolResult.data || {};
+    synthesisJson = {
+      summary: k.summary || 'VEYRA Enterprise Access Governance platform intelligence.',
+      keyFindings: k.keyFindings || [],
+      riskHighlights: []
+    };
+    businessFriendlyAnswer = synthesisJson.summary;
   } else if (intentData.intent === 'SECURITY_STATISTICS' && toolResult && toolResult.success) {
     const s = toolResult.data || {};
     const cat = intentData.parameters?.category;
@@ -1916,7 +2035,7 @@ ${(toolResult.tool === 'getUser' || toolResult.tool === 'getRolesForUser') && to
       
       const content = response.data.choices[0].message.content;
       synthesisJson = JSON.parse(content);
-      if ((intentData.intent === 'ROLES_BY_PRIVILEGE' || intentData.intent === 'USERS_BY_PRIVILEGE' || intentData.intent === 'PRIVILEGES_BY_USER' || intentData.intent === 'SECURITY_STATISTICS') && toolResult?.data?.success) {
+      if ((intentData.intent === 'ROLES_BY_PRIVILEGE' || intentData.intent === 'USERS_BY_PRIVILEGE' || intentData.intent === 'PRIVILEGES_BY_USER' || intentData.intent === 'SECURITY_STATISTICS' || intentData.intent === 'APPLICATION_KNOWLEDGE') && toolResult?.data?.success) {
         businessFriendlyAnswer = generateFallbackExplanation(intentData.intent, intentData.parameters, toolResult);
       } else if (intentData.intent === 'AUDIT_HISTORY') {
         businessFriendlyAnswer = generateFallbackExplanation(intentData.intent, intentData.parameters, toolResult);
@@ -2241,6 +2360,17 @@ function buildStructuredResponse(
       matchingCount = iRows.length;
       actions = [
         { label: 'Open Incidents Report', actionType: 'NAVIGATE', params: { page: 'reports' } }
+      ];
+      break;
+    }
+
+    case 'APPLICATION_KNOWLEDGE': {
+      title = data?.title || 'VEYRA Platform Intelligence';
+      table = data?.table;
+      totalCount = data?.table?.rows?.length || 1;
+      matchingCount = totalCount;
+      actions = data?.actions || [
+        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
       ];
       break;
     }
