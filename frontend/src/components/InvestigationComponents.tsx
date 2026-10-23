@@ -613,6 +613,180 @@ function getTableColumns(
     ];
   }
 
+  if (tableType === 'role_distribution') {
+    return [
+      {
+        key: 'roleCategory',
+        header: 'ROLE CATEGORY',
+        width: '24%',
+        align: 'left',
+        render: (row) => {
+          const cat = row.category || row.roleCategory || 'Job';
+          let badgeClass = 'badge-blue';
+          if (cat.includes('Duty')) badgeClass = 'badge-gold';
+          else if (cat.includes('Data')) badgeClass = 'badge-active';
+          else if (cat.includes('Abstract')) badgeClass = 'badge-inactive';
+          else if (cat.includes('GRC')) badgeClass = 'badge-red';
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span className={`badge ${badgeClass}`} style={{ fontSize: '0.74rem', fontWeight: 700 }}>
+                {row.roleCategory || cat}
+              </span>
+            </div>
+          );
+        }
+      },
+      {
+        key: 'roleCount',
+        header: 'TOTAL COUNT',
+        width: '18%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+            {row.roleCount || 0}
+          </span>
+        )
+      },
+      {
+        key: 'percentage',
+        header: 'CATALOG SHARE (%)',
+        width: '18%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ 
+            display: 'inline-block',
+            padding: '0.15rem 0.5rem',
+            backgroundColor: '#F1F5F9',
+            borderRadius: '9999px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            color: '#1E293B',
+            border: '1px solid #E2E8F0'
+          }}>
+            {row.percentage || '0%'}
+          </span>
+        )
+      },
+      {
+        key: 'classificationNature',
+        header: 'CLASSIFICATION & ARCHITECTURE',
+        width: '40%',
+        align: 'left',
+        render: (row, _idx, { onNavigatePage }) => (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+              {row.nature || row.classificationNature || '—'}
+            </span>
+            <button
+              onClick={() => onNavigatePage ? onNavigatePage('roles') : null}
+              className="btn btn-secondary"
+              style={{
+                padding: '0.15rem 0.45rem',
+                fontSize: '0.68rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                color: 'var(--accent-blue)',
+                borderColor: 'rgba(53, 99, 233, 0.3)',
+                backgroundColor: 'rgba(53, 99, 233, 0.05)',
+                borderRadius: '4px',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+              title="Explore in Roles Catalog"
+            >
+              <span>Explore</span>
+              <ArrowRight size={10} />
+            </button>
+          </div>
+        )
+      }
+    ];
+  }
+
+  if (tableType === 'user_distribution') {
+    return [
+      {
+        key: 'category',
+        header: 'USER POPULATION CATEGORY',
+        width: '28%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
+            {row.category || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'count',
+        header: 'ACCOUNT COUNT',
+        width: '18%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+            {row.count || 0}
+          </span>
+        )
+      },
+      {
+        key: 'percentage',
+        header: 'SHARE (%)',
+        width: '16%',
+        align: 'center',
+        render: (row) => (
+          <span style={{ 
+            display: 'inline-block',
+            padding: '0.15rem 0.5rem',
+            backgroundColor: '#F1F5F9',
+            borderRadius: '9999px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            color: '#1E293B',
+            border: '1px solid #E2E8F0'
+          }}>
+            {row.percentage || row.share || '0%'}
+          </span>
+        )
+      },
+      {
+        key: 'governanceStatus',
+        header: 'GOVERNANCE STATUS',
+        width: '38%',
+        align: 'left',
+        render: (row, _idx, { onNavigatePage }) => (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+              {row.status || row.description || '—'}
+            </span>
+            <button
+              onClick={() => onNavigatePage ? onNavigatePage('users') : null}
+              className="btn btn-secondary"
+              style={{
+                padding: '0.15rem 0.45rem',
+                fontSize: '0.68rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                color: 'var(--accent-blue)',
+                borderColor: 'rgba(53, 99, 233, 0.3)',
+                backgroundColor: 'rgba(53, 99, 233, 0.05)',
+                borderRadius: '4px',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+              title="Explore in Users Catalog"
+            >
+              <span>Explore</span>
+              <ArrowRight size={10} />
+            </button>
+          </div>
+        )
+      }
+    ];
+  }
+
   if (tableType === 'audit') {
     return [
       {
@@ -1178,13 +1352,17 @@ export const PaginatedTable = React.memo(function PaginatedTable({
         <div>
           <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
             {totalMatching} {
-              table.type === 'users' || table.type === 'users_by_privilege'
-                ? 'users match this query'
-                : table.type === 'privileges' || table.type === 'privileges_by_user'
-                  ? 'privileges match this query'
-                  : table.type === 'roles' || table.type === 'roles_by_privilege'
-                    ? 'roles match this query'
-                    : `${(table.type || 'records').replace(/_/g, ' ')} match this query`
+              table.type === 'role_distribution'
+                ? 'role classifications in enterprise catalog'
+                : table.type === 'user_distribution'
+                  ? 'user identity metrics in enterprise population'
+                  : table.type === 'users' || table.type === 'users_by_privilege'
+                    ? 'users match this query'
+                    : table.type === 'privileges' || table.type === 'privileges_by_user'
+                      ? 'privileges match this query'
+                      : table.type === 'roles' || table.type === 'roles_by_privilege'
+                        ? 'roles match this query'
+                        : `${(table.type || 'records').replace(/_/g, ' ')} match this query`
             }
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>

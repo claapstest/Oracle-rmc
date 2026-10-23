@@ -1124,8 +1124,8 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
   LIST_USERS: getUsersTool,
   GET_USER: (params: { userId?: string; username?: string; roleCategory?: string }) => getUserTool({ userId: params.userId || params.username || '', roleCategory: params.roleCategory }),
   ROLES_BY_USER: (params: { userId?: string; username?: string; roleCategory?: string }) => getUserTool({ userId: params.userId || params.username || '', roleCategory: params.roleCategory }), // user object contains assigned roles
-  LIST_ROLES: getRolesTool,
-  ROLE_SEARCH: (params: { keyword: string }) => getRolesTool({ filter: params.keyword }),
+  LIST_ROLES: (params: any) => getRolesTool({ filter: params?.filter || params?.keyword, category: params?.category, count: params?.count || 100 }),
+  ROLE_SEARCH: (params: any) => getRolesTool({ filter: params?.keyword || params?.filter, category: params?.category, count: params?.count || 100 }),
   GET_ROLE: (params: { roleName: string }) => getRolesTool({ filter: params.roleName }),
   ROLE_DETAILS: (params: { roleName: string }) => getRolesTool({ filter: params.roleName }),
   USERS_BY_ROLE: getUsersByRoleTool,
