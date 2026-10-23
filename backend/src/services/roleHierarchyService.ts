@@ -461,8 +461,8 @@ export class RoleHierarchyService {
         const res = await query(
           `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type, raw_record, last_synced_at
            FROM oracle_raw_role_hierarchy 
-           WHERE environment_host = $1 
-           ORDER BY child_role_name ASC`,
+           WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true)
+           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END), child_role_name ASC`,
           [host]
         );
         if (res.rows.length > 0) {

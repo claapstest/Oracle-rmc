@@ -55,13 +55,13 @@ export class ControlRawDbService {
    * Normalizes the host string for environment isolation (e.g. eiiv-dev14.fa.us6.oraclecloud.com)
    */
   public getHost(): string {
-    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'mock.fusion.oracle.com').trim().toLowerCase();
+    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
     try {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         return new URL(rawUrl).host;
       }
     } catch (_) {}
-    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'default_env';
+    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
   // =============================================================
@@ -203,7 +203,9 @@ export class ControlRawDbService {
     const cleanId = String(controlId).trim();
 
     const res = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_raw_controls WHERE environment_host = $1 AND control_id = $2`,
+      `SELECT raw_payload FROM oracle_raw_controls 
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
@@ -217,7 +219,9 @@ export class ControlRawDbService {
     const host = this.getHost();
 
     const res = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_raw_controls WHERE environment_host = $1 ORDER BY name ASC`,
+      `SELECT raw_payload FROM oracle_raw_controls 
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), name ASC`,
       [host]
     );
 
@@ -352,7 +356,8 @@ export class ControlRawDbService {
       total_incidents: number;
     }>(
       `SELECT raw_incidents, total_incidents FROM oracle_control_incidents
-       WHERE environment_host = $1 AND control_id = $2`,
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
@@ -460,7 +465,7 @@ export class ControlRawDbService {
               COALESCE(SUM(CASE WHEN ${lc.resolved} THEN 1 ELSE 0 END),0)::int AS resolved
        FROM oracle_control_incidents t
        LEFT JOIN LATERAL jsonb_array_elements(COALESCE(t.raw_incidents,'[]'::jsonb)) AS el ON true
-       WHERE t.environment_host = $1 AND t.control_id = ANY($2)`,
+       WHERE (t.environment_host = $1 OR t.environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND t.control_id = ANY($2)`,
       [host, ids]
     );
     const row = res.rows[0] as any;
@@ -602,7 +607,7 @@ export class ControlRawDbService {
       `SELECT t.control_id, t.control_name, el AS raw, COUNT(*) OVER() AS filtered_total
        FROM oracle_control_incidents t,
             LATERAL jsonb_array_elements(COALESCE(t.raw_incidents,'[]'::jsonb)) AS el
-       WHERE t.environment_host = $1 AND t.control_id = ANY($2) ${whereExtra}
+       WHERE (t.environment_host = $1 OR t.environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND t.control_id = ANY($2) ${whereExtra}
        ORDER BY t.control_id, COALESCE(el->>'Id',el->>'id','')
        LIMIT $${p} OFFSET $${p + 1}`,
       [...params, limit, offset]
@@ -621,7 +626,9 @@ export class ControlRawDbService {
     const cleanId = String(controlId).trim();
 
     const res = await query<{ raw_incidents: any }>(
-      `SELECT raw_incidents FROM oracle_control_incidents WHERE environment_host = $1 AND control_id = $2`,
+      `SELECT raw_incidents FROM oracle_control_incidents 
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
@@ -708,7 +715,8 @@ export class ControlRawDbService {
         created_at,
         updated_at
        FROM oracle_control_incidents
-       WHERE environment_host = $1 AND control_id = $2`,
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 

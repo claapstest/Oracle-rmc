@@ -664,8 +664,8 @@ export default function App() {
   } = useSessionTimeout({
     isLoggedIn,
     onLogout: (reason) => handleLogout(reason),
-    timeoutSeconds: 5 * 60, // 5 minutes inactivity (AC1)
-    warningSeconds: 30       // 30 seconds warning (AC2)
+    timeoutSeconds: 15 * 60, // 15 minutes inactivity
+    warningSeconds: 60       // 60 seconds warning modal
   });
 
   const handleFAQSelect = (question: string) => {

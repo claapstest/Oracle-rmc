@@ -8,13 +8,13 @@ import { config } from '../config.js';
 // set of control IDs (e.g. the active Access/Transaction domain tab).
 
 function activeHost(): string {
-  const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'mock.fusion.oracle.com').trim().toLowerCase();
+  const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
   try {
     if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
       return new URL(rawUrl).host;
     }
   } catch (_) {}
-  return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'default_env';
+  return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
 }
 
 function cleanIds(raw: unknown): string[] {

@@ -17,6 +17,7 @@ import { controlRawDbService } from '../services/controlRawDbService.js';
 import * as incidentAnalyticsService from '../services/incidentAnalyticsService.js';
 import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
+import { oracleSyncService } from '../services/oracleSyncService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -2045,6 +2046,13 @@ apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_R
 });
 
 apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
+  if (oracleSyncService.isCurrentlySyncing()) {
+    return res.status(409).json({
+      success: false,
+      code: 'SYNC_IN_PROGRESS',
+      message: 'A synchronization operation is already in progress. Please wait for it to complete.'
+    });
+  }
   try {
     const result = await roleHierarchyService.syncFromBip();
     res.json(result);
@@ -2185,6 +2193,13 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
 
 // POST /api/audit/sync - On-demand synchronization of audit trail records from Oracle Fusion
 apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+  if (oracleSyncService.isCurrentlySyncing()) {
+    return res.status(409).json({
+      success: false,
+      code: 'SYNC_IN_PROGRESS',
+      message: 'A synchronization operation is already in progress. Please wait for it to complete.'
+    });
+  }
   try {
     const {
       product,
@@ -2880,4 +2895,27 @@ apiRouter.delete('/command-center/saved-requests/:id', requirePrivilege('ORACLE_
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// =========================================================
+// Admin Global Data Synchronization Endpoints (Mutex Protected)
+// =========================================================
+
+// GET /api/admin/sync/status - Real-time synchronization state
+apiRouter.get('/admin/sync/status', requireAuth, (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    status: oracleSyncService.getStatus()
+  });
+});
+
+// POST /api/admin/sync/full - Run full baseline data sync (Admin Only)
+apiRouter.post('/admin/sync/full', requireAdmin, async (_req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  logAudit(adminUser, 'ADMIN_MANUAL_SYNC', 'Initiated manual full Oracle baseline synchronization');
+  const result = await oracleSyncService.runFullSync(oracleService, adminUser);
+  if (!result.success && result.message.includes('already in progress')) {
+    return res.status(409).json(result);
+  }
+  res.json(result);
 });

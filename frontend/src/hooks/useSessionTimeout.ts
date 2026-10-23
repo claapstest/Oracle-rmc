@@ -20,8 +20,8 @@ export interface UseSessionTimeoutReturn {
   resetActivityTimer: () => void;
 }
 
-const DEFAULT_TIMEOUT_SECONDS = 5 * 60; // 5 minutes = 300 seconds
-const DEFAULT_WARNING_SECONDS = 30;    // 30 seconds warning
+const DEFAULT_TIMEOUT_SECONDS = 15 * 60; // 15 minutes inactivity
+const DEFAULT_WARNING_SECONDS = 60;      // 60 seconds warning
 const BACKEND_SYNC_INTERVAL_MS = 30 * 1000; // Synchronize with backend at most once every 30 seconds of activity
 
 export function useSessionTimeout({

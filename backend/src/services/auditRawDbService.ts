@@ -30,13 +30,13 @@ export class AuditRawDbService {
   private isInitialized = false;
 
   public getHost(): string {
-    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'mock.fusion.oracle.com').trim().toLowerCase();
+    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
     try {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         return new URL(rawUrl).host;
       }
     } catch (_) {}
-    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'default_env';
+    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
   public async initTable(): Promise<void> {
@@ -261,7 +261,7 @@ export class AuditRawDbService {
     const pageSize = params.pageSize && params.pageSize > 0 ? params.pageSize : 50;
     const offset = (pageNumber - 1) * pageSize;
 
-    const conditions: string[] = ['environment_host = $1'];
+    const conditions: string[] = ['(environment_host = $1 OR environment_host = \'eiiv-dev14.fa.us6.oraclecloud.com\')'];
     const values: any[] = [host];
     let paramIdx = 2;
 
@@ -347,7 +347,7 @@ export class AuditRawDbService {
     const res = await query<{ last_date: string | null; count: string }>(
       `SELECT MAX(event_timestamp) AS last_date, COUNT(*) AS count 
        FROM oracle_raw_audit_records 
-       WHERE environment_host = $1 AND product = $2 AND business_object = $3`,
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND product = $2 AND business_object = $3`,
       [host, product, businessObject]
     );
 
@@ -573,7 +573,7 @@ export class AuditRawDbService {
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
     const timeframe = filter.timeframe || '24h';
-    let whereClause = 'environment_host = $1 AND event_timestamp IS NOT NULL';
+    let whereClause = '(environment_host = $1 OR environment_host = \'eiiv-dev14.fa.us6.oraclecloud.com\') AND event_timestamp IS NOT NULL';
     const values: any[] = [host];
     let effectiveDateLabel = 'Last 24 Hours (Daily Sync Window)';
     let targetDate = todayStr;

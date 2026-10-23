@@ -7,7 +7,9 @@ import {
   AlertOctagon, 
   RefreshCw,
   Info,
-  Database
+  Database,
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
 import { api } from '../services/api.js';
 
@@ -39,6 +41,11 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
   const [syncingCatalog, setSyncingCatalog] = useState(false);
   const [catalogSyncMessage, setCatalogSyncMessage] = useState('');
 
+  // Global Sync States (Off-peak & Admin Mutex Protected)
+  const [globalSyncStatus, setGlobalSyncStatus] = useState<any>(null);
+  const [syncingGlobal, setSyncingGlobal] = useState(false);
+  const [globalSyncMessage, setGlobalSyncMessage] = useState('');
+
   useEffect(() => {
     async function loadSettings() {
       setLoading(true);
@@ -59,7 +66,18 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
     }
     loadSettings();
     fetchCatalogStatus();
+    fetchGlobalSyncStatus();
   }, []);
+
+  const fetchGlobalSyncStatus = async () => {
+    try {
+      const res = await api.getAdminSyncStatus();
+      if (res?.success && res?.status) {
+        setGlobalSyncStatus(res.status);
+        setSyncingGlobal(res.status.isSyncing === true);
+      }
+    } catch (_) {}
+  };
 
   const fetchCatalogStatus = async () => {
     setLoadingCatalog(true);
@@ -117,6 +135,50 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
     } catch (err: any) {
       setCatalogSyncMessage(err.message || 'Error initiating synchronization.');
       setSyncingCatalog(false);
+    }
+  };
+
+  // Poll Global Sync Status while active
+  useEffect(() => {
+    let timer: any = null;
+    if (syncingGlobal) {
+      timer = setInterval(async () => {
+        try {
+          const res = await api.getAdminSyncStatus();
+          if (res?.success && res?.status) {
+            setGlobalSyncStatus(res.status);
+            if (!res.status.isSyncing) {
+              setSyncingGlobal(false);
+              setGlobalSyncMessage(
+                res.status.lastStatus === 'SUCCESS'
+                  ? 'All Oracle baseline data synchronized successfully.'
+                  : `Synchronization finished with notice: ${res.status.lastError || 'Completed'}`
+              );
+            }
+          }
+        } catch (_) {}
+      }, 3000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [syncingGlobal]);
+
+  const handleStartGlobalSync = async () => {
+    setSyncingGlobal(true);
+    setGlobalSyncMessage('Global synchronization started in background. Controls, incidents, role hierarchy, audit, and users are synchronizing...');
+    try {
+      const res = await api.startAdminFullSync();
+      if (res?.success) {
+        setGlobalSyncMessage('Full synchronization completed successfully.');
+      } else {
+        setGlobalSyncMessage(res?.message || 'Sync failed.');
+      }
+      await fetchGlobalSyncStatus();
+    } catch (err: any) {
+      setGlobalSyncMessage(err?.message || 'Error initiating full sync.');
+    } finally {
+      setSyncingGlobal(false);
     }
   };
 
@@ -766,6 +828,147 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
               }}>
                 <Info size={15} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
                 <span>{catalogSyncMessage}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Admin Global Oracle Data Synchronization Section */}
+          <div className="glass-panel" style={{ marginTop: '1.75rem', padding: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  color: 'var(--accent-green)'
+                }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0, letterSpacing: '0.02em' }}>
+                    GLOBAL ORACLE DATA SYNCHRONIZATION (ADMIN ONLY)
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                    Scheduled to run automatically daily at <strong>11:00 PM (Off-Peak Hours)</strong>. Continuous sync on user login is disabled to ensure instant page loads.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status & Manual Sync Action */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.35rem 0.8rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  backgroundColor: syncingGlobal ? 'rgba(217, 119, 6, 0.1)' : globalSyncStatus?.lastStatus === 'ERROR' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                  color: syncingGlobal ? 'var(--accent-gold)' : globalSyncStatus?.lastStatus === 'ERROR' ? 'var(--accent-red)' : 'var(--accent-green)',
+                  border: `1px solid ${syncingGlobal ? 'rgba(217, 119, 6, 0.3)' : globalSyncStatus?.lastStatus === 'ERROR' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: syncingGlobal ? 'var(--accent-gold)' : globalSyncStatus?.lastStatus === 'ERROR' ? 'var(--accent-red)' : 'var(--accent-green)',
+                    display: 'inline-block'
+                  }} />
+                  <span>
+                    {syncingGlobal ? (globalSyncStatus?.currentTask || 'Syncing in progress...') : '● Baseline Synchronized'}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleStartGlobalSync}
+                  disabled={syncingGlobal}
+                  style={{
+                    padding: '0.45rem 1.1rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    borderRadius: 'var(--radius-sm)'
+                  }}
+                  title="Run complete manual synchronization across all Oracle tables (Protected by concurrency lock)"
+                >
+                  <RefreshCw size={13} className={syncingGlobal ? 'animate-spin' : ''} />
+                  <span>{syncingGlobal ? 'Synchronizing All Data...' : 'Synchronize All Data Now'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Sync Policy Info Details */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '1.15rem'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  Sync Schedule
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Clock size={14} style={{ color: 'var(--accent-blue)' }} />
+                  <span>Daily at 11:00 PM (Off-Peak)</span>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  Login Sync Behavior
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-green)', marginTop: '0.25rem' }}>
+                  Disabled (Zero-Latency DB Reads)
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  Concurrency Protection
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-blue)', marginTop: '0.25rem' }}>
+                  Active Mutex (Single Sync Lock)
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  Last Synchronized
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+                  {globalSyncStatus?.lastCompletedAt ? new Date(globalSyncStatus.lastCompletedAt).toLocaleString() : 'Baseline Synced'}
+                </div>
+              </div>
+            </div>
+
+            {globalSyncMessage && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.65rem 0.9rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <Info size={15} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                <span>{globalSyncMessage}</span>
               </div>
             )}
           </div>

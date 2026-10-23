@@ -9,6 +9,7 @@ import { privilegeRoleCatalogService } from './services/privilegeRoleCatalogServ
 import { controlRawDbService } from './services/controlRawDbService.js';
 import { auditRawDbService } from './services/auditRawDbService.js';
 import { auditProductCatalogService } from './services/auditProductCatalogService.js';
+import { scheduledSyncService } from './services/scheduledSyncService.js';
 import { apiRouter } from './routes/api.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -94,12 +95,7 @@ app.listen(config.port, '0.0.0.0', () => {
   console.log(`  Server is listening on port: http://localhost:${config.port}`);
   console.log(`  Environment Mode: ${config.environmentMode}`);
   console.log(`===========================================================`);
-  // Controlled sync mode: Background auto-sync is disabled by default to protect database memory and storage.
-  // Full sync is performed on-demand when users click "Sync" / "Refresh" in the UI.
-  if (process.env.ENABLE_BACKGROUND_AUTO_SYNC === 'true') {
-    controlRawDbService.startAutoSyncScheduler(oracleService);
-    auditRawDbService.startDailyScheduler((oracleService as any).client, auditProductCatalogService, 24);
-  } else {
-    console.log('  Mode: On-Demand Manual Sync (Automatic background sync disabled to preserve DB stability)');
-  }
+  // Scheduled Off-Peak Sync: Syncs full Oracle baseline data daily at 11:00 PM during non-working hours.
+  // Sync is NEVER triggered on user login or by multiple concurrent users.
+  scheduledSyncService.initialize(oracleService, 23);
 });

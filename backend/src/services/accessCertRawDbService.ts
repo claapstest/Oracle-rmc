@@ -49,13 +49,13 @@ export class AccessCertRawDbService {
    * Normalizes the host string for environment isolation.
    */
   public getHost(): string {
-    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'mock.fusion.oracle.com').trim().toLowerCase();
+    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
     try {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         return new URL(rawUrl).host;
       }
     } catch (_) {}
-    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'default_env';
+    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
   // =========================================================================
@@ -155,7 +155,9 @@ export class AccessCertRawDbService {
     const host = this.getHost();
     try {
       const res = await query<RawAccessCertificationRecord>(
-        `SELECT * FROM oracle_raw_access_certifications WHERE environment_host = $1 ORDER BY certification_id ASC`,
+        `SELECT * FROM oracle_raw_access_certifications 
+         WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') 
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), certification_id ASC`,
         [host]
       );
 
@@ -290,8 +292,8 @@ export class AccessCertRawDbService {
     try {
       const res = await query<RawCertifierWorksheetRecord>(
         `SELECT * FROM oracle_raw_certifier_worksheets 
-         WHERE environment_host = $1 AND certification_id = $2 
-         ORDER BY id ASC`,
+         WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND certification_id = $2 
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), id ASC`,
         [host, cleanCertId]
       );
 

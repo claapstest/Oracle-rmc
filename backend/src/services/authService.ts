@@ -70,11 +70,11 @@ export interface LoginResult {
   message: string;
 }
 
-export const DEFAULT_INACTIVITY_TIMEOUT_MINUTES = 5;
+export const DEFAULT_INACTIVITY_TIMEOUT_MINUTES = 15;
 export function getInactivityTimeoutMs(): number {
   const envVal = process.env.SESSION_INACTIVITY_TIMEOUT_MINUTES;
   const minutes = envVal ? parseInt(envVal, 10) : DEFAULT_INACTIVITY_TIMEOUT_MINUTES;
-  return (isNaN(minutes) || minutes <= 0 ? 5 : minutes) * 60 * 1000;
+  return (isNaN(minutes) || minutes <= 0 ? 15 : minutes) * 60 * 1000;
 }
 
 // In-memory session store
@@ -1005,6 +1005,20 @@ export class AuthService {
     const now = Date.now();
     const inactivityTimeout = getInactivityTimeoutMs();
 
+    let session = activeSessions.get(token);
+
+    // If session is active in memory and fresh, keep it active and slide expiration
+    if (session && session.status === 'ACTIVE') {
+      if (now - session.lastActivityAt < inactivityTimeout) {
+        if (updateActivity) {
+          session.lastActivityAt = now;
+          session.expiresAt = now + inactivityTimeout;
+          this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => {});
+        }
+        return { valid: true, session };
+      }
+    }
+
     // Check database authoritative source of truth for session status & expiry
     try {
       const dbRes = await dbQuery(
@@ -1016,18 +1030,24 @@ export class AuthService {
       if (dbRes.rows.length > 0) {
         const dbRow = dbRes.rows[0];
         if (dbRow.status !== 'ACTIVE') {
-          activeSessions.delete(token);
-          return {
-            valid: false,
-            code: 'SESSION_EXPIRED',
-            message: 'Your session has expired. Please log in again.'
-          };
+          // If in-memory is active and recent, re-activate in DB
+          if (session && session.status === 'ACTIVE' && now - session.lastActivityAt < inactivityTimeout) {
+            await dbQuery(`UPDATE veyra_session SET status = 'ACTIVE', last_activity_at = NOW(), expires_at = NOW() + interval '15 minutes' WHERE session_id = $1`, [token]);
+          } else {
+            activeSessions.delete(token);
+            return {
+              valid: false,
+              code: 'SESSION_EXPIRED',
+              message: 'Your session has expired. Please log in again.'
+            };
+          }
         }
 
         const dbLastAct = dbRow.last_activity_at ? new Date(dbRow.last_activity_at).getTime() : 0;
         const dbExpiresAt = dbRow.expires_at ? new Date(dbRow.expires_at).getTime() : (dbLastAct + inactivityTimeout);
 
-        if (now >= dbExpiresAt || (now - dbLastAct >= inactivityTimeout)) {
+        // Allow 2-minute safety grace buffer before marking expired
+        if (now >= dbExpiresAt + 120000 && (now - dbLastAct >= inactivityTimeout + 120000)) {
           activeSessions.delete(token);
           await this.markSessionExpiredInDb(token);
           return {
@@ -1041,7 +1061,9 @@ export class AuthService {
       // In case DB is temporarily offline, fallback to in-memory validation
     }
 
-    let session = activeSessions.get(token);
+    if (!session) {
+      session = activeSessions.get(token);
+    }
     if (!session) {
       session = (await this.restoreSessionFromDb(token)) || undefined;
     }
@@ -1298,8 +1320,8 @@ export class AuthService {
         `UPDATE veyra_session
          SET status = 'EXPIRED'
          WHERE status = 'ACTIVE' AND (
-           (expires_at IS NOT NULL AND expires_at <= NOW()) OR
-           (last_activity_at <= NOW() - ($1 || ' minutes')::interval)
+           (expires_at IS NOT NULL AND expires_at <= NOW() - INTERVAL '2 minutes') OR
+           (last_activity_at <= NOW() - ($1 || ' minutes')::interval - INTERVAL '2 minutes')
          )
          RETURNING session_id, user_id, ip_address, user_agent`,
         [`${minutes}`]

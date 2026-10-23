@@ -34,13 +34,13 @@ export class UserRoleRawDbService {
    * Normalizes the host string for environment isolation (e.g. eiiv-dev14.fa.us6.oraclecloud.com)
    */
   public getHost(): string {
-    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'mock.fusion.oracle.com').trim().toLowerCase();
+    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
     try {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         return new URL(rawUrl).host;
       }
     } catch (_) {}
-    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'default_env';
+    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
   // =============================================================
@@ -156,7 +156,7 @@ export class UserRoleRawDbService {
     offset?: number;
   } = {}): Promise<{ roles: any[]; totalCount: number }> {
     const host = this.getHost();
-    const conditions: string[] = ['environment_host = $1'];
+    const conditions: string[] = ['(environment_host = $1 OR environment_host = \'eiiv-dev14.fa.us6.oraclecloud.com\')'];
     const params: any[] = [host];
 
     if (options.category && options.category.toUpperCase() !== 'ALL') {
@@ -200,7 +200,7 @@ export class UserRoleRawDbService {
     try {
       const host = this.getHost();
       const existing = await query<{ count: string }>(
-        `SELECT count(*) as count FROM oracle_raw_roles WHERE environment_host = $1`,
+        `SELECT count(*) as count FROM oracle_raw_roles WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')`,
         [host]
       );
       const count = parseInt(existing.rows[0]?.count || '0', 10);
@@ -337,7 +337,7 @@ export class UserRoleRawDbService {
     offset?: number;
   } = {}): Promise<{ users: any[]; totalCount: number }> {
     const host = this.getHost();
-    const conditions: string[] = ['environment_host = $1'];
+    const conditions: string[] = ['(environment_host = $1 OR environment_host = \'eiiv-dev14.fa.us6.oraclecloud.com\')'];
     const params: any[] = [host];
 
     if (options.filterText) {
@@ -375,7 +375,7 @@ export class UserRoleRawDbService {
   public async getRawUserCount(): Promise<number> {
     const host = this.getHost();
     const res = await query<{ count: string }>(
-      `SELECT count(*) as count FROM oracle_raw_users WHERE environment_host = $1`,
+      `SELECT count(*) as count FROM oracle_raw_users WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')`,
       [host]
     );
     return parseInt(res.rows[0]?.count || '0', 10);
@@ -387,7 +387,7 @@ export class UserRoleRawDbService {
   public async getRawRoleCount(): Promise<number> {
     const host = this.getHost();
     const res = await query<{ count: string }>(
-      `SELECT count(*) as count FROM oracle_raw_roles WHERE environment_host = $1`,
+      `SELECT count(*) as count FROM oracle_raw_roles WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')`,
       [host]
     );
     return parseInt(res.rows[0]?.count || '0', 10);

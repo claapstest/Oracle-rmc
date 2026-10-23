@@ -152,14 +152,18 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
       });
       
       if (!res.ok) {
-        if (res.status === 401 && endpoint !== '/auth/login') {
-          console.warn('[API Service] 401 Unauthorized encountered, session expired.');
-          clearActiveAuthSession();
-          window.dispatchEvent(new CustomEvent('auth:expired'));
-        }
         const errorData = await res.json().catch(() => ({}));
         const message = errorData.message || errorData.error || `Request failed with status ${res.status}`;
         const code = errorData.code || errorData.errorCode || errorData.error_code;
+
+        if (res.status === 401 && endpoint !== '/auth/login') {
+          const isExplicitSessionExpiry = code === 'SESSION_EXPIRED' || code === 'INVALID_TOKEN' || endpoint === '/auth/status' || endpoint === '/auth/refresh';
+          if (isExplicitSessionExpiry) {
+            console.warn('[API Service] Explicit session expiration received. Redirecting to login.');
+            clearActiveAuthSession();
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+          }
+        }
         throw new ApiError(message, res.status, code, errorData);
       }
       
@@ -530,6 +534,17 @@ export const api = {
     return apiRequest('/settings/toggle-mode', {
       method: 'POST',
       body: JSON.stringify(settings),
+    });
+  },
+
+  // Admin Global Synchronization APIs (AC: Off-peak & Mutex Protected)
+  async getAdminSyncStatus() {
+    return apiRequest('/admin/sync/status');
+  },
+
+  async startAdminFullSync() {
+    return apiRequest('/admin/sync/full', {
+      method: 'POST'
     });
   },
 
