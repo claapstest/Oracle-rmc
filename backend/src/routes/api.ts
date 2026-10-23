@@ -18,6 +18,7 @@ import * as incidentAnalyticsService from '../services/incidentAnalyticsService.
 import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
+import { entitlementService } from '../services/entitlementService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -2757,6 +2758,38 @@ apiRouter.get('/catalog/role-privileges/privileges-by-role', requirePrivilege(['
       return res.status(400).json({ success: false, message: 'Query parameter "role" is required.' });
     }
     const result = rolePrivilegeCatalogService.getPrivilegesByRole(role);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Reverse Entitlement Lookup: Privilege -> Users (Who has this privilege?)
+apiRouter.get('/catalog/users-by-privilege', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const privilege = (req.query.privilege as string) || (req.query.query as string) || '';
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize as string, 10) || 50;
+    if (!privilege) {
+      return res.status(400).json({ success: false, message: 'Query parameter "privilege" is required.' });
+    }
+    const result = await entitlementService.getUsersByPrivilege(privilege, page, pageSize);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Forward Entitlement Lookup: User -> Privileges (What privileges does this user have?)
+apiRouter.get('/catalog/privileges-by-user', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const username = (req.query.username as string) || (req.query.user as string) || '';
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize as string, 10) || 100;
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'Query parameter "username" is required.' });
+    }
+    const result = await entitlementService.getPrivilegesByUser(username, page, pageSize);
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });

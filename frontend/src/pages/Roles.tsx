@@ -72,6 +72,50 @@ export default function Roles({
   const [hierarchyData, setHierarchyData] = useState<any | null>(null);
   const [privilegeData, setPrivilegeData] = useState<any | null>(null);
   
+  // Modal for viewing users associated with a specific functional privilege
+  const [privilegeUsersModal, setPrivilegeUsersModal] = useState<{
+    open: boolean;
+    privilegeName: string;
+    users: any[];
+    loading: boolean;
+    search: string;
+    total: number;
+  }>({
+    open: false,
+    privilegeName: '',
+    users: [],
+    loading: false,
+    search: '',
+    total: 0
+  });
+
+  const handleOpenPrivilegeUsers = async (privilegeName: string) => {
+    setPrivilegeUsersModal({
+      open: true,
+      privilegeName,
+      users: [],
+      loading: true,
+      search: '',
+      total: 0
+    });
+    try {
+      const res = await api.getUsersByPrivilege(privilegeName, 1, 100);
+      if (res?.success) {
+        setPrivilegeUsersModal(prev => ({
+          ...prev,
+          users: res.users || [],
+          total: res.total || (res.users || []).length,
+          loading: false
+        }));
+      } else {
+        setPrivilegeUsersModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (err) {
+      console.error('[Privilege Users Lookup Error]:', err);
+      setPrivilegeUsersModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+  
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -743,6 +787,7 @@ export default function Roles({
                             <tr>
                               <th>Name</th>
                               <th>Inherited From</th>
+                              <th style={{ textAlign: 'right' }}>Users</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -750,6 +795,26 @@ export default function Roles({
                               <tr key={idx}>
                                 <td style={{ fontWeight: 600 }}>{p.name}</td>
                                 <td style={{ color: 'var(--text-muted)' }}>{p.inheritedFrom}</td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenPrivilegeUsers(p.name)}
+                                    className="btn btn-secondary"
+                                    style={{
+                                      padding: '0.2rem 0.55rem',
+                                      fontSize: '0.7rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      color: 'var(--accent-blue)',
+                                      borderColor: 'rgba(53, 99, 233, 0.25)'
+                                    }}
+                                    title="View users holding this privilege"
+                                  >
+                                    <Users size={11} />
+                                    <span>Users</span>
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -767,6 +832,222 @@ export default function Roles({
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* Users with Privilege Modal */}
+      {privilegeUsersModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1.5rem'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-primary, #1e293b)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+            maxWidth: '850px',
+            width: '100%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-blue)'
+                }}>
+                  <KeyRound size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Users with Privilege: {privilegeUsersModal.privilegeName}
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    Reverse RBAC entitlement grant via assigned and inherited roles
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span className="badge badge-blue" style={{ fontSize: '0.72rem' }}>
+                  {privilegeUsersModal.total.toLocaleString()} Users
+                </span>
+                <button
+                  onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, open: false }))}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex'
+                  }}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Search Filter */}
+            <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Filter users by username, name, or role..."
+                  value={privilegeUsersModal.search}
+                  onChange={(e) => setPrivilegeUsersModal(prev => ({ ...prev, search: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 2rem',
+                    fontSize: '0.82rem',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {privilegeUsersModal.search && (
+                  <button
+                    type="button"
+                    onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, search: '' }))}
+                    style={{
+                      position: 'absolute',
+                      right: '0.65rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Body / Table */}
+            <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+              {privilegeUsersModal.loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '1.5rem 0' }}>
+                  <div style={{ height: '32px', width: '100%' }} className="skeleton" />
+                  <div style={{ height: '32px', width: '90%' }} className="skeleton" />
+                  <div style={{ height: '32px', width: '95%' }} className="skeleton" />
+                  <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    Searching users holding roles with this privilege...
+                  </div>
+                </div>
+              ) : privilegeUsersModal.users.length === 0 ? (
+                <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No active users are currently assigned roles that hold this privilege.
+                </div>
+              ) : (
+                (() => {
+                  const q = privilegeUsersModal.search.trim().toLowerCase();
+                  const filtered = privilegeUsersModal.users.filter(u => {
+                    if (!q) return true;
+                    return (
+                      (u.username || '').toLowerCase().includes(q) ||
+                      (u.displayName || '').toLowerCase().includes(q) ||
+                      (u.email || '').toLowerCase().includes(q) ||
+                      (u.grantedViaRoleName || '').toLowerCase().includes(q) ||
+                      (u.grantedViaRoleCode || '').toLowerCase().includes(q)
+                    );
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                        No users match "{privilegeUsersModal.search}".
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <table className="enterprise-table" style={{ fontSize: '0.78rem', width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th>Username</th>
+                          <th>Display Name</th>
+                          <th>Email Address</th>
+                          <th>Active</th>
+                          <th>Granted Via Role</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((u, i) => (
+                          <tr key={i}>
+                            <td><code>{u.username}</code></td>
+                            <td style={{ fontWeight: 600 }}>{u.displayName || '—'}</td>
+                            <td>{u.email || '—'}</td>
+                            <td>
+                              <span className={`badge ${u.isActive ? 'badge-active' : 'badge-inactive'}`}>
+                                {u.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>
+                                {u.grantedViaRoleName}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '0.75rem 1.5rem',
+              borderTop: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, open: false }))}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

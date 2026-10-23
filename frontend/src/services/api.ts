@@ -682,6 +682,14 @@ export const api = {
     return apiRequest(`/catalog/role-privileges/privileges-by-role?role=${encodeURIComponent(role)}`);
   },
 
+  async getUsersByPrivilege(privilege: string, page = 1, pageSize = 50) {
+    return apiRequest(`/catalog/users-by-privilege?privilege=${encodeURIComponent(privilege)}&page=${page}&pageSize=${pageSize}`);
+  },
+
+  async getPrivilegesByUser(username: string, page = 1, pageSize = 100) {
+    return apiRequest(`/catalog/privileges-by-user?username=${encodeURIComponent(username)}&page=${page}&pageSize=${pageSize}`);
+  },
+
   // ==========================================
   // Oracle API Console Operations & Diagnostics
   // ==========================================

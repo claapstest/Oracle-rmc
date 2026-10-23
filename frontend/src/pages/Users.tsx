@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { TableLoadingState } from '../components/TableLoadingState';
@@ -43,6 +43,11 @@ export default function Users({
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState(initialFilter);
   const [drawerRoleSearch, setDrawerRoleSearch] = useState('');
+  const [drawerTab, setDrawerTab] = useState<'ROLES' | 'PRIVILEGES'>('ROLES');
+  const [userPrivileges, setUserPrivileges] = useState<any[]>([]);
+  const [privilegesLoading, setPrivilegesLoading] = useState(false);
+  const [drawerPrivilegeSearch, setDrawerPrivilegeSearch] = useState('');
+  const [totalUserPrivileges, setTotalUserPrivileges] = useState(0);
 
   // Filtered assigned roles in drawer
   const filteredDrawerRoles = useMemo(() => {
@@ -55,6 +60,41 @@ export default function Users({
       return rName.toLowerCase().includes(q) || rCode.toLowerCase().includes(q);
     });
   }, [selectedUser?.assignedRoles, drawerRoleSearch]);
+
+  // Filtered privileges in drawer
+  const filteredDrawerPrivileges = useMemo(() => {
+    const q = drawerPrivilegeSearch.trim().toLowerCase();
+    if (!q) return userPrivileges;
+    return userPrivileges.filter((p: any) => {
+      const pName = (p.privilegeName || '').toLowerCase();
+      const pCode = (p.privilegeCode || '').toLowerCase();
+      const pRole = (p.grantedViaRoleName || '').toLowerCase();
+      const pDesc = (p.description || '').toLowerCase();
+      return pName.includes(q) || pCode.includes(q) || pRole.includes(q) || pDesc.includes(q);
+    });
+  }, [userPrivileges, drawerPrivilegeSearch]);
+
+  // Lazy-load effective privileges on demand when Privileges tab is clicked
+  useEffect(() => {
+    if (selectedUser && drawerTab === 'PRIVILEGES') {
+      let isCancelled = false;
+      setPrivilegesLoading(true);
+      api.getPrivilegesByUser(selectedUser.userName, 1, 200)
+        .then((res: any) => {
+          if (!isCancelled && res?.privileges) {
+            setUserPrivileges(res.privileges);
+            setTotalUserPrivileges(res.total || res.privileges.length);
+          }
+        })
+        .catch((err: any) => {
+          console.error('[User Privileges Error]:', err);
+        })
+        .finally(() => {
+          if (!isCancelled) setPrivilegesLoading(false);
+        });
+      return () => { isCancelled = true; };
+    }
+  }, [selectedUser, drawerTab]);
 
   // Synchronize internal selected user drawer with topbar Back button
   useEffect(() => {
@@ -90,6 +130,10 @@ export default function Users({
 
   useEffect(() => {
     setDrawerRoleSearch('');
+    setDrawerPrivilegeSearch('');
+    setDrawerTab('ROLES');
+    setUserPrivileges([]);
+    setTotalUserPrivileges(0);
   }, [selectedUser]);
 
   // Helper for human-readable category filter label
@@ -744,13 +788,160 @@ export default function Users({
               </button>
             )}
 
-            {/* Assigned Roles List */}
+            {/* Sub-Tab Navigation inside Drawer: Roles vs Effective Privileges */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Directly Assigned Roles ({filteredDrawerRoles.length}{drawerRoleSearch.trim() && selectedUser.assignedRoles?.length ? ` of ${selectedUser.assignedRoles.length}` : ''})
-                </div>
+              <div style={{
+                display: 'flex',
+                borderBottom: '1px solid var(--border-color)',
+                gap: '0.75rem',
+                marginBottom: '0.75rem'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab('ROLES')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    paddingBottom: '0.45rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: drawerTab === 'ROLES' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    borderBottom: drawerTab === 'ROLES' ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Shield size={13} />
+                  <span>Direct Roles ({filteredDrawerRoles.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab('PRIVILEGES')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    paddingBottom: '0.45rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: drawerTab === 'PRIVILEGES' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    borderBottom: drawerTab === 'PRIVILEGES' ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <KeyRound size={13} />
+                  <span>Effective Privileges {totalUserPrivileges > 0 ? `(${totalUserPrivileges.toLocaleString()})` : ''}</span>
+                </button>
               </div>
+
+              {drawerTab === 'PRIVILEGES' ? (
+                <div>
+                  <div style={{ position: 'relative', marginBottom: '0.65rem' }}>
+                    <Search size={13} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search functional privileges..."
+                      value={drawerPrivilegeSearch}
+                      onChange={(e) => setDrawerPrivilegeSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.35rem 1.8rem 0.35rem 2rem',
+                        fontSize: '0.78rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {drawerPrivilegeSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setDrawerPrivilegeSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: '0.45rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex'
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {privilegesLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem 0' }}>
+                      <div style={{ height: '28px', width: '100%' }} className="skeleton" />
+                      <div style={{ height: '28px', width: '85%' }} className="skeleton" />
+                      <div style={{ height: '28px', width: '90%' }} className="skeleton" />
+                      <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                        Resolving role hierarchy and granted privileges...
+                      </div>
+                    </div>
+                  ) : filteredDrawerPrivileges.length === 0 ? (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      {drawerPrivilegeSearch ? `No privileges match "${drawerPrivilegeSearch}".` : 'No functional privileges resolved for this user.'}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '420px', overflowY: 'auto' }}>
+                      {filteredDrawerPrivileges.map((p: any, idx: number) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '0.6rem 0.75rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.2rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {p.privilegeName || p.privilegeCode}
+                            </span>
+                            <span className="badge badge-blue" style={{ fontSize: '0.62rem', whiteSpace: 'nowrap' }}>
+                              Privilege
+                            </span>
+                          </div>
+                          <code style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{p.privilegeCode}</code>
+                          {p.description && (
+                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: '1.3' }}>
+                              {p.description}
+                            </p>
+                          )}
+                          <div style={{ marginTop: '0.3rem', fontSize: '0.68rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <span>Granted via:</span>
+                            <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{p.grantedViaRoleName}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Assigned Roles List Tab */
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Directly Assigned Roles ({filteredDrawerRoles.length}{drawerRoleSearch.trim() && selectedUser.assignedRoles?.length ? ` of ${selectedUser.assignedRoles.length}` : ''})
+                    </div>
+                  </div>
 
               {selectedUser.assignedRoles && selectedUser.assignedRoles.length > 0 && (
                 <div style={{ position: 'relative', marginBottom: '0.65rem' }}>
@@ -890,10 +1081,12 @@ export default function Users({
                 )}
               </div>
             </div>
-
-          </div>
+          )}
         </div>
-      )}
+
+      </div>
+    </div>
+  )}
 
     </div>
   );
