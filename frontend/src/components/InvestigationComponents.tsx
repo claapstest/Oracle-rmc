@@ -429,6 +429,190 @@ function getTableColumns(
     ];
   }
 
+  if (tableType === 'privileges_by_user') {
+    return [
+      {
+        key: 'privilegeName',
+        header: 'PRIVILEGE NAME',
+        width: '28%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {row.privilegeName || row.name || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'privilegeCode',
+        header: 'PRIVILEGE CODE',
+        width: '28%',
+        align: 'left',
+        render: (row) => (
+          <code style={{ 
+            fontSize: '0.74rem', 
+            backgroundColor: '#F1F5F9', 
+            color: '#0F172A',
+            padding: '0.15rem 0.4rem', 
+            borderRadius: '4px',
+            border: '1px solid #E2E8F0',
+            wordBreak: 'break-all',
+            overflowWrap: 'anywhere',
+            display: 'inline-block',
+            maxWidth: '100%'
+          }}>
+            {row.privilegeCode || row.code || '—'}
+          </code>
+        )
+      },
+      {
+        key: 'description',
+        header: 'DESCRIPTION',
+        width: '24%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {row.description || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'grantedViaRole',
+        header: 'GRANTED VIA ROLE',
+        width: '20%',
+        align: 'left',
+        render: (row, _idx, { onInvestigate }) => {
+          const role = row.grantedViaRole || row.grantedViaRoleName || '—';
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                {role}
+              </span>
+              {role !== '—' && (
+                <button
+                  onClick={() => onInvestigate('role', row.grantedViaRoleCode || role, role)}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: '0.15rem 0.4rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                    color: 'var(--accent-blue)',
+                    borderColor: 'rgba(53, 99, 233, 0.3)',
+                    backgroundColor: 'rgba(53, 99, 233, 0.05)',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer'
+                  }}
+                  title={`Inspect role ${role}`}
+                >
+                  <span>Role</span>
+                  <ArrowRight size={10} />
+                </button>
+              )}
+            </div>
+          );
+        }
+      }
+    ];
+  }
+
+  if (tableType === 'users_by_privilege') {
+    return [
+      {
+        key: 'userName',
+        header: 'USERNAME',
+        width: '20%',
+        align: 'left',
+        render: (row) => (
+          <code style={{ 
+            fontSize: '0.76rem', 
+            backgroundColor: '#F1F5F9', 
+            color: '#0F172A',
+            padding: '0.15rem 0.4rem', 
+            borderRadius: '4px',
+            border: '1px solid #E2E8F0',
+            wordBreak: 'break-all',
+            overflowWrap: 'anywhere',
+            display: 'inline-block'
+          }}>
+            {row.userName || row.username || '—'}
+          </code>
+        )
+      },
+      {
+        key: 'displayName',
+        header: 'DISPLAY NAME',
+        width: '22%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {row.displayName || row.userName || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'email',
+        header: 'EMAIL',
+        width: '22%',
+        align: 'left',
+        render: (row) => (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
+            {row.email || '—'}
+          </span>
+        )
+      },
+      {
+        key: 'status',
+        header: 'STATUS',
+        width: '12%',
+        align: 'center',
+        render: (row) => <StatusBadge active={row.active === 'Active' || row.active === true || row.status === 'Active'} />
+      },
+      {
+        key: 'grantedViaRole',
+        header: 'GRANTED VIA ROLE',
+        width: '24%',
+        align: 'left',
+        render: (row, _idx, { onInvestigate }) => {
+          const role = row.grantedViaRole || row.grantedViaRoleName || '—';
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                {role}
+              </span>
+              {role !== '—' && (
+                <button
+                  onClick={() => onInvestigate('role', row.grantedViaRoleCode || role, role)}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: '0.15rem 0.4rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                    color: 'var(--accent-blue)',
+                    borderColor: 'rgba(53, 99, 233, 0.3)',
+                    backgroundColor: 'rgba(53, 99, 233, 0.05)',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer'
+                  }}
+                  title={`Inspect role ${role}`}
+                >
+                  <span>Role</span>
+                  <ArrowRight size={10} />
+                </button>
+              )}
+            </div>
+          );
+        }
+      }
+    ];
+  }
+
   if (tableType === 'audit') {
     return [
       {
@@ -874,7 +1058,11 @@ function getTableColumns(
       if (typeof val === 'boolean') {
         return <StatusBadge active={val} />;
       }
-      return <span>{String(val ?? '—')}</span>;
+      return (
+        <span style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', display: 'inline-block', maxWidth: '100%' }}>
+          {String(val ?? '—')}
+        </span>
+      );
     }
   }));
 }
@@ -989,7 +1177,15 @@ export const PaginatedTable = React.memo(function PaginatedTable({
       }}>
         <div>
           <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-            {totalMatching} {table.type === 'users' ? 'users match this query' : `${table.type || 'records'} match this query`}
+            {totalMatching} {
+              table.type === 'users' || table.type === 'users_by_privilege'
+                ? 'users match this query'
+                : table.type === 'privileges' || table.type === 'privileges_by_user'
+                  ? 'privileges match this query'
+                  : table.type === 'roles' || table.type === 'roles_by_privilege'
+                    ? 'roles match this query'
+                    : `${(table.type || 'records').replace(/_/g, ' ')} match this query`
+            }
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
             Showing {filteredRows.length > 0 ? startIndex + 1 : 0}–{endIndex} of {filteredRows.length} · Page {validCurrentPage} of {totalPages}
@@ -1007,7 +1203,7 @@ export const PaginatedTable = React.memo(function PaginatedTable({
                   padding: '0.25rem 0.5rem 0.25rem 1.8rem', 
                   fontSize: '0.75rem', 
                   width: '150px', 
-                  height: '30px',
+                  height: '30px', 
                   borderRadius: '6px' 
                 }}
                 placeholder="Search rows..."
@@ -1063,6 +1259,7 @@ export const PaginatedTable = React.memo(function PaginatedTable({
           className="enterprise-table" 
           style={{ 
             width: '100%', 
+            minWidth: columns.length >= 4 ? `${Math.max(880, columns.length * 180)}px` : '100%',
             tableLayout: 'fixed',
             borderCollapse: 'collapse',
             fontSize: '0.85rem' 
@@ -1115,7 +1312,10 @@ export const PaginatedTable = React.memo(function PaginatedTable({
                         textAlign: col.align || 'left',
                         padding: '0.75rem 1rem',
                         borderBottom: '1px solid var(--border-color)',
-                        verticalAlign: 'middle'
+                        verticalAlign: 'middle',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                        whiteSpace: 'normal'
                       }}
                     >
                       {col.render 

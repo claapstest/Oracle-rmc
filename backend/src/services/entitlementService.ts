@@ -37,7 +37,7 @@ export class EntitlementService {
   public async getUsersByPrivilege(
     privilegeQuery: string,
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 2000
   ): Promise<{
     success: boolean;
     privilege: string;
@@ -61,7 +61,7 @@ export class EntitlementService {
     }
 
     const safePage = Math.max(1, page);
-    const safePageSize = Math.min(Math.max(1, pageSize), 200);
+    const safePageSize = Math.min(Math.max(1, pageSize), 5000);
     const offset = (safePage - 1) * safePageSize;
     const cacheKey = `priv:${cleanPriv.toLowerCase()}:${safePage}:${safePageSize}`;
 
@@ -214,7 +214,7 @@ export class EntitlementService {
   public async getPrivilegesByUser(
     usernameQuery: string,
     page: number = 1,
-    pageSize: number = 100
+    pageSize: number = 2000
   ): Promise<{
     success: boolean;
     username: string;
@@ -240,7 +240,7 @@ export class EntitlementService {
     }
 
     const safePage = Math.max(1, page);
-    const safePageSize = Math.min(Math.max(1, pageSize), 200);
+    const safePageSize = Math.min(Math.max(1, pageSize), 5000);
     const offset = (safePage - 1) * safePageSize;
     const cacheKey = `user:${cleanUser.toLowerCase()}:${safePage}:${safePageSize}`;
 

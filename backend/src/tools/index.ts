@@ -784,7 +784,7 @@ export async function getUsersByPrivilegeTool(params: { privilege?: string; priv
     if (!priv) {
       return createResult('getUsersByPrivilege', params, false, null, 'Privilege name or code is required.');
     }
-    const result = await entitlementService.getUsersByPrivilege(priv, 1, clampChatLimit(params.limit, 25, 50));
+    const result = await entitlementService.getUsersByPrivilege(priv, 1, clampChatLimit(params.limit, 2000, 5000));
     const res = createResult('getUsersByPrivilege', params, result.success, result);
     res.dataSource = 'PostgreSQL Oracle Security Repository';
     return res;
@@ -799,7 +799,7 @@ export async function getPrivilegesByUserTool(params: { username?: string; userI
     if (!user) {
       return createResult('getPrivilegesByUser', params, false, null, 'Username or email is required.');
     }
-    const result = await entitlementService.getPrivilegesByUser(user, 1, clampChatLimit(params.limit, 50, 100));
+    const result = await entitlementService.getPrivilegesByUser(user, 1, clampChatLimit(params.limit, 2000, 5000));
     const res = createResult('getPrivilegesByUser', params, result.success, result);
     res.dataSource = 'PostgreSQL Oracle Security Repository';
     return res;

@@ -663,6 +663,8 @@ h1, h2, h3, h4, h5, h6 {
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary) !important;
   background-color: var(--bg-card) !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .enterprise-table tr:hover td {
