@@ -737,8 +737,42 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
+  // 5a-1. Privilege -> Users ("who has privilege X", "which users have privilege X", "users with privilege X")
+  const privUserMatch = 
+    clean.match(/(?:who\s+has|which\s+users?\s+(?:have|has)|users?\s+with|users?\s+having|who\s+holds|users?\s+holding)\s+(?:the\s+)?privilege\s+["']?([^"']+)["']?/i) ||
+    clean.match(/users?\s+(?:with|having|holding)\s+["']?([^"']+)["']?\s+privilege/i);
+
+  if (privUserMatch && privUserMatch[1]) {
+    const rawPriv = privUserMatch[1].replace(/["'<>?]/g, '').trim();
+    if (rawPriv && !rawPriv.startsWith('does') && !rawPriv.startsWith('of') && !rawPriv.startsWith('for')) {
+      return {
+        intent: 'USERS_BY_PRIVILEGE',
+        parameters: { privilege: rawPriv },
+        explanation: `Checking which users possess functional privilege "${rawPriv}".`
+      };
+    }
+  }
+
+  // 5a-2. User -> Privileges ("what privileges does user X have", "privileges for user X", "privileges of user X", "show privileges for user X")
+  const userPrivMatch = 
+    clean.match(/(?:what\s+privileges?\s+does|which\s+privileges?\s+does)\s+(?:user\s+)?([a-zA-Z0-9_\.@\-]+)\s+(?:have|has)/i) ||
+    clean.match(/(?:privileges?\s+(?:for|of|assigned\s+to))\s+(?:user\s+)?([a-zA-Z0-9_\.@\-]+)(?:\s+have|\s+has|\?|$)/i) ||
+    clean.match(/show\s+(?:all\s+)?privileges\s+(?:for|of)\s+(?:user\s+)?([a-zA-Z0-9_\.@\-]+)/i);
+
+  if (userPrivMatch && userPrivMatch[1]) {
+    const rawUser = userPrivMatch[1].replace(/["'<>?]/g, '').trim();
+    if (rawUser && !['role', 'roles', 'all', 'any', 'this'].includes(rawUser.toLowerCase())) {
+      return {
+        intent: 'PRIVILEGES_BY_USER',
+        parameters: { username: rawUser },
+        explanation: `Extracting all functional privileges assigned to user "${rawUser}".`
+      };
+    }
+  }
+
+  // 5a-3. Privilege -> Roles (Which roles grant or have a specific privilege)
   const rolesByPrivMatch = 
-    clean.match(/(?:give\s+me\s+(?:the\s+)?roles?\s+(?:which|that)?\s*(?:have|grant)|which\s+roles?\s+(?:have|grant|contain)|what\s+roles?\s+(?:have|grant|contain)|what\s+roles?\s+are\s+associated\s+with|which\s+roles?\s+are\s+associated\s+with|roles?\s+associated\s+with|roles?\s+(?:which|that)\s+have|roles?\s+with|which\s+roles?\s+contain|roles?\s+containing|roles?\s+granting|show\s+(?:me\s+)?(?:the\s+)?roles?\s+(?:for|associated\s+with|with|having)|who\s+has\s+(?:the\s+)?privilege)\s+(?:the\s+)?(?:privilege\s+)?([^?.,;:]+)/i) ||
+    clean.match(/(?:give\s+me\s+(?:the\s+)?roles?\s+(?:which|that)?\s*(?:have|grant)|which\s+roles?\s+(?:have|grant|contain)|what\s+roles?\s+(?:have|grant|contain)|what\s+roles?\s+are\s+associated\s+with|which\s+roles?\s+are\s+associated\s+with|roles?\s+associated\s+with|roles?\s+(?:which|that)\s+have|roles?\s+with|which\s+roles?\s+contain|roles?\s+containing|roles?\s+granting|show\s+(?:me\s+)?(?:the\s+)?roles?\s+(?:for|associated\s+with|with|having))\s+(?:the\s+)?(?:privilege\s+)?([^?.,;:]+)/i) ||
     clean.match(/(?:roles?\s+with|roles?\s+having|roles?\s+containing)\s+["']?([^"']+)["']?\s+privilege/i) ||
     clean.match(/(?:show\s+me\s+roles\s+for|roles\s+for)\s+([a-zA-Z0-9_]+)/i);
 
@@ -1117,6 +1151,25 @@ function generateFallbackExplanation(intent: string, parameters: any, toolResult
       return `Privilege: ${privName}\n\n| Role Name | Role Code |\n|-----------|-----------|\n${roleRows}`;
     }
 
+    case 'USERS_BY_PRIVILEGE': {
+      const privName = data?.privilege || parameters.privilege || 'the requested privilege';
+      const count = data?.total !== undefined ? data.total : (Array.isArray(data?.users) ? data.users.length : 0);
+      if (count === 0) {
+        return `No active users currently possess the functional privilege **"${privName}"** in ${toolResult.dataSource}.`;
+      }
+      return `Found **${count.toLocaleString()} user(s)** who possess privilege **"${privName}"** (granted through their assigned job or duty roles). Review the matching user accounts below:`;
+    }
+
+    case 'PRIVILEGES_BY_USER': {
+      const user = data?.username || parameters.username || 'User';
+      const disp = data?.displayName ? ` (${data.displayName})` : '';
+      const count = data?.total !== undefined ? data.total : (Array.isArray(data?.privileges) ? data.privileges.length : 0);
+      if (count === 0) {
+        return `No functional privileges were resolved for user **${user}** in ${toolResult.dataSource}. The account may not have any roles assigned.`;
+      }
+      return `User **${user}**${disp} possesses **${count.toLocaleString()} effective functional privilege(s)** inherited through their assigned roles. Browse the complete entitlements below:`;
+    }
+
     case 'USER_ACCESS':
       const access = parameters.privilegeOrAccess;
       return `The privilege **${data.roleName}** allows access to operations matching "${access}". In the current environment, users possessing this privilege inherit it through active role hierarchies.`;
@@ -1349,14 +1402,15 @@ async function callGroqCompletions(payload: any): Promise<any> {
             content: `You are the NLU intent classification engine for an Oracle Fusion Security Assistant. 
 Analyze the user query and output a strict JSON object mapping to:
 {
-  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "CERTIFICATIONS_OVERVIEW" | "CERTIFICATIONS_LIST" | "CERTIFICATION_DETAILS" | "CERTIFIER_WORKSHEET" | "UNKNOWN",
+  "intent": "LIST_USERS" | "GET_USER" | "LIST_ROLES" | "GET_ROLE" | "USERS_BY_ROLE" | "ROLES_BY_USER" | "ROLE_SEARCH" | "ROLE_DETAILS" | "ROLE_HIERARCHY" | "ROLE_PRIVILEGES" | "ROLES_BY_PRIVILEGE" | "USERS_BY_PRIVILEGE" | "PRIVILEGES_BY_USER" | "USER_ACCESS" | "AUDIT_HISTORY" | "SECURITY_STATISTICS" | "RISK_INFORMATION" | "ACCESS_REQUESTS" | "ADVANCED_CONTROLS" | "CONTROLS_OVERVIEW" | "CONTROLS_LIST" | "CONTROL_DETAILS" | "INCIDENTS_LIST" | "INCIDENT_DETAILS" | "CERTIFICATIONS_OVERVIEW" | "CERTIFICATIONS_LIST" | "CERTIFICATION_DETAILS" | "CERTIFIER_WORKSHEET" | "UNKNOWN",
   "parameters": {
     "roles": "Array of role names if multiple roles specified, e.g. ['IT Security Manager', 'AP Manager'] (array of strings, optional)",
     "roleName": "Extracted role display name or code (string, optional)",
     "matchMode": "'AND' if users must have all/both roles, or 'OR' (string, optional)",
+    "privilege": "Extracted functional privilege name or code (e.g. 'Maintain Supplier Contact', 'ZMS_MOBILE_ACCESS_PRIV') (string, optional)",
     "privilegeName": "Extracted privilege name for reverse lookup (e.g. 'Maintain Supplier Contact', 'Create Purchase Order') (string, optional)",
     "userId": "Extracted user identifier like JSMITH or HCM_IMPL (string, optional)",
-    "username": "Extracted audit username (string, optional)",
+    "username": "Extracted user username / identifier (string, optional)",
     "keyword": "Keyword for search (string, optional)",
     "action": "Audit action: CREATE, UPDATE, DELETE, etc. (string, optional)",
     "attribute": "Audit attribute filter, '|' separated for several (e.g. 'Status|Priority') (string, optional)",
@@ -1405,6 +1459,8 @@ Intent definitions:
 - ROLE_HIERARCHY: Show role children, parent, and hierarchy.
 - ROLE_PRIVILEGES: Show privileges assigned to a role.
 - ROLES_BY_PRIVILEGE: Find which roles grant or have a specific privilege (e.g. "Which roles have privilege Maintain Supplier Contact?", "Can you give me the roles which have privilege Create Purchase Order?").
+- USERS_BY_PRIVILEGE: Find which users hold a specific privilege (e.g. "Who has privilege ZMS_MOBILE_ACCESS_PRIV?", "Which users have privilege View All Suppliers?", "Users with privilege X"). Use "privilege" parameter.
+- PRIVILEGES_BY_USER: Find all effective functional privileges assigned to a specific user (e.g. "What privileges does user BAKER_DEV have?", "Show privileges for user JSMITH", "Privileges for user X"). Use "username" parameter.
 - USER_ACCESS: Find who can perform an action / has privilege (e.g. "Who has payroll access?", "Who can create invoices?").
  - AUDIT_HISTORY: Show audit trail across products and years — who changed what, attribute old/new values, inserts/deletes (e.g. "Who modified this role?", "Show recent audit activity for Advanced Controls", "Which attributes of control 31004 were modified?", "Show all inserts this week").
 - SECURITY_STATISTICS: Count of users, roles, statistics, dashboard cards.
@@ -1643,7 +1699,7 @@ ${(toolResult.tool === 'getUser' || toolResult.tool === 'getRolesForUser') && to
       
       const content = response.data.choices[0].message.content;
       synthesisJson = JSON.parse(content);
-      if (intentData.intent === 'ROLES_BY_PRIVILEGE' && toolResult?.data?.success) {
+      if ((intentData.intent === 'ROLES_BY_PRIVILEGE' || intentData.intent === 'USERS_BY_PRIVILEGE' || intentData.intent === 'PRIVILEGES_BY_USER') && toolResult?.data?.success) {
         businessFriendlyAnswer = generateFallbackExplanation(intentData.intent, intentData.parameters, toolResult);
       } else if (intentData.intent === 'AUDIT_HISTORY') {
         businessFriendlyAnswer = generateFallbackExplanation(intentData.intent, intentData.parameters, toolResult);
@@ -2122,6 +2178,62 @@ function buildStructuredResponse(
 
       actions = [
         { label: 'Open Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } }
+      ];
+      break;
+    }
+
+    case 'USERS_BY_PRIVILEGE': {
+      const privName = data?.privilege || parameters.privilege || 'Requested Privilege';
+      title = `Users with Privilege: ${privName}`;
+      const usersList = Array.isArray(data?.users) ? data.users : [];
+      totalCount = data?.total !== undefined ? data.total : usersList.length;
+      matchingCount = usersList.length;
+
+      table = {
+        type: 'users_by_privilege',
+        columns: ['Username', 'Display Name', 'Email', 'Active', 'Granted Via Role'],
+        rows: usersList.map((u: any) => ({
+          id: u.username,
+          userName: u.username,
+          displayName: u.displayName || u.username,
+          email: u.email || '—',
+          active: u.isActive ? 'Active' : 'Inactive',
+          status: u.isActive ? 'Active' : 'Inactive',
+          grantedViaRole: u.grantedViaRoleName,
+          grantedViaRoleCode: u.grantedViaRoleCode
+        }))
+      };
+
+      actions = [
+        { label: 'Open Users List', actionType: 'NAVIGATE', params: { page: 'users' } }
+      ];
+      break;
+    }
+
+    case 'PRIVILEGES_BY_USER': {
+      const username = data?.username || parameters.username || 'User';
+      const dispName = data?.displayName ? ` (${data.displayName})` : '';
+      title = `Effective Privileges: ${username}${dispName}`;
+      const privList = Array.isArray(data?.privileges) ? data.privileges : [];
+      totalCount = data?.total !== undefined ? data.total : privList.length;
+      matchingCount = privList.length;
+
+      table = {
+        type: 'privileges_by_user',
+        columns: ['Privilege Name', 'Privilege Code', 'Description', 'Granted Via Role'],
+        rows: privList.map((p: any) => ({
+          id: p.privilegeCode,
+          name: p.privilegeName,
+          privilegeName: p.privilegeName,
+          code: p.privilegeCode,
+          privilegeCode: p.privilegeCode,
+          description: p.description || '—',
+          grantedViaRole: p.grantedViaRoleName
+        }))
+      };
+
+      actions = [
+        { label: 'Open Users List', actionType: 'NAVIGATE', params: { page: 'users' } }
       ];
       break;
     }

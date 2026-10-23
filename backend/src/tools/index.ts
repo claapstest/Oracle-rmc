@@ -2,6 +2,7 @@ import { oracleService, classifyRoleRecord } from '../services/oracleService.js'
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
 import { controlRawDbService } from '../services/controlRawDbService.js';
+import { entitlementService } from '../services/entitlementService.js';
 
 function clampChatLimit(raw: any, def = 25, max = 50): number {
   const n = typeof raw === 'string' ? parseInt(raw, 10) : typeof raw === 'number' ? raw : def;
@@ -777,6 +778,36 @@ export async function getRolesByPrivilegeTool(params: { privilegeName: string })
   }
 }
 
+export async function getUsersByPrivilegeTool(params: { privilege?: string; privilegeName?: string; limit?: number }): Promise<ToolExecutionResult> {
+  try {
+    const priv = params.privilege || params.privilegeName || '';
+    if (!priv) {
+      return createResult('getUsersByPrivilege', params, false, null, 'Privilege name or code is required.');
+    }
+    const result = await entitlementService.getUsersByPrivilege(priv, 1, clampChatLimit(params.limit, 25, 50));
+    const res = createResult('getUsersByPrivilege', params, result.success, result);
+    res.dataSource = 'PostgreSQL Oracle Security Repository';
+    return res;
+  } catch (err) {
+    return createResult('getUsersByPrivilege', params, false, null, (err as Error).message);
+  }
+}
+
+export async function getPrivilegesByUserTool(params: { username?: string; userId?: string; limit?: number }): Promise<ToolExecutionResult> {
+  try {
+    const user = params.username || params.userId || '';
+    if (!user) {
+      return createResult('getPrivilegesByUser', params, false, null, 'Username or email is required.');
+    }
+    const result = await entitlementService.getPrivilegesByUser(user, 1, clampChatLimit(params.limit, 50, 100));
+    const res = createResult('getPrivilegesByUser', params, result.success, result);
+    res.dataSource = 'PostgreSQL Oracle Security Repository';
+    return res;
+  } catch (err) {
+    return createResult('getPrivilegesByUser', params, false, null, (err as Error).message);
+  }
+}
+
 // ── Controls & Incidents conversational tools (live Oracle Fusion data) ──
 
 export async function getControlsOverviewTool(): Promise<ToolExecutionResult> {
@@ -1102,6 +1133,8 @@ export const TOOLS_REGISTRY: Record<string, (params: any) => Promise<ToolExecuti
   ROLE_HIERARCHY: getRoleHierarchyTool,
   ROLE_PRIVILEGES: getPrivilegesForRoleTool,
   ROLES_BY_PRIVILEGE: (params: { privilegeName: string }) => getRolesByPrivilegeTool(params),
+  USERS_BY_PRIVILEGE: getUsersByPrivilegeTool,
+  PRIVILEGES_BY_USER: getPrivilegesByUserTool,
   USER_ACCESS: (params: { privilegeOrAccess: string }) => getPrivilegesForRoleTool({ roleName: params.privilegeOrAccess }),
   RISK_INFORMATION: getRiskIncidentsTool,
   ACCESS_REQUESTS: getAccessRequestsTool,
