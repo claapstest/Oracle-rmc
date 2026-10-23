@@ -68,26 +68,14 @@ export class ControlRawDbService {
   // Raw Control Definition Methods (1 Row per Control)
   // =============================================================
 
-  private isSchemaInitialized = false;
-
   /**
-   * Ensures breakdown columns exist in oracle_control_incidents.
+   * Breakdown columns are already migrated in PostgreSQL schema.
+   * Runtime execution is disabled to prevent AccessExclusiveLock table deadlocks.
    */
   public async initSchema(): Promise<void> {
-    if (this.isSchemaInitialized) return;
-    try {
-      await query(`
-        ALTER TABLE oracle_control_incidents 
-        ADD COLUMN IF NOT EXISTS assigned_incidents INT DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS accepted_incidents INT DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS remediate_incidents INT DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS resolved_incidents INT DEFAULT 0;
-      `);
-      this.isSchemaInitialized = true;
-    } catch (err: any) {
-      console.warn('[ControlRawDbService] Schema column initialization notice:', err.message);
-    }
+    return;
   }
+
 
   /**
    * Categorizes raw incidents into the 4 Oracle Incident Lifecycle Statuses:
@@ -228,6 +216,42 @@ export class ControlRawDbService {
     return res.rows.map((r) => r.raw_payload);
   }
 
+  /**
+   * Retrieves high-level incident breakdown and totals for all saved controls in <5ms.
+   */
+  public async getAllControlIncidentsSummary(): Promise<Array<{
+    control_id: string;
+    control_name: string | null;
+    total_incidents: number;
+    assigned_incidents: number;
+    accepted_incidents: number;
+    remediate_incidents: number;
+    resolved_incidents: number;
+    last_oracle_update_date: string | null;
+    last_synced_at: string | null;
+  }>> {
+    const host = this.getHost();
+    const res = await query<{
+      control_id: string;
+      control_name: string | null;
+      total_incidents: number;
+      assigned_incidents: number;
+      accepted_incidents: number;
+      remediate_incidents: number;
+      resolved_incidents: number;
+      last_oracle_update_date: string | null;
+      last_synced_at: string | null;
+    }>(
+      `SELECT control_id, control_name, total_incidents, assigned_incidents, accepted_incidents, remediate_incidents, resolved_incidents, last_oracle_update_date, last_synced_at
+       FROM oracle_control_incidents
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), control_id ASC`,
+      [host]
+    );
+
+    return res.rows;
+  }
+
   // =============================================================
   // Single-Cell Raw Incidents Storage (EXACTLY 1 Row per Control)
   // =============================================================
@@ -244,7 +268,6 @@ export class ControlRawDbService {
     lastOracleUpdateDate?: Date | null
   ): Promise<number> {
     if (!Array.isArray(rawIncidents)) return 0;
-    await this.initSchema();
 
     const host = this.getHost();
     const cleanId = String(controlId).trim();

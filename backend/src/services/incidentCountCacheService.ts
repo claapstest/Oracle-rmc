@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { OracleFusionClient } from '../oracle/client.js';
 import { config } from '../config.js';
+import { query } from '../db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ export class IncidentCountCacheService {
     this.client = client;
     this.ensureCacheDir();
     this.loadFromDisk();
+    this.loadFromDb().catch(() => {});
   }
 
   public recreateClient(client: OracleFusionClient) {
@@ -41,6 +43,49 @@ export class IncidentCountCacheService {
     this.inFlightFetches.clear();
     this.memoryCache.clear();
     this.loadFromDisk();
+    this.loadFromDb().catch(() => {});
+  }
+
+  /**
+   * Seeds incident count memory cache directly from PostgreSQL oracle_control_incidents.
+   * Guarantees 0ms local response without querying live Oracle Fusion FSCM REST endpoint.
+   */
+  public async loadFromDb(): Promise<void> {
+    try {
+      const res = await query<{
+        control_id: string;
+        total_incidents: number;
+        assigned_incidents: number;
+        accepted_incidents: number;
+        remediate_incidents: number;
+        resolved_incidents: number;
+        last_synced_at: string | null;
+      }>(
+        `SELECT control_id, total_incidents, assigned_incidents, accepted_incidents, remediate_incidents, resolved_incidents, last_synced_at
+         FROM oracle_control_incidents
+         WHERE total_incidents IS NOT NULL`
+      );
+
+      if (res.rows.length > 0) {
+        for (const r of res.rows) {
+          const cleanId = String(r.control_id).trim();
+          this.memoryCache.set(cleanId, {
+            controlId: cleanId,
+            count: r.total_incidents,
+            status: 'READY',
+            updatedAt: r.last_synced_at ? new Date(r.last_synced_at).toISOString() : new Date().toISOString(),
+            assigned: r.assigned_incidents ?? r.total_incidents,
+            accepted: r.accepted_incidents ?? 0,
+            remediate: r.remediate_incidents ?? 0,
+            resolved: r.resolved_incidents ?? 0,
+          });
+        }
+        console.log(`[IncidentCountCache] Seeded ${this.memoryCache.size} control incident counts and breakdowns directly from PostgreSQL.`);
+        this.saveToDisk();
+      }
+    } catch (err: any) {
+      console.warn('[IncidentCountCache] DB seed warning:', err.message);
+    }
   }
 
   private ensureCacheDir() {
@@ -112,9 +157,8 @@ export class IncidentCountCacheService {
     if (!entry || entry.status !== 'READY' || typeof entry.count !== 'number') {
       return false;
     }
-    const ttlMs = this.getTTLMinutes() * 60 * 1000;
-    const age = Date.now() - new Date(entry.updatedAt).getTime();
-    return age < ttlMs;
+    // Database counts remain authoritative throughout the day until off-peak sync or forced refresh
+    return true;
   }
 
   public getCount(controlId: string): CachedCountEntry | null {

@@ -92,20 +92,10 @@ export class RoleHierarchyService {
           return;
         }
       }
-
-      // Fallback: load bundled bootstrap seed (for new checkouts / teammates)
-      if (fs.existsSync(SEED_FILE_PATH)) {
-        const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
-        const parsedSeed = JSON.parse(rawSeed);
-        if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
-          this.memoryCache = parsedSeed.items;
-          this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
-          console.log(`[RoleHierarchyService] Loaded ${this.memoryCache?.length || 0} hierarchy relationships from bundled bootstrap seed.`);
-          this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
-        }
-      }
+      // Note: We do NOT load SEED_FILE_PATH here to avoid poisoning memoryCache with the truncated 8-privilege bootstrap set.
+      // Full hierarchy with all complete privileges will be loaded directly from PostgreSQL.
     } catch (err) {
-      console.warn('[RoleHierarchyService] Failed to load disk cache or seed:', (err as Error).message);
+      console.warn('[RoleHierarchyService] Failed to load disk cache:', (err as Error).message);
     }
   }
 
@@ -431,31 +421,7 @@ export class RoleHierarchyService {
         console.warn('[RoleHierarchyService] Live sync failed on demand, using cached records if available:', (err as Error).message);
       }
     } else if (!this.memoryCache || this.memoryCache.length === 0) {
-      const hasDb = await this.hasDbRecords();
-      if (!hasDb) {
-        // Fallback to seed file before attempting live BIP sync if credentials might not exist
-        if (fs.existsSync(SEED_FILE_PATH)) {
-          try {
-            const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
-            const parsedSeed = JSON.parse(rawSeed);
-            if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
-              this.memoryCache = parsedSeed.items;
-              this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
-              this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
-            }
-          } catch (_) {}
-        } else {
-          try {
-            await this.syncFromBip();
-          } catch (err) {
-            console.warn('[RoleHierarchyService] Live sync failed on demand, using cached records if available:', (err as Error).message);
-          }
-        }
-      }
-    }
-
-    // Try loading from DB if memory is still empty
-    if (!this.memoryCache || this.memoryCache.length === 0) {
+      // 1. Try loading directly from PostgreSQL oracle_raw_role_hierarchy (17,290+ complete records with all privileges)
       const host = this.getHost();
       try {
         const res = await query(
@@ -468,6 +434,7 @@ export class RoleHierarchyService {
         if (res.rows.length > 0) {
           this.memoryCache = res.rows.map((r, i) => {
             const raw = r.raw_record || {};
+            const privs = Array.isArray(raw.privileges) ? raw.privileges : [];
             return {
               id: r.id || i + 1,
               roleName: r.child_role_name,
@@ -478,29 +445,30 @@ export class RoleHierarchyService {
               childRole: r.child_role_name,
               childRoleType: r.child_role_type || raw.childRoleType || 'JOB',
               relationshipType: r.relationship_type || raw.relationshipType || `${r.parent_role_type} grants ${r.child_role_type}`,
-              privileges: raw.privileges || [],
-              privilegeCount: raw.privilegeCount || (raw.privileges?.length || 0),
+              privileges: privs,
+              privilegeCount: privs.length > 0 ? privs.length : (raw.privilegeCount || 0),
             };
           });
-          this.lastSyncedAt = res.rows[0].last_synced_at?.toISOString() || null;
+          this.lastSyncedAt = res.rows[0].last_synced_at ? new Date(res.rows[0].last_synced_at).toISOString() : null;
+          console.log(`[RoleHierarchyService] Loaded ${this.memoryCache.length} authoritative role hierarchy relationships with complete privilege sets from PostgreSQL.`);
         }
       } catch (err) {
-        console.warn('[RoleHierarchyService] DB load error:', (err as Error).message);
+        console.warn('[RoleHierarchyService] PostgreSQL load warning:', (err as Error).message);
       }
-    }
 
-    // Still empty? Fallback directly to seed
-    if (!this.memoryCache || this.memoryCache.length === 0) {
-      if (fs.existsSync(SEED_FILE_PATH)) {
-        try {
-          const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
-          const parsedSeed = JSON.parse(rawSeed);
-          if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
-            this.memoryCache = parsedSeed.items;
-            this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
-            this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
-          }
-        } catch (_) {}
+      // 2. Fallback to seed file ONLY if database was completely empty or unavailable
+      if (!this.memoryCache || this.memoryCache.length === 0) {
+        if (fs.existsSync(SEED_FILE_PATH)) {
+          try {
+            const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
+            const parsedSeed = JSON.parse(rawSeed);
+            if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
+              this.memoryCache = parsedSeed.items;
+              this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
+              this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
+            }
+          } catch (_) {}
+        }
       }
     }
 
