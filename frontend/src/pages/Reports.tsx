@@ -558,7 +558,12 @@ export default function Reports({
           setAvailableIncidentControls(res.availableControls);
         }
         if (res.kpis) {
-          setIncidentsKpis(res.kpis);
+          const raw = res.kpis;
+          const kpiSum = (raw.assigned || 0) + (raw.inRemediation || 0) + (raw.accepted || 0) + (raw.closedOrResolved || 0);
+          setIncidentsKpis({
+            ...raw,
+            total: Math.max(raw.total || 0, kpiSum, raw.assigned || 0)
+          });
         }
         setIncidentsSyncState({
           cacheStatus: res.cacheStatus || 'READY',
@@ -576,7 +581,14 @@ export default function Reports({
                 const pollRes = await api.getRiskIncidents({ controlId });
                 if (pollRes && pollRes.success) {
                   setIncidentsData(pollRes.items || []);
-                  if (pollRes.kpis) setIncidentsKpis(pollRes.kpis);
+                  if (pollRes.kpis) {
+                    const raw = pollRes.kpis;
+                    const kpiSum = (raw.assigned || 0) + (raw.inRemediation || 0) + (raw.accepted || 0) + (raw.closedOrResolved || 0);
+                    setIncidentsKpis({
+                      ...raw,
+                      total: Math.max(raw.total || 0, kpiSum, raw.assigned || 0)
+                    });
+                  }
                   setIncidentsSyncState({
                     cacheStatus: pollRes.cacheStatus || 'READY',
                     fetchedCount: pollRes.fetchedCount,
@@ -2345,7 +2357,13 @@ export default function Reports({
                     )}
                   </div>
                   <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {incidentsKpis.total !== undefined ? incidentsKpis.total.toLocaleString() : (incidentsLoading ? 'Calculating...' : 'Not available')}
+                    {(() => {
+                      const kpiSum = (incidentsKpis.assigned || 0) + (incidentsKpis.inRemediation || 0) + (incidentsKpis.accepted || 0) + (incidentsKpis.closedOrResolved || 0);
+                      const displayTotal = Math.max(incidentsKpis.total || 0, kpiSum);
+                      return displayTotal > 0
+                        ? displayTotal.toLocaleString()
+                        : (incidentsLoading ? 'Calculating...' : (incidentsKpis.total !== undefined ? incidentsKpis.total.toLocaleString() : 'Not available'));
+                    })()}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                     Authoritative continuous monitoring

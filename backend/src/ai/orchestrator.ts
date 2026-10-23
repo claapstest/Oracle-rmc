@@ -1835,9 +1835,8 @@ Only output valid JSON matching the schema. Do not include markdown formatting o
       synthesisJson = {
         summary: `There are ${dutyCount.toLocaleString()} Duty Roles configured in your Oracle Fusion environment (representing ${pct}% of the ${totalRoles.toLocaleString()} total security roles).`,
         keyFindings: [
-          `Duty Roles constitute ${pct}% (${dutyCount.toLocaleString()} roles) of the complete role catalog, forming the core building blocks of your security architecture.`,
-          `Duty Roles encapsulate functional privilege bundles and are inherited hierarchically by Job Roles to enforce Segregation of Duties (SoD).`,
-          `Complete Role Landscape: ${dutyCount.toLocaleString()} Duty Roles (${pct}%), ${jobCount.toLocaleString()} Job Roles (10.9%), ${abstractCount.toLocaleString()} Abstract Roles (2.3%), ${dataCount.toLocaleString()} Data Roles (1.0%), and ${grcCount.toLocaleString()} GRC Roles (0.3%).`
+          `Duty Roles constitute ${pct}% (${dutyCount.toLocaleString()} roles) of the complete role catalog, forming the modular building blocks of Oracle Fusion access.`,
+          `Duty Roles encapsulate functional privilege bundles and are inherited hierarchically by Job Roles to enforce Segregation of Duties (SoD).`
         ],
         riskHighlights: []
       };
@@ -2602,126 +2601,150 @@ function buildStructuredResponse(
       const isUserQuery = targetMetric === 'USERS' || targetMetric === 'TOTAL_USERS' || targetMetric === 'ACTIVE_USERS' || targetMetric === 'INACTIVE_USERS';
 
       if (isUserQuery) {
-        title = targetMetric === 'ACTIVE_USERS'
-          ? `Identity Users — Active Accounts (${activeUsers.toLocaleString()})`
-          : targetMetric === 'INACTIVE_USERS'
-            ? `Identity Users — Inactive Accounts (${inactiveUsers.toLocaleString()})`
-            : `Identity User Population Overview (${totalUsers.toLocaleString()} Total Users)`;
+        const isSingleUserCategory = targetMetric === 'ACTIVE_USERS' || targetMetric === 'INACTIVE_USERS';
+        if (isSingleUserCategory) {
+          const userCount = targetMetric === 'ACTIVE_USERS' ? activeUsers : inactiveUsers;
+          const userLabel = targetMetric === 'ACTIVE_USERS' ? 'Active Users' : 'Inactive Users';
+          title = `${userLabel}: ${userCount.toLocaleString()}`;
+          table = undefined;
+          totalCount = userCount;
+          matchingCount = 1;
+          actions = [
+            { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
+            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+          ];
+        } else {
+          title = `Identity User Population Overview (${totalUsers.toLocaleString()} Total Users)`;
 
-        table = {
-          type: 'user_distribution',
-          columns: ['User Population Category', 'Count', 'Percentage', 'Governance Status'],
-          rows: [
-            {
-              id: 'active',
-              category: 'Active Identity Users',
-              count: activeUsers.toLocaleString(),
-              percentage: `${((activeUsers / totalUsers) * 100).toFixed(1)}%`,
-              status: 'Enabled for interactive access'
-            },
-            {
-              id: 'inactive',
-              category: 'Inactive User Accounts',
-              count: inactiveUsers.toLocaleString(),
-              percentage: `${((inactiveUsers / totalUsers) * 100).toFixed(1)}%`,
-              status: 'Disabled / retained for compliance audit'
-            },
-            {
-              id: 'multiple_roles',
-              category: 'Users with Multiple Roles',
-              count: (s.multipleRoleUsersCount || 842).toLocaleString(),
-              percentage: `${(((s.multipleRoleUsersCount || 842) / totalUsers) * 100).toFixed(1)}%`,
-              status: 'Holding >1 enterprise job role'
-            },
-            {
-              id: 'no_roles',
-              category: 'Users Without Assigned Roles',
-              count: (s.usersWithoutRolesCount || 119).toLocaleString(),
-              percentage: `${(((s.usersWithoutRolesCount || 119) / totalUsers) * 100).toFixed(1)}%`,
-              status: 'Unassigned role posture'
-            },
-            {
-              id: 'security_admins',
-              category: 'Security Administrators',
-              count: (s.securityAdminsCount || 14).toLocaleString(),
-              percentage: `${(((s.securityAdminsCount || 14) / totalUsers) * 100).toFixed(1)}%`,
-              status: 'Privileged administration'
-            },
-            {
-              id: 'high_risk',
-              category: 'High-Risk Identities',
-              count: (s.highRiskUsersCount || 45).toLocaleString(),
-              percentage: `${(((s.highRiskUsersCount || 45) / totalUsers) * 100).toFixed(1)}%`,
-              status: 'Elevated access / SoD exposure'
-            }
-          ]
-        };
+          table = {
+            type: 'user_distribution',
+            columns: ['User Population Category', 'Count', 'Percentage', 'Governance Status'],
+            rows: [
+              {
+                id: 'active',
+                category: 'Active Identity Users',
+                count: activeUsers.toLocaleString(),
+                percentage: `${((activeUsers / totalUsers) * 100).toFixed(1)}%`,
+                status: 'Enabled for interactive access'
+              },
+              {
+                id: 'inactive',
+                category: 'Inactive User Accounts',
+                count: inactiveUsers.toLocaleString(),
+                percentage: `${((inactiveUsers / totalUsers) * 100).toFixed(1)}%`,
+                status: 'Disabled / retained for compliance audit'
+              },
+              {
+                id: 'multiple_roles',
+                category: 'Users with Multiple Roles',
+                count: (s.multipleRoleUsersCount || 842).toLocaleString(),
+                percentage: `${(((s.multipleRoleUsersCount || 842) / totalUsers) * 100).toFixed(1)}%`,
+                status: 'Holding >1 enterprise job role'
+              },
+              {
+                id: 'no_roles',
+                category: 'Users Without Assigned Roles',
+                count: (s.usersWithoutRolesCount || 119).toLocaleString(),
+                percentage: `${(((s.usersWithoutRolesCount || 119) / totalUsers) * 100).toFixed(1)}%`,
+                status: 'Unassigned role posture'
+              },
+              {
+                id: 'security_admins',
+                category: 'Security Administrators',
+                count: (s.securityAdminsCount || 14).toLocaleString(),
+                percentage: `${(((s.securityAdminsCount || 14) / totalUsers) * 100).toFixed(1)}%`,
+                status: 'Privileged administration'
+              },
+              {
+                id: 'high_risk',
+                category: 'High-Risk Identities',
+                count: (s.highRiskUsersCount || 45).toLocaleString(),
+                percentage: `${(((s.highRiskUsersCount || 45) / totalUsers) * 100).toFixed(1)}%`,
+                status: 'Elevated access / SoD exposure'
+              }
+            ]
+          };
 
-        totalCount = totalUsers;
-        matchingCount = table.rows.length;
-        actions = [
-          { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
-          { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
-        ];
+          totalCount = totalUsers;
+          matchingCount = table.rows.length;
+          actions = [
+            { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
+            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+          ];
+        }
       } else {
-        const catCount = cat === 'Duty' ? dutyCount : cat === 'Job' ? jobCount : cat === 'Abstract' ? abstractCount : cat === 'Data' ? dataCount : cat === 'GRC' ? grcCount : null;
-        title = cat && catCount
-          ? `Role Distribution — ${cat} Roles (${catCount.toLocaleString()})`
-          : `Enterprise Role Distribution Overview (${totalRoles.toLocaleString()} Roles)`;
+        const resolvedCat = cat || (targetMetric === 'DUTY_ROLES' ? 'Duty' : targetMetric === 'JOB_ROLES' ? 'Job' : targetMetric === 'ABSTRACT_ROLES' ? 'Abstract' : targetMetric === 'DATA_ROLES' ? 'Data' : targetMetric === 'GRC_ROLES' ? 'GRC' : null);
+        const catCount = resolvedCat === 'Duty' ? dutyCount : resolvedCat === 'Job' ? jobCount : resolvedCat === 'Abstract' ? abstractCount : resolvedCat === 'Data' ? dataCount : resolvedCat === 'GRC' ? grcCount : null;
+        const isSingleCategory = Boolean(resolvedCat && catCount !== null);
 
-        table = {
-          type: 'role_distribution',
-          columns: ['Role Category', 'Role Count', 'Percentage', 'Classification & Nature'],
-          rows: [
-            {
-              id: 'duty',
-              roleCategory: 'Duty Roles',
-              category: 'Duty',
-              roleCount: dutyCount.toLocaleString(),
-              percentage: `${((dutyCount / totalRoles) * 100).toFixed(1)}%`,
-              nature: 'Modular functional privilege bundles inherited by Job Roles'
-            },
-            {
-              id: 'job',
-              roleCategory: 'Job Roles',
-              category: 'Job',
-              roleCount: jobCount.toLocaleString(),
-              percentage: `${((jobCount / totalRoles) * 100).toFixed(1)}%`,
-              nature: 'Primary business personae assigned directly to identity users'
-            },
-            {
-              id: 'abstract',
-              roleCategory: 'Abstract Roles',
-              category: 'Abstract',
-              roleCount: abstractCount.toLocaleString(),
-              percentage: `${((abstractCount / totalRoles) * 100).toFixed(1)}%`,
-              nature: 'Enterprise worker personae (e.g. Employee, Contingent Worker)'
-            },
-            {
-              id: 'data',
-              roleCategory: 'Data Roles',
-              category: 'Data',
-              roleCount: dataCount.toLocaleString(),
-              percentage: `${((dataCount / totalRoles) * 100).toFixed(1)}%`,
-              nature: 'Dimension-scoped roles enforcing data security boundaries'
-            },
-            {
-              id: 'grc',
-              roleCategory: 'GRC Roles',
-              category: 'GRC',
-              roleCount: grcCount.toLocaleString(),
-              percentage: `${((grcCount / totalRoles) * 100).toFixed(1)}%`,
-              nature: 'Governance, Risk & Compliance administrative and auditor access'
-            }
-          ]
-        };
+        if (isSingleCategory && resolvedCat && catCount !== null) {
+          title = `${resolvedCat} Roles: ${catCount.toLocaleString()}`;
+          // DO NOT return the multi-category table for single category count requests.
+          // The user specifically asked only for this category count.
+          table = undefined;
+          totalCount = catCount;
+          matchingCount = 1;
+          actions = [
+            { label: `View ${resolvedCat} Roles in Catalog`, actionType: 'NAVIGATE', params: { page: 'roles', filter: resolvedCat } },
+            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+          ];
+        } else {
+          title = `Enterprise Role Distribution Overview (${totalRoles.toLocaleString()} Roles)`;
 
-        totalCount = totalRoles;
-        matchingCount = table.rows.length;
-        actions = [
-          { label: 'Explore Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-          { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
-        ];
+          table = {
+            type: 'role_distribution',
+            columns: ['Role Category', 'Role Count', 'Percentage', 'Classification & Nature'],
+            rows: [
+              {
+                id: 'duty',
+                roleCategory: 'Duty Roles',
+                category: 'Duty',
+                roleCount: dutyCount.toLocaleString(),
+                percentage: `${((dutyCount / totalRoles) * 100).toFixed(1)}%`,
+                nature: 'Modular functional privilege bundles inherited by Job Roles'
+              },
+              {
+                id: 'job',
+                roleCategory: 'Job Roles',
+                category: 'Job',
+                roleCount: jobCount.toLocaleString(),
+                percentage: `${((jobCount / totalRoles) * 100).toFixed(1)}%`,
+                nature: 'Primary business personae assigned directly to identity users'
+              },
+              {
+                id: 'abstract',
+                roleCategory: 'Abstract Roles',
+                category: 'Abstract',
+                roleCount: abstractCount.toLocaleString(),
+                percentage: `${((abstractCount / totalRoles) * 100).toFixed(1)}%`,
+                nature: 'Enterprise worker personae (e.g. Employee, Contingent Worker)'
+              },
+              {
+                id: 'data',
+                roleCategory: 'Data Roles',
+                category: 'Data',
+                roleCount: dataCount.toLocaleString(),
+                percentage: `${((dataCount / totalRoles) * 100).toFixed(1)}%`,
+                nature: 'Dimension-scoped roles enforcing data security boundaries'
+              },
+              {
+                id: 'grc',
+                roleCategory: 'GRC Roles',
+                category: 'GRC',
+                roleCount: grcCount.toLocaleString(),
+                percentage: `${((grcCount / totalRoles) * 100).toFixed(1)}%`,
+                nature: 'Governance, Risk & Compliance administrative and auditor access'
+              }
+            ]
+          };
+
+          totalCount = totalRoles;
+          matchingCount = table.rows.length;
+          actions = [
+            { label: 'Explore Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
+            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+          ];
+        }
       }
       break;
     }

@@ -3569,14 +3569,16 @@ class OracleService {
             this.controlCatalogService.normalizeIncident(r.raw, r.control_id, scopeNames.get(r.control_id))
           );
           const openOrActive = coverage.assigned + coverage.remediate;
-          const fullySynced = coverage.synced >= authoritativeTotal && authoritativeTotal > 0;
+          const calculatedSum = (coverage.assigned || 0) + (coverage.remediate || 0) + (coverage.accepted || 0) + (coverage.resolved || 0);
+          const effectiveTotal = Math.max(authoritativeTotal, coverage.synced || 0, calculatedSum);
+          const fullySynced = (coverage.synced >= effectiveTotal && effectiveTotal > 0) || (coverage.synced > 0 && coverage.synced >= calculatedSum);
           return {
             success: true,
             dataSource: 'Live Oracle Fusion API',
             selectedControlId: 'ALL',
             selectedControl: null,
             items,
-            totalCount: authoritativeTotal,
+            totalCount: effectiveTotal,
             filteredCount: pg.filteredTotal,
             page,
             pageSize,
@@ -3584,9 +3586,9 @@ class OracleService {
             fetchedCount: coverage.synced,
             lastSyncedAt: new Date().toISOString(),
             availableControls,
-            message: `Aggregated ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls (authoritative total ${authoritativeTotal.toLocaleString()}).`,
+            message: `Aggregated ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls (authoritative total ${effectiveTotal.toLocaleString()}).`,
             kpis: {
-              total: authoritativeTotal,
+              total: effectiveTotal,
               assigned: coverage.assigned,
               inRemediation: coverage.remediate,
               openOrActive,
@@ -3666,20 +3668,22 @@ class OracleService {
     const fullCache = incidentCacheService.readCache(targetControlId);
     if (fullCache && fullCache.complete) {
       const cats = this.categorizeRiskIncidents(fullCache.incidents);
+      const catSum = (cats.assigned || 0) + (cats.inRemediation || 0) + (cats.accepted || 0) + (cats.closedOrResolved || 0);
+      const effTotal = Math.max(fullCache.totalResults || 0, catSum, (fullCache.incidents || []).length);
       return {
         success: true,
         dataSource: 'Live Oracle Fusion API',
         selectedControlId: targetControlId,
         selectedControl: detail.control,
         items: fullCache.incidents,
-        totalCount: fullCache.totalResults,
+        totalCount: effTotal,
         cacheStatus: 'READY',
         fetchedCount: fullCache.incidents.length,
         lastSyncedAt: fullCache.fetchedAt,
         message: detail.message,
         availableControls,
         kpis: {
-          total: fullCache.totalResults,
+          total: effTotal,
           assigned: cats.assigned,
           inRemediation: cats.inRemediation,
           openOrActive: cats.openOrActive,
