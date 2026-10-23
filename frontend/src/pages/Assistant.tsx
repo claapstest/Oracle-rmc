@@ -381,6 +381,22 @@ export default function Assistant({
     });
   };
 
+  // Helper to render inline markdown like **bold text** without raw asterisks
+  const renderMarkdownText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return (
+          <strong key={idx} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  };
+
   // Handle template question selection from dashboard or external trigger - populate and focus, DO NOT AUTOSUBMIT
   useEffect(() => {
     if (initialQuestion) {
@@ -778,14 +794,14 @@ export default function Assistant({
             {structured.isAiInvestigation ? 'AI Risk Analysis & Root Cause Insights' : 'Executive Security Insight'}
           </span>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: '1.45', fontWeight: 500, whiteSpace: 'pre-wrap' }}>
-            {summary}
+            {renderMarkdownText(summary)}
           </div>
           {keyFindings && keyFindings.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingLeft: '0.5rem', marginTop: '0.25rem' }}>
               {keyFindings.map((finding: string, idx: number) => (
                 <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', fontSize: '0.85rem' }}>
                   <CornerDownRight size={14} style={{ color: 'var(--accent-blue)', marginTop: '0.2rem', flexShrink: 0 }} />
-                  <span style={{ color: 'var(--text-secondary)' }}>{finding}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{renderMarkdownText(finding)}</span>
                 </div>
               ))}
             </div>
@@ -2073,7 +2089,7 @@ export default function Assistant({
                   ) : (
                     <>
                       <p style={{ whiteSpace: 'pre-line', fontSize: '0.9rem' }}>
-                        {msg.text}
+                        {renderMarkdownText(msg.text)}
                       </p>
                       {/* Rich Structured Data Tables / Visuals */}
                       {msg.toolResult && renderRichData(msg.toolResult, msg.intent || '')}
