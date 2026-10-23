@@ -1698,8 +1698,31 @@ async function callGroqCompletions(payload: any): Promise<any> {
   }
 }
 
-  // Step 1: NLU Intent Detection (Gemini vs Fallback)
-  if (config.groqApiKey) {
+  // Helper to detect if a query is requesting deep qualitative reasoning / investigation
+  const cleanUserQuery = message.toLowerCase().trim();
+  const isReasoningQuery = (
+    cleanUserQuery.startsWith('why ') || cleanUserQuery.includes(' why ') ||
+    cleanUserQuery.includes('explain why') || cleanUserQuery.includes('how should') ||
+    cleanUserQuery.includes('remediat') || cleanUserQuery.includes('risk analysis') ||
+    cleanUserQuery.includes('investigat') || cleanUserQuery.includes('impact of') ||
+    cleanUserQuery.includes('what happens if') || cleanUserQuery.includes('root cause') ||
+    cleanUserQuery.includes('why is ') || cleanUserQuery.includes('why are ') ||
+    cleanUserQuery.includes('why does ') || cleanUserQuery.includes('analyze ')
+  );
+
+  // Fast-Path NLU: Instant local deterministic classification for factual/count queries
+  // Bypasses remote Groq API network round-trips for <5ms instant answers
+  const fastCandidate = fallbackNLU(message, context);
+  const isFastDeterministicNLU = !isReasoningQuery && (
+    fastCandidate.intent === 'SECURITY_STATISTICS' ||
+    fastCandidate.intent === 'CONTROLS_OVERVIEW' ||
+    (fastCandidate.intent === 'CONTROL_DETAILS' && (fastCandidate.parameters as any)?.countOnly)
+  );
+
+  // Step 1: NLU Intent Detection (Fast Path vs Groq vs Fallback)
+  if (isFastDeterministicNLU) {
+    intentData = fastCandidate;
+  } else if (config.groqApiKey) {
     try {
       const response = await callGroqCompletions({
         model: config.groqModel,

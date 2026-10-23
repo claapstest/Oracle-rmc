@@ -777,7 +777,7 @@ export default function Assistant({
           <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {structured.isAiInvestigation ? 'AI Risk Analysis & Root Cause Insights' : 'Executive Security Insight'}
           </span>
-          <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: '1.45', fontWeight: 500 }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: '1.45', fontWeight: 500, whiteSpace: 'pre-wrap' }}>
             {summary}
           </div>
           {keyFindings && keyFindings.length > 0 && (
