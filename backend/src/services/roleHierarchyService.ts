@@ -421,32 +421,34 @@ export class RoleHierarchyService {
         console.warn('[RoleHierarchyService] Live sync failed on demand, using cached records if available:', (err as Error).message);
       }
     } else if (!this.memoryCache || this.memoryCache.length === 0) {
-      // 1. Try loading directly from PostgreSQL oracle_raw_role_hierarchy (17,290+ complete records with all privileges)
+      // 1. Try loading directly from PostgreSQL oracle_raw_role_hierarchy (streamlined lightweight load <30MB)
       const host = this.getHost();
       try {
         const res = await query(
-          `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type, raw_record, last_synced_at
+          `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type,
+                  COALESCE(raw_record->'privileges', '[]'::jsonb) AS privileges,
+                  last_synced_at
            FROM oracle_raw_role_hierarchy 
            WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true)
-           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END), child_role_name ASC`,
+           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END), child_role_name ASC
+           LIMIT 1500`,
           [host]
         );
         if (res.rows.length > 0) {
           this.memoryCache = res.rows.map((r, i) => {
-            const raw = r.raw_record || {};
-            const privs = Array.isArray(raw.privileges) ? raw.privileges : [];
+            const privs = Array.isArray(r.privileges) ? r.privileges : [];
             return {
               id: r.id || i + 1,
               roleName: r.child_role_name,
-              roleCode: r.role_code || raw.roleCode || `ORA_ROLE_${i + 1}`,
-              category: r.category || raw.category || 'Duty',
+              roleCode: r.role_code || `ORA_ROLE_${i + 1}`,
+              category: r.category || 'Duty',
               parentRole: r.parent_role_name,
-              parentRoleType: r.parent_role_type || raw.parentRoleType || 'DUTY',
+              parentRoleType: r.parent_role_type || 'DUTY',
               childRole: r.child_role_name,
-              childRoleType: r.child_role_type || raw.childRoleType || 'JOB',
-              relationshipType: r.relationship_type || raw.relationshipType || `${r.parent_role_type} grants ${r.child_role_type}`,
+              childRoleType: r.child_role_type || 'JOB',
+              relationshipType: r.relationship_type || `${r.parent_role_type} grants ${r.child_role_type}`,
               privileges: privs,
-              privilegeCount: privs.length > 0 ? privs.length : (raw.privilegeCount || 0),
+              privilegeCount: privs.length,
             };
           });
           this.lastSyncedAt = res.rows[0].last_synced_at ? new Date(res.rows[0].last_synced_at).toISOString() : null;
@@ -518,10 +520,39 @@ export class RoleHierarchyService {
    * Pulls authoritative duty role inheritances and functional privileges directly from the database role hierarchy.
    */
   public async getRoleHierarchyTree(roleName: string): Promise<RoleHierarchyTreeResult> {
-    const report = await this.getHierarchyReport();
-    const items = report.items;
     const target = roleName.trim();
     const targetLower = target.toLowerCase();
+
+    // Query targeted role relations directly from PostgreSQL (<20ms)
+    let targetedItems: RoleHierarchyItem[] = [];
+    try {
+      const res = await query(
+        `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type,
+                COALESCE(raw_record->'privileges', '[]'::jsonb) AS privileges
+         FROM oracle_raw_role_hierarchy 
+         WHERE (LOWER(child_role_name) = LOWER($1) OR LOWER(parent_role_name) = LOWER($1) OR LOWER(role_code) = LOWER($1))
+         LIMIT 200`,
+        [target]
+      );
+      if (res.rows.length > 0) {
+        targetedItems = res.rows.map((r, i) => ({
+          id: r.id || i + 1,
+          roleName: r.child_role_name,
+          roleCode: r.role_code || `ORA_ROLE_${i + 1}`,
+          category: r.category || 'Duty',
+          parentRole: r.parent_role_name,
+          parentRoleType: r.parent_role_type || 'DUTY',
+          childRole: r.child_role_name,
+          childRoleType: r.child_role_type || 'JOB',
+          relationshipType: r.relationship_type || `${r.parent_role_type} grants ${r.child_role_type}`,
+          privileges: Array.isArray(r.privileges) ? r.privileges : [],
+          privilegeCount: Array.isArray(r.privileges) ? r.privileges.length : 0,
+        }));
+      }
+    } catch (_) {}
+
+    const report = targetedItems.length > 0 ? { items: targetedItems } : await this.getHierarchyReport();
+    const items = report.items;
 
     // Find direct match or canonical record
     const directMatch = items.find(

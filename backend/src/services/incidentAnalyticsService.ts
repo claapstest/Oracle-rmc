@@ -27,6 +27,13 @@ export interface RankedCount {
   incidents: number;
 }
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const analyticsCache = new Map<string, CacheEntry<any>>();
+const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
 function clampLimit(raw: unknown): number {
   const n = typeof raw === 'string' ? parseInt(raw, 10) : typeof raw === 'number' ? raw : 10;
   if (Number.isNaN(n)) return 10;
@@ -36,6 +43,13 @@ function clampLimit(raw: unknown): number {
 export async function topIncidentUsers(limitRaw?: unknown, controlsRaw?: unknown): Promise<{ success: boolean; items: Array<{ user: string; incidents: number }> }> {
   const limit = clampLimit(limitRaw);
   const ids = cleanIds(controlsRaw);
+  const cacheKey = `users:${activeHost()}:${limit}:${ids.sort().join(',')}`;
+
+  const cached = analyticsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < ANALYTICS_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const scope = ids.length > 0 ? 'AND control_id = ANY($3)' : '';
   const params: any[] = ids.length > 0 ? [activeHost(), limit, ids] : [activeHost(), limit];
   const res = await dbQuery(
@@ -54,12 +68,22 @@ export async function topIncidentUsers(limitRaw?: unknown, controlsRaw?: unknown
      LIMIT $2`,
     params
   );
-  return { success: true, items: res.rows };
+
+  const result = { success: true, items: res.rows };
+  analyticsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 export async function topIncidentRoles(limitRaw?: unknown, controlsRaw?: unknown): Promise<{ success: boolean; items: Array<{ role: string; incidents: number }> }> {
   const limit = clampLimit(limitRaw);
   const ids = cleanIds(controlsRaw);
+  const cacheKey = `roles:${activeHost()}:${limit}:${ids.sort().join(',')}`;
+
+  const cached = analyticsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < ANALYTICS_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const scope = ids.length > 0 ? 'AND t.control_id = ANY($3)' : '';
   const params: any[] = ids.length > 0 ? [activeHost(), limit, ids] : [activeHost(), limit];
   const res = await dbQuery(
@@ -78,6 +102,9 @@ export async function topIncidentRoles(limitRaw?: unknown, controlsRaw?: unknown
      LIMIT $2`,
     params
   );
-  return { success: true, items: res.rows };
+
+  const result = { success: true, items: res.rows };
+  analyticsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
