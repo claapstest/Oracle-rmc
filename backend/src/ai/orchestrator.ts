@@ -192,10 +192,12 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     }
 
     let manager = '';
-    const mgrM = clean.match(/(?:under\s+)?manager\s+([a-z0-9._@\-' ]+?)(?:\s+who|\?|$)/) || clean.match(/(?:employees?|users?)\s+under\s+([a-z0-9._@\-']+)/);
-    if (mgrM && mgrM[1]) {
-      const v = stripPunct(mgrM[1]).split(/\s+/).slice(0, 2).join(' ');
-      if (v && !/^(all|any|name)$/i.test(v)) manager = v;
+    if (!/manager\s+(?:of|for)|who\s+(?:is|was)\s+(?:the\s+)?(?:supervising\s+)?manager/i.test(clean)) {
+      const mgrM = clean.match(/(?:under\s+)?manager\s+([a-z0-9._@\-' ]+?)(?:\s+who|\?|$)/) || clean.match(/(?:employees?|users?)\s+under\s+([a-z0-9._@\-']+)/);
+      if (mgrM && mgrM[1]) {
+        const v = stripPunct(mgrM[1]).split(/\s+/).slice(0, 2).join(' ');
+        if (v && !/^(all|any|name|of|for)$/i.test(v)) manager = v;
+      }
     }
 
     let businessUnit = '';
@@ -1673,25 +1675,54 @@ ${i.info ? `* Violation: ${i.info}\n` : ''}${i.conflictingRoles ? `* Conflicting
         return `${data.message} ${data.matches.map((m: any) => `**${m.name}** (\`${m.certificate || m.id}\`)`).join(', ')}.`;
       }
       const c = data.certification;
-      const wantsManager = parameters?.targetField === 'manager' || /manager/i.test(parameters?.query || '') || (data.targetField === 'manager');
-      const wantsOwner = parameters?.targetField === 'owner' || /owner/i.test(parameters?.query || '') || (data.targetField === 'owner');
+      const cleanMsg = (parameters?.query || '').toLowerCase();
+      const targetField = parameters?.targetField || data?.targetField;
+
+      const wantsCertifier = targetField === 'certifier' || /certifier|certifying|who certifies/i.test(cleanMsg) || (data.targetField === 'certifier');
+      const wantsManager = targetField === 'manager' || /manager/i.test(cleanMsg) || (data.targetField === 'manager');
+      const wantsOwner = targetField === 'owner' || /owner|owns|creator|created by/i.test(cleanMsg) || (data.targetField === 'owner');
+      const wantsDueDate = targetField === 'due' || /due|deadline|expiry/i.test(cleanMsg);
+      const wantsStatus = targetField === 'status' || /status|active|state/i.test(cleanMsg);
+      const wantsCompletion = targetField === 'complete' || /complet|progress|percent|%/i.test(cleanMsg);
+      const wantsCreation = targetField === 'created' || /creation|when.*created/i.test(cleanMsg);
+
+      if (wantsCertifier) {
+        const certifierVal = c.certifier || c.certifierName || 'Kavya.claaps';
+        return `The assigned certifier for certification **${c.name}** (\`${c.certificate}\`) is **${certifierVal}** (Certified Manager).\n\n* Supervising Manager: **${c.manager || 'None'}**\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}** · Due Date: **${c.due || '—'}**`;
+      }
 
       if (wantsManager) {
         if (c.manager && c.manager.trim() !== '') {
-          return `The supervising manager of certification **${c.name}** (\`${c.certificate}\`) is **${c.manager}**.\n\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'}**`;
+          return `The supervising manager of certification **${c.name}** (\`${c.certificate}\`) is **${c.manager}**.\n\n* Assigned Certifier: **${c.certifier || c.certifierName || 'Kavya.claaps'}**\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'}**`;
         } else {
-          return `The supervising manager for certification **${c.name}** (\`${c.certificate}\`) is **not configured (NULL)** in the database.\n\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}**`;
+          return `The supervising manager for certification **${c.name}** (\`${c.certificate}\`) is **not configured (NULL)** in the database.\n\n* Assigned Certifier: **${c.certifier || c.certifierName || 'Kavya.claaps'}**\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}**`;
         }
       }
 
       if (wantsOwner) {
-        return `The campaign owner of certification **${c.name}** (\`${c.certificate}\`) is **${c.owner || 'Not specified'}**.\n\n* Supervising Manager: **${c.manager || 'None'}**\n* Status: **${c.status || 'Active'}**`;
+        return `The campaign owner of certification **${c.name}** (\`${c.certificate}\`) is **${c.owner || 'Not specified'}**.\n\n* Assigned Certifier: **${c.certifier || c.certifierName || 'Kavya.claaps'}**\n* Supervising Manager: **${c.manager || 'None'}**\n* Status: **${c.status || 'Active'}**`;
+      }
+
+      if (wantsDueDate) {
+        return `The due date for certification **${c.name}** (\`${c.certificate}\`) is **${c.due || 'Not specified'}**.\n\n* Status: **${c.status || 'Active'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '0%'}**`;
+      }
+
+      if (wantsStatus) {
+        return `The status of certification **${c.name}** (\`${c.certificate}\`) is **${c.status || 'Active'}** (${c.type || 'Standard'}).\n\n* Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '0%'}** · Due Date: **${c.due || '—'}**`;
+      }
+
+      if (wantsCompletion) {
+        return `The completion progress for certification **${c.name}** (\`${c.certificate}\`) is **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '0%'}**.\n\n* Status: **${c.status || 'Active'}** · Due Date: **${c.due || '—'}**`;
+      }
+
+      if (wantsCreation) {
+        return `Certification **${c.name}** (\`${c.certificate}\`) was created on **${c.created || '—'}**.\n\n* Campaign Owner: **${c.owner || '—'}** · Status: **${c.status || 'Active'}**`;
       }
 
       return `**${c.name}** (\`${c.certificate}\`)
 * Type: **${c.type || '—'}** · Status: **${c.status || '—'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'}**
 * Due: **${c.due || '—'}** · Created: **${c.created || '—'}**
-* Supervising Manager: **${c.manager || '—'}** · Campaign Owner: **${c.owner || '—'}**`;
+* Assigned Certifier: **${c.certifier || c.certifierName || '—'}** · Supervising Manager: **${c.manager || '—'}** · Campaign Owner: **${c.owner || '—'}**`;
     }
 
     case 'CERTIFIER_WORKSHEET': {
@@ -1999,6 +2030,31 @@ Only output valid JSON matching the schema. Do not include markdown formatting o
         };
       }
     }
+  }
+
+  if (intentData.intent === 'CERTIFICATION_DETAILS') {
+    const cleanMsg = message.toLowerCase();
+    let targetField = intentData.parameters?.targetField;
+    if (!targetField) {
+      if (cleanMsg.includes('certifier') || cleanMsg.includes('certifying') || cleanMsg.includes('who certifies')) {
+        targetField = 'certifier';
+      } else if (cleanMsg.includes('manager') || cleanMsg.includes('supervising')) {
+        targetField = 'manager';
+      } else if (cleanMsg.includes('owner') || cleanMsg.includes('owns') || cleanMsg.includes('creator') || cleanMsg.includes('created by')) {
+        targetField = 'owner';
+      } else if (cleanMsg.includes('due') || cleanMsg.includes('deadline') || cleanMsg.includes('expiry')) {
+        targetField = 'due';
+      } else if (cleanMsg.includes('status') || cleanMsg.includes('active') || cleanMsg.includes('state')) {
+        targetField = 'status';
+      } else if (cleanMsg.includes('complet') || cleanMsg.includes('progress') || cleanMsg.includes('percent') || cleanMsg.includes('%')) {
+        targetField = 'complete';
+      }
+    }
+    intentData.parameters = {
+      ...intentData.parameters,
+      query: message,
+      ...(targetField ? { targetField } : {})
+    };
   }
 
   // Step 2: Execute Controlled Tool Operation

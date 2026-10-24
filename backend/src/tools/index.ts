@@ -588,7 +588,9 @@ function canonCert(c: any): any {
     due: c.dueDate || '',
     created: c.creationDate || '',
     owner: c.ownerName || '',
-    manager: c.managerName || c.certifiedManager || ''
+    manager: c.managerName || c.certifiedManager || '',
+    certifier: c.certifierName || c.certifier_name || c.certifiedManager || '',
+    certifierName: c.certifierName || c.certifier_name || c.certifiedManager || ''
   };
 }
 
@@ -601,8 +603,12 @@ function canonWorksheetRow(r: any): any {
     action: r.action || '',
     comments: r.comment || r.comments || '',
     unit: r.userBusinessUnit || r.businessUnit || '',
+    department: r.department || r.userDepartment || '',
     position: r.userPositionName || r.positionName || '',
     manager: r.userManagerName || r.manager || r.certifiedManager || r.directManager || '',
+    certifiedManager: r.certifiedManager || r.certified_manager || '',
+    directManager: r.directManager || r.direct_manager || r.userManagerName || '',
+    certifierName: r.certifierName || r.certifier_name || r.certifiedManager || '',
     job: r.userJobName || r.jobName || '',
     location: r.userLocation || r.location || ''
   };
