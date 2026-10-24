@@ -1353,8 +1353,7 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
         ]
       };
       payload.actions = [
-        { label: 'Explore Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+        { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } }
       ];
       break;
     }
@@ -1422,8 +1421,7 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
         ]
       };
       payload.actions = [
-        { label: 'Open Advanced Controls', actionType: 'NAVIGATE', params: { page: 'risk' } },
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+        { label: 'Open Advanced Controls', actionType: 'NAVIGATE', params: { page: 'risk' } }
       ];
       break;
     }
@@ -1473,8 +1471,7 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
         ]
       };
       payload.actions = [
-        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk-certificates' } },
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+        { label: 'Open Access Certificates', actionType: 'NAVIGATE', params: { page: 'risk-certificates' } }
       ];
       break;
     }
@@ -1524,8 +1521,7 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
         ]
       };
       payload.actions = [
-        { label: 'Open Audit Vault', actionType: 'NAVIGATE', params: { page: 'audit' } },
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+        { label: 'Open Audit Trail Viewer', actionType: 'NAVIGATE', params: { page: 'audit' } }
       ];
       break;
     }
@@ -1550,9 +1546,7 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
           { id: '4', attribute: 'Session Token Security', value: 'HttpOnly, Secure, SameSite Enforced' }
         ]
       };
-      payload.actions = [
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
-      ];
+      payload.actions = [];
       break;
     }
 
@@ -1581,9 +1575,8 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
         ]
       };
       payload.actions = [
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } },
-        { label: 'Explore Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-        { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
+        { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
+        { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users' } },
         { label: 'Open Advanced Controls', actionType: 'NAVIGATE', params: { page: 'risk' } }
       ];
       break;
@@ -1665,9 +1658,8 @@ export async function getApplicationKnowledgeTool(params: { topic?: string; quer
         ]
       };
       payload.actions = [
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } },
-        { label: 'Explore Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-        { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
+        { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
+        { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users' } },
         { label: 'Open Advanced Controls', actionType: 'NAVIGATE', params: { page: 'risk' } }
       ];
       break;

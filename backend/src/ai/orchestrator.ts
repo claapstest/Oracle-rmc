@@ -2791,9 +2791,7 @@ function buildStructuredResponse(
       table = data?.table;
       totalCount = data?.table?.rows?.length || 1;
       matchingCount = totalCount;
-      actions = data?.actions || [
-        { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
-      ];
+      actions = data?.actions || [];
       break;
     }
 
@@ -3037,8 +3035,7 @@ function buildStructuredResponse(
         totalCount = auditVal;
         matchingCount = 1;
         actions = [
-          { label: 'Open Audit Trail Viewer', actionType: 'NAVIGATE', params: { page: 'audit' } },
-          { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+          { label: 'Open Audit Trail Viewer', actionType: 'NAVIGATE', params: { page: 'audit' } }
         ];
         riskHighlights = [];
         break;
@@ -3052,8 +3049,7 @@ function buildStructuredResponse(
         totalCount = incVal;
         matchingCount = 1;
         actions = [
-          { label: 'Open Incidents Report', actionType: 'NAVIGATE', params: { page: 'risk' } },
-          { label: 'View Controls Catalog', actionType: 'NAVIGATE', params: { page: 'risk' } }
+          { label: 'Open Advanced Controls', actionType: 'NAVIGATE', params: { page: 'risk' } }
         ];
         riskHighlights = [];
         break;
@@ -3067,8 +3063,7 @@ function buildStructuredResponse(
         totalCount = ctrlVal;
         matchingCount = 1;
         actions = [
-          { label: 'View Controls Catalog', actionType: 'NAVIGATE', params: { page: 'risk' } },
-          { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+          { label: 'Open Advanced Controls', actionType: 'NAVIGATE', params: { page: 'risk' } }
         ];
         riskHighlights = [];
         break;
@@ -3089,8 +3084,7 @@ function buildStructuredResponse(
           totalCount = count;
           matchingCount = 1;
           actions = [
-            { label: 'View Multi-Role Users', actionType: 'NAVIGATE', params: { page: 'users', filter: 'multiple_roles' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users', filter: 'multiple_roles' } }
           ];
           riskHighlights = [];
         } else if (targetMetric === 'USERS_WITHOUT_ROLES') {
@@ -3100,8 +3094,7 @@ function buildStructuredResponse(
           totalCount = count;
           matchingCount = 1;
           actions = [
-            { label: 'View Unassigned Users', actionType: 'NAVIGATE', params: { page: 'users', filter: 'no_roles' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users', filter: 'no_roles' } }
           ];
           riskHighlights = [];
         } else if (targetMetric === 'SINGLE_ROLE_USERS') {
@@ -3111,8 +3104,7 @@ function buildStructuredResponse(
           totalCount = count;
           matchingCount = 1;
           actions = [
-            { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users' } }
           ];
           riskHighlights = [];
         } else if (targetMetric === 'SECURITY_ADMINS') {
@@ -3122,8 +3114,7 @@ function buildStructuredResponse(
           totalCount = count;
           matchingCount = 1;
           actions = [
-            { label: 'View Administrators', actionType: 'NAVIGATE', params: { page: 'users', filter: 'admin' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users', filter: 'admin' } }
           ];
           riskHighlights = [];
         } else if (targetMetric === 'ACTIVE_USERS') {
@@ -3132,8 +3123,7 @@ function buildStructuredResponse(
           totalCount = activeUsers;
           matchingCount = 1;
           actions = [
-            { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users' } }
           ];
           riskHighlights = [];
         } else if (targetMetric === 'INACTIVE_USERS') {
@@ -3142,8 +3132,7 @@ function buildStructuredResponse(
           totalCount = inactiveUsers;
           matchingCount = 1;
           actions = [
-            { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users' } }
           ];
           riskHighlights = [];
         } else {
@@ -3208,8 +3197,7 @@ function buildStructuredResponse(
           }
 
           actions = [
-            { label: 'Open Users Catalog', actionType: 'NAVIGATE', params: { page: 'users' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Users List', actionType: 'NAVIGATE', params: { page: 'users' } }
           ];
           riskHighlights = [];
         }
@@ -3225,8 +3213,7 @@ function buildStructuredResponse(
           totalCount = count;
           matchingCount = 1;
           actions = [
-            { label: 'View Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } }
           ];
           riskHighlights = [];
         } else if (targetMetric === 'ROLES_WITH_USERS') {
@@ -3236,8 +3223,7 @@ function buildStructuredResponse(
           totalCount = count;
           matchingCount = 1;
           actions = [
-            { label: 'View Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } }
           ];
           riskHighlights = [];
         } else if (isSingleCategory && resolvedCat && catCount !== null) {
@@ -3246,8 +3232,7 @@ function buildStructuredResponse(
           totalCount = catCount;
           matchingCount = 1;
           actions = [
-            { label: `View ${resolvedCat} Roles in Catalog`, actionType: 'NAVIGATE', params: { page: 'roles', filter: resolvedCat } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles', filter: resolvedCat } }
           ];
           riskHighlights = [];
         } else {
@@ -3311,8 +3296,7 @@ function buildStructuredResponse(
             matchingCount = 1;
           }
           actions = [
-            { label: 'Explore Roles Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } },
-            { label: 'Open Overview Dashboard', actionType: 'NAVIGATE', params: { page: 'overview' } }
+            { label: 'View Roles in Catalog', actionType: 'NAVIGATE', params: { page: 'roles' } }
           ];
         }
       }
