@@ -605,6 +605,16 @@ export default function App() {
     fetchServerSettings();
   }, [isLoggedIn, currentUser, isAdmin, userRole, userPermissions]);
 
+  // If an administrator session lands on Ask VEYRA, seamlessly redirect to Dashboard
+  useEffect(() => {
+    if (authChecked && isLoggedIn && currentPage === 'assistant') {
+      const auth: AuthContext = { isAdmin, role: userRole, permissions: userPermissions };
+      if (!canAccessPage('assistant', auth)) {
+        handlePageSelect('dashboard');
+      }
+    }
+  }, [authChecked, isLoggedIn, currentPage, isAdmin, userRole, userPermissions]);
+
   const handleLoginSuccess = (
     username: string,
     token: string,

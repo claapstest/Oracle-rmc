@@ -25,10 +25,11 @@ for (const p of ['dashboard', 'assistant', 'risk', 'reports', 'users', 'roles', 
 // AC3 — privileged admin-only modules hidden without grant
 no(canAccessPage('settings', AUDIT_MGR), 'audit-mgr settings');
 no(canAccessPage('command-center', AUDIT_MGR), 'audit-mgr console');
-// Admin / ALL bypass everywhere
-for (const p of ['dashboard', 'assistant', 'risk', 'reports', 'users', 'roles', 'audit', 'settings', 'command-center']) {
+// Admin / ALL bypass everywhere except assistant (Ask Veyra removed for Admin)
+for (const p of ['dashboard', 'risk', 'reports', 'users', 'roles', 'audit', 'settings', 'command-center']) {
   ok(canAccessPage(p, ADMIN), `admin ${p}`);
 }
+no(canAccessPage('assistant', ADMIN), 'admin assistant removed');
 // Bare authenticated user keeps dashboard only
 ok(canAccessPage('dashboard', BARE), 'bare dashboard');
 no(canAccessPage('reports', BARE), 'bare reports');
@@ -49,6 +50,7 @@ const SITE_ADMIN = { isAdmin: true, role: 'SITE_ADMIN', permissions: ['ALL'] };
 for (const p of ['users', 'settings', 'command-center', 'dashboard']) {
   ok(canAccessPage(p, SITE_ADMIN), `site-admin ${p}`);
 }
+no(canAccessPage('assistant', SITE_ADMIN), 'site-admin assistant removed');
 // Audit Supervisor must not see Site Admin administration functions.
 const AUDIT_SUP = { isAdmin: false, role: 'AUDIT_SUPERVISOR', permissions: ['RISK_MANAGEMENT', 'RISK_READ', 'REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL', 'AUDIT_READ', 'USERS_LIST', 'USER_READ'] };
 no(canAccessPage('settings', AUDIT_SUP), 'supervisor settings');

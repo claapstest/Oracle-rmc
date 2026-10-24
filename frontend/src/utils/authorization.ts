@@ -50,6 +50,12 @@ export function canAccessPage(pageId: string, auth: AuthContext | null): boolean
   const normalizedRole = (auth.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
   const perms = normalizePrivileges(auth.permissions);
 
+  // Requirement: Remove Ask VEYRA page exclusively for Admin / Site Admin dashboard sessions
+  const isAdminSession = auth.isAdmin === true || normalizedRole === 'SITE_ADMIN';
+  if (pageId === 'assistant' && isAdminSession) {
+    return false;
+  }
+
   // Backend parity (requirePrivilege): isAdmin or ALL grants every known page.
   // Must precede the SITE_ADMIN scoping below — admin@admin.com carries ALL.
   if (auth.isAdmin === true || perms.includes('ALL')) return true;
