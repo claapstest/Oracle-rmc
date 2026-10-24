@@ -160,12 +160,13 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
   if (clean.includes('certif') && !(/\bincidents?\b/.test(clean) && !clean.includes('worksheet'))) {
     const stripPunct = (s: string) => s.replace(/[\?\.\!,;:\(\)"']+$/g, '').replace(/^["']+/, '').trim();
 
-    const certIdKw = clean.match(/(?:certification|cert)\s+#?(?:id\s+)?(\d{1,7})\b/);
+    const certIdKw = clean.match(/(?:certification|certificate|cert)\s+#?(?:id\s+)?(\d{1,7})\b/);
     const certIdBare = clean.match(/\b(\d{5,7})\b/);
     const certId = (certIdKw && certIdKw[1]) || (certIdBare && certIdBare[1]) || '';
     const quoted = clean.match(/"([^"]{2,80})"/);
     const underName = clean.match(/\b([A-Za-z0-9]*_[A-Za-z0-9_]+)\b/);
-    const certName = (quoted && stripPunct(quoted[1])) || (underName && underName[1]) || '';
+    const certNamedM = clean.match(/(?:certification|certificate|cert)\s+(?:of\s+|for\s+)?['"]?([a-zA-Z0-9_\- ]+?)['"]?(?:\?|$|\s+status|\s+manager|\s+owner|\s+who)/i);
+    const certName = (quoted && stripPunct(quoted[1])) || (underName && underName[1]) || (certNamedM && stripPunct(certNamedM[1])) || '';
 
     const emailM = clean.match(/\b([a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,})\b/);
     let username = emailM ? emailM[1] : '';
@@ -279,6 +280,11 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       const params: any = {};
       if (certId) params.certificationId = certId;
       if (certName) params.certificationName = certName;
+      if (clean.includes('manager')) params.targetField = 'manager';
+      else if (clean.includes('owner') || clean.includes('owns')) params.targetField = 'owner';
+      else if (clean.includes('certifier')) params.targetField = 'certifier';
+      else if (clean.includes('status')) params.targetField = 'status';
+      else if (clean.includes('due')) params.targetField = 'due';
       return {
         intent: 'CERTIFICATION_DETAILS',
         parameters: params,
@@ -1664,13 +1670,28 @@ ${i.info ? `* Violation: ${i.info}\n` : ''}${i.conflictingRoles ? `* Conflicting
     case 'CERTIFICATION_DETAILS': {
       if (data?.notFound) return data.message;
       if (data?.ambiguous) {
-        return `${data.message} ${data.matches.map((m: any) => `**${m.name}** (\`${m.certificate}\`)`).join(', ')}.`;
+        return `${data.message} ${data.matches.map((m: any) => `**${m.name}** (\`${m.certificate || m.id}\`)`).join(', ')}.`;
       }
       const c = data.certification;
+      const wantsManager = parameters?.targetField === 'manager' || /manager/i.test(parameters?.query || '') || (data.targetField === 'manager');
+      const wantsOwner = parameters?.targetField === 'owner' || /owner/i.test(parameters?.query || '') || (data.targetField === 'owner');
+
+      if (wantsManager) {
+        if (c.manager && c.manager.trim() !== '') {
+          return `The supervising manager of certification **${c.name}** (\`${c.certificate}\`) is **${c.manager}**.\n\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'}**`;
+        } else {
+          return `The supervising manager for certification **${c.name}** (\`${c.certificate}\`) is **not configured (NULL)** in the database.\n\n* Campaign Owner: **${c.owner || 'None'}**\n* Status: **${c.status || 'Active'}**`;
+        }
+      }
+
+      if (wantsOwner) {
+        return `The campaign owner of certification **${c.name}** (\`${c.certificate}\`) is **${c.owner || 'Not specified'}**.\n\n* Supervising Manager: **${c.manager || 'None'}**\n* Status: **${c.status || 'Active'}**`;
+      }
+
       return `**${c.name}** (\`${c.certificate}\`)
 * Type: **${c.type || '—'}** · Status: **${c.status || '—'}** · Completion: **${c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'}**
 * Due: **${c.due || '—'}** · Created: **${c.created || '—'}**
-* Owner: **${c.owner || '—'}** · Manager: **${c.manager || '—'}**`;
+* Supervising Manager: **${c.manager || '—'}** · Campaign Owner: **${c.owner || '—'}**`;
     }
 
     case 'CERTIFIER_WORKSHEET': {
@@ -3400,7 +3421,7 @@ function buildStructuredResponse(
           dueDate: c.due || c.dueDate || '—',
           due: c.due || c.dueDate || '—',
           owner: c.owner || '—',
-          certifierName: c.owner || c.manager || '—'
+          certifierName: c.certifierName || c.certifier || c.manager || '—'
         }))
       };
       actions = [
@@ -3430,7 +3451,7 @@ function buildStructuredResponse(
               dueDate: c.due || c.dueDate || '—',
               due: c.due || c.dueDate || '—',
               owner: c.owner || '—',
-              certifierName: c.owner || c.manager || '—'
+              certifierName: c.certifierName || c.certifier || c.manager || '—'
             }))
           };
         }
@@ -3443,7 +3464,8 @@ function buildStructuredResponse(
         ['Type', c.type || '—'], ['Status', c.status || '—'],
         ['Completion', c.complete !== null && c.complete !== undefined ? `${c.complete}%` : '—'],
         ['Due Date', c.due || '—'], ['Creation Date', c.created || '—'],
-        ['Owner', c.owner || '—'], ['Manager', c.manager || '—']
+        ['Supervising Manager', c.manager || '—'], ['Campaign Owner', c.owner || '—'],
+        ['Assigned Certifier', c.certifier || '—']
       ];
       table = {
         type: 'general',
@@ -3479,7 +3501,7 @@ function buildStructuredResponse(
               dueDate: c.due || c.dueDate || '—',
               due: c.due || c.dueDate || '—',
               owner: c.owner || '—',
-              certifierName: c.owner || c.manager || '—'
+              certifierName: c.certifierName || c.certifier || c.manager || '—'
             }))
           };
         }

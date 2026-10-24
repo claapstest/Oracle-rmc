@@ -67378,5 +67378,651 @@
       "message": "Security role \"Learning Specialist\" with 46 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1792675997523
+  },
+  "role_privileges:accounts receivable manager": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Accounts Receivable Manager",
+      "roleCode": "ORA_AR_ACCOUNTS_RECEIVABLE_MANAGER_JOB",
+      "role": {
+        "name": "Accounts Receivable Manager",
+        "code": "ORA_AR_ACCOUNTS_RECEIVABLE_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Import Payables Invoice",
+          "code": "AP_IMPORT_PAYABLES_INVOICE_PRIV",
+          "description": "Allows importing of invoices into Oracle Fusion Payables invoice interface.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Application Tree",
+          "code": "FND_APP_MANAGE_TREE_PRIV",
+          "description": "Manage application trees and tree versions",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Application Tree Label",
+          "code": "FND_APP_MANAGE_TREE_LABEL_PRIV",
+          "description": "Manage application tree labels",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Application Tree Structure",
+          "code": "FND_APP_MANAGE_TREE_STRUCTURE_PRIV",
+          "description": "Manage application tree structures",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Orchestration Generic Web Service",
+          "code": "DOO_MANAGE_ORCHESTRATION_GENERIC_WEB_SERVICE_PRIV",
+          "description": "Allows access to orchestration generic web services.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Orchestration Order Billing Interface Web Service",
+          "code": "DOO_MANAGE_ORCHESTRATION_ORDER_BILLING_INTERFACE_WEB_SERVICE_PRIV",
+          "description": "Allows access to orchestration order billing interface Web services.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Orchestration Order Modification",
+          "code": "DOO_MANAGE_ORCHESTRATION_ORDER_MODIFICATION_PRIV",
+          "description": "Allows management of change orders.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Activities",
+          "code": "AR_MANAGE_RECEIVABLES_ACTIVITIES_PRIV",
+          "description": "Manage Receivables activities using the dashboard.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Balances Activities",
+          "code": "AR_MANAGE_RECEIVABLES_BALANCES_ACTIVITIES_PRIV",
+          "description": "Manage Receivables balances activities.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Business Intelligence",
+          "code": "AR_MANAGE_RECEIVABLES_BUSINESS_INTELLIGENCE_PRIV",
+          "description": "Manage access to Receivables OBIA dashboard.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Period Close Exceptions",
+          "code": "AR_MANAGE_RECEIVABLES_PERIOD_CLOSE_EXCEPTIONS_PRIV",
+          "description": "Allows managing of receivables period close exceptions.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Trading Community Hierarchy",
+          "code": "HZ_MANAGE_TRADING_COMMUNITY_HIERARCHY_PRIV",
+          "description": "Allows the specification of organization and person hierarchies used in transactional and analytical processes. If assigning, also assign the ability to view the trading community hierarchy.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Unpaid Receivables Bills Receivable",
+          "code": "AR_MANAGE_UNPAID_RECEIVABLES_BILL_RECEIVABLE_PRIV",
+          "description": "Manage unpaid bills receivable, including their marking as unpaid, protest, reestablishing of risk, and restatement.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Override Receivables Receipt Application",
+          "code": "AR_OVERRIDE_RECEIVABLE_APPLICATIONS_PRIV",
+          "description": "Override a Receivables Receipt application to allow application to any transaction within the Ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Process Fulfillment Response",
+          "code": "DOO_PROCESS_FULFILLMENT_RESPONSE_PRIV",
+          "description": "Allows processing of the fulfillment system response staged in the fulfillment response interface tables.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Retrieve Customer Payment Predictions",
+          "code": "AR_RETRIEVE_CUST_PAYMENT_PREDICTION_PRIV",
+          "description": "Retrieve Customer Payment Predictions.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Actual Receipts Report",
+          "code": "AR_RUN_ACTUAL_RECEIPTS_REPORT_PRIV",
+          "description": "Generate detailed receipt activity by bank account to help reconcile receipts.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Adjustments Journal",
+          "code": "AR_RUN_ADJUSTMENTS_JOURNAL_PRIV",
+          "description": "Generate adjustment journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Adjustments Register",
+          "code": "AR_RUN_ADJUSTMENTS_REGISTER_PRIV",
+          "description": "Generate for a selected period approved adjustments that affect transaction balances.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Applied Receipts Journal",
+          "code": "AR_RUN_APPLIED_RECEIPTS_JOURNAL_PRIV",
+          "description": "Generate applied receipts journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Applied Receipts Register",
+          "code": "AR_RUN_APPLIED_RECEIPTS_REGISTER_PRIV",
+          "description": "Generate for a selected period receipt applications that affect customer balances.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Bad Debts Provision Report",
+          "code": "AR_RUN_BAD_DEBTS_PROVISION_REPORT_PRIV",
+          "description": "Generate information for reviewing bad debt exposure and provisioning based on percent collectible assigned to the customer.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Cross Currency Exchange Gain and Loss Report",
+          "code": "AR_RUN_CROSS_CURRENCY_EXCHANGE_GAIN_AND_LOSS_REPORT_PRIV",
+          "description": "Generate detailed information about cross-currency settlements.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Customer Balance Revaluation Report",
+          "code": "AR_RUN_CUSTOMER_BALANCE_REVALUATION_REPORT_PRIV",
+          "description": "Generate information that reflects the difference between the original customer balance and revalued balance for manually adjusting the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Document Number Audit Report",
+          "code": "AR_RUN_DOCUMENT_NUMBER_AUDIT_REPORT_PRIV",
+          "description": "Generate information that identifies missing document sequence numbers.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Invoices Posted to Suspense report",
+          "code": "AR_RUN_INVOICES_POSTED_TO_SUSPENSE_REPORT_PRIV",
+          "description": "Generate all transactions that have revenue amounts posted to suspense accounts as a result of running AutoInvoice.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Miscellaneous Receipt Register",
+          "code": "AR_RUN_MISCELLANEOUS_RECEIPT_REGISTER_PRIV",
+          "description": "Generate information on miscellaneous receipts and credit card refunds.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run On Account Credit Memo Gain and Loss Journal",
+          "code": "AR_RUN_ON_ACCOUNT_CREDIT_MEMO_GAIN_AND_LOSS_JOURNAL_PRIV",
+          "description": "Generate on-account credit memo gain and loss journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Open Balances Revaluation Report",
+          "code": "AR_RUN_OPEN_BALANCES_REVALUATION_REPORT_PRIV",
+          "description": "Generate information for creating manual journal entries to revalue open receivable balances.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Open Items Revaluation Report",
+          "code": "AR_RUN_OPEN_ITEMS_REVALUATION_REPORT_PRIV",
+          "description": "Generate information that determines the amount needed to manually adjust general ledger account balances to reflect the difference between the original and revalued customer open items.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Other Receipt Applications Report",
+          "code": "AR_RUN_OTHER_RECEIPT_APPLICATIONS_REPORT_PRIV",
+          "description": "Generate all receipt applications that only impact cash balances and not customer open receivables.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Potential Reconciling Items Report",
+          "code": "AR_RUN_POTENTIAL_RECONCILING_ITEMS_REPORT_PRIV",
+          "description": "Generate journal items that may potentially post to incorrect GL accounts.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Projected Gains and Losses Report",
+          "code": "AR_RUN_PROJECTED_GAINS_AND_LOSSES_REPORT_PRIV",
+          "description": "Compare the revalued amount of each customer debit item with the entered amount and print the projected unrealized gain or loss.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receipt Journal",
+          "code": "AR_RUN_RECEIPT_JOURNAL_PRIV",
+          "description": "Generate receipt journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receipt Register",
+          "code": "AR_RUN_RECEIPT_REGISTER_PRIV",
+          "description": "Generate all standard and miscellaneous receipts that affect transaction balances in a selected period.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receivables Aging Report",
+          "code": "AR_RUN_RECEIVABLES_AGING_REPORT_PRIV",
+          "description": "Generate information about outstanding receivables by general ledger account as of a specific date.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receivables Journal Entries Report",
+          "code": "AR_RUN_RECEIVABLES_JOURNAL_ENTRIES_REPORT_PRIV",
+          "description": "Generate information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receivables to General Ledger Reconciliation Report",
+          "code": "AR_RUN_RECEIVABLES_TO_GENERAL_LEDGER_RECONCILIATION_REPORT_PRIV",
+          "description": "Generate information that highlights discrepancies between receivables transactional reconciliation and receivables to general ledger accounting reconciliation.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Revenue Recognition",
+          "code": "AR_RUN_REVENUE_RECOGNITION_PRIV",
+          "description": "Generate the revenue distribution records for invoices and credit memos that use invoicing and revenue scheduling rules.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Sales Journal By Customer",
+          "code": "AR_RUN_SALES_JOURNAL_BY_CUSTOMER_PRIV",
+          "description": "Generate sales by customer journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Sales Journal by GL Account Report",
+          "code": "AR_RUN_SALES_JOURNAL_BY_GL_ACCOUNT_REPORT_PRIV",
+          "description": "Generate sales by general ledger account journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Trading Community Hierarchy Audit Job",
+          "code": "HZ_RUN_HIERARCHY_AUDIT_PRIV",
+          "description": "Allows the running of the audit process which validates trading community hierarchies against a set of validation rules. If a hierarchy does not pass a validation rule, the hierarchy is updated to an inactive status.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Transaction Check Register",
+          "code": "AR_RUN_TRANSACTION_CHECK_REGISTER_PRIV",
+          "description": "Generate information to verify the accuracy of transaction information and indicate which user last updated each item.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Transaction Register",
+          "code": "AR_RUN_TRANSACTION_REGISTER_PRIV",
+          "description": "Generate information on all transactions that increase or decrease the outstanding balance of selected customers for a specified period, including transactions that do not post or age.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Unapplied and Unresolved Receipts Journal",
+          "code": "AR_RUN_UNAPPLIED_AND_UNRESOLVED_RECEIPTS_JOURNAL_PRIV",
+          "description": "Generate unapplied receipt journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Unapplied and Unresolved Receipts Register",
+          "code": "AR_RUN_UNAPPLIED_AND_UNRESOLVED_RECEIPTS_REGISTER_PRIV",
+          "description": "Generate detailed information about customer on-account and unapplied payments for a specified date range.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Submit Accounting Process",
+          "code": "AR_SUBMIT_ACCOUNTING_PROCESS_PRIV",
+          "description": "Create Receivables subledger accounting entries.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "View Payables Invoice",
+          "code": "AP_VIEW_PAYABLES_INVOICE_PRIV",
+          "description": "Allows viewing of Oracle Fusion Payables invoices without performing a search.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "View Trading Community Hierarchy",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_HIERARCHY_PRIV",
+          "description": "Allows the specification of organization and person hierarchies used in transactional and analytical processes.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 49,
+        "directPrivileges": 49,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Accounts Receivable Manager\" (ORA_AR_ACCOUNTS_RECEIVABLE_MANAGER_JOB) with 49 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "43 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Accounts Receivable Manager\" with 49 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792823371837
+  },
+  "role_privileges:ora_ar_accounts_receivable_manager_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Accounts Receivable Manager",
+      "roleCode": "ORA_AR_ACCOUNTS_RECEIVABLE_MANAGER_JOB",
+      "role": {
+        "name": "Accounts Receivable Manager",
+        "code": "ORA_AR_ACCOUNTS_RECEIVABLE_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Import Payables Invoice",
+          "code": "AP_IMPORT_PAYABLES_INVOICE_PRIV",
+          "description": "Allows importing of invoices into Oracle Fusion Payables invoice interface.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Application Tree",
+          "code": "FND_APP_MANAGE_TREE_PRIV",
+          "description": "Manage application trees and tree versions",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Application Tree Label",
+          "code": "FND_APP_MANAGE_TREE_LABEL_PRIV",
+          "description": "Manage application tree labels",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Application Tree Structure",
+          "code": "FND_APP_MANAGE_TREE_STRUCTURE_PRIV",
+          "description": "Manage application tree structures",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Orchestration Generic Web Service",
+          "code": "DOO_MANAGE_ORCHESTRATION_GENERIC_WEB_SERVICE_PRIV",
+          "description": "Allows access to orchestration generic web services.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Orchestration Order Billing Interface Web Service",
+          "code": "DOO_MANAGE_ORCHESTRATION_ORDER_BILLING_INTERFACE_WEB_SERVICE_PRIV",
+          "description": "Allows access to orchestration order billing interface Web services.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Orchestration Order Modification",
+          "code": "DOO_MANAGE_ORCHESTRATION_ORDER_MODIFICATION_PRIV",
+          "description": "Allows management of change orders.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Activities",
+          "code": "AR_MANAGE_RECEIVABLES_ACTIVITIES_PRIV",
+          "description": "Manage Receivables activities using the dashboard.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Balances Activities",
+          "code": "AR_MANAGE_RECEIVABLES_BALANCES_ACTIVITIES_PRIV",
+          "description": "Manage Receivables balances activities.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Business Intelligence",
+          "code": "AR_MANAGE_RECEIVABLES_BUSINESS_INTELLIGENCE_PRIV",
+          "description": "Manage access to Receivables OBIA dashboard.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Receivables Period Close Exceptions",
+          "code": "AR_MANAGE_RECEIVABLES_PERIOD_CLOSE_EXCEPTIONS_PRIV",
+          "description": "Allows managing of receivables period close exceptions.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Trading Community Hierarchy",
+          "code": "HZ_MANAGE_TRADING_COMMUNITY_HIERARCHY_PRIV",
+          "description": "Allows the specification of organization and person hierarchies used in transactional and analytical processes. If assigning, also assign the ability to view the trading community hierarchy.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Manage Unpaid Receivables Bills Receivable",
+          "code": "AR_MANAGE_UNPAID_RECEIVABLES_BILL_RECEIVABLE_PRIV",
+          "description": "Manage unpaid bills receivable, including their marking as unpaid, protest, reestablishing of risk, and restatement.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Override Receivables Receipt Application",
+          "code": "AR_OVERRIDE_RECEIVABLE_APPLICATIONS_PRIV",
+          "description": "Override a Receivables Receipt application to allow application to any transaction within the Ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Process Fulfillment Response",
+          "code": "DOO_PROCESS_FULFILLMENT_RESPONSE_PRIV",
+          "description": "Allows processing of the fulfillment system response staged in the fulfillment response interface tables.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Retrieve Customer Payment Predictions",
+          "code": "AR_RETRIEVE_CUST_PAYMENT_PREDICTION_PRIV",
+          "description": "Retrieve Customer Payment Predictions.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Actual Receipts Report",
+          "code": "AR_RUN_ACTUAL_RECEIPTS_REPORT_PRIV",
+          "description": "Generate detailed receipt activity by bank account to help reconcile receipts.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Adjustments Journal",
+          "code": "AR_RUN_ADJUSTMENTS_JOURNAL_PRIV",
+          "description": "Generate adjustment journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Adjustments Register",
+          "code": "AR_RUN_ADJUSTMENTS_REGISTER_PRIV",
+          "description": "Generate for a selected period approved adjustments that affect transaction balances.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Applied Receipts Journal",
+          "code": "AR_RUN_APPLIED_RECEIPTS_JOURNAL_PRIV",
+          "description": "Generate applied receipts journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Applied Receipts Register",
+          "code": "AR_RUN_APPLIED_RECEIPTS_REGISTER_PRIV",
+          "description": "Generate for a selected period receipt applications that affect customer balances.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Bad Debts Provision Report",
+          "code": "AR_RUN_BAD_DEBTS_PROVISION_REPORT_PRIV",
+          "description": "Generate information for reviewing bad debt exposure and provisioning based on percent collectible assigned to the customer.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Cross Currency Exchange Gain and Loss Report",
+          "code": "AR_RUN_CROSS_CURRENCY_EXCHANGE_GAIN_AND_LOSS_REPORT_PRIV",
+          "description": "Generate detailed information about cross-currency settlements.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Customer Balance Revaluation Report",
+          "code": "AR_RUN_CUSTOMER_BALANCE_REVALUATION_REPORT_PRIV",
+          "description": "Generate information that reflects the difference between the original customer balance and revalued balance for manually adjusting the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Document Number Audit Report",
+          "code": "AR_RUN_DOCUMENT_NUMBER_AUDIT_REPORT_PRIV",
+          "description": "Generate information that identifies missing document sequence numbers.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Invoices Posted to Suspense report",
+          "code": "AR_RUN_INVOICES_POSTED_TO_SUSPENSE_REPORT_PRIV",
+          "description": "Generate all transactions that have revenue amounts posted to suspense accounts as a result of running AutoInvoice.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Miscellaneous Receipt Register",
+          "code": "AR_RUN_MISCELLANEOUS_RECEIPT_REGISTER_PRIV",
+          "description": "Generate information on miscellaneous receipts and credit card refunds.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run On Account Credit Memo Gain and Loss Journal",
+          "code": "AR_RUN_ON_ACCOUNT_CREDIT_MEMO_GAIN_AND_LOSS_JOURNAL_PRIV",
+          "description": "Generate on-account credit memo gain and loss journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Open Balances Revaluation Report",
+          "code": "AR_RUN_OPEN_BALANCES_REVALUATION_REPORT_PRIV",
+          "description": "Generate information for creating manual journal entries to revalue open receivable balances.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Open Items Revaluation Report",
+          "code": "AR_RUN_OPEN_ITEMS_REVALUATION_REPORT_PRIV",
+          "description": "Generate information that determines the amount needed to manually adjust general ledger account balances to reflect the difference between the original and revalued customer open items.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Other Receipt Applications Report",
+          "code": "AR_RUN_OTHER_RECEIPT_APPLICATIONS_REPORT_PRIV",
+          "description": "Generate all receipt applications that only impact cash balances and not customer open receivables.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Potential Reconciling Items Report",
+          "code": "AR_RUN_POTENTIAL_RECONCILING_ITEMS_REPORT_PRIV",
+          "description": "Generate journal items that may potentially post to incorrect GL accounts.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Projected Gains and Losses Report",
+          "code": "AR_RUN_PROJECTED_GAINS_AND_LOSSES_REPORT_PRIV",
+          "description": "Compare the revalued amount of each customer debit item with the entered amount and print the projected unrealized gain or loss.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receipt Journal",
+          "code": "AR_RUN_RECEIPT_JOURNAL_PRIV",
+          "description": "Generate receipt journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receipt Register",
+          "code": "AR_RUN_RECEIPT_REGISTER_PRIV",
+          "description": "Generate all standard and miscellaneous receipts that affect transaction balances in a selected period.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receivables Aging Report",
+          "code": "AR_RUN_RECEIVABLES_AGING_REPORT_PRIV",
+          "description": "Generate information about outstanding receivables by general ledger account as of a specific date.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receivables Journal Entries Report",
+          "code": "AR_RUN_RECEIVABLES_JOURNAL_ENTRIES_REPORT_PRIV",
+          "description": "Generate information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Receivables to General Ledger Reconciliation Report",
+          "code": "AR_RUN_RECEIVABLES_TO_GENERAL_LEDGER_RECONCILIATION_REPORT_PRIV",
+          "description": "Generate information that highlights discrepancies between receivables transactional reconciliation and receivables to general ledger accounting reconciliation.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Revenue Recognition",
+          "code": "AR_RUN_REVENUE_RECOGNITION_PRIV",
+          "description": "Generate the revenue distribution records for invoices and credit memos that use invoicing and revenue scheduling rules.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Sales Journal By Customer",
+          "code": "AR_RUN_SALES_JOURNAL_BY_CUSTOMER_PRIV",
+          "description": "Generate sales by customer journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Sales Journal by GL Account Report",
+          "code": "AR_RUN_SALES_JOURNAL_BY_GL_ACCOUNT_REPORT_PRIV",
+          "description": "Generate sales by general ledger account journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Trading Community Hierarchy Audit Job",
+          "code": "HZ_RUN_HIERARCHY_AUDIT_PRIV",
+          "description": "Allows the running of the audit process which validates trading community hierarchies against a set of validation rules. If a hierarchy does not pass a validation rule, the hierarchy is updated to an inactive status.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Transaction Check Register",
+          "code": "AR_RUN_TRANSACTION_CHECK_REGISTER_PRIV",
+          "description": "Generate information to verify the accuracy of transaction information and indicate which user last updated each item.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Transaction Register",
+          "code": "AR_RUN_TRANSACTION_REGISTER_PRIV",
+          "description": "Generate information on all transactions that increase or decrease the outstanding balance of selected customers for a specified period, including transactions that do not post or age.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Unapplied and Unresolved Receipts Journal",
+          "code": "AR_RUN_UNAPPLIED_AND_UNRESOLVED_RECEIPTS_JOURNAL_PRIV",
+          "description": "Generate unapplied receipt journal information needed to reconcile the accounts receivable subledger with the general ledger.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Run Unapplied and Unresolved Receipts Register",
+          "code": "AR_RUN_UNAPPLIED_AND_UNRESOLVED_RECEIPTS_REGISTER_PRIV",
+          "description": "Generate detailed information about customer on-account and unapplied payments for a specified date range.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "Submit Accounting Process",
+          "code": "AR_SUBMIT_ACCOUNTING_PROCESS_PRIV",
+          "description": "Create Receivables subledger accounting entries.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "View Payables Invoice",
+          "code": "AP_VIEW_PAYABLES_INVOICE_PRIV",
+          "description": "Allows viewing of Oracle Fusion Payables invoices without performing a search.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        },
+        {
+          "name": "View Trading Community Hierarchy",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_HIERARCHY_PRIV",
+          "description": "Allows the specification of organization and person hierarchies used in transactional and analytical processes.",
+          "inheritedFrom": "Accounts Receivable Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 49,
+        "directPrivileges": 49,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Accounts Receivable Manager\" (ORA_AR_ACCOUNTS_RECEIVABLE_MANAGER_JOB) with 49 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "43 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Accounts Receivable Manager\" with 49 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1792823371859
   }
 }

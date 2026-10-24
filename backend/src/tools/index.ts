@@ -5,6 +5,7 @@ import { controlRawDbService } from '../services/controlRawDbService.js';
 import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
+import { certificateHybridRagService } from '../services/certificateHybridRagService.js';
 
 function clampChatLimit(raw: any, def = 25, max = 50): number {
   const n = typeof raw === 'string' ? parseInt(raw, 10) : typeof raw === 'number' ? raw : def;
@@ -687,13 +688,85 @@ export async function listCertificationsTool(params: { status?: string; dueMonth
   }
 }
 
-export async function getCertificationDetailsTool(params: { certificationId?: string; certificationName?: string } = {}): Promise<ToolExecutionResult> {
+export async function getCertificationDetailsTool(params: {
+  certificationId?: string;
+  certificationName?: string;
+  targetField?: 'manager' | 'owner' | 'certifier' | 'status' | 'due' | 'all';
+} = {}): Promise<ToolExecutionResult> {
+  const startTime = Date.now();
+  const ref = (params.certificationId || params.certificationName || '').trim();
+  if (!ref) {
+    return createResult('getCertificationDetails', params, false, null, 'Certification ID or name is required.');
+  }
+
   try {
-    const list = (await getCertListCached()).map(canonCert);
-    const ref = (params.certificationId || params.certificationName || '').trim();
-    if (!ref) {
-      return createResult('getCertificationDetails', params, false, null, 'Certification ID or name is required.');
+    // 1. Structured SQL retrieval from PostgreSQL with exact field targeting
+    const structured = await certificateHybridRagService.getCertificateStructured(ref, params.targetField);
+
+    if (structured.ambiguous) {
+      return createResult('getCertificationDetails', params, true, {
+        ambiguous: true,
+        query: ref,
+        matches: structured.matches,
+        message: structured.explanation
+      });
     }
+
+    if (structured.found && structured.record) {
+      // 2. Semantic search for policy/documentation context
+      const semanticDocs = await certificateHybridRagService.searchVectorKnowledge(ref, 2);
+      const groundedEvidence = certificateHybridRagService.buildGroundedEvidence(structured, semanticDocs);
+
+      const certData = {
+        certificate: structured.record.certificationId,
+        name: structured.record.certificationName,
+        type: structured.record.type || 'Standard',
+        status: structured.record.status || 'Active',
+        complete: structured.record.percentComplete,
+        due: structured.record.dueDate || '',
+        created: structured.record.creationDate || '',
+        owner: structured.record.ownerName || '',
+        manager: structured.record.managerName || '',
+        certifier: structured.record.certifierName || '',
+        targetField: params.targetField,
+        targetFieldValue: structured.fieldValue,
+        isFieldNull: structured.isFieldNull,
+        groundedEvidence,
+        semanticDocs
+      };
+
+      // Log RAG Observability Trace
+      certificateHybridRagService.logTrace({
+        requestId: `rag_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        timestamp: new Date().toISOString(),
+        userQuery: ref,
+        identifiedCertId: structured.record.certificationId,
+        targetField: params.targetField || null,
+        retrievalMethod: 'HYBRID',
+        sqlExecuted: structured.sqlQueryUsed || null,
+        databaseSource: structured.source,
+        cacheHit: structured.source.includes('Cache'),
+        retrievedRecordCount: 1,
+        retrievedFields: {
+          manager: structured.record.managerName,
+          owner: structured.record.ownerName,
+          certifier: structured.record.certifierName
+        },
+        vectorSimilarityScores: semanticDocs.map(d => d.similarity),
+        llmContextProvided: groundedEvidence,
+        finalResponse: `Manager: ${structured.record.managerName || 'NULL'}`,
+        latencyMs: Date.now() - startTime,
+        errors: null
+      });
+
+      return createResult('getCertificationDetails', params, true, {
+        certification: certData,
+        source: structured.source
+      });
+    }
+
+    // 3. Fallback to live cached list resolution if DB returned 0 rows
+    const list = (await getCertListCached()).map(canonCert);
     const hit = resolveCertification(ref, list);
     if (hit.ambiguous) {
       return createResult('getCertificationDetails', params, true, {
@@ -705,8 +778,9 @@ export async function getCertificationDetailsTool(params: { certificationId?: st
     }
     if (!hit.cert) {
       return createResult('getCertificationDetails', params, true, {
-        notFound: true, query: ref,
-        message: `Certification "${ref}" was not found in the live Oracle access certification catalog.`
+        notFound: true,
+        query: ref,
+        message: `Certification "${ref}" was not found in the live Oracle access certification catalog or database.`
       });
     }
     return createResult('getCertificationDetails', params, true, { certification: hit.cert });
