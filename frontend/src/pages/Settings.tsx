@@ -55,7 +55,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
         setBaseUrl(configState.baseUrl || '');
         setAuthType(configState.authType || 'BASIC');
         setUsername(configState.username || '');
-        setGroqModel(configState.groqModel || 'llama-3.3-70b-versatile');
+        setGroqModel(configState.groqModel || 'openai/gpt-oss-120b');
         setIsAdmin(true);
       } catch (err) {
         console.error('Failed to retrieve configurations:', err);
@@ -530,14 +530,14 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
               </div>
               
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
-                Configure the Groq Cloud Large Language Model used to parse conversational queries and synthesize results.
+                Configure the Together AI Large Language Model used to parse conversational queries, compile Text-to-SQL, and synthesize grounded risk findings.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                      Select Groq LLM Model
+                      Select Together AI Model
                     </label>
                     <select
                       className="form-select"
@@ -545,11 +545,11 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
                       value={groqModel}
                       onChange={(e) => setGroqModel(e.target.value)}
                     >
-                      <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Recommended Production Model)</option>
-                      <option value="gpt-oss-20b">gpt-oss-20b (Standard Alias)</option>
-                      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Enterprise Model)</option>
-                      <option value="llama-3.1-70b-versatile">llama-3.1-70b-versatile (Standard 70B Model)</option>
-                      <option value="mixtral-8x7b-32768">mixtral-8x7b-32768 (Mixture of Experts)</option>
+                      <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Recommended Paid Production Model)</option>
+                      <option value="meta-llama/Llama-3.3-70B-Instruct-Turbo">meta-llama/Llama-3.3-70B-Instruct-Turbo (High-Speed Turbo)</option>
+                      <option value="deepseek-ai/DeepSeek-V4.1-Flash">deepseek-ai/DeepSeek-V4.1-Flash (Ultra-Low Latency)</option>
+                      <option value="mistralai/Mixtral-8x7B-Instruct-v0.1">mistralai/Mixtral-8x7B-Instruct-v0.1 (Mixture of Experts)</option>
+                      <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Legacy 20B Model)</option>
                     </select>
                   </div>
 
@@ -572,7 +572,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
                         textAlign: 'center',
                         fontWeight: 600
                       }}>
-                        {serverState.hasGeminiKey ? 'Active (Groq Key detected)' : 'Fallback (Offline Keyword)'}
+                        {serverState.hasGeminiKey ? 'Active (Together AI Paid Engine)' : 'Fallback (Offline Keyword)'}
                       </span>
                     </div>
                   </div>

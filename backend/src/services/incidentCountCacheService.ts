@@ -63,17 +63,10 @@ export class IncidentCountCacheService {
       }>(
         `SELECT 
            control_id, 
-           GREATEST(
-             COALESCE(total_incidents, 0),
-             COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)
-           ) AS total_incidents,
+           COALESCE(total_incidents, 0) AS total_incidents,
            CASE 
              WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
-               GREATEST(
-                 0, 
-                 GREATEST(COALESCE(total_incidents, 0), COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)) 
-                 - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0)
-               )
+               GREATEST(0, COALESCE(total_incidents, 0) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0))
              ELSE assigned_incidents 
            END AS assigned_incidents,
            COALESCE(accepted_incidents, 0) AS accepted_incidents,
@@ -81,7 +74,7 @@ export class IncidentCountCacheService {
            COALESCE(resolved_incidents, 0) AS resolved_incidents,
            last_synced_at
          FROM oracle_control_incidents
-         WHERE total_incidents IS NOT NULL OR (jsonb_typeof(raw_incidents) = 'array' AND jsonb_array_length(raw_incidents) > 0)`
+         WHERE total_incidents IS NOT NULL`
       );
 
       if (res.rows.length > 0) {

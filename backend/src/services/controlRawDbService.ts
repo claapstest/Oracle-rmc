@@ -261,17 +261,10 @@ export class ControlRawDbService {
       `SELECT 
          control_id, 
          control_name, 
-         GREATEST(
-           COALESCE(total_incidents, 0),
-           COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)
-         ) AS total_incidents,
+         COALESCE(total_incidents, 0) AS total_incidents,
          CASE 
            WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
-             GREATEST(
-               0, 
-               GREATEST(COALESCE(total_incidents, 0), COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN raw_incidents ELSE '[]'::jsonb END), 0)) 
-               - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0)
-             )
+             GREATEST(0, COALESCE(total_incidents, 0) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0))
            ELSE assigned_incidents 
          END AS assigned_incidents,
          COALESCE(accepted_incidents, 0) AS accepted_incidents,
@@ -518,12 +511,12 @@ export class ControlRawDbService {
       resolved: string;
     }>(
       `SELECT COUNT(DISTINCT t.control_id)::int AS controls,
-              COUNT(el)::int AS synced,
-              COALESCE(SUM(CASE WHEN ${lc.accepted} THEN 1 ELSE 0 END),0)::int AS accepted,
-              COALESCE(SUM(CASE WHEN ${lc.remediate} THEN 1 ELSE 0 END),0)::int AS remediate,
-              COALESCE(SUM(CASE WHEN ${lc.resolved} THEN 1 ELSE 0 END),0)::int AS resolved
+              COALESCE(SUM(t.total_incidents), 0)::int AS synced,
+              COALESCE(SUM(t.accepted_incidents), 0)::int AS accepted,
+              COALESCE(SUM(t.remediate_incidents), 0)::int AS remediate,
+              COALESCE(SUM(t.resolved_incidents), 0)::int AS resolved,
+              COALESCE(SUM(t.assigned_incidents), 0)::int AS assigned
        FROM oracle_control_incidents t
-       LEFT JOIN LATERAL jsonb_array_elements(COALESCE(t.raw_incidents,'[]'::jsonb)) AS el ON true
        WHERE (t.environment_host = $1 OR t.environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND t.control_id = ANY($2)`,
       [host, ids]
     );
@@ -532,13 +525,14 @@ export class ControlRawDbService {
     const accepted = Number(row?.accepted || 0);
     const remediate = Number(row?.remediate || 0);
     const resolved = Number(row?.resolved || 0);
+    const assignedCol = Number(row?.assigned || 0);
     return {
       controls: Number(row?.controls || 0),
       synced,
       accepted,
       remediate,
       resolved,
-      assigned: Math.max(0, synced - accepted - remediate - resolved)
+      assigned: assignedCol > 0 ? assignedCol : Math.max(0, synced - accepted - remediate - resolved)
     };
   }
 

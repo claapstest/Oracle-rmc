@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Send, 
-  Sparkles, 
-  ChevronRight, 
-  Terminal, 
-  Database, 
-  AlertTriangle, 
-  CornerDownRight, 
+import {
+  Send,
+  Sparkles,
+  ChevronRight,
+  Terminal,
+  Database,
+  AlertTriangle,
+  CornerDownRight,
   ArrowRight,
   ArrowUp,
   Shield,
@@ -29,11 +29,11 @@ import {
 import { api, prepareInvestigationTabBridge } from '../services/api';
 import { PaginatedTable, AssignedRolesList } from '../components/InvestigationComponents';
 import { TableExportControl } from '../components/TableExportControl';
-import { 
-  saveSecuritySession, 
-  loadSecuritySession, 
-  clearSecuritySession, 
-  type TablePaginationState 
+import {
+  saveSecuritySession,
+  loadSecuritySession,
+  clearSecuritySession,
+  type TablePaginationState
 } from '../services/securitySessionService';
 
 // Global in-memory cache of investigation snapshots for seamless same-browser child tab access
@@ -51,7 +51,7 @@ if (typeof BroadcastChannel !== 'undefined') {
         }
       }
     };
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function ChatLoader() {
@@ -106,10 +106,10 @@ interface AssistantProps {
   onOpenFullInvestigation?: (investigationId: string, payload?: any) => void;
 }
 
-export default function Assistant({ 
+export default function Assistant({
   currentUser = '',
-  initialQuestion, 
-  clearInitialQuestion, 
+  initialQuestion,
+  clearInitialQuestion,
   environmentMode,
   onNavigatePage,
   onInvestigate,
@@ -273,8 +273,8 @@ export default function Assistant({
     "Who has the <role name> role?",
     "Which roles are assigned to <username>?",
     "What privileges does <role name> have?",
-    "Show recent security changes.",
-    "Show users with high-risk role assignments."
+    "Show recent security changes."
+
   ];
 
   // Professional question catalog categories for the AI Investigation Workspace
@@ -327,7 +327,7 @@ export default function Assistant({
       icon: ShieldAlert,
       color: 'var(--accent-red)',
       questions: [
-        'Show users with high-risk role assignments.',
+
         'Which users have potential segregation-of-duties risks?',
         'Show recent risk violations.'
       ]
@@ -423,7 +423,7 @@ export default function Assistant({
 
     // Check if user is typing a direct role/user name search in command bar
     // e.g. "AP Manager" or "JSMITH". We can route to NLU first, but let's allow NLU to handle it.
-    
+
     // Add user message
     setMessages(prev => [...prev, { sender: 'user', text }]);
     setInputValue('');
@@ -434,7 +434,7 @@ export default function Assistant({
 
     try {
       const response = await api.sendMessage(text);
-      
+
       // Replace loading bubble with real response
       setMessages(prev => {
         const list = [...prev];
@@ -450,7 +450,7 @@ export default function Assistant({
       });
     } catch (err) {
       console.error('Chat error:', err);
-      
+
       setMessages(prev => {
         const list = [...prev];
         list.pop();
@@ -547,7 +547,7 @@ export default function Assistant({
 
     return (
       <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        
+
         {/* Investigation Header */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.65rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--accent-blue)', textTransform: 'uppercase' }}>
@@ -562,7 +562,7 @@ export default function Assistant({
         {/* Primary Data: User Security Profile Custom Presentation (Cards Render First) */}
         {user && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
-            
+
             {msg.intent === 'GET_USER' && (
               <div className="glass-panel" style={{ padding: '1rem', backgroundColor: 'var(--bg-tertiary)' }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user.displayName}</div>
@@ -589,10 +589,10 @@ export default function Assistant({
             </div>
 
             {user.assignedRoles && user.assignedRoles.length > 0 ? (
-              <AssignedRolesList 
-                roles={user.assignedRoles} 
+              <AssignedRolesList
+                roles={user.assignedRoles}
                 onInvestigate={onInvestigate}
-                onInspectRole={(roleName) => onInvestigate('role', roleName, roleName)} 
+                onInspectRole={(roleName) => onInvestigate('role', roleName, roleName)}
                 initialPage={rolesListStates[index]?.currentPage ?? 1}
                 onPageChange={(page) => {
                   setRolesListStates(prev => ({
@@ -647,7 +647,7 @@ export default function Assistant({
 
         {/* Dynamic Interactive Paginated Table */}
         {table && table.rows && table.rows.length > 0 && !structured.briefingRaw && !user && !structured.ambiguous && (
-          <PaginatedTable 
+          <PaginatedTable
             table={table}
             metadata={metadata}
             onNavigatePage={onNavigatePage}
@@ -675,7 +675,7 @@ export default function Assistant({
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Category: {structured.role.category}</div>
               </div>
             )}
-            
+
             {/* Privilege Metrics Summary */}
             {(structured.privilegeSummary || structured.summaryMeta || (typeof structured.summary === 'object' && structured.summary !== null) || (table?.type === 'privileges' && table.rows)) && (() => {
               const s = structured.privilegeSummary || structured.summaryMeta || (typeof structured.summary === 'object' ? structured.summary : null);
@@ -739,7 +739,7 @@ export default function Assistant({
                 <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
                   {table.type === 'privileges' ? `Privilege Entitlements (${table.rows.length})` : 'Entitlements & Details'}
                 </div>
-                <PaginatedTable 
+                <PaginatedTable
                   table={table}
                   metadata={metadata}
                   onNavigatePage={onNavigatePage}
@@ -836,7 +836,7 @@ export default function Assistant({
 
   const renderErrorCard = (toolResult: any) => {
     const errorText = toolResult?.error || 'Unable to retrieve the requested Oracle Fusion data.';
-    
+
     let categoryTitle = 'Oracle Query Interrupted';
     let displayMessage = errorText;
     let showSettingsButton = false;
@@ -880,22 +880,22 @@ export default function Assistant({
           {displayMessage}
         </p>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button 
+          <button
             onClick={() => {
               const userMsgs = messages.filter(m => m.sender === 'user');
               if (userMsgs.length > 0) {
                 handleSend(userMsgs[userMsgs.length - 1].text);
               }
             }}
-            className="btn btn-secondary" 
+            className="btn btn-secondary"
             style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
           >
             Retry Query
           </button>
           {showSettingsButton && (
-            <button 
+            <button
               onClick={() => onNavigatePage('settings')}
-              className="btn btn-secondary" 
+              className="btn btn-secondary"
               style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
             >
               Check Connection Settings
@@ -909,7 +909,7 @@ export default function Assistant({
   // Render clickable links or tables in chat
   const renderRichData = (result: any, intent: string) => {
     if (!result || !result.success || !result.data) return null;
-    
+
     const data = result.data;
 
     if (result.integrationRequired) {
@@ -970,9 +970,9 @@ export default function Assistant({
                         </span>
                       </td>
                       <td>
-                        <button 
+                        <button
                           onClick={() => onInvestigate('user', u.userName, u.displayName)}
-                          className="btn btn-secondary" 
+                          className="btn btn-secondary"
                           style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
                         >
                           Investigate
@@ -1003,9 +1003,9 @@ export default function Assistant({
                 <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
                   {data.displayName}
                 </div>
-                <button 
+                <button
                   onClick={() => onInvestigate('user', data.userName, data.displayName)}
-                  className="btn btn-secondary" 
+                  className="btn btn-secondary"
                   style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                 >
                   Deep Investigation Workspace
@@ -1021,10 +1021,10 @@ export default function Assistant({
               {data.assignedRoles?.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
                   {data.assignedRoles.map((role: string, idx: number) => (
-                    <span 
-                      key={idx} 
+                    <span
+                      key={idx}
                       onClick={() => onInvestigate('role', role.toUpperCase().replace(/\s+/g, '_'), role)}
-                      className="badge badge-gold" 
+                      className="badge badge-gold"
                       style={{ fontSize: '0.75rem', cursor: 'pointer' }}
                     >
                       {role}
@@ -1074,9 +1074,9 @@ export default function Assistant({
                       <td><code>{r.roleCode}</code></td>
                       <td style={{ fontWeight: 600 }}>{r.displayName}</td>
                       <td>
-                        <button 
+                        <button
                           onClick={() => onInvestigate('role', r.roleCode, r.displayName)}
-                          className="btn btn-secondary" 
+                          className="btn btn-secondary"
                           style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
                         >
                           Investigate
@@ -1166,9 +1166,9 @@ export default function Assistant({
             <div className="glass-panel" style={{ marginTop: '0.75rem', padding: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.5rem' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Role Hierarchy Tree:</div>
-                <button 
+                <button
                   onClick={() => onInvestigate('role', data.roleCode, data.roleName)}
-                  className="btn btn-secondary" 
+                  className="btn btn-secondary"
                   style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem' }}
                 >
                   Workspace Details
@@ -1234,15 +1234,15 @@ export default function Assistant({
       default:
         return null;
     }
-  };  return (
+  }; return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 'calc(100vh - 70px)' }}>
-      
+
       {showCommandCenter ? (
         // ====================================================
         // ASK VEYRA HERO AI INVESTIGATION WORKSPACE
         // ====================================================
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: 'var(--bg-primary)' }} className="animate-fade-in">
-          
+
           {/* Top Blue Gradient Hero Section */}
           <div className="hero-gradient-header" style={{
             padding: '3.5rem 1.5rem 4.5rem 1.5rem',
@@ -1253,11 +1253,11 @@ export default function Assistant({
             textAlign: 'center',
             background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 55%, #60A5FA 100%)'
           }}>
-            
+
             {/* Elegant SVG Wave Curves Background (Strictly no dots or spheres) */}
-            <svg 
-              viewBox="0 0 1440 320" 
-              preserveAspectRatio="none" 
+            <svg
+              viewBox="0 0 1440 320"
+              preserveAspectRatio="none"
               style={{
                 position: 'absolute',
                 bottom: 0,
@@ -1290,16 +1290,16 @@ export default function Assistant({
 
             {/* Hero Foreground Content */}
             <div style={{ position: 'relative', zIndex: 2, maxWidth: '840px', width: '100%', margin: '0 auto' }}>
-              
+
               {/* Badge: AI-Powered Security Intelligence */}
-              <div style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
-                padding: '0.4rem 1.1rem', 
-                borderRadius: '9999px', 
-                backgroundColor: 'rgba(255, 255, 255, 0.15)', 
-                border: '1px solid rgba(255, 255, 255, 0.25)', 
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.4rem 1.1rem',
+                borderRadius: '9999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
                 marginBottom: '1.25rem',
                 backdropFilter: 'blur(8px)',
                 boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)'
@@ -1311,12 +1311,12 @@ export default function Assistant({
               </div>
 
               {/* Title */}
-              <h1 style={{ 
-                fontSize: '2.85rem', 
-                fontWeight: 800, 
-                fontFamily: 'var(--font-header)', 
-                color: '#ffffff', 
-                letterSpacing: '-0.025em', 
+              <h1 style={{
+                fontSize: '2.85rem',
+                fontWeight: 800,
+                fontFamily: 'var(--font-header)',
+                color: '#ffffff',
+                letterSpacing: '-0.025em',
                 marginBottom: '0.65rem',
                 lineHeight: 1.15
               }}>
@@ -1324,11 +1324,11 @@ export default function Assistant({
               </h1>
 
               {/* Subtitle */}
-              <p style={{ 
-                color: '#E0E7FF', 
-                fontSize: '1.05rem', 
-                maxWidth: '680px', 
-                margin: '0 auto 2rem auto', 
+              <p style={{
+                color: '#E0E7FF',
+                fontSize: '1.05rem',
+                maxWidth: '680px',
+                margin: '0 auto 2rem auto',
                 lineHeight: 1.5,
                 fontWeight: 400
               }}>
@@ -1336,10 +1336,10 @@ export default function Assistant({
               </p>
 
               {/* Prominent White Rounded Search Bar */}
-              <div style={{ 
-                position: 'relative', 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
                 backgroundColor: '#ffffff',
                 borderRadius: '9999px',
                 padding: '0.45rem 0.65rem 0.45rem 1.4rem',
@@ -1357,10 +1357,10 @@ export default function Assistant({
                 <input
                   ref={commandInputRef}
                   type="text"
-                  style={{ 
+                  style={{
                     flex: 1,
-                    height: '46px', 
-                    fontSize: '1rem', 
+                    height: '46px',
+                    fontSize: '1rem',
                     border: 'none',
                     outline: 'none',
                     backgroundColor: 'transparent',
@@ -1474,7 +1474,7 @@ export default function Assistant({
                 )}
 
                 {/* Circular Blue Submit Button with ArrowUp */}
-                <button 
+                <button
                   onClick={() => handleSend(inputValue)}
                   disabled={!inputValue.trim() || sending}
                   style={{
@@ -1501,9 +1501,9 @@ export default function Assistant({
             </div>
 
             {/* Soft Organic Bottom Wave Transition to White/Light Canvas (#F8FAFF) */}
-            <svg 
-              viewBox="0 0 1440 100" 
-              preserveAspectRatio="none" 
+            <svg
+              viewBox="0 0 1440 100"
+              preserveAspectRatio="none"
               style={{
                 position: 'absolute',
                 bottom: -1,
@@ -1514,13 +1514,13 @@ export default function Assistant({
                 zIndex: 1
               }}
             >
-              <path 
-                fill="rgba(248, 250, 255, 0.4)" 
-                d="M0,25 C360,70 700,5 1060,40 C1240,60 1360,20 1440,30 L1440,100 L0,100 Z" 
+              <path
+                fill="rgba(248, 250, 255, 0.4)"
+                d="M0,25 C360,70 700,5 1060,40 C1240,60 1360,20 1440,30 L1440,100 L0,100 Z"
               />
-              <path 
-                fill="#F8FAFF" 
-                d="M0,50 C380,95 760,25 1120,65 C1280,80 1380,45 1440,52 L1440,100 L0,100 Z" 
+              <path
+                fill="#F8FAFF"
+                d="M0,50 C380,95 760,25 1120,65 C1280,80 1380,45 1440,52 L1440,100 L0,100 Z"
               />
             </svg>
 
@@ -1539,29 +1539,29 @@ export default function Assistant({
           </div>
 
           {/* Section: Explore What You Can Ask */}
-          <div style={{ 
-            padding: '2.5rem 2rem', 
-            maxWidth: '1240px', 
-            width: '100%', 
+          <div style={{
+            padding: '2.5rem 2rem',
+            maxWidth: '1240px',
+            width: '100%',
             margin: '0 auto',
-            flex: 1 
+            flex: 1
           }}>
-            
+
             {/* Explore Section Header */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'flex-end', 
-              marginBottom: '1.5rem', 
-              flexWrap: 'wrap', 
-              gap: '1rem' 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: '1.5rem',
+              flexWrap: 'wrap',
+              gap: '1rem'
             }}>
               <div>
-                <h2 style={{ 
-                  fontSize: '1.45rem', 
-                  fontWeight: 800, 
-                  fontFamily: 'var(--font-header)', 
-                  color: '#0F172A', 
+                <h2 style={{
+                  fontSize: '1.45rem',
+                  fontWeight: 800,
+                  fontFamily: 'var(--font-header)',
+                  color: '#0F172A',
                   margin: 0,
                   letterSpacing: '-0.015em'
                 }}>
@@ -1613,23 +1613,23 @@ export default function Assistant({
             </div>
 
             {/* Category Cards Grid */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: selectedCategory === 'ALL' ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr', 
-              gap: '1.25rem' 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: selectedCategory === 'ALL' ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr',
+              gap: '1.25rem'
             }}>
               {questionCategories
                 .filter(cat => selectedCategory === 'ALL' || selectedCategory === cat.category)
                 .map(cat => {
                   const Icon = cat.icon;
                   return (
-                    <div 
-                      key={cat.category} 
-                      className="glass-panel" 
-                      style={{ 
-                        padding: '1.35rem', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
+                    <div
+                      key={cat.category}
+                      className="glass-panel"
+                      style={{
+                        padding: '1.35rem',
+                        display: 'flex',
+                        flexDirection: 'column',
                         gap: '0.85rem',
                         backgroundColor: '#FFFFFF',
                         borderRadius: '16px',
@@ -1639,9 +1639,9 @@ export default function Assistant({
                     >
                       {/* Category Header */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                        <div style={{ 
-                          padding: '0.4rem', 
-                          borderRadius: '8px', 
+                        <div style={{
+                          padding: '0.4rem',
+                          borderRadius: '8px',
                           backgroundColor: '#F8FAFC',
                           color: cat.color,
                           display: 'flex',
@@ -1706,13 +1706,13 @@ export default function Assistant({
         // CONVERSATIONAL AI CHAT INTERFACE
         // ====================================================
         <div className="chat-container" style={{ flex: 1 }}>
-          
+
           {/* Chat Window Toolbar Header */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            padding: '0.6rem 1.25rem', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.6rem 1.25rem',
             backgroundColor: 'var(--bg-tertiary)',
             borderBottom: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md) var(--radius-md) 0 0'
@@ -1724,7 +1724,7 @@ export default function Assistant({
                 {messages.filter(m => m.sender === 'user').length} queries
               </span>
             </div>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
               {/* History Dropdown Button */}
               <div ref={historyDropdownRef} style={{ position: 'relative' }}>
@@ -1833,9 +1833,9 @@ export default function Assistant({
                 )}
               </div>
 
-              <button 
+              <button
                 onClick={clearChat}
-                className="btn btn-secondary" 
+                className="btn btn-secondary"
                 style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', cursor: 'pointer' }}
               >
                 ← New Query / Oracle API Console
@@ -1843,17 +1843,17 @@ export default function Assistant({
             </div>
           </div>
 
-          <div 
+          <div
             ref={chatContainerRef}
             onScroll={(e) => {
               currentScrollTopRef.current = e.currentTarget.scrollTop;
             }}
-            className="chat-messages" 
+            className="chat-messages"
             style={{ padding: '1.5rem' }}
           >
             {messages.map((msg, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 id={`chat-msg-${index}`}
                 ref={index === messages.length - 1 && msg.sender === 'assistant' ? latestAssistantMsgRef : null}
                 className={`message-row ${msg.sender}`}
@@ -1864,7 +1864,7 @@ export default function Assistant({
                 } : undefined}
               >
                 <div className="message-bubble animate-fade-in" style={{ minWidth: msg.loading ? '300px' : 'auto' }}>
-                  
+
                   {msg.sender === 'assistant' && !msg.loading && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', width: '100%' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -1916,7 +1916,7 @@ export default function Assistant({
                               if (invKeys.length >= 2) {
                                 invKeys.forEach(k => localStorage.removeItem(k));
                               }
-                            } catch (_) {}
+                            } catch (_) { }
 
                             // Save to local storage and session storage
                             try {
@@ -1926,7 +1926,7 @@ export default function Assistant({
                             }
                             try {
                               sessionStorage.setItem(`oracle_inv_${investigationId}`, JSON.stringify(payload));
-                            } catch (_) {}
+                            } catch (_) { }
 
                             // Synchronize to authenticated backend store
                             api.saveInvestigation(investigationId, payload).catch(err => {
@@ -2020,12 +2020,12 @@ export default function Assistant({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
                         <textarea
                           className="form-input"
-                          style={{ 
-                            width: '100%', 
-                            minHeight: '60px', 
-                            resize: 'vertical', 
-                            fontSize: '0.9rem', 
-                            backgroundColor: 'rgba(255,255,255,0.05)', 
+                          style={{
+                            width: '100%',
+                            minHeight: '60px',
+                            resize: 'vertical',
+                            fontSize: '0.9rem',
+                            backgroundColor: 'rgba(255,255,255,0.05)',
                             color: '#ffffff',
                             border: '1px solid var(--border-color)',
                             borderRadius: 'var(--radius-sm)',
@@ -2117,7 +2117,7 @@ export default function Assistant({
 
                   {/* Developer execution trace */}
                   {msg.sender === 'assistant' && msg.toolResult && (
-                    <details 
+                    <details
                       open={expandedDetails[index] || false}
                       onToggle={(e) => {
                         const isOpen = (e.target as HTMLDetailsElement).open;
@@ -2218,7 +2218,7 @@ export default function Assistant({
 
         </div>
       )}
-      
+
     </div>
   );
 }

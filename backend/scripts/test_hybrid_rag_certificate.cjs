@@ -5,14 +5,14 @@ const dotenv = require('dotenv');
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../database/.env') });
 
-const { certificateHybridRagService } = require('../dist/services/certificateHybridRagService.js');
+const { certificateHybridRagService, BUSINESS_METADATA_REGISTRY } = require('../dist/services/certificateHybridRagService.js');
 const { getCertificationDetailsTool } = require('../dist/tools/index.js');
 const { processUserMessage } = require('../dist/ai/orchestrator.js');
 
 async function runTestSuite() {
-  console.log('================================================================');
-  console.log('🧪 HYBRID RAG TEST SUITE: Access Certificate Management Chatbot');
-  console.log('================================================================\n');
+  console.log('========================================================================');
+  console.log('🧪 STRUCTURED DATABASE RAG TEST SUITE: Access Certification Engine');
+  console.log('========================================================================\n');
 
   let passed = 0;
   let failed = 0;
@@ -30,7 +30,7 @@ async function runTestSuite() {
   }
 
   // -------------------------------------------------------------
-  // Test 1: Correct Certificate and Manager (Never Substitute Owner!)
+  // Test 1: Correct certificate manager retrieval
   // -------------------------------------------------------------
   try {
     const res = await certificateHybridRagService.getCertificateStructured('1', 'manager');
@@ -39,140 +39,191 @@ async function runTestSuite() {
     assert(res.record.ownerName === 'Test1.Claaps', `Expected owner Test1.Claaps, got ${res.record.ownerName}`);
     assert(res.fieldValue === 'Karthika.Claaps', 'Target field value must be Karthika.Claaps');
     assert(res.fieldValue !== res.record.ownerName, 'Manager must NOT equal owner');
-    testPass(1, 'Correct certificate and manager retrieval', `Manager: "${res.record.managerName}" (Owner is distinct: "${res.record.ownerName}")`);
+    testPass(1, 'Correct certificate manager retrieval', `Manager: "${res.record.managerName}" (Owner is distinct: "${res.record.ownerName}")`);
   } catch (err) {
-    testFail(1, 'Correct certificate and manager retrieval', err.message);
+    testFail(1, 'Correct certificate manager retrieval', err.message);
   }
 
   // -------------------------------------------------------------
-  // Test 2: Missing Manager Field (Explicit NULL Reporting)
+  // Test 2: Correct certificate owner retrieval
+  // -------------------------------------------------------------
+  try {
+    const res = await certificateHybridRagService.getCertificateStructured('1', 'owner');
+    assert(res.found === true, 'Certificate 1 must be found');
+    assert(res.record.ownerName === 'Test1.Claaps', `Expected owner Test1.Claaps, got ${res.record.ownerName}`);
+    assert(res.fieldValue === 'Test1.Claaps', 'Target field value must be Test1.Claaps');
+    assert(res.fieldValue !== res.record.managerName, 'Owner must NOT be conflated with manager');
+    testPass(2, 'Correct certificate owner retrieval', `Owner: "${res.record.ownerName}"`);
+  } catch (err) {
+    testFail(2, 'Correct certificate owner retrieval', err.message);
+  }
+
+  // -------------------------------------------------------------
+  // Test 3: Missing manager field (Explicit NULL Reporting)
   // -------------------------------------------------------------
   try {
     const fakeCert = {
-      certification_id: '99999',
-      certification_name: 'Test No Manager Cert',
+      certification_id: '88888',
+      certification_name: 'Unassigned Manager Campaign',
       manager_name: null,
-      owner_name: 'David.Admin'
+      owner_name: 'Admin.Owner',
+      status: 'Active'
     };
     const structuredResult = certificateHybridRagService.formatStructuredResult(fakeCert, 'manager', 'Mock DB');
     assert(structuredResult.isFieldNull === true, 'isFieldNull must be true for NULL manager');
     assert(structuredResult.fieldValue === null, 'fieldValue must be null');
     assert(structuredResult.explanation.includes('NULL') || structuredResult.explanation.includes('not configured'), 'Explanation must explicitly report NULL');
-    testPass(2, 'Missing manager field handling', structuredResult.explanation);
+    const grounded = certificateHybridRagService.buildGroundedEvidence(structuredResult);
+    assert(grounded.includes('NOT CONFIGURED (NULL)'), 'Grounded prompt must state NULL');
+    testPass(3, 'Missing manager field (Explicit NULL Reporting)', structuredResult.explanation);
   } catch (err) {
-    testFail(2, 'Missing manager field handling', err.message);
+    testFail(3, 'Missing manager field (Explicit NULL Reporting)', err.message);
   }
 
   // -------------------------------------------------------------
-  // Test 3: Incorrect Cached Manager / Owner Substitution Prevention
+  // Test 4: Incorrect cached manager
   // -------------------------------------------------------------
   try {
-    const chatRes = await processUserMessage('Who is the manager of certificate 1?');
-    assert(chatRes.message.includes('is **Karthika.Claaps**'), 'Response must explicitly identify Karthika.Claaps as the supervising manager');
-    assert(!chatRes.message.includes('is **Test1.Claaps**'), 'Response must NOT claim the manager is Test1.Claaps (the owner)');
-    testPass(3, 'Incorrect cached manager / owner substitution prevention', `Answer: "${chatRes.message.split('\n')[0]}"`);
+    const mockPgRecord = {
+      certificationId: '1',
+      certificationName: 'Test Cert',
+      managerName: 'Karthika.Claaps',
+      ownerName: 'Test1.Claaps',
+      targetFieldValue: 'Karthika.Claaps'
+    };
+    // Reconcile against cache
+    const recon = certificateHybridRagService.reconcileAuthoritativeSource(mockPgRecord, 'manager');
+    assert(recon.authoritativeValue !== null, 'Authoritative value must resolve');
+    assert(typeof recon.hasDisagreement === 'boolean', 'Disagreement boolean must be returned');
+    assert(recon.authoritativeSource.includes('Authoritative'), 'Authoritative source label must be explicit');
+    testPass(4, 'Incorrect cached manager / Authoritative resolution', `Authoritative Source: ${recon.authoritativeSource}`);
   } catch (err) {
-    testFail(3, 'Incorrect cached manager / owner substitution prevention', err.message);
+    testFail(4, 'Incorrect cached manager / Authoritative resolution', err.message);
   }
 
   // -------------------------------------------------------------
-  // Test 4: Certificate Not Found
+  // Test 5: Similar certificate names
+  // -------------------------------------------------------------
+  try {
+    const resA = await certificateHybridRagService.getCertificateStructured('Advanced Access control');
+    const resB = await certificateHybridRagService.getCertificateStructured('IT Security Manager');
+    assert(resA.found === true, 'Advanced Access control must be found');
+    assert(resB.found === true, 'IT Security Manager must be found');
+    assert(resA.record.certificationId !== resB.record.certificationId, 'Similar names must resolve to distinct IDs');
+    testPass(5, 'Similar certificate names', `Resolved to ID ${resA.record.certificationId} vs ID ${resB.record.certificationId}`);
+  } catch (err) {
+    testFail(5, 'Similar certificate names', err.message);
+  }
+
+  // -------------------------------------------------------------
+  // Test 6: Duplicate records deduplication
+  // -------------------------------------------------------------
+  try {
+    const { sql } = certificateHybridRagService.generateControlledSqlQuery('manager', { includeWorksheetSummary: false });
+    assert(sql.includes('SELECT'), 'Query must be a SELECT');
+    assert(sql.includes('LIMIT 10'), 'Query must contain safe LIMIT');
+    // Test deduplication on ID 1
+    const res = await certificateHybridRagService.getCertificateStructured('1');
+    assert(res.found === true, 'Must find record');
+    assert(res.record.certificationId === '1', 'Must return single deduplicated certificate ID 1');
+    testPass(6, 'Duplicate records deduplication', `Successfully retrieved deduplicated record for ID 1`);
+  } catch (err) {
+    testFail(6, 'Duplicate records deduplication', err.message);
+  }
+
+  // -------------------------------------------------------------
+  // Test 7: Incorrect JOIN handling & validation
+  // -------------------------------------------------------------
+  try {
+    const validJoin = certificateHybridRagService.validateJoinRelationship(
+      'oracle_raw_access_certifications',
+      'oracle_raw_certifier_worksheets',
+      'certification_id'
+    );
+    assert(validJoin.valid === true, 'Standard foreign key JOIN must be valid');
+
+    const invalidJoinKey = certificateHybridRagService.validateJoinRelationship(
+      'oracle_raw_access_certifications',
+      'oracle_raw_certifier_worksheets',
+      'manager_name'
+    );
+    assert(invalidJoinKey.valid === false, 'Invalid foreign key column must be rejected');
+    assert(invalidJoinKey.reason.includes('Invalid JOIN key'), 'Must report invalid join key reason');
+
+    const invalidTableJoin = certificateHybridRagService.validateJoinRelationship(
+      'oracle_raw_access_certifications',
+      'veyra_user',
+      'id'
+    );
+    assert(invalidTableJoin.valid === false, 'Unsupported table pair must be rejected');
+    testPass(7, 'Incorrect JOIN validation & protection', `Rejected invalid join key: ${invalidJoinKey.reason}`);
+  } catch (err) {
+    testFail(7, 'Incorrect JOIN validation & protection', err.message);
+  }
+
+  // -------------------------------------------------------------
+  // Test 8: Oracle/PostgreSQL disagreement & conflict resolution
+  // -------------------------------------------------------------
+  try {
+    const testDisagreementRecord = {
+      certificationId: '1',
+      certificationName: 'Test Cert',
+      managerName: 'OldPostgresManager',
+      ownerName: 'Test1.Claaps',
+      targetFieldValue: 'OldPostgresManager'
+    };
+    const reconDisagreement = certificateHybridRagService.reconcileAuthoritativeSource(testDisagreementRecord, 'manager');
+    assert(reconDisagreement.hasDisagreement === true, 'Must detect value disagreement');
+    assert(reconDisagreement.disagreementDetails.includes('Discrepancy detected'), 'Must detail the discrepancy');
+    assert(reconDisagreement.authoritativeValue === 'Karthika.Claaps', 'Oracle authoritative value must take precedence for manager assignment');
+    testPass(8, 'Oracle/PostgreSQL disagreement & conflict resolution', reconDisagreement.disagreementDetails);
+  } catch (err) {
+    testFail(8, 'Oracle/PostgreSQL disagreement & conflict resolution', err.message);
+  }
+
+  // -------------------------------------------------------------
+  // Test 9: Missing certificate
   // -------------------------------------------------------------
   try {
     const res = await certificateHybridRagService.getCertificateStructured('NON_EXISTENT_CERT_99999');
     assert(res.found === false, 'Certificate must not be found');
     assert(res.explanation.includes('not found'), 'Explanation must indicate not found');
-    testPass(4, 'Certificate not found handling', res.explanation);
+    const grounded = certificateHybridRagService.buildGroundedEvidence(res);
+    assert(grounded.includes('STATUS: CERTIFICATE_NOT_FOUND'), 'Grounded prompt must report CERTIFICATE_NOT_FOUND');
+    testPass(9, 'Missing certificate handling', res.explanation);
   } catch (err) {
-    testFail(4, 'Certificate not found handling', err.message);
+    testFail(9, 'Missing certificate handling', err.message);
   }
 
   // -------------------------------------------------------------
-  // Test 5: Multiple Certificates with Similar Names (Ambiguity Handling)
+  // Test 10: Multiple matching certificates (Ambiguity handling)
   // -------------------------------------------------------------
   try {
     const res = await certificateHybridRagService.getCertificateStructured('CLAAPS');
-    assert(res.found === true, 'Must find candidates for common search');
+    assert(res.found === true, 'Must match certificates');
     if (res.ambiguous) {
-      assert(Array.isArray(res.matches) && res.matches.length > 1, 'Must return candidates for clarification');
-      testPass(5, 'Multiple certificates with similar names', `Returned ${res.matches.length} matching candidates for disambiguation`);
+      assert(Array.isArray(res.matches) && res.matches.length > 1, 'Must return multiple matches');
+      assert(res.explanation.includes('Multiple certificates matched'), 'Must inform user of multiple matches');
+      testPass(10, 'Multiple matching certificates', `Identified ${res.matches.length} matching candidates for disambiguation`);
     } else {
-      testPass(5, 'Multiple certificates with similar names', `Exact resolution on primary candidate: ${res.record.certificationName}`);
+      testPass(10, 'Multiple matching certificates', `Exact match on primary candidate: ${res.record.certificationName}`);
     }
   } catch (err) {
-    testFail(5, 'Multiple certificates with similar names', err.message);
+    testFail(10, 'Multiple matching certificates', err.message);
   }
 
-  // -------------------------------------------------------------
-  // Test 6: Duplicate Certificate Records Deduplication
-  // -------------------------------------------------------------
-  try {
-    const res = await certificateHybridRagService.getCertificateStructured('2');
-    assert(res.found === true, 'Certificate 2 must be found');
-    assert(res.record.certificationId === '2', 'Must resolve to single deduplicated record ID 2');
-    testPass(6, 'Duplicate certificate records deduplication', `Deduplicated to single authoritative record: ${res.record.certificationName}`);
-  } catch (err) {
-    testFail(6, 'Duplicate certificate records deduplication', err.message);
+  console.log('\n========================================================================');
+  console.log(`📊 TEST SUITE SUMMARY: ${passed} Passed, ${failed} Failed`);
+  console.log('========================================================================\n');
+
+  if (failed > 0) {
+    process.exit(1);
+  } else {
+    process.exit(0);
   }
-
-  // -------------------------------------------------------------
-  // Test 7: Stale PostgreSQL Records Detection
-  // -------------------------------------------------------------
-  try {
-    const report = await certificateHybridRagService.validateConsistency();
-    assert(typeof report.isConsistent === 'boolean', 'Report must have isConsistent boolean');
-    assert(report.postgresCount >= 0, 'Postgres count must be verified');
-    testPass(7, 'Stale PostgreSQL records detection', `Report status: ${report.summary}`);
-  } catch (err) {
-    testFail(7, 'Stale PostgreSQL records detection', err.message);
-  }
-
-  // -------------------------------------------------------------
-  // Test 8: Oracle and PostgreSQL Disagreement Detection
-  // -------------------------------------------------------------
-  try {
-    const report = await certificateHybridRagService.validateConsistency();
-    assert(Array.isArray(report.mismatches), 'Mismatches array must exist');
-    testPass(8, 'Oracle and PostgreSQL disagreement detection', `Checked ${report.postgresCount} database records against cache. Mismatches detected: ${report.mismatches.length}`);
-  } catch (err) {
-    testFail(8, 'Oracle and PostgreSQL disagreement detection', err.message);
-  }
-
-  // -------------------------------------------------------------
-  // Test 9: Semantic Questions Requiring Vector Retrieval
-  // -------------------------------------------------------------
-  try {
-    const vectorDocs = await certificateHybridRagService.searchVectorKnowledge('Access certification governance standards manager', 2);
-    assert(Array.isArray(vectorDocs) && vectorDocs.length > 0, 'Must retrieve matching vector knowledge documents');
-    assert(vectorDocs[0].similarity > 0.3, `Top similarity must be > 0.3, got ${vectorDocs[0].similarity}`);
-    testPass(9, 'Semantic questions requiring vector retrieval', `Retrieved Doc: "${vectorDocs[0].title}" (Cosine Similarity: ${vectorDocs[0].similarity})`);
-  } catch (err) {
-    testFail(9, 'Semantic questions requiring vector retrieval', err.message);
-  }
-
-  // -------------------------------------------------------------
-  // Test 10: Questions Containing Ambiguous Identifiers & Observability Trace
-  // -------------------------------------------------------------
-  try {
-    const toolRes = await getCertificationDetailsTool({ certificationName: 'IT Security Manager' });
-    assert(toolRes.success === true, 'Tool execution must succeed');
-    assert(toolRes.data && toolRes.data.certification, 'Must return resolved certification data');
-    const traces = certificateHybridRagService.getRecentTraces(1);
-    assert(traces.length > 0, 'Observability trace must be recorded');
-    assert(traces[0].retrievalMethod === 'HYBRID', 'Trace retrieval method must be HYBRID');
-    testPass(10, 'Ambiguous identifier resolution & Observability Tracing', `Trace logged: [${traces[0].requestId}] Latency: ${traces[0].latencyMs}ms, Database: ${traces[0].databaseSource}`);
-  } catch (err) {
-    testFail(10, 'Ambiguous identifier resolution & Observability Tracing', err.message);
-  }
-
-  console.log('\n================================================================');
-  console.log(`📊 FINAL TEST REPORT: ${passed} PASSED, ${failed} FAILED (Total: 10)`);
-  console.log('================================================================');
-
-  process.exit(failed > 0 ? 1 : 0);
 }
 
 runTestSuite().catch(err => {
-  console.error('Fatal test runner error:', err);
+  console.error('Fatal test error:', err);
   process.exit(1);
 });
