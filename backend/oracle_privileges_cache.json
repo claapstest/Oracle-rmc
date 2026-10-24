@@ -30158,7 +30158,7 @@
       },
       "message": "Security role \"IT Security Manager\" with 69 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792586760684
+    "timestamp": 1792827112228
   },
   "role_privileges:ora_fnd_it_security_manager_job": {
     "data": {
@@ -30601,7 +30601,7 @@
       },
       "message": "Security role \"IT Security Manager\" with 69 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792586760715
+    "timestamp": 1792827112269
   },
   "role_privileges:bi author role": {
     "data": {

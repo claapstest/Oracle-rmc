@@ -50,26 +50,26 @@ export function canAccessPage(pageId: string, auth: AuthContext | null): boolean
   const normalizedRole = (auth.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
   const perms = normalizePrivileges(auth.permissions);
 
-  // Requirement: Remove Ask VEYRA page exclusively for Admin / Site Admin dashboard sessions
+  // Requirement: In Admin login, place ONLY:
+  // 1. Dashboard (dashboard)
+  // 2. User Management (user-management)
+  // 3. Oracle Integration (settings)
+  // 4. Oracle API Console (command-center)
+  // All other pages are removed exclusively for admin login sessions.
   const isAdminSession = auth.isAdmin === true || normalizedRole === 'SITE_ADMIN';
-  if (pageId === 'assistant' && isAdminSession) {
-    return false;
+  if (isAdminSession) {
+    return (
+      pageId === 'dashboard' ||
+      pageId === 'user-management' ||
+      pageId === 'settings' ||
+      pageId === 'command-center'
+    );
   }
 
-  // Backend parity (requirePrivilege): isAdmin or ALL grants every known page.
-  // Must precede the SITE_ADMIN scoping below — admin@admin.com carries ALL.
-  if (auth.isAdmin === true || perms.includes('ALL')) return true;
+  // Backend parity (requirePrivilege): ALL grants every known page for non-admin accounts
+  if (perms.includes('ALL')) return true;
 
   const effectivePerms = new Set(perms);
-
-  // Requirement 7 fallback: a SITE_ADMIN session without ALL/isAdmin keeps
-  // only its canonical modules (backend always sets isAdmin/ALL in practice).
-  if (normalizedRole === 'SITE_ADMIN') {
-    effectivePerms.add('USER_MANAGEMENT');
-    effectivePerms.add('ORACLE_INTEGRATION');
-    effectivePerms.add('ORACLE_API_CONSOLE');
-  }
-
   return required.some((p) => effectivePerms.has(p));
 
   // Map Site Admin canonical privileges if not explicitly present

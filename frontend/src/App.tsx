@@ -605,11 +605,11 @@ export default function App() {
     fetchServerSettings();
   }, [isLoggedIn, currentUser, isAdmin, userRole, userPermissions]);
 
-  // If an administrator session lands on Ask VEYRA, seamlessly redirect to Dashboard
+  // If a session lands on any page they are not authorized to view, seamlessly redirect to Dashboard
   useEffect(() => {
-    if (authChecked && isLoggedIn && currentPage === 'assistant') {
+    if (authChecked && isLoggedIn && currentPage !== 'dashboard') {
       const auth: AuthContext = { isAdmin, role: userRole, permissions: userPermissions };
-      if (!canAccessPage('assistant', auth)) {
+      if (!canAccessPage(currentPage, auth)) {
         handlePageSelect('dashboard');
       }
     }

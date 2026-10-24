@@ -417,7 +417,7 @@ export default function Dashboard({
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.min(adminCards.length, 3))}, 1fr)`, gap: '1.25rem' }}>
           {adminCards.map((card: any) => (
             <div
               key={card.key}

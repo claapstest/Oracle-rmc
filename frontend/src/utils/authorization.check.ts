@@ -25,11 +25,13 @@ for (const p of ['dashboard', 'assistant', 'risk', 'reports', 'users', 'roles', 
 // AC3 — privileged admin-only modules hidden without grant
 no(canAccessPage('settings', AUDIT_MGR), 'audit-mgr settings');
 no(canAccessPage('command-center', AUDIT_MGR), 'audit-mgr console');
-// Admin / ALL bypass everywhere except assistant (Ask Veyra removed for Admin)
-for (const p of ['dashboard', 'risk', 'reports', 'users', 'roles', 'audit', 'settings', 'command-center']) {
+// Admin / Site Admin is restricted ONLY to Dashboard, User Management, Oracle Integration, and Oracle API Console
+for (const p of ['dashboard', 'user-management', 'settings', 'command-center']) {
   ok(canAccessPage(p, ADMIN), `admin ${p}`);
 }
-no(canAccessPage('assistant', ADMIN), 'admin assistant removed');
+for (const p of ['assistant', 'users', 'roles', 'audit', 'risk', 'reports']) {
+  no(canAccessPage(p, ADMIN), `admin denied ${p}`);
+}
 // Bare authenticated user keeps dashboard only
 ok(canAccessPage('dashboard', BARE), 'bare dashboard');
 no(canAccessPage('reports', BARE), 'bare reports');
@@ -47,10 +49,12 @@ ok(canAccessPage('risk-certificates', AUDIT_USER), 'audit-user certificates page
 // Mock 7 — Site Admin administration navigation (AC4/AC5): admin-only modules
 // reachable for Site Admin, hidden from all other roles.
 const SITE_ADMIN = { isAdmin: true, role: 'SITE_ADMIN', permissions: ['ALL'] };
-for (const p of ['users', 'settings', 'command-center', 'dashboard']) {
+for (const p of ['user-management', 'settings', 'command-center', 'dashboard']) {
   ok(canAccessPage(p, SITE_ADMIN), `site-admin ${p}`);
 }
-no(canAccessPage('assistant', SITE_ADMIN), 'site-admin assistant removed');
+for (const p of ['assistant', 'users', 'roles', 'audit', 'risk', 'reports']) {
+  no(canAccessPage(p, SITE_ADMIN), `site-admin denied ${p}`);
+}
 // Audit Supervisor must not see Site Admin administration functions.
 const AUDIT_SUP = { isAdmin: false, role: 'AUDIT_SUPERVISOR', permissions: ['RISK_MANAGEMENT', 'RISK_READ', 'REPORTS', 'REPORTS_READ', 'AUDIT_TRAIL', 'AUDIT_READ', 'USERS_LIST', 'USER_READ'] };
 no(canAccessPage('settings', AUDIT_SUP), 'supervisor settings');
