@@ -1921,25 +1921,29 @@ Only output valid JSON matching the schema. Do not include markdown formatting o
     }
   }
 
-  // Quantitative count normalization guard across all engines
-  const cleanMsg = message.toLowerCase();
-  const isAggregateCountQuery = cleanMsg.includes('count') || cleanMsg.includes('how many') || cleanMsg.includes('total') || cleanMsg.includes('number of');
-  if (isAggregateCountQuery) {
-    const hasInc = cleanMsg.includes('incident') || cleanMsg.includes('incidents');
-    const hasCtrl = cleanMsg.includes('control') || cleanMsg.includes('controls');
-    const mentionsAccess = cleanMsg.includes('access');
-    const mentionsTx = cleanMsg.includes('transaction') || cleanMsg.includes('tx');
+  // Only normalize broad unfiltered incident/control count queries if not already specifically targeted
+  if (!intentData.parameters?.targetMetric && (intentData.intent === 'INCIDENTS_LIST' || intentData.intent === 'CONTROLS_LIST' || intentData.intent === 'UNKNOWN')) {
+    const cleanMsg = message.toLowerCase();
+    const isCountQuery = cleanMsg.includes('count') || cleanMsg.includes('how many') || cleanMsg.includes('total') || cleanMsg.includes('number of');
+    if (isCountQuery) {
+      const hasInc = cleanMsg.includes('incident');
+      const hasCtrl = cleanMsg.includes('control');
+      const mentionsAccess = cleanMsg.includes('access');
+      const mentionsTx = cleanMsg.includes('transaction') || cleanMsg.includes('tx');
 
-    if (hasInc && !intentData.parameters?.controlId && !intentData.parameters?.username && !intentData.parameters?.role && !intentData.parameters?.incidentId && !intentData.parameters?.accessPoint) {
-      intentData.intent = 'SECURITY_STATISTICS';
-      intentData.parameters = {
-        targetMetric: mentionsAccess ? 'ACCESS_INCIDENTS' : mentionsTx ? 'TRANSACTION_INCIDENTS' : 'TOTAL_INCIDENTS'
-      };
-    } else if (hasCtrl && !hasInc && !intentData.parameters?.controlId && !intentData.parameters?.controlName) {
-      intentData.intent = 'SECURITY_STATISTICS';
-      intentData.parameters = {
-        targetMetric: mentionsAccess ? 'ACCESS_CONTROLS' : mentionsTx ? 'TRANSACTION_CONTROLS' : 'TOTAL_CONTROLS'
-      };
+      if (hasInc && !intentData.parameters?.controlId && !intentData.parameters?.username && !intentData.parameters?.role && !intentData.parameters?.incidentId && !intentData.parameters?.accessPoint) {
+        intentData.intent = 'SECURITY_STATISTICS';
+        intentData.parameters = {
+          ...intentData.parameters,
+          targetMetric: mentionsAccess ? 'ACCESS_INCIDENTS' : mentionsTx ? 'TRANSACTION_INCIDENTS' : 'TOTAL_INCIDENTS'
+        };
+      } else if (hasCtrl && !hasInc && !intentData.parameters?.controlId && !intentData.parameters?.controlName) {
+        intentData.intent = 'SECURITY_STATISTICS';
+        intentData.parameters = {
+          ...intentData.parameters,
+          targetMetric: mentionsAccess ? 'ACCESS_CONTROLS' : mentionsTx ? 'TRANSACTION_CONTROLS' : 'TOTAL_CONTROLS'
+        };
+      }
     }
   }
 
