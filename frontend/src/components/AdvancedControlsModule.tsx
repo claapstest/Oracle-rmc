@@ -47,20 +47,19 @@ export interface AdvancedControlRecord {
   id: string;
   name: string;
   description: string | null;
-  priority?: string | number | null;
   enforcementType: string | null;
   statusId: number | string | null;
   stateCode: string | null;
   type: string | number | null;
   lastRunDate: string | null;
   lastUpdateDate: string | null;
-  latestJobId?: number | string | null;
+  latestJobId: number | string | null;
   createdBy: string | null;
   creationDate: string | null;
   status: string;
   state: string;
   lastUpdatedBy: string | null;
-  scheduledBy?: string | null;
+  scheduledBy: string | null;
   incidentCount?: number;
   incidentBreakdown?: {
     assigned: number;
@@ -110,11 +109,13 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'incidentCount', label: 'Incidents', defaultVisible: true, minWidth: '110px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
-  { key: 'description', label: 'Description', defaultVisible: true, minWidth: '320px' },
-  { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '110px' },
-  { key: 'createdBy', label: 'Created By', defaultVisible: true, minWidth: '140px' },
-  { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '130px' },
-  { key: 'lastUpdatedBy', label: 'Updated By', defaultVisible: true, minWidth: '140px' },
+  { key: 'description', label: 'Description', defaultVisible: false, minWidth: '320px' },
+  { key: 'enforcementType', label: 'Priority', defaultVisible: false, minWidth: '110px' },
+  { key: 'latestJobId', label: 'Job ID', defaultVisible: false, minWidth: '120px' },
+  { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
+  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '130px' },
+  { key: 'lastUpdatedBy', label: 'Updated By', defaultVisible: false, minWidth: '140px' },
+  { key: 'scheduledBy', label: 'Scheduled By', defaultVisible: false, minWidth: '140px' },
 ];
 
 interface IncidentColumnDef {
@@ -1800,11 +1801,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'incidentCount', label: 'Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined && c.incidentCount !== null ? c.incidentCount : 'Not available') },
       { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: c => c.lastRunDate || '' },
       { key: 'lastUpdateDate', label: 'Last Updated Date', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
-      { key: 'description', label: 'Description', defaultSelected: true, getValue: c => c.description || '' },
-      { key: 'priority', label: 'Priority', defaultSelected: true, getValue: c => (c.priority !== undefined && c.priority !== null ? String(c.priority) : (c.enforcementType || '')) },
-      { key: 'createdBy', label: 'Created By', defaultSelected: true, getValue: c => c.createdBy || '' },
-      { key: 'creationDate', label: 'Creation Date', defaultSelected: true, getValue: c => c.creationDate || '' },
-      { key: 'lastUpdatedBy', label: 'Updated By', defaultSelected: true, getValue: c => c.lastUpdatedBy || '' },
+      { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
+      { key: 'enforcementType', label: 'Priority', defaultSelected: false, getValue: c => c.enforcementType || '' },
+      { key: 'latestJobId', label: 'Job ID', defaultSelected: false, getValue: c => c.latestJobId || '' },
+      { key: 'createdBy', label: 'Created By', defaultSelected: false, getValue: c => c.createdBy || '' },
+      { key: 'creationDate', label: 'Creation Date', defaultSelected: false, getValue: c => c.creationDate || '' },
+      { key: 'lastUpdatedBy', label: 'Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
+      { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: c => c.scheduledBy || '' },
     ];
   }, []);
 
@@ -2244,7 +2247,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Priority</span>
-                    <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{renderFieldVal(selectedControlDetail.priority ?? selectedControlDetail.enforcementType)}</span>
+                    <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{renderFieldVal(selectedControlDetail.enforcementType)}</span>
                   </div>
 
                   <div>
@@ -2268,6 +2271,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
 
                   <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Latest Job ID</span>
+                    <code style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedControlDetail.latestJobId)}</code>
+                  </div>
+
+                  <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Created By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.createdBy)}</span>
                   </div>
@@ -2280,6 +2288,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Scheduled By</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.scheduledBy)}</span>
                   </div>
                 </div>
               </div>
@@ -4373,12 +4386,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               backgroundColor: 'var(--bg-primary)'
             }}
           >
-            <table className="enterprise-table" style={{ width: '100%', minWidth: '1500px', tableLayout: 'auto' }}>
+            <table className="enterprise-table" style={{ width: '100%', minWidth: '950px' }}>
               <thead>
                 <tr>
                   {visibleColumnKeys.has('id') && (
                     <th 
-                      style={{ minWidth: '110px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '110px', cursor: 'pointer' }}
                       onClick={() => handleSortClick('id')}
                       title="Sort by Control ID"
                     >
@@ -4391,7 +4404,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   {visibleColumnKeys.has('name') && (
                     <th 
-                      style={{ minWidth: '320px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ minWidth: '280px', cursor: 'pointer' }}
                       onClick={() => handleSortClick('name')}
                       title="Sort by Control Name"
                     >
@@ -4403,12 +4416,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('type') && (
-                    <th style={{ minWidth: '140px', whiteSpace: 'nowrap' }}>Control Type</th>
+                    <th style={{ width: '150px' }}>Control Type</th>
                   )}
 
                   {visibleColumnKeys.has('status') && (
                     <th 
-                      style={{ minWidth: '100px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '110px', cursor: 'pointer' }}
                       onClick={() => handleSortClick('status')}
                       title="Sort by Status"
                     >
@@ -4420,12 +4433,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('state') && (
-                    <th style={{ minWidth: '110px', whiteSpace: 'nowrap' }}>State</th>
+                    <th style={{ width: '110px' }}>State</th>
                   )}
 
                   {visibleColumnKeys.has('incidentCount') && (
                     <th 
-                      style={{ minWidth: '110px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '110px', cursor: 'pointer' }}
                       onClick={() => handleSortClick('incidentCount')}
                       title="Sort by Incidents Count"
                     >
@@ -4438,7 +4451,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   {visibleColumnKeys.has('lastRunDate') && (
                     <th 
-                      style={{ minWidth: '130px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '130px', cursor: 'pointer' }}
                       onClick={() => handleSortClick('lastRunDate')}
                       title="Sort by Last Run Date"
                     >
@@ -4451,7 +4464,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   {visibleColumnKeys.has('lastUpdateDate') && (
                     <th 
-                      style={{ minWidth: '140px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '130px', cursor: 'pointer' }}
                       onClick={() => handleSortClick('lastUpdateDate')}
                       title="Sort by Last Update Date"
                     >
@@ -4463,26 +4476,34 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('description') && (
-                    <th style={{ minWidth: '320px', whiteSpace: 'nowrap' }}>Description</th>
+                    <th style={{ minWidth: '260px' }}>Description</th>
                   )}
 
-                  {(visibleColumnKeys.has('priority') || visibleColumnKeys.has('enforcementType')) && (
-                    <th style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>Priority</th>
+                  {visibleColumnKeys.has('enforcementType') && (
+                    <th style={{ width: '110px' }}>Priority</th>
+                  )}
+
+                  {visibleColumnKeys.has('latestJobId') && (
+                    <th style={{ width: '130px' }}>Job ID</th>
                   )}
 
                   {visibleColumnKeys.has('createdBy') && (
-                    <th style={{ minWidth: '130px', whiteSpace: 'nowrap' }}>Created By</th>
+                    <th style={{ width: '140px' }}>Created By</th>
                   )}
 
                   {visibleColumnKeys.has('creationDate') && (
-                    <th style={{ minWidth: '130px', whiteSpace: 'nowrap' }}>Creation Date</th>
+                    <th style={{ width: '130px' }}>Creation Date</th>
                   )}
 
                   {visibleColumnKeys.has('lastUpdatedBy') && (
-                    <th style={{ minWidth: '130px', whiteSpace: 'nowrap' }}>Updated By</th>
+                    <th style={{ width: '140px' }}>Updated By</th>
                   )}
 
-                  <th style={{ minWidth: '90px', whiteSpace: 'nowrap', textAlign: 'right' }}>Action</th>
+                  {visibleColumnKeys.has('scheduledBy') && (
+                    <th style={{ width: '140px' }}>Scheduled By</th>
+                  )}
+
+                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
 
@@ -4507,7 +4528,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         title="Click row to inspect continuous monitoring incidents"
                       >
                         {visibleColumnKeys.has('id') && (
-                          <td style={{ whiteSpace: 'nowrap' }}>
+                          <td>
                             <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '0.85rem' }}>
                               {ctrl.id}
                             </span>
@@ -4515,7 +4536,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('name') && (
-                          <td style={{ minWidth: '320px', maxWidth: controlWrapText ? '600px' : '400px' }}>
+                          <td style={{ minWidth: '320px', maxWidth: controlWrapText ? '600px' : '360px' }}>
                             <div 
                               style={{ 
                                 fontWeight: 600, 
@@ -4553,16 +4574,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('type') && (
-                          <td style={{ whiteSpace: 'nowrap' }}>
+                          <td>
                             <span 
                               className="badge"
                               style={{
                                 fontSize: '0.72rem',
                                 fontWeight: 600,
-                                whiteSpace: 'nowrap',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '0.25rem 0.65rem',
                                 backgroundColor: domain === 'ACCESS' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(16, 185, 129, 0.12)',
                                 color: domain === 'ACCESS' ? '#3B82F6' : '#10B981',
                                 border: domain === 'ACCESS' ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(16, 185, 129, 0.25)'
@@ -4575,10 +4592,10 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('status') && (
-                          <td style={{ whiteSpace: 'nowrap' }}>
+                          <td>
                             <span 
                               className={`badge ${(ctrl.status || '').toUpperCase() === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`} 
-                              style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}
+                              style={{ fontSize: '0.72rem' }}
                             >
                               {ctrl.status || 'ACTIVE'}
                             </span>
@@ -4586,32 +4603,31 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('state') && (
-                          <td style={{ whiteSpace: 'nowrap' }}>
-                            <span className="badge badge-gold" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                          <td>
+                            <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
                               {ctrl.state || ctrl.stateCode || 'APPROVED'}
                             </span>
                           </td>
                         )}
 
                         {visibleColumnKeys.has('incidentCount') && (
-                          <td style={{ whiteSpace: 'nowrap' }}>
+                          <td>
                             {ctrl.incidentCount !== undefined && ctrl.incidentCount !== null ? (
                               <span 
                                 style={{ 
                                   fontWeight: 700, 
                                   fontSize: '0.85rem',
-                                  whiteSpace: 'nowrap',
                                   color: ctrl.incidentCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)' 
                                 }}
                               >
                                 {Number(ctrl.incidentCount).toLocaleString()}
                               </span>
                             ) : (ctrl as any).incidentCountStatus === 'CALCULATING' ? (
-                              <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                                 <RefreshCw size={11} className="animate-spin" /> Calculating...
                               </span>
                             ) : (
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                 Not scanned
                               </span>
                             )}
@@ -4634,9 +4650,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                           <td style={{ 
                             fontSize: '0.8rem', 
                             color: 'var(--text-secondary)', 
-                            minWidth: '320px',
-                            maxWidth: controlWrapText ? '600px' : '450px',
-                            whiteSpace: controlWrapText ? 'normal' : 'nowrap'
+                            minWidth: '300px',
+                            maxWidth: controlWrapText ? '600px' : '320px'
                           }}>
                             <div 
                               style={{ 
@@ -4653,9 +4668,15 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                           </td>
                         )}
 
-                        {(visibleColumnKeys.has('priority') || visibleColumnKeys.has('enforcementType')) && (
+                        {visibleColumnKeys.has('enforcementType') && (
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                            {renderFieldVal(ctrl.priority !== undefined && ctrl.priority !== null ? ctrl.priority : ctrl.enforcementType)}
+                            {renderFieldVal(ctrl.enforcementType)}
+                          </td>
+                        )}
+
+                        {visibleColumnKeys.has('latestJobId') && (
+                          <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            <code>{renderFieldVal(ctrl.latestJobId)}</code>
                           </td>
                         )}
 
@@ -4674,6 +4695,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         {visibleColumnKeys.has('lastUpdatedBy') && (
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             {renderFieldVal(ctrl.lastUpdatedBy)}
+                          </td>
+                        )}
+
+                        {visibleColumnKeys.has('scheduledBy') && (
+                          <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {renderFieldVal(ctrl.scheduledBy)}
                           </td>
                         )}
 
