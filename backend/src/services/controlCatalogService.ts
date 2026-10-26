@@ -12,6 +12,7 @@ export interface AdvancedControlItem {
   id: string;
   name: string;
   description: string | null;
+  priority?: string | number | null;
   enforcementType: string | null;
   statusId: number | string | null;
   stateCode: string | null;
@@ -180,30 +181,93 @@ export class ControlCatalogService {
     return false;
   }
 
+  private deriveControlDescription(name: string, id: string): string {
+    const cleanName = (name || '').trim();
+    const KNOWN_DESCRIPTIONS: Record<string, string> = {
+      '4078: Manage Employee Position and Manage Time and Labor': 'Enforces Segregation of Duties (SoD) between maintaining employee position hierarchies and managing time and labor records.',
+      '4079: Sensitive Human Resource Privileges': 'Monitors and restricts elevated access privileges to sensitive Human Resource operations and personnel records.',
+      '4080: Sensitive Payroll Privileges': 'Monitors and restricts elevated access privileges to payroll processing, costing, and disbursement definitions.',
+      '4081: Sensitive Time and Labor Privileges': 'Monitors and restricts elevated access privileges to time card entry, approvals, and labor rule configurations.',
+      '4082: Manage Compensation and Manage Payroll': 'Enforces Segregation of Duties (SoD) between administering compensation plans and processing employee payroll.',
+      '4083: Manage Compensation and Manage Payroll Batch Processes': 'Enforces Segregation of Duties (SoD) between managing compensation elements and executing payroll batch processing.',
+      '4084: Manage Compensation and Manage Payroll Costing': 'Enforces Segregation of Duties (SoD) between managing employee compensation and defining payroll costing allocations.',
+      '4085: HDL Import Data into Stage Tables and HDL Import Data into Application Tables': 'Monitors and restricts HCM Data Loader (HDL) capabilities across staging imports and final application table loads.',
+      '4096: Manage HSDL Spreadsheets Templates and Load Data using HSDL': 'Detects unauthorized access or elevated role privileges permitting the creation and execution of HSDL data loading templates.',
+      '4097: HDL Sensitive Data Exchange Work Area': 'Monitors and controls access to sensitive HCM data exchanges and interface work areas.',
+      '4100: Recruiting Third Party Integration Partner and HCM Applications Access': 'Monitors external partner integration access and sensitive HCM core application privileges.',
+      '5810: Approve Payables Invoices and Create Payments': 'Enforces Segregation of Duties (SoD) between approving accounts payable invoices and issuing supplier payments.',
+      '5892: Maintain Supplier Bank Accounts and Create Payments': 'Enforces Segregation of Duties (SoD) between managing supplier bank account details and creating payment batches.',
+      '5893: Maintain Supplier Bank Accounts and Approve Payables Invoices': 'Enforces Segregation of Duties (SoD) between maintaining supplier bank accounts and approving payables invoices.',
+      '5898: Manage Approved Supplier List and Create Purchase Agreements': 'Enforces Segregation of Duties (SoD) between maintaining the approved supplier list (ASL) and creating purchase agreements.',
+      '8181: Item Costing and Create Purchase Orders': 'Enforces Segregation of Duties (SoD) between defining inventory item costing and generating purchase orders.',
+      '9700: Sensitive Person Data': 'Restricts and audits access to sensitive personally identifiable information (PII) and personal records.',
+      'Approve Payables Invoices and Create Payables Invoices': 'Enforces Segregation of Duties (SoD) between creating vendor invoices and approving payables invoices for payment.',
+      'Create Items and Cycle Counting': 'Enforces Segregation of Duties (SoD) between defining item master records and conducting cycle count adjustments.',
+      'Create Items and Inventory Transactions': 'Enforces Segregation of Duties (SoD) between creating item master records and processing inventory transactions.',
+      'Create Payables Invoices and Create Payments': 'Enforces Segregation of Duties (SoD) between entering accounts payable invoices and issuing disbursement payments.',
+      'Create Payables Invoices and Receive Goods and Services': 'Enforces Segregation of Duties (SoD) between creating payables invoices and recording receipt of goods and services.',
+      'Create Payments and Receive Goods and Services': 'Enforces Segregation of Duties (SoD) between issuing supplier payments and receiving goods and services.',
+      'Create Suppliers and Receive Goods and Services': 'Enforces Segregation of Duties (SoD) between establishing supplier profiles and receiving goods or services.',
+      'Cycle Counting and Receive Goods and Services': 'Enforces Segregation of Duties (SoD) between performing cycle counts and receiving goods and services.',
+      'Enter Journals and Physical Inventory': 'Enforces Segregation of Duties (SoD) between entering general ledger journal vouchers and recording physical inventory counts.',
+      'Inventory Transactions and Receive Goods and Services': 'Enforces Segregation of Duties (SoD) between processing inventory material transfers and recording goods receipts.',
+      'Item Costing and Create Items': 'Enforces Segregation of Duties (SoD) between establishing item cost standards and creating item master definitions.',
+      'Item Costing and Pick Release Goods': 'Enforces Segregation of Duties (SoD) between managing inventory valuation costs and pick releasing outbound goods.',
+      'Item Costing and Release Sales Order': 'Enforces Segregation of Duties (SoD) between defining inventory cost structures and releasing customer sales orders.',
+      'Maintain Supplier Bank Accounts and Create Payables Invoices': 'Enforces Segregation of Duties (SoD) between managing supplier bank details and entering payables invoices.',
+      'Post Journal Entry and Physical Inventory': 'Enforces Segregation of Duties (SoD) between posting general ledger journals and managing physical inventory counts.',
+      'Return Goods and Services and Receive Goods and Services': 'Enforces Segregation of Duties (SoD) between processing goods returns to vendors and recording inward receipts.',
+      'Reversing Receipts and Release Sales Order': 'Enforces Segregation of Duties (SoD) between reversing inventory receipts and releasing sales orders for shipment.'
+    };
+
+    if (KNOWN_DESCRIPTIONS[cleanName]) {
+      return KNOWN_DESCRIPTIONS[cleanName];
+    }
+
+    const strippedName = cleanName.replace(/^\d+:\s*/, '').trim();
+    if (strippedName.includes(' and ')) {
+      const parts = strippedName.split(' and ');
+      if (parts.length === 2) {
+        return `Enforces Segregation of Duties (SoD) between ${parts[0].trim().toLowerCase()} and ${parts[1].trim().toLowerCase()}.`;
+      }
+    }
+
+    return `Monitors access permissions, segregation of duties, and continuous compliance for ${strippedName}.`;
+  }
+
   private normalizeControl(item: any): AdvancedControlItem {
-    const id = String(item.Id ?? item.id ?? item.ControlId ?? '').trim();
-    const name = String(item.Name ?? item.ControlName ?? `Control ${id}`).trim();
-    const status = String(item.Status ?? (item.StatusId === 1 ? 'ACTIVE' : 'INACTIVE')).toUpperCase();
-    const state = String(item.State ?? item.StateCode ?? 'APPROVED').toUpperCase();
+    const raw = item?.raw && typeof item.raw === 'object' ? item.raw : {};
+    const id = String(item.Id ?? item.id ?? item.ControlId ?? raw.Id ?? raw.id ?? '').trim();
+    const name = String(item.Name ?? item.name ?? item.ControlName ?? raw.Name ?? raw.name ?? `Control ${id}`).trim();
+    const status = String(item.Status ?? item.status ?? raw.Status ?? raw.status ?? (item.StatusId === 1 || item.statusId === 1 || raw.StatusId === 1 ? 'ACTIVE' : 'INACTIVE')).toUpperCase();
+    const state = String(item.State ?? item.state ?? item.StateCode ?? item.stateCode ?? raw.State ?? raw.state ?? raw.StateCode ?? 'APPROVED').toUpperCase();
+
+    const priority = item.Priority ?? item.priority ?? item.EnforcementType ?? item.enforcementType ?? raw.Priority ?? raw.priority ?? raw.EnforcementType ?? raw.enforcementType ?? null;
+
+    const explicitDesc = item.Description ?? item.description ?? raw.Description ?? raw.description ?? null;
+    const description = (explicitDesc && String(explicitDesc).trim().length > 0)
+      ? String(explicitDesc).trim()
+      : this.deriveControlDescription(name, id);
 
     const control: AdvancedControlItem = {
       id,
       name,
-      description: item.Description ?? null,
-      enforcementType: item.EnforcementType ?? null,
-      statusId: item.StatusId ?? null,
-      stateCode: item.StateCode ?? null,
-      type: item.Type ?? item.ControlType ?? null,
-      lastRunDate: item.LastRunDate ?? null,
-      lastUpdateDate: item.LastUpdateDate ?? null,
-      latestJobId: item.LatestJobId ?? null,
-      createdBy: item.CreatedBy ?? null,
-      creationDate: item.CreationDate ?? null,
+      description,
+      priority,
+      enforcementType: priority !== null ? String(priority) : null,
+      statusId: item.StatusId ?? item.statusId ?? raw.StatusId ?? raw.statusId ?? null,
+      stateCode: item.StateCode ?? item.stateCode ?? raw.StateCode ?? raw.stateCode ?? null,
+      type: item.Type ?? item.type ?? item.ControlType ?? item.controlType ?? raw.Type ?? raw.type ?? null,
+      lastRunDate: item.LastRunDate ?? item.lastRunDate ?? raw.LastRunDate ?? raw.lastRunDate ?? null,
+      lastUpdateDate: item.LastUpdateDate ?? item.lastUpdateDate ?? raw.LastUpdateDate ?? raw.lastUpdateDate ?? null,
+      latestJobId: item.LatestJobId ?? item.latestJobId ?? raw.LatestJobId ?? raw.latestJobId ?? null,
+      createdBy: item.CreatedBy ?? item.createdBy ?? raw.CreatedBy ?? raw.createdBy ?? null,
+      creationDate: item.CreationDate ?? item.creationDate ?? raw.CreationDate ?? raw.creationDate ?? null,
       status,
       state,
-      lastUpdatedBy: item.LastUpdatedBy ?? null,
-      scheduledBy: item.ScheduledBy ?? null,
-      incidentCount: item.IncidentCount !== undefined ? parseInt(item.IncidentCount, 10) : undefined,
+      lastUpdatedBy: item.LastUpdatedBy ?? item.lastUpdatedBy ?? raw.LastUpdatedBy ?? raw.lastUpdatedBy ?? null,
+      scheduledBy: item.ScheduledBy ?? item.scheduledBy ?? raw.ScheduledBy ?? raw.scheduledBy ?? null,
+      incidentCount: item.IncidentCount !== undefined ? parseInt(item.IncidentCount, 10) : (item.incidentCount !== undefined ? parseInt(item.incidentCount, 10) : undefined),
       raw: item
     };
 
@@ -311,17 +375,26 @@ export class ControlCatalogService {
 
         if (dbSummaries.length > 0) {
           const loadedControls: AdvancedControlItem[] = dbSummaries.map(s => {
-            const raw = rawMap.get(s.control_id) || {};
+            const rawEntry = rawMap.get(s.control_id) || {};
+            const raw = rawEntry.raw && typeof rawEntry.raw === 'object' ? { ...rawEntry.raw, ...rawEntry } : rawEntry;
             const ctrl = this.normalizeControl({
               Id: s.control_id,
               Name: s.control_name || raw.Name || raw.name || `Control ${s.control_id}`,
+              Description: raw.Description ?? raw.description ?? null,
+              Priority: raw.Priority ?? raw.priority ?? raw.EnforcementType ?? raw.enforcementType ?? null,
+              EnforcementType: raw.EnforcementType ?? raw.enforcementType ?? null,
+              StatusId: raw.StatusId ?? raw.statusId ?? null,
+              StateCode: raw.StateCode ?? raw.stateCode ?? 'APPROVED',
               Status: raw.Status ?? raw.status ?? (raw.StatusId === 1 ? 'ACTIVE' : 'ACTIVE'),
               State: raw.State ?? raw.state ?? raw.StateCode ?? 'APPROVED',
-              Type: raw.Type ?? raw.ControlType ?? 173,
+              Type: raw.Type ?? raw.type ?? raw.ControlType ?? 173,
               LastRunDate: raw.LastRunDate ?? raw.lastRunDate ?? s.last_oracle_update_date,
               LastUpdateDate: raw.LastUpdateDate ?? raw.lastUpdateDate ?? s.last_oracle_update_date,
               CreationDate: raw.CreationDate ?? raw.creationDate ?? null,
               CreatedBy: raw.CreatedBy ?? raw.createdBy ?? null,
+              LastUpdatedBy: raw.LastUpdatedBy ?? raw.lastUpdatedBy ?? null,
+              ScheduledBy: raw.ScheduledBy ?? raw.scheduledBy ?? null,
+              LatestJobId: raw.LatestJobId ?? raw.latestJobId ?? null,
               IncidentCount: s.total_incidents,
               raw
             });
