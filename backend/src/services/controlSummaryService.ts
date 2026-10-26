@@ -350,7 +350,7 @@ export class ControlSummaryService {
         state: ctrl.state,
         lastRunDate: ctrl.lastRunDate,
         lastRunBy: null, // Explicitly null: Oracle API provides ScheduledBy/LastUpdatedBy, but not LastRunBy
-        scheduledBy: ctrl.scheduledBy,
+        scheduledBy: ctrl.scheduledBy ?? null,
         lastUpdatedBy: ctrl.lastUpdatedBy,
         createdBy: ctrl.createdBy,
         totalIncidentCount,

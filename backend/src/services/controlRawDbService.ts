@@ -155,6 +155,13 @@ export class ControlRawDbService {
       if (!isNaN(d.getTime())) lastUpdateDate = d;
     }
 
+    // Ensure Priority is mapped from EnforcementType
+    if (rawControl.Priority === undefined && rawControl.EnforcementType !== undefined) {
+      rawControl.Priority = rawControl.EnforcementType;
+    }
+    delete rawControl.ScheduledBy;
+    delete rawControl.LatestJobId;
+
     const rawJson = JSON.stringify(rawControl);
 
     const sql = `
