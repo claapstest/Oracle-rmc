@@ -18,7 +18,8 @@ import {
   Scale,
   ChevronDown,
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  X
 } from 'lucide-react';
 
 // Pages
@@ -129,8 +130,22 @@ export default function App() {
   const [userRole, setUserRole] = useState(() => getActiveUserRole());
   const [userPermissions, setUserPermissions] = useState<string[]>(() => getActiveUserPermissions());
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      return false;
+    }
     return sessionStorage.getItem('activePage') !== 'assistant';
   });
+
+  // Automatically close sidebar drawer when resizing down to tablet/mobile viewports
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024 && isSidebarOpen && sessionStorage.getItem('activePage') === 'assistant') {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isSidebarOpen]);
   // Manual expand/collapse for the Risk Management parent group.
   // The group is additionally force-expanded whenever a Risk child page is active.
   const [riskGroupOpen, setRiskGroupOpen] = useState(false);
@@ -570,6 +585,8 @@ export default function App() {
 
     if (pageId === 'assistant') {
       setIsSidebarOpen(false); // Ask VEYRA defaults to full width
+    } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setIsSidebarOpen(false); // Mobile drawer closes on selection
     } else {
       setIsSidebarOpen(true); // Normal pages default to visible sidebar
     }
@@ -787,14 +804,35 @@ export default function App() {
   return (
     <div className="app-container">
 
+      {/* Mobile Drawer Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="sidebar-mobile-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-label="Close navigation sidebar"
+        />
+      )}
+
       {/* Crisp White Enterprise Navigation Sidebar */}
       <aside className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}>
 
         {/* Brand Header */}
-        <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => handlePageSelect('dashboard')}>
-          <span className="logo-text" style={{ letterSpacing: '-0.01em', fontSize: '1.24rem', fontWeight: 800 }}>
+        <div className="logo-container" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span className="logo-text" onClick={() => handlePageSelect('dashboard')} style={{ letterSpacing: '-0.01em', fontSize: '1.24rem', fontWeight: 800 }}>
             CLAAPS VEYRA
           </span>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSidebarOpen(false);
+            }}
+            aria-label="Close navigation drawer"
+            title="Close navigation"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Clean Navigation Links */}
@@ -886,7 +924,7 @@ export default function App() {
 
         {/* Topbar matching Blue Gradient Theme */}
         <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div className="topbar-left-section">
             <button
               onClick={() => setIsSidebarOpen(prev => !prev)}
               className="topbar-menu-btn"
@@ -916,96 +954,96 @@ export default function App() {
             )}
 
             {/* Breadcrumb Context Indicator with Clickable Navigation */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, fontFamily: 'var(--font-header)' }}>
+            <div className="topbar-breadcrumbs">
               {activeInvestigation ? (
                 <>
                   <span
-                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                    className="breadcrumb-ancestor"
                     onClick={() => handlePageSelect('dashboard')}
                     title="Back to Dashboard"
                   >
                     Dashboard
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span className="breadcrumb-separator">/</span>
                   {activeInvestigation.sourcePage && activeInvestigation.sourcePage !== 'dashboard' && (
                     <>
                       <span
-                        style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                        className="breadcrumb-ancestor"
                         onClick={handleClose}
                         title={`Back to ${PAGE_TITLE_MAP[activeInvestigation.sourcePage] || (activeInvestigation.sourcePage === 'assistant' ? 'Ask VEYRA' : 'Previous Page')}`}
                       >
                         {PAGE_TITLE_MAP[activeInvestigation.sourcePage] || (activeInvestigation.sourcePage === 'assistant' ? 'Ask VEYRA' : 'Previous Page')}
                       </span>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                      <span className="breadcrumb-separator">/</span>
                     </>
                   )}
-                  <span>{activeInvestigation.name}</span>
+                  <span className="breadcrumb-current">{activeInvestigation.name}</span>
                 </>
               ) : activeQueryInvestigation ? (
                 <>
                   <span
-                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                    className="breadcrumb-ancestor"
                     onClick={() => handlePageSelect('dashboard')}
                     title="Back to Dashboard"
                   >
                     Dashboard
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
+                  <span className="breadcrumb-separator">/</span>
                   <span
-                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', transition: 'color 0.15s ease' }}
+                    className="breadcrumb-ancestor"
                     onClick={handleClose}
                     title="Back to Ask VEYRA"
                   >
                     Ask VEYRA
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
-                  <span>Investigation Details</span>
+                  <span className="breadcrumb-separator">/</span>
+                  <span className="breadcrumb-current">Investigation Details</span>
                 </>
               ) : currentPage === 'dashboard' ? (
-                <span>Dashboard</span>
+                <span className="breadcrumb-current">Dashboard</span>
               ) : currentPage === 'assistant' ? (
                 <>
                   <span
-                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }}
+                    className="breadcrumb-ancestor"
                     onClick={() => handlePageSelect('dashboard')}
                     title="Back to Dashboard"
                   >
                     Dashboard
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
-                  <span>Ask VEYRA</span>
+                  <span className="breadcrumb-separator">/</span>
+                  <span className="breadcrumb-current">Ask VEYRA</span>
                 </>
               ) : RISK_CHILD_IDS.has(currentPage) ? (
                 <>
                   <span
-                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }}
+                    className="breadcrumb-ancestor"
                     onClick={() => handlePageSelect('dashboard')}
                     title="Back to Dashboard"
                   >
                     Dashboard
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.75)' }}>Risk Management</span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
-                  <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
+                  <span className="breadcrumb-separator">/</span>
+                  <span className="breadcrumb-ancestor">Risk Management</span>
+                  <span className="breadcrumb-separator">/</span>
+                  <span className="breadcrumb-current">{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
                 </>
               ) : (
                 <>
                   <span
-                    style={{ color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer' }}
+                    className="breadcrumb-ancestor"
                     onClick={() => handlePageSelect('dashboard')}
                     title="Back to Dashboard"
                   >
                     Dashboard
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)' }}>/</span>
-                  <span>{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
+                  <span className="breadcrumb-separator">/</span>
+                  <span className="breadcrumb-current">{pageLabelMap.get(currentPage) || 'Dashboard'}</span>
                 </>
               )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="topbar-right-section">
           {/* Topbar User Profile Dropdown Menu - Clean Unpill Layout */}
           <div ref={userMenuRef} style={{ position: 'relative' }}>
             <button
@@ -1045,7 +1083,7 @@ export default function App() {
               </div>
 
               {/* User Name & Role Text Stack */}
-              <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', lineHeight: 1.15 }}>
+              <div className="topbar-user-info">
                 <span style={{ fontSize: '0.86rem', fontWeight: 700, letterSpacing: '0.01em', color: '#ffffff' }}>
                   {getUserDisplayName(currentUser)}
                 </span>

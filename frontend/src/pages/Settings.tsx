@@ -297,7 +297,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '960px', width: '100%', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '960px' }}>
       
       {/* Settings Blue Gradient Banner */}
       <div className="page-header-banner animate-fade-in" style={{
@@ -379,7 +379,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
                 Live-instance-only: all queries run against the Oracle instance link configured below. Sample/demo data is disabled.
               </p>
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="settings-env-toggle-flex">
                 <div
                   onClick={() => setEnvironmentMode('ORACLE_FUSION')}
                   className="glass-panel"
@@ -454,7 +454,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                <div className="settings-grid-split">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
                       Auth Method
@@ -472,7 +472,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
                   </div>
 
                   {authType === 'BASIC' ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="settings-grid-duo">
                       <div>
                         <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
                           Username
@@ -534,7 +534,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
+                <div className="settings-grid-split" style={{ alignItems: 'flex-start' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
                       Select Together AI Model

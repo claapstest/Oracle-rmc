@@ -356,7 +356,7 @@ export default function Users({
 
   if (initialLoading && users.length === 0) {
     return (
-      <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
+      <div className="page-container">
         <div style={{ height: '35px', width: '220px', marginBottom: '1.5rem' }} className="skeleton" />
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <div style={{ height: '40px', width: '250px' }} className="skeleton" />
@@ -368,10 +368,11 @@ export default function Users({
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto', display: 'flex', gap: '2rem' }}>
+    <div className="page-container">
+      <div className="users-roles-layout-container">
       
       {/* Left Column: List */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="users-roles-main-col">
 
         <div className="page-header-banner animate-fade-in" style={{
           display: 'flex',
@@ -468,7 +469,7 @@ export default function Users({
         )}
 
         {/* Search & Filter Bar */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="filter-bar-responsive" style={{ marginBottom: '1rem' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
               <Search size={16} />
@@ -555,15 +556,10 @@ export default function Users({
         </div>
 
         {/* Table Toolbar: Clear count, Rows Per Page & Top Pagination */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+        <div className="pagination-bar-responsive" style={{
           marginBottom: '0.75rem',
           fontSize: '0.82rem',
-          color: 'var(--text-secondary)',
-          flexWrap: 'wrap',
-          gap: '0.75rem'
+          color: 'var(--text-secondary)'
         }}>
           <div>
             {displayCount === 0 && !loading ? (
@@ -681,14 +677,9 @@ export default function Users({
 
         {/* Pagination Controls Bar (Bottom) */}
         {totalPages > 1 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+          <div className="pagination-bar-responsive" style={{
             marginTop: '1rem',
-            padding: '0.75rem 0.25rem',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
+            padding: '0.75rem 0.25rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -703,13 +694,8 @@ export default function Users({
 
       {/* Right Column: User Details Sidebar Card */}
       {selectedUser && (
-        <div className="glass-panel animate-fade-in" style={{
-          width: '400px',
-          height: 'fit-content',
-          padding: '1.5rem',
-          position: 'sticky',
-          top: '2rem',
-          alignSelf: 'flex-start'
+        <div className="glass-panel animate-fade-in users-roles-detail-panel" style={{
+          padding: '1.5rem'
         }}>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
@@ -1083,6 +1069,7 @@ export default function Users({
     </div>
   )}
 
+      </div>
     </div>
   );
 }

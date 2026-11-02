@@ -589,23 +589,12 @@ export default function CommandCenter({ onNavigatePage }: { onNavigatePage?: (pa
       {/* ==========================================================
           MAIN 3-PANEL WORKSPACE CONTAINER
           ========================================================== */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '320px 1fr',
-        flex: 1,
-        overflow: 'hidden'
-      }}>
+      <div className="command-center-workspace-grid">
         
         {/* ========================================================
             LEFT PANEL: API EXPLORER, COLLECTIONS & HISTORY
             ======================================================== */}
-        <div style={{
-          backgroundColor: '#FFFFFF',
-          borderRight: '1px solid #E2E8F0',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <div className="command-center-catalog-panel">
           {/* Navigation Sub-tabs */}
           <div style={{
             display: 'flex',
@@ -1990,21 +1979,9 @@ export default function CommandCenter({ onNavigatePage }: { onNavigatePage?: (pa
           SAVE REQUEST MODAL DIALOG
           ========================================================== */}
       {showSaveModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            width: '440px',
+        <div className="responsive-modal-overlay">
+          <div className="responsive-modal-card" style={{
+            maxWidth: '440px',
             backgroundColor: '#FFFFFF',
             borderRadius: '12px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',

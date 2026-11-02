@@ -300,7 +300,7 @@ export default function Roles({
 
   if (initialLoading && roles.length === 0) {
     return (
-      <div style={{ padding: '2rem' }}>
+      <div className="page-container">
         <div style={{ height: '35px', width: '150px', marginBottom: '1.5rem' }} className="skeleton" />
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <div style={{ height: '40px', width: '250px' }} className="skeleton" />
@@ -312,10 +312,11 @@ export default function Roles({
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto', display: 'flex', gap: '2rem' }}>
+    <div className="page-container">
+      <div className="users-roles-layout-container">
       
       {/* Left Grid */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="users-roles-main-col">
         
         <div className="page-header-banner animate-fade-in" style={{
           display: 'flex',
@@ -383,7 +384,7 @@ export default function Roles({
         </div>
 
         {/* Filters & Page Size */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="filter-bar-responsive" style={{ marginBottom: '1.5rem' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
               <Search size={16} />
@@ -484,15 +485,10 @@ export default function Roles({
         </div>
 
         {/* Top Table Toolbar: Count, Rows Per Page & Top Pagination Controls */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+        <div className="pagination-bar-responsive" style={{
           marginBottom: '0.75rem',
           fontSize: '0.82rem',
-          color: 'var(--text-secondary)',
-          flexWrap: 'wrap',
-          gap: '0.75rem'
+          color: 'var(--text-secondary)'
         }}>
           <div>
             Showing <strong>{totalResults > 0 ? ((currentPage - 1) * pageSize + 1).toLocaleString() : 0}</strong>–<strong>{Math.min(currentPage * pageSize, totalResults).toLocaleString()}</strong> of <strong>{totalResults.toLocaleString()}</strong> roles
@@ -594,16 +590,11 @@ export default function Roles({
 
         {/* Bottom Pagination Bar */}
         {totalPages > 1 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+          <div className="pagination-bar-responsive" style={{
             marginTop: '1rem',
             padding: '0.75rem 0.25rem',
             fontSize: '0.8rem',
-            color: 'var(--text-secondary)',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
+            color: 'var(--text-secondary)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div>
@@ -618,13 +609,8 @@ export default function Roles({
 
       {/* Right Drawer Card */}
       {selectedRole && (
-        <div className="glass-panel animate-fade-in" style={{
-          width: '450px',
-          height: 'fit-content',
-          padding: '1.5rem',
-          position: 'sticky',
-          top: '2rem',
-          alignSelf: 'flex-start'
+        <div className="glass-panel animate-fade-in users-roles-detail-panel" style={{
+          padding: '1.5rem'
         }}>
           
           {/* Header */}
@@ -847,33 +833,17 @@ export default function Roles({
         </div>
       )}
 
+      </div>
+
       {/* Users with Privilege Modal */}
       {privilegeUsersModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1.5rem'
-        }}>
-          <div style={{
+        <div className="responsive-modal-overlay">
+          <div className="responsive-modal-card" style={{
             backgroundColor: 'var(--bg-primary, #1e293b)',
             borderRadius: '12px',
             border: '1px solid var(--border-color)',
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-            maxWidth: '850px',
-            width: '100%',
-            maxHeight: '85vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            maxWidth: '850px'
           }}>
             {/* Modal Header */}
             <div style={{

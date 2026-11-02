@@ -477,7 +477,7 @@ export default function InvestigationWorkspace({
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
+    <div className="page-container">
       
       {/* Breadcrumb Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
@@ -734,10 +734,10 @@ export default function InvestigationWorkspace({
       </div>
 
       {/* Tabs Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '1.5rem' }}>
+      <div className="investigation-workspace-grid">
         
         {/* Left Side: Tab Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="investigation-tabs-nav">
           {[
             { id: 'OVERVIEW', label: 'Overview', show: true },
             { 
@@ -806,7 +806,7 @@ export default function InvestigationWorkspace({
               </h3>
 
               {isRole ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="dashboard-grid-3" style={{ marginBottom: '2rem' }}>
                   <div 
                     className="glass-panel" 
                     onClick={() => setActiveTab('MEMBERS')}

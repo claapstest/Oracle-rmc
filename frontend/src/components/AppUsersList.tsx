@@ -759,7 +759,7 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
 
       {(showCreate || editingUser) && (
         <div role="dialog" aria-modal="true" aria-label={showCreate ? 'Create user' : 'Edit user'} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }} onClick={() => { setShowCreate(false); setEditingUser(null); }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '1.75rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '1.75rem', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>{showCreate ? 'Create New User' : 'Edit User'}</h3>
               <button type="button" aria-label="Close" onClick={() => { setShowCreate(false); setEditingUser(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
@@ -851,7 +851,7 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
 
       {deletingUser && (
         <div role="dialog" aria-modal="true" aria-label="Confirm delete user" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }} onClick={() => setDeletingUser(null)}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '1.75rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '1.75rem', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>Delete user?</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: '0 0 1rem 0' }}>
               Are you sure you want to delete this user?

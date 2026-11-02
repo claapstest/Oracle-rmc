@@ -1311,15 +1311,7 @@ export default function Assistant({
               </div>
 
               {/* Title */}
-              <h1 style={{
-                fontSize: '2.85rem',
-                fontWeight: 800,
-                fontFamily: 'var(--font-header)',
-                color: '#ffffff',
-                letterSpacing: '-0.025em',
-                marginBottom: '0.65rem',
-                lineHeight: 1.15
-              }}>
+              <h1 className="assistant-hero-title">
                 Ask VEYRA
               </h1>
 
@@ -1336,20 +1328,7 @@ export default function Assistant({
               </p>
 
               {/* Prominent White Rounded Search Bar */}
-              <div style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                backgroundColor: '#ffffff',
-                borderRadius: '9999px',
-                padding: '0.45rem 0.65rem 0.45rem 1.4rem',
-                boxShadow: '0 14px 38px -4px rgba(30, 64, 175, 0.3), 0 4px 14px rgba(0, 0, 0, 0.08)',
-                width: '100%',
-                maxWidth: '820px',
-                margin: '0 auto',
-                transition: 'all 0.2s ease',
-                border: '1px solid rgba(255, 255, 255, 0.8)'
-              }}>
+              <div className="assistant-search-box">
                 <span style={{ color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', marginRight: '0.85rem' }}>
                   <Search size={22} strokeWidth={2.2} />
                 </span>
@@ -1613,11 +1592,12 @@ export default function Assistant({
             </div>
 
             {/* Category Cards Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: selectedCategory === 'ALL' ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr',
-              gap: '1.25rem'
-            }}>
+            <div
+              className="assistant-categories-grid"
+              style={{
+                gridTemplateColumns: selectedCategory !== 'ALL' ? '1fr' : undefined
+              }}
+            >
               {questionCategories
                 .filter(cat => selectedCategory === 'ALL' || selectedCategory === cat.category)
                 .map(cat => {

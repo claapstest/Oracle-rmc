@@ -401,7 +401,7 @@ export default function Dashboard({
       }] : []),
     ];
     return (
-      <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+      <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
         <div style={{ marginBottom: '0.2rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', fontFamily: "'Outfit', 'Inter', sans-serif", margin: 0, letterSpacing: '-0.025em' }}>
             Welcome back, {getFirstName(currentUser)}!
@@ -417,7 +417,7 @@ export default function Dashboard({
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.min(adminCards.length, 3))}, 1fr)`, gap: '1.25rem' }}>
+        <div className="dashboard-grid-3">
           {adminCards.map((card: any) => (
             <div
               key={card.key}
@@ -568,7 +568,7 @@ export default function Dashboard({
     ];
 
     return (
-      <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+      <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
         <div style={{ marginBottom: '0.2rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', fontFamily: "'Outfit', 'Inter', sans-serif", margin: 0, letterSpacing: '-0.025em' }}>
             Welcome back, {getFirstName(currentUser)}!
@@ -584,7 +584,7 @@ export default function Dashboard({
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+        <div className="dashboard-grid-3">
           {supervisorCards.map((card) => (
             <div
               key={card.key}
@@ -682,7 +682,7 @@ export default function Dashboard({
       );
     }
     return (
-      <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+      <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
         <div style={{ marginBottom: '0.2rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', fontFamily: "'Outfit', 'Inter', sans-serif", margin: 0, letterSpacing: '-0.025em' }}>
             Welcome back, {getFirstName(currentUser)}!
@@ -692,7 +692,7 @@ export default function Dashboard({
           </p>
         </div>
 
-        <div className="overview-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="overview-kpi-grid">
           <div className="glass-panel stat-card" style={{ padding: '1.35rem 1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ minWidth: 0, flex: 1 }}>
@@ -788,7 +788,7 @@ export default function Dashboard({
   }
 
   return (
-    <div style={{ padding: '1.5rem 2rem 3rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
       {/* ==========================================================
           WELCOME GREETING - Clean Canvas Typography (Mock Screens 4, 5, 6, 7)
           ========================================================== */}
@@ -821,7 +821,7 @@ export default function Dashboard({
       {/* ==========================================================
           3. TWO-COLUMN SECTION: Role Distribution & User Account Health
           ========================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.35rem' }}>
+      <div className="dashboard-grid-2">
         <RoleDistributionDonut stats={stats} onNavigatePage={onNavigatePage} />
         <UserAccountHealth stats={stats} onNavigatePage={onNavigatePage} />
       </div>
@@ -941,7 +941,7 @@ export default function Dashboard({
         flexWrap: 'wrap',
         gap: '1rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
             <ShieldCheck size={14} style={{ color: '#2563EB' }} />
             Stronger Identities

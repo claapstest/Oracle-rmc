@@ -393,7 +393,7 @@ export default function AccessCertificates({
       '—';
 
     return (
-      <div style={{ padding: '1.75rem 2rem', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
+      <div className="page-container" style={{ maxWidth: '1600px' }}>
         {/* Top Header Banner Matching VEYRA Style */}
         <div
           className="page-header-banner animate-fade-in"
@@ -957,7 +957,7 @@ export default function AccessCertificates({
   // VIEW 1: MAIN ACCESS CERTIFICATION LIST VIEW
   // =========================================================================
   return (
-    <div style={{ padding: '1.75rem 2rem', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '1600px' }}>
       {/* Top Banner Matching Screenshot */}
       <div
         className="page-header-banner animate-fade-in"

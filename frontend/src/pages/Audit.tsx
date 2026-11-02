@@ -564,7 +564,7 @@ export default function Audit({
   };
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
+    <div className="page-container">
       
       {/* 1. Header Banner */}
       <div className="page-header-banner animate-fade-in" style={{
@@ -708,7 +708,7 @@ export default function Audit({
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           
           {/* A. Product */}
           <div>

@@ -260,7 +260,7 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '1.4rem 1.5rem', display: 'flex', flexDirection: 'column', height: '100%', gap: '1.1rem' }}>
+    <div className="glass-panel" style={{ padding: 'clamp(1rem, 1.5vw, 1.4rem) clamp(1rem, 1.5vw, 1.5rem)', display: 'flex', flexDirection: 'column', height: '100%', gap: '1.1rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -302,21 +302,12 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
       </div>
 
       {/* Two-Column Layout: Donut + Insight Rows */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.25fr', gap: '1.4rem', alignItems: 'center', flex: 1 }}>
+      <div className="user-account-health-grid">
         
         {/* LEFT: Mutually-Exclusive User Access Donut */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          gap: '0.85rem',
-          padding: '0.4rem',
-          borderRight: '1px solid var(--border-color)',
-          position: 'relative'
-        }}>
+        <div className="user-account-health-left">
           <div 
-            style={{ position: 'relative', width: '165px', height: '165px', flexShrink: 0 }}
+            style={{ position: 'relative', width: 'clamp(145px, 12vw, 165px)', height: 'clamp(145px, 12vw, 165px)', flexShrink: 0 }}
             onMouseMove={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -468,7 +459,7 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
         </div>
 
         {/* RIGHT: Access Health Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', minWidth: 0, flex: 1 }}>
           {accessInsights.map((item, idx) => {
             const Icon = item.icon;
             return (
@@ -476,7 +467,7 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
                 key={idx} 
                 onClick={() => onNavigatePage?.(item.page, item.filter)}
                 style={{ 
-                  padding: '0.65rem 0.85rem', 
+                  padding: 'clamp(0.5rem, 0.75vw, 0.65rem) clamp(0.6rem, 0.9vw, 0.85rem)', 
                   cursor: 'pointer', 
                   borderRadius: '9px',
                   border: '1px solid var(--border-color)', 
@@ -513,8 +504,8 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
                     <Icon size={15} style={{ color: item.color }} />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.45rem', minWidth: 0 }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {item.label}
                       </span>
                       <span style={{ 
@@ -523,7 +514,8 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
                         color: item.color,
                         backgroundColor: item.bg,
                         padding: '0.05rem 0.4rem',
-                        borderRadius: '5px'
+                        borderRadius: '5px',
+                        flexShrink: 0
                       }}>
                         {item.count.toLocaleString()}
                       </span>
@@ -613,7 +605,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem 1.6rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="glass-panel" style={{ padding: 'clamp(1rem, 1.5vw, 1.5rem) clamp(1rem, 1.5vw, 1.6rem)', display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
         <div>
@@ -655,10 +647,10 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
       </div>
 
       {/* Visual Large Donut & Dynamic Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1, gap: '2.5rem', padding: '0.5rem 1rem' }}>
+      <div className="role-distribution-flex">
         {/* Large SVG Donut with dynamic metrics in Center */}
         <div 
-          style={{ position: 'relative', width: '210px', height: '210px', flexShrink: 0, margin: '0 auto' }}
+          style={{ position: 'relative', width: 'clamp(175px, 14vw, 210px)', height: 'clamp(175px, 14vw, 210px)', flexShrink: 0, margin: '0 auto' }}
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -764,7 +756,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
         </div>
 
         {/* Dynamic Legend */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minWidth: '190px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minWidth: 0 }}>
           {renderedArcs.map((seg, idx) => {
             const isHovered = hoveredIdx === idx;
             const isZero = seg.count === 0;

@@ -310,7 +310,7 @@ export default function FullInvestigationView({
       </header>
 
       {/* Main Full-Screen Investigation Body */}
-      <main style={{ flex: 1, padding: '2rem', maxWidth: '1800px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main className="page-container" style={{ maxWidth: '1800px' }}>
         
         {/* Back navigation action button when embedded in app */}
         {onBack && (
