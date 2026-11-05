@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "code": "FORBIDDEN",
+  "message": "Access denied. Audit Supervisor does not have privilege to access Ask Veyra."
+}
+

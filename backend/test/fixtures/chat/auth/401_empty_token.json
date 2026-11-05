@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "code": "INVALID_TOKEN",
+  "message": "Authentication required. Missing or malformed token."
+}
+

@@ -1,0 +1,21 @@
+{
+  "message": "Failed to retrieve privileges for user UNKNOWN_USER_404. The underlying data source encountered an error: User record not found.",
+  "intent": "PRIVILEGES_BY_USER",
+  "parameters": {
+    "userId": "UNKNOWN_USER_404"
+  },
+  "toolResult": {
+    "tool": "getPrivilegesForUser",
+    "parameters": {
+      "userId": "UNKNOWN_USER_404"
+    },
+    "dataSource": "PostgreSQL Authoritative Database",
+    "timestamp": "2026-11-04T11:05:00.000Z",
+    "success": false,
+    "error": "User 'UNKNOWN_USER_404' does not exist in security directory.",
+    "integrationRequired": false,
+    "ambiguous": false
+  },
+  "aiExplanation": "Attempted to fetch user privileges but user was not found."
+}
+

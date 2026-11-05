@@ -1,0 +1,5 @@
+{
+  "error": "AI Orchestration failed",
+  "details": "Gateway timeout (25000ms) waiting for LLM completion from upstream provider"
+}
+

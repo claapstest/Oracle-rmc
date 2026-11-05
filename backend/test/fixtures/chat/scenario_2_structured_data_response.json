@@ -1,0 +1,83 @@
+{
+  "message": "Found **907** users assigned multiple security roles out of 3,066 total accounts (29.6%).",
+  "intent": "LIST_USERS",
+  "parameters": {
+    "filterType": "MULTIPLE_ROLES"
+  },
+  "toolResult": {
+    "tool": "listUsers",
+    "parameters": {
+      "filterType": "MULTIPLE_ROLES"
+    },
+    "dataSource": "PostgreSQL Authoritative Database",
+    "timestamp": "2026-11-04T11:04:51.000Z",
+    "success": true,
+    "data": {
+      "count": 907,
+      "users": [
+        {
+          "username": "JSMITH",
+          "displayName": "John Smith",
+          "email": "jsmith@example.com",
+          "roleCount": 3,
+          "roles": ["IT Security Manager", "Accounts Payable Specialist", "Employee"]
+        },
+        {
+          "username": "ALICEC",
+          "displayName": "Alice Cooper",
+          "email": "alicec@example.com",
+          "roleCount": 2,
+          "roles": ["General Ledger Manager", "Financial Analyst"]
+        }
+      ]
+    },
+    "integrationRequired": false,
+    "ambiguous": false
+  },
+  "structuredData": {
+    "title": "Users With Multiple Assigned Roles",
+    "summary": "Found 907 users with multiple role assignments across the enterprise.",
+    "keyFindings": [
+      "907 accounts hold 2 or more distinct role grants.",
+      "High concentration of dual roles in Finance and Administration units."
+    ],
+    "riskHighlights": [
+      "Potential Segregation of Duties conflicts where operational and approving roles are combined."
+    ],
+    "table": {
+      "type": "USERS_LIST",
+      "columns": ["username", "displayName", "email", "roleCount"],
+      "rows": [
+        {
+          "username": "JSMITH",
+          "displayName": "John Smith",
+          "email": "jsmith@example.com",
+          "roleCount": 3
+        },
+        {
+          "username": "ALICEC",
+          "displayName": "Alice Cooper",
+          "email": "alicec@example.com",
+          "roleCount": 2
+        }
+      ]
+    },
+    "actions": [
+      {
+        "label": "Inspect Role Grants",
+        "actionType": "NAVIGATE",
+        "params": {
+          "page": "users"
+        }
+      }
+    ],
+    "metadata": {
+      "source": "PostgreSQL Authoritative Database",
+      "retrievedAt": "2026-11-04T11:04:51.000Z",
+      "totalCount": 3066,
+      "matchingCount": 907
+    }
+  },
+  "aiExplanation": "Query identified users having more than one assigned role."
+}
+

@@ -1,0 +1,21 @@
+{
+  "message": "Live Segregation of Duties (SoD) conflict analysis requires an active Oracle Risk Management Cloud (RMC) integration. Please configure your Oracle Fusion credentials in Settings > Integrations.",
+  "intent": "RISK_INFORMATION",
+  "parameters": {
+    "type": "SOD_CONFLICTS"
+  },
+  "toolResult": {
+    "tool": "getSodConflicts",
+    "parameters": {
+      "type": "SOD_CONFLICTS"
+    },
+    "dataSource": "Oracle Fusion (Integration Needed)",
+    "timestamp": "2026-11-04T11:05:10.000Z",
+    "success": false,
+    "error": "Oracle RMC API endpoint is not configured or currently unreachable.",
+    "integrationRequired": true,
+    "ambiguous": false
+  },
+  "aiExplanation": "Live Oracle integration is required to fetch real-time SoD conflict data."
+}
+

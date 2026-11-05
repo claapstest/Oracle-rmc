@@ -1,0 +1,8 @@
+{
+  "message": "Hello! I am VEYRA, your Oracle Fusion Security and Risk Intelligence Assistant. You can ask me about roles, users, privileges, access certifications, and Segregation of Duties conflicts.",
+  "intent": "GENERAL_CONVERSATION",
+  "parameters": {},
+  "toolResult": null,
+  "aiExplanation": "Conversational greeting - no data retrieval tool required."
+}
+

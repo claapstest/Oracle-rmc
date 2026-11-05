@@ -1,0 +1,25 @@
+{
+  "message": "A duty role in Oracle Fusion defines a set of privileges required to perform a specific business task or duty. Duty roles are assigned to job or abstract roles, not directly to users in standard RBAC architecture.",
+  "intent": "APPLICATION_KNOWLEDGE",
+  "parameters": {
+    "topic": "ROLE_ARCHITECTURE",
+    "query": "what is a duty role in oracle fusion?"
+  },
+  "toolResult": {
+    "tool": "getRoleArchitectureKnowledge",
+    "parameters": {
+      "topic": "ROLE_ARCHITECTURE"
+    },
+    "dataSource": "Authoritative Oracle Fusion RBAC Architecture Documentation",
+    "timestamp": "2026-11-04T11:04:50.000Z",
+    "success": true,
+    "data": {
+      "concept": "DUTY_ROLE",
+      "description": "Represents duties required to perform business functions."
+    },
+    "integrationRequired": false,
+    "ambiguous": false
+  },
+  "aiExplanation": "Detected inquiry about Oracle Fusion RBAC role architecture."
+}
+

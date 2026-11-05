@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "message": "Authentication required. Missing or malformed token."
+}
+

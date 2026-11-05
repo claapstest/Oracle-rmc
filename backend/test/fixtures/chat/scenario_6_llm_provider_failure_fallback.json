@@ -1,0 +1,49 @@
+{
+  "message": "Total Duty Roles: **4,004**\n\n**Category Breakdown:**\n• Duty Roles: **4,004** (85.0%)\n• Job Roles: **483** (10.2%)\n• Abstract Roles: **226** (4.8%)\n\n*Note: Response generated using local authoritative rule cache due to upstream LLM timeout.*",
+  "intent": "SECURITY_STATISTICS",
+  "parameters": {
+    "targetMetric": "DUTY_ROLES"
+  },
+  "toolResult": {
+    "tool": "SECURITY_STATISTICS",
+    "parameters": {
+      "targetMetric": "DUTY_ROLES"
+    },
+    "dataSource": "PostgreSQL Authoritative Database (Local Cache Fallback)",
+    "timestamp": "2026-11-04T11:05:20.000Z",
+    "success": true,
+    "data": {
+      "dutyRoles": 4004,
+      "totalRoles": 4713
+    },
+    "integrationRequired": false,
+    "ambiguous": false
+  },
+  "structuredData": {
+    "title": "Role Count Distribution (Fallback)",
+    "summary": "Total Duty Roles: 4,004 out of 4,713 total roles.",
+    "keyFindings": [
+      "Authoritative local cache used for metric calculation.",
+      "Duty roles constitute 85.0% of all configured roles."
+    ],
+    "riskHighlights": [],
+    "table": {
+      "type": "ROLE_DISTRIBUTION",
+      "columns": ["category", "count"],
+      "rows": [
+        { "category": "Duty Roles", "count": 4004 },
+        { "category": "Job Roles", "count": 483 },
+        { "category": "Abstract Roles", "count": 226 }
+      ]
+    },
+    "actions": [],
+    "metadata": {
+      "source": "PostgreSQL Authoritative Database (Local Cache Fallback)",
+      "retrievedAt": "2026-11-04T11:05:20.000Z",
+      "totalCount": 4713,
+      "matchingCount": 4004
+    }
+  },
+  "aiExplanation": "Upstream LLM timed out; local deterministic fallback rules engaged."
+}
+
