@@ -1,0 +1,247 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-11-04T11:12:13.028Z",
+  "targetBranch": "veyra-application-101",
+  "task": "VEYRA-101.4",
+  "fixtures": [
+    {
+      "fixtureFile": "scenario_1_text_only_response.json",
+      "scenarioId": "AV-001 / AV-010",
+      "description": "Successful text-only response: Chatbot delivers authoritative textual explanation without tabular/grid data (structuredData is undefined/omitted).",
+      "httpMethod": "POST",
+      "httpStatus": 200,
+      "requestPayload": {
+        "message": "What is a duty role in Oracle Fusion?"
+      },
+      "expectedFields": {
+        "message": "Present (string, non-empty)",
+        "intent": "Present (\"APPLICATION_KNOWLEDGE\")",
+        "parameters": "Present (object with topic and query)",
+        "toolResult": "Present (ToolExecutionResult with success: true)",
+        "structuredData": "Omitted / undefined",
+        "aiExplanation": "Present (string)"
+      },
+      "verificationStatus": "Verified via Runtime Trace",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_2_structured_data_response.json",
+      "scenarioId": "AV-002 / AV-017",
+      "description": "Successful response containing structuredData: Chatbot delivers natural language answer alongside structured payload including title, summary, keyFindings, riskHighlights, table rows/columns, actions, and metadata.",
+      "httpMethod": "POST",
+      "httpStatus": 200,
+      "requestPayload": {
+        "message": "List the users who are having multiple roles"
+      },
+      "expectedFields": {
+        "message": "Present (string, non-empty)",
+        "intent": "Present (\"LIST_USERS\")",
+        "parameters": "Present (object with filterType: \"MULTIPLE_ROLES\")",
+        "toolResult": "Present (ToolExecutionResult with success: true and data)",
+        "structuredData": "Present (object with title, summary, keyFindings, riskHighlights, table, actions, metadata)",
+        "aiExplanation": "Present (string)"
+      },
+      "verificationStatus": "Verified via Runtime Trace",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_3_null_tool_result.json",
+      "scenarioId": "AV-012",
+      "description": "Valid null toolResult response: Conversational or general response where no backend tool was invoked, yielding toolResult: null and structuredData: undefined.",
+      "httpMethod": "POST",
+      "httpStatus": 200,
+      "requestPayload": {
+        "message": "Hello, how can you help me today?"
+      },
+      "expectedFields": {
+        "message": "Present (string, non-empty conversational text)",
+        "intent": "Present (\"GENERAL_CONVERSATION\")",
+        "parameters": "Present (empty object {})",
+        "toolResult": "Strict null",
+        "structuredData": "Omitted / undefined",
+        "aiExplanation": "Present (string)"
+      },
+      "verificationStatus": "Verified via Mock Controller",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_4_tool_execution_failure.json",
+      "scenarioId": "AV-013",
+      "description": "Tool execution failure: Backend tool encounters an internal execution error (e.g., query failure, pool exhaustion, or downstream error), returning toolResult.success: false with error details and omitting structuredData.",
+      "httpMethod": "POST",
+      "httpStatus": 200,
+      "requestPayload": {
+        "message": "What privileges does user UNKNOWN_USER_404 have?"
+      },
+      "expectedFields": {
+        "message": "Present (string explaining operation failure)",
+        "intent": "Present (\"PRIVILEGES_BY_USER\")",
+        "parameters": "Present (object with target user)",
+        "toolResult": "Present (ToolExecutionResult with success: false and error string)",
+        "structuredData": "Omitted / undefined",
+        "aiExplanation": "Present (string)"
+      },
+      "verificationStatus": "Verified via Runtime Trace",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_5_oracle_integration_unavailable.json",
+      "scenarioId": "AV-014",
+      "description": "Oracle integration unavailable: Request targets live Oracle Fusion or Risk Management Cloud endpoints where integration is unconfigured or unavailable; returns integrationRequired: true flag.",
+      "httpMethod": "POST",
+      "httpStatus": 200,
+      "requestPayload": {
+        "message": "Show me Segregation of Duties conflicts from Oracle Risk Management Cloud"
+      },
+      "expectedFields": {
+        "message": "Present (Markdown formatted message indicating integration requirement)",
+        "intent": "Present (\"RISK_INFORMATION\")",
+        "parameters": "Present (object)",
+        "toolResult": "Present (ToolExecutionResult with success: false, integrationRequired: true, dataSource: \"Oracle Fusion (Integration Needed)\")",
+        "structuredData": "Omitted / undefined",
+        "aiExplanation": "Present (string)"
+      },
+      "verificationStatus": "Verified via Runtime Trace",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_6_llm_provider_failure_fallback.json",
+      "scenarioId": "AV-015 (Variant A - Graceful Fallback)",
+      "description": "LLM provider failure / timeout with graceful fallback: Upstream LLM call times out after 25s; orchestrator catches error and seamlessly generates authoritative deterministic response via local NLU and cached metrics.",
+      "httpMethod": "POST",
+      "httpStatus": 200,
+      "requestPayload": {
+        "message": "Give me count of duty roles"
+      },
+      "expectedFields": {
+        "message": "Present (string with authoritative fallback response)",
+        "intent": "Present (\"SECURITY_STATISTICS\")",
+        "parameters": "Present (object)",
+        "toolResult": "Present (ToolExecutionResult with success: true from local cache)",
+        "structuredData": "Present (structured fallback table)",
+        "aiExplanation": "Present (string indicating fallback activation)"
+      },
+      "verificationStatus": "Verified via Runtime Trace",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_6_llm_timeout_500.json",
+      "scenarioId": "AV-015 (Variant B - Gateway Timeout Error)",
+      "description": "LLM provider failure / timeout error payload: Upstream LLM gateway timeout (25s) propagating as HTTP 500 from /api/chat route catch block.",
+      "httpMethod": "POST",
+      "httpStatus": 500,
+      "requestPayload": {
+        "message": "Analyze complex cross-module Segregation of Duties toxic combinations and why they occurred"
+      },
+      "expectedFields": {
+        "message": "N/A (HTTP 500 Error Object)",
+        "intent": "N/A",
+        "parameters": "N/A",
+        "toolResult": "N/A",
+        "structuredData": "N/A",
+        "aiExplanation": "N/A",
+        "errorFields": "error: \"AI Orchestration failed\", details: string"
+      },
+      "verificationStatus": "Verified via Mock Controller",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_7_missing_message_400.json",
+      "scenarioId": "AV-003",
+      "description": "Missing message error: HTTP 400 Bad Request triggered when the client POST request body omits the required \"message\" property.",
+      "httpMethod": "POST",
+      "httpStatus": 400,
+      "requestPayload": {
+        "context": {
+          "currentView": "users"
+        }
+      },
+      "expectedFields": {
+        "message": "N/A (HTTP 400 Error Object)",
+        "intent": "N/A",
+        "parameters": "N/A",
+        "toolResult": "N/A",
+        "structuredData": "N/A",
+        "aiExplanation": "N/A",
+        "errorFields": "error: \"Message is required\""
+      },
+      "verificationStatus": "Verified via Runtime Trace",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    },
+    {
+      "fixtureFile": "scenario_7_unexpected_orchestration_500.json",
+      "scenarioId": "AV-016",
+      "description": "Unexpected orchestration failure: HTTP 500 Internal Server Error triggered when an unhandled exception occurs inside the AI orchestration pipeline.",
+      "httpMethod": "POST",
+      "httpStatus": 500,
+      "requestPayload": {
+        "message": "Trigger unhandled orchestration failure"
+      },
+      "expectedFields": {
+        "message": "N/A (HTTP 500 Error Object)",
+        "intent": "N/A",
+        "parameters": "N/A",
+        "toolResult": "N/A",
+        "structuredData": "N/A",
+        "aiExplanation": "N/A",
+        "errorFields": "error: \"AI Orchestration failed\", details: string"
+      },
+      "verificationStatus": "Verified via Mock Controller",
+      "sanitizationChecklist": {
+        "bearerTokensRemoved": true,
+        "credentialsRemoved": true,
+        "apiKeysRemoved": true,
+        "piiRemoved": true,
+        "deterministicMockData": true
+      }
+    }
+  ]
+}
