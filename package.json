@@ -24,6 +24,7 @@
     "db:provision-admin": "npm --prefix database run provision:admin",
     "db:test": "npm --prefix database run test",
     "test:chat-contract": "npm --prefix backend run test:chat-contract",
+    "test:response-composer": "npm --prefix backend run test:response-composer",
     "test:frontend-consumption": "npm --prefix backend run test:frontend-consumption"
   },
   "devDependencies": {

@@ -266,7 +266,7 @@ export interface AIResponse {
 > In the source codebase, `structuredData?: any` is declared untyped (`any`). There is no exported `StructuredData` TypeScript interface. The schema in Section 9.2 below represents the **inferred runtime view model structure** dynamically constructed by `buildStructuredResponse()`.
 
 ### 9.2 Inferred Runtime View Model Schema (`structuredData`)
-Constructed by `buildStructuredResponse()` ([`backend/src/ai/orchestrator.ts#L3135-L4168`](file:///c:/Users/Sravanth.claaps/Oracle-rmc/backend/src/ai/orchestrator.ts#L3135)):
+Constructed by `buildStructuredResponse()` ([`backend/src/ai/responseComposer.ts#L4-L1038`](file:///c:/Users/Sravanth.claaps/Oracle-rmc/backend/src/ai/responseComposer.ts#L4)):
 
 ```typescript
 // Inferred runtime shape produced by buildStructuredResponse()
@@ -659,11 +659,11 @@ Status: 200 Intent: SECURITY_STATISTICS Accepted without 400: true
 | `POST /api/chat` Route Handler | `backend/src/routes/api.ts` | Lines 1735–1807 |
 | `requireAuth` Middleware | `backend/src/routes/api.ts` | Lines 62–104 |
 | `requireAskVeyra` Authorization Middleware | `backend/src/routes/api.ts` | Lines 154–179 |
-| `AIResponse` Interface | `backend/src/ai/orchestrator.ts` | Lines 8–15 |
-| Pronoun & Context Entity Resolution (`fallbackNLU`) | `backend/src/ai/orchestrator.ts` | Lines 25–50, 1201, 1316, 1499, 1534 |
-| `processUserMessage` Pipeline Coordinator | `backend/src/ai/orchestrator.ts` | Lines 2298–3132 |
-| Context Prompt Interpolation | `backend/src/ai/orchestrator.ts` | Lines 2302–2313 |
-| `buildStructuredResponse` View Model Formatter | `backend/src/ai/orchestrator.ts` | Lines 3135–4169 |
+| `AIResponse` Interface | `backend/src/ai/orchestrator.ts` | Lines 9–16 |
+| Pronoun & Context Entity Resolution (`fallbackNLU`) | `backend/src/ai/orchestrator.ts` | Lines 26–51, 1202, 1317, 1500, 1535 |
+| `processUserMessage` Pipeline Coordinator | `backend/src/ai/orchestrator.ts` | Lines 2299–3133 |
+| Context Prompt Interpolation | `backend/src/ai/orchestrator.ts` | Lines 2303–2314 |
+| `buildStructuredResponse` View Model Formatter | `backend/src/ai/responseComposer.ts` | Lines 4–1038 (extracted in 101.7) |
 | `ToolExecutionResult` Interface & Factory | `backend/src/tools/index.ts` | Lines 26–51 |
 | Frontend `getActiveAuthToken` & Investigation Bridge | `frontend/src/services/api.ts` | Lines 5–39, 59–71 |
 | Frontend `apiRequest` Transport & Error Handling | `frontend/src/services/api.ts` | Lines 124–197 |
