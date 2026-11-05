@@ -7,9 +7,13 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from the parent directories if needed
-dotenv.config({ path: path.join(__dirname, '../.env') });
-dotenv.config(); // fallback to current working directory .env
+// Load environment variables from backend, database, or workspace root
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../database/.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+dotenv.config();
 
 export const config = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 5000,

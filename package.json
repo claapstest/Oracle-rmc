@@ -23,7 +23,8 @@
     "db:seed": "npm --prefix database run seed",
     "db:provision-admin": "npm --prefix database run provision:admin",
     "db:test": "npm --prefix database run test",
-    "test:chat-contract": "npm --prefix backend run test:chat-contract"
+    "test:chat-contract": "npm --prefix backend run test:chat-contract",
+    "test:frontend-consumption": "npm --prefix backend run test:frontend-consumption"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

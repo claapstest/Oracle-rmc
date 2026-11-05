@@ -1197,7 +1197,7 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
 
   // 4. Role Hierarchy & Inherited Roles
   if (clean.includes('hierarchy') || clean.includes('inherited') || clean.includes('tree') || clean.includes('parent') || clean.includes('child')) {
-    let roleName = 'Accounts Payable Supervisor'; // default
+    let roleName = '';
     if (context && context.entityType === 'ROLE' && context.entityName) {
       roleName = context.entityName;
     } else if (clean.includes('security manager') || clean.includes('it security')) {
@@ -1209,14 +1209,22 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     } else if (clean.includes('payroll')) {
       roleName = 'Payroll Administrator';
     } else {
-      const matchAfter = clean.match(/(?:for|of)\s+([a-zA-Z0-9_\s]+)/i);
+      const matchAfter = clean.match(/(?:for|of|in|hierarchy for|hierarchy of)\s+([a-zA-Z0-9_\s\-\/]+?)(?:\?|$|\.|\,)/i);
       if (matchAfter && matchAfter[1]) roleName = matchAfter[1].replace(/[\?\.\!]$/, '').trim();
     }
     
+    if (roleName && roleName.length > 2 && !roleName.includes('<')) {
+      return {
+        intent: 'ROLE_HIERARCHY',
+        parameters: { roleName },
+        explanation: `Detected request for Role Hierarchy and inherited roles for "${roleName}".`
+      };
+    }
+
     return {
-      intent: 'ROLE_HIERARCHY',
-      parameters: { roleName },
-      explanation: `Detected request for Role Hierarchy and inherited roles for "${roleName}".`
+      intent: 'UNKNOWN',
+      parameters: {},
+      explanation: 'Role name ambiguous or unspecified for hierarchy. Delegating to AI LLM parser.'
     };
   }
 
@@ -1297,9 +1305,9 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
 
   // 5b. Role -> Privileges & Access
   if (clean.includes('privilege') || clean.includes('policies') || clean.includes('can access security console')) {
-    let roleName = 'AP Manager'; // default
+    let roleName = '';
     const matchRoleAfter = clean.match(/(?:does|what\s+privileges?\s+does|which\s+privileges?\s+does)\s+([a-zA-Z0-9_\.@\-\s]+?)\s+(?:have|has)/i);
-    const matchRoleOf = clean.match(/(?:privileges?\s+(?:of|for)|privileges?\s+assigned\s+to)\s+([a-zA-Z0-9_\.@\-\s]+?)(?:\s+have|\s+has|\?|$)/i);
+    const matchRoleOf = clean.match(/(?:privileges?\s+(?:of|for)|privileges?\s+assigned\s+to|privileges\s+in)\s+([a-zA-Z0-9_\.@\-\s]+?)(?:\s+have|\s+has|\?|$)/i);
 
     if (matchRoleAfter && matchRoleAfter[1]) {
       roleName = matchRoleAfter[1].trim();
@@ -1313,18 +1321,30 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       roleName = 'Advanced Access Controls Analyst';
     } else if (clean.includes('security manager') || clean.includes('it security')) {
       roleName = 'IT Security Manager';
-    } else if (clean.includes('accounts payable manager')) {
+    } else if (clean.includes('accounts payable manager') || clean.includes('ap manager')) {
       roleName = 'Accounts Payable Manager';
     } else if (clean.includes('payroll')) {
       roleName = 'Payroll Administrator';
     } else if (clean.includes('employee')) {
       roleName = 'Employee';
+    } else if (clean.includes('buyer')) {
+      roleName = 'Buyer';
+    } else if (clean.includes('supplier manager') || clean.includes('supplier administrator')) {
+      roleName = 'Supplier Administrator';
+    }
+
+    if (roleName && roleName.length > 2 && !roleName.includes('<')) {
+      return {
+        intent: 'ROLE_PRIVILEGES',
+        parameters: { roleName },
+        explanation: `Detected request for privileges assigned to "${roleName}".`
+      };
     }
 
     return {
-      intent: 'ROLE_PRIVILEGES',
-      parameters: { roleName },
-      explanation: `Detected request for privileges assigned to "${roleName}".`
+      intent: 'UNKNOWN',
+      parameters: {},
+      explanation: 'Role name ambiguous or unspecified for privileges. Delegating to AI LLM parser.'
     };
   }
 
@@ -1344,6 +1364,61 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
+  // 6b. Multiple roles / Single role / Unassigned Users (Priority check before USERS_BY_ROLE to avoid rule shadowing)
+  if (
+    (clean.includes('users') || clean.includes('user')) &&
+    (clean.includes('multiple') || clean.includes('more than one') || clean.includes('several roles') || clean.includes('multi role') || clean.includes('multiple role'))
+  ) {
+    if (clean.includes('how many') || clean.includes('count') || clean.includes('total') || clean.includes('number of')) {
+      return {
+        intent: 'SECURITY_STATISTICS',
+        parameters: { targetMetric: 'MULTIPLE_ROLE_USERS' },
+        explanation: 'Retrieving count of users with multiple assigned roles.'
+      };
+    }
+    return {
+      intent: 'LIST_USERS',
+      parameters: { filterType: 'MULTIPLE_ROLES' },
+      explanation: 'Listing users assigned to multiple roles.'
+    };
+  }
+
+  if (
+    (clean.includes('users') || clean.includes('user')) &&
+    (clean.includes('no role') || clean.includes('without role') || clean.includes('without assigned') || clean.includes('unassigned role'))
+  ) {
+    if (clean.includes('how many') || clean.includes('count') || clean.includes('total') || clean.includes('number of')) {
+      return {
+        intent: 'SECURITY_STATISTICS',
+        parameters: { targetMetric: 'USERS_WITHOUT_ROLES' },
+        explanation: 'Retrieving count of users without assigned roles.'
+      };
+    }
+    return {
+      intent: 'LIST_USERS',
+      parameters: { filterType: 'NO_ROLES' },
+      explanation: 'Listing users without assigned roles.'
+    };
+  }
+
+  if (
+    (clean.includes('users') || clean.includes('user')) &&
+    (clean.includes('single role') || clean.includes('one role') || clean.includes('only one role'))
+  ) {
+    if (clean.includes('how many') || clean.includes('count') || clean.includes('total') || clean.includes('number of')) {
+      return {
+        intent: 'SECURITY_STATISTICS',
+        parameters: { targetMetric: 'SINGLE_ROLE_USERS' },
+        explanation: 'Retrieving count of single-role users.'
+      };
+    }
+    return {
+      intent: 'LIST_USERS',
+      parameters: { filterType: 'SINGLE_ROLE' },
+      explanation: 'Listing users assigned to a single role.'
+    };
+  }
+
   // 7. Users by Role (Who has role X / Users with role X / Users containing both role X and Y)
   if (clean.includes('it security manager') && clean.includes('application implementation consultant')) {
     return {
@@ -1353,25 +1428,56 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
     };
   }
 
-  if (
-    (clean.includes('who has') && clean.includes('role')) ||
-    (clean.includes('users') && (clean.includes('role') || clean.includes('roles')) && !clean.includes('no role') && !clean.includes('without role')) ||
-    (clean.includes('user') && (clean.includes('role') || clean.includes('roles')) && (clean.includes('having') || clean.includes('who are')))
-  ) {
+  const isUsersByRoleQuery = (
+    clean.includes('who has the') ||
+    clean.includes('who has role') ||
+    clean.includes('who has a role') ||
+    clean.includes('who has') ||
+    clean.includes('which users have') ||
+    clean.includes('which users hold') ||
+    clean.includes('what users have') ||
+    clean.includes('users with role') ||
+    clean.includes('users assigned to') ||
+    clean.includes('users holding') ||
+    clean.includes('users who have')
+  ) && !clean.includes('privilege') && !clean.includes('access to');
+
+  if (isUsersByRoleQuery) {
     const detectedRoles: string[] = [];
+
+    // Check for quoted roles first: "Supplier Manager", 'AP Manager'
+    const quotedRoles = clean.match(/["']([^"']+)["']/g);
+    if (quotedRoles) {
+      for (const qr of quotedRoles) {
+        const val = qr.replace(/["']/g, '').trim();
+        if (val && !detectedRoles.includes(val)) detectedRoles.push(val);
+      }
+    }
+
+    // Check for common Oracle roles explicitly
     if (clean.includes('product manager')) detectedRoles.push('Product Manager');
     if (clean.includes('access certification security administrator')) detectedRoles.push('Access Certification Security Administrator');
     if (clean.includes('ap manager') || clean.includes('accounts payable manager') || clean.includes('payables')) detectedRoles.push('AP Manager');
     if (clean.includes('it security') || clean.includes('security administrator') || clean.includes('security manager')) detectedRoles.push('IT Security Manager');
     if (clean.includes('payroll')) detectedRoles.push('Payroll Administrator');
     if (clean.includes('employee')) detectedRoles.push('Employee');
+    if (clean.includes('buyer')) detectedRoles.push('Buyer');
+    if (clean.includes('supplier manager') || clean.includes('supplier administrator')) detectedRoles.push('Supplier Administrator');
+    else if (clean.includes('supplier')) detectedRoles.push('Supplier');
     if (clean.includes('controls analyst') || clean.includes('advanced access controls') || clean.includes('advanced access control')) detectedRoles.push('Advanced Access Controls Analyst');
+    if (clean.includes('financial analyst')) detectedRoles.push('Financial Analyst');
+    if (clean.includes('general ledger')) detectedRoles.push('General Ledger Manager');
 
-    const quotedRoles = clean.match(/["']([^"']+)["']/g);
-    if (quotedRoles) {
-      for (const qr of quotedRoles) {
-        const val = qr.replace(/["']/g, '').trim();
-        if (val && !detectedRoles.includes(val)) detectedRoles.push(val);
+    // Dynamic extraction: e.g. "who has the <Role Name> role" or "who has <Role Name>"
+    if (detectedRoles.length === 0) {
+      const matchPattern = clean.match(/(?:who has|which users have|what users have|users with|users assigned to|users holding|users who have)\s+(?:the\s+)?(?:role\s+)?([a-zA-Z0-9_\s\-\/]+?)(?:\s+role|\s+roles)?(?:\?|$|\.|\,)/i);
+      if (matchPattern && matchPattern[1]) {
+        const candidate = matchPattern[1].replace(/^(?:the|a|an)\s+/i, '').trim();
+        const stopWords = ['multiple', 'more than one', 'no', 'without', 'all', 'any', 'each', 'access', 'privilege', 'roles', 'role'];
+        if (candidate.length > 2 && !stopWords.includes(candidate.toLowerCase())) {
+          const formatted = candidate.replace(/\b\w/g, c => c.toUpperCase());
+          detectedRoles.push(formatted);
+        }
       }
     }
 
@@ -1382,7 +1488,7 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
         parameters: { roles: uniqueRoles, matchMode: 'AND' },
         explanation: `Extracting users assigned to all specified roles: ${uniqueRoles.join(' and ')}.`
       };
-    } else if (uniqueRoles.length === 1) {
+    } else if (uniqueRoles.length === 1 && !uniqueRoles[0].includes('<')) {
       return {
         intent: 'USERS_BY_ROLE',
         parameters: { roleName: uniqueRoles[0] },
@@ -1390,11 +1496,20 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       };
     }
 
-    let roleName = context && context.entityType === 'ROLE' && context.entityName ? context.entityName : 'Advanced Access Controls Analyst';
+    if (context && context.entityType === 'ROLE' && context.entityName) {
+      return {
+        intent: 'USERS_BY_ROLE',
+        parameters: { roleName: context.entityName },
+        explanation: `Extracting users assigned to the "${context.entityName}" role.`
+      };
+    }
+
+    // Do NOT hardcode to 'Advanced Access Controls Analyst'.
+    // Delegate to Together AI LLM parser to extract role cleanly from natural language
     return {
-      intent: 'USERS_BY_ROLE',
-      parameters: { roleName },
-      explanation: `Extracting users assigned to the "${roleName}" role.`
+      intent: 'UNKNOWN',
+      parameters: {},
+      explanation: 'Role name ambiguous or unspecified. Delegating to AI LLM parser.'
     };
   }
 
@@ -1424,9 +1539,18 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       const possibleUser = words.find(w => !stopWords.has(w) && (w.includes('.') || w.includes('_') || w.length > 4));
       if (possibleUser) {
         userId = possibleUser.replace(/[^a-zA-Z0-9_\.@\-]/g, '');
-      } else {
-        userId = 'JSMITH'; // default fallback
       }
+    }
+
+    if (!userId || userId.toLowerCase() === 'jsmith' || userId.includes('<')) {
+      if (!context || context.entityType !== 'USER' || !context.entityId) {
+        return {
+          intent: 'UNKNOWN',
+          parameters: {},
+          explanation: 'Unable to extract username deterministically. Delegating to AI LLM parser.'
+        };
+      }
+      userId = context.entityId;
     }
 
     let roleCategory: string | undefined = undefined;
@@ -1470,10 +1594,20 @@ function fallbackNLU(message: string, context?: any): IntentExtraction {
       const possibleUser = words.find(w => w.includes('.') || w.includes('_'));
       if (possibleUser) {
         userId = possibleUser.replace(/[^a-zA-Z0-9_\.@\-]/g, '');
-      } else {
-        userId = 'JSMITH';
       }
     }
+
+    if (!userId || userId.toLowerCase() === 'jsmith' || userId.includes('<')) {
+      if (!context || context.entityType !== 'USER' || !context.entityId) {
+        return {
+          intent: 'UNKNOWN',
+          parameters: {},
+          explanation: 'Unable to extract user identifier deterministically. Delegating to AI LLM parser.'
+        };
+      }
+      userId = context.entityId;
+    }
+
     return {
       intent: 'GET_USER',
       parameters: { userId },
@@ -1749,7 +1883,7 @@ function generateFallbackExplanation(intent: string, parameters: any, toolResult
     }
       
     case 'USERS_BY_ROLE': {
-      const roleName = parameters.roleName || (Array.isArray(parameters.roles) ? parameters.roles.join(' and ') : 'Advanced Access Controls Analyst');
+      const roleName = parameters.roleName || (Array.isArray(parameters.roles) ? parameters.roles.join(' and ') : (data?.roleName || 'Specified Role'));
       const userList = Array.isArray(data?.users) ? data.users : (Array.isArray(data) ? data : []);
       const count = data?.totalMatching !== undefined ? data.totalMatching : userList.length;
       if (count === 0) {

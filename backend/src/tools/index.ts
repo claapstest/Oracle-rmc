@@ -137,6 +137,12 @@ export async function getUserTool(params: { userId: string; roleCategory?: strin
       return createResult('getUser', params, false, null, 'Parameter "userId" is required.');
     }
 
+    if (params.userId.includes('<') || params.userId.includes('>')) {
+      return createResult('getUser', params, true, {
+        message: 'Please provide a specific username (such as "FIN_IMPL", "Michelle.Perez", or "CASEY.BROWN") instead of the unedited placeholder.'
+      });
+    }
+
     // 1. Check PostgreSQL first for instantaneous (<2ms) lookup
     let data = await userRoleRawDbService.getRawUser(params.userId);
     if (!data) {
@@ -217,6 +223,15 @@ export async function getUsersByRoleTool(params: { roleName?: string; roles?: st
 
     if (roleList.length === 0) {
       return createResult('getUsersByRole', params, false, null, 'Parameter "roleName" or "roles" is required.');
+    }
+
+    if (roleList.some(r => r.includes('<') || r.includes('>'))) {
+      return createResult('getUsersByRole', params, true, {
+        users: [],
+        totalMatching: 0,
+        roleName: roleList[0],
+        message: 'Please provide a specific role name (such as "Buyer", "Supplier Administrator", "AP Manager", or "IT Security Manager") instead of the unedited placeholder.'
+      });
     }
 
     if (roleList.length === 1) {
