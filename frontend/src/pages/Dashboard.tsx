@@ -30,7 +30,6 @@ import {
 interface DashboardProps {
   currentUser?: string;
   userRole?: string;
-  onFAQSelect?: (question: string) => void;
   environmentMode: 'DEMO' | 'ORACLE_FUSION';
   onInvestigate?: (type: 'role' | 'user', id: string, name: string) => void;
   onNavigatePage?: (pageId: string, filter?: any) => void;
@@ -78,7 +77,6 @@ function getSubtitleText(username?: string): string {
 export default function Dashboard({ 
   currentUser,
   userRole,
-  onFAQSelect, 
   environmentMode,
   onInvestigate,
   onNavigatePage,
@@ -453,7 +451,7 @@ export default function Dashboard({
     );
   }
 
-  // Mock Screen 5 — Audit Supervisor dashboard (AC1-AC7). No Ask Veyra entry point anywhere in this branch.
+  // Mock Screen 5 — Audit Supervisor dashboard (AC1-AC7).
   if (isSupervisor) {
     const riskTarget = ['risk-controls', 'risk-certificates'].find((p) => can(p));
     const metricValue = (v: unknown) => (typeof v === 'number' ? v.toLocaleString() : '—');
@@ -878,31 +876,7 @@ export default function Dashboard({
           </div>
         </div>
 
-        {can('assistant') ? (
-          <button
-            onClick={() => onFAQSelect?.('Who has administrative and security privileges in Oracle Fusion?')}
-            style={{
-              backgroundColor: '#1D4ED8',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '0.65rem 1.35rem',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.25)',
-              transition: 'all 0.18s ease'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1E40AF'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1D4ED8'; }}
-          >
-            <span>Ask VEYRA</span>
-            <ArrowRight size={15} />
-          </button>
-        ) : can('audit') ? (
+        {can('audit') ? (
           <button
             onClick={() => onNavigatePage?.('audit')}
             style={{

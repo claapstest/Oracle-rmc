@@ -573,16 +573,16 @@ export default function InvestigationWorkspace({
               <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{entity.name}</span>
             </>
           ) : (
-            // Default / Ask VEYRA
+            // Default / Dashboard
             <>
               <span 
                 style={{ cursor: 'pointer', color: 'var(--text-secondary, #64748b)', transition: 'color 0.15s ease' }} 
-                onClick={() => onNavigateToPage?.('assistant')} 
-                title="Back to Ask VEYRA"
+                onClick={() => onNavigateToPage?.('dashboard')} 
+                title="Back to Dashboard"
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-blue, #2563eb)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary, #64748b)')}
               >
-                Ask VEYRA
+                Dashboard
               </span>
               <span>&gt;</span>
               {isRole ? (

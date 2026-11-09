@@ -178,7 +178,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
         clientCache.set(requestKey, { data, timestamp: Date.now() });
       } else if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
         // Invalidate cache on mutations
-        if (!endpoint.includes('/investigations') && !endpoint.includes('/chat')) {
+        if (!endpoint.includes('/investigations')) {
           clientCache.clear();
         }
       }
@@ -239,14 +239,6 @@ export const api = {
   async getAuditSupervisorMetrics(options?: { refresh?: boolean }) {
     const query = options?.refresh ? '?refresh=true' : '';
     return apiRequest(`/dashboard/metrics${query}`);
-  },
-
-  // Assistant Chat
-  async sendMessage(message: string, context?: any) {
-    return apiRequest('/chat', {
-      method: 'POST',
-      body: JSON.stringify({ message, context }),
-    });
   },
 
   // Capabilities
@@ -529,7 +521,6 @@ export const api = {
     username?: string;
     password?: string;
     token?: string;
-    groqModel?: string;
   }) {
     return apiRequest('/settings/toggle-mode', {
       method: 'POST',

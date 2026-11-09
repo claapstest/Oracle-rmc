@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   LayoutDashboard,
-  MessageSquareCode,
   Users,
   UserCheck,
   Award,
@@ -25,7 +24,6 @@ import {
 // Pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Assistant from './pages/Assistant';
 import UsersPage from './pages/Users';
 import UserManagementPage from './pages/UserManagement';
 import RolesPage from './pages/Roles';
@@ -61,7 +59,6 @@ const RISK_CHILD_IDS = new Set(RISK_CHILDREN.map(c => c.id));
 
 const TOP_LEVEL_PAGE_IDS = new Set([
   'dashboard',
-  'assistant',
   'users',
   'user-management',
   'roles',
@@ -73,7 +70,6 @@ const TOP_LEVEL_PAGE_IDS = new Set([
 
 const PAGE_TITLE_MAP: Record<string, string> = {
   dashboard: 'Dashboard',
-  assistant: 'Ask VEYRA',
   users: 'Users List',
   'user-management': 'User Management',
   roles: 'Roles Catalog',
@@ -113,15 +109,7 @@ export default function App() {
   });
   const [visitedPages, setVisitedPages] = useState<Set<string>>(() => {
     const initial = resolveStoredPage();
-    const pages = new Set([initial]);
-    // AC4 — never pre-mount Ask Veyra for sessions that may not access it.
-    // Re-verified against live backend session on mount; navigation re-adds it when allowed.
-    const storedRole = getActiveUserRole();
-    const storedPerms = getActiveUserPermissions();
-    if (canAccessPage('assistant', { isAdmin: false, role: storedRole, permissions: storedPerms })) {
-      pages.add('assistant');
-    }
-    return pages;
+    return new Set([initial]);
   });
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>(() => {
     return (localStorage.getItem('environmentMode') as 'DEMO' | 'ORACLE_FUSION') || 'ORACLE_FUSION';
@@ -133,13 +121,13 @@ export default function App() {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       return false;
     }
-    return sessionStorage.getItem('activePage') !== 'assistant';
+    return true;
   });
 
   // Automatically close sidebar drawer when resizing down to tablet/mobile viewports
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024 && isSidebarOpen && sessionStorage.getItem('activePage') === 'assistant') {
+      if (window.innerWidth < 1024 && isSidebarOpen) {
         setIsSidebarOpen(false);
       }
     };
@@ -235,9 +223,6 @@ export default function App() {
     return () => window.removeEventListener('auth:expired', handleAuthExpired);
   }, [currentUser]);
 
-  // Bridge state for FAQ clicking
-  const [faqQuestion, setFaqQuestion] = useState('');
-
   // States to pass down filters when navigating from cards
   const [initialRolesCategory, setInitialRolesCategory] = useState('ALL');
   const [rolesNavKey, setRolesNavKey] = useState(0);
@@ -291,9 +276,7 @@ export default function App() {
     ? internalPageBack.label
     : (activeInvestigation
         ? (PAGE_TITLE_MAP[activeInvestigation.sourcePage || currentPage] || 'Previous Page')
-        : (activeQueryInvestigation
-            ? 'Ask VEYRA'
-            : 'Dashboard'));
+        : 'Dashboard');
 
   // Back Button Handler: strictly page-scoped
   const handleNavigateBack = () => {
@@ -329,11 +312,7 @@ export default function App() {
         newUrl = `/?investigationId=${encodeURIComponent(item.id)}`;
       } else {
         const source = item.sourcePage || currentPage;
-        if (source === 'assistant') {
-          newUrl = `/ask-veyra/investigation/${item.type || 'user'}/${encodeURIComponent(item.id)}`;
-        } else {
-          newUrl = `/?page=${encodeURIComponent(source)}&investigate=${item.type || 'user'}&id=${encodeURIComponent(item.id)}`;
-        }
+        newUrl = `/?page=${encodeURIComponent(source)}&investigate=${item.type || 'user'}&id=${encodeURIComponent(item.id)}`;
       }
       window.history.pushState({ page: currentPage, investigation: item }, '', newUrl);
     } catch (_) { }
@@ -355,7 +334,7 @@ export default function App() {
   };
 
   const handleInvestigate = (type: 'role' | 'user', id: string, name: string, initialTab?: string, sourcePage?: string) => {
-    const resolvedSource = sourcePage || currentPage || 'assistant';
+    const resolvedSource = sourcePage || currentPage || 'dashboard';
     const entity = { type, id, name, initialTab, sourcePage: resolvedSource };
     const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab, sourcePage: resolvedSource };
     setInvestigationHistory([item]);
@@ -366,7 +345,7 @@ export default function App() {
   };
 
   const handleNavigate = (type: 'role' | 'user', id: string, name: string, initialTab?: string) => {
-    const resolvedSource = activeInvestigation?.sourcePage || currentPage || 'assistant';
+    const resolvedSource = activeInvestigation?.sourcePage || currentPage || 'dashboard';
     const entity = { type, id, name, initialTab, sourcePage: resolvedSource };
     const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, initialTab, sourcePage: resolvedSource };
     const nextInv = [...investigationHistory, item];
@@ -376,7 +355,7 @@ export default function App() {
   };
 
   const handleInvestigateFromQuery = (type: 'role' | 'user', id: string, name: string) => {
-    const resolvedSource = 'assistant';
+    const resolvedSource = 'dashboard';
     const entity = { type, id, name, sourcePage: resolvedSource };
     const item: InvestigationHistoryItem = { kind: 'entity', type, id, name, sourcePage: resolvedSource };
     const base = investigationHistory.length > 0 ? investigationHistory : (activeQueryInvestigation ? [{ kind: 'query', id: activeQueryInvestigation } as InvestigationHistoryItem] : []);
@@ -500,12 +479,12 @@ export default function App() {
     } else if (path.includes('/investigation/user/')) {
       const username = decodeURIComponent(path.split('/investigation/user/')[1] || '').trim();
       if (username) {
-        handleInvestigate('user', username, username, undefined, 'assistant');
+        handleInvestigate('user', username, username, undefined, 'dashboard');
       }
     } else if (path.includes('/investigation/role/')) {
       const roleCode = decodeURIComponent(path.split('/investigation/role/')[1] || '').trim();
       if (roleCode) {
-        handleInvestigate('role', roleCode, roleCode, undefined, 'assistant');
+        handleInvestigate('role', roleCode, roleCode, undefined, 'dashboard');
       }
     }
   }, []);
@@ -583,9 +562,7 @@ export default function App() {
     }
     setInitialCertId(certId);
 
-    if (pageId === 'assistant') {
-      setIsSidebarOpen(false); // Ask VEYRA defaults to full width
-    } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       setIsSidebarOpen(false); // Mobile drawer closes on selection
     } else {
       setIsSidebarOpen(true); // Normal pages default to visible sidebar
@@ -672,7 +649,6 @@ export default function App() {
     setIsSidebarOpen(true);
     handleClose();
     setVisitedPages(new Set(['dashboard']));
-    setFaqQuestion('');
     setInternalPageBack(null);
 
     if (reason === 'EXPIRED') {
@@ -694,11 +670,6 @@ export default function App() {
     timeoutSeconds: 15 * 60, // 15 minutes inactivity
     warningSeconds: 60       // 60 seconds warning modal
   });
-
-  const handleFAQSelect = (question: string) => {
-    setFaqQuestion(question);
-    handlePageSelect('assistant');
-  };
 
   const urlParams = new URLSearchParams(window.location.search);
   const investigationId = urlParams.get('investigationId');
@@ -773,7 +744,6 @@ export default function App() {
   // see only modules permitted by their assigned privileges.
   const allNavItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'assistant', label: 'Ask VEYRA', icon: MessageSquareCode },
     { id: 'users', label: 'Users List', icon: UserCheck },
     { id: 'user-management', label: 'User Management', icon: Users },
     { id: 'roles', label: 'Roles Catalog', icon: Award },
@@ -970,9 +940,9 @@ export default function App() {
                       <span
                         className="breadcrumb-ancestor"
                         onClick={handleClose}
-                        title={`Back to ${PAGE_TITLE_MAP[activeInvestigation.sourcePage] || (activeInvestigation.sourcePage === 'assistant' ? 'Ask VEYRA' : 'Previous Page')}`}
+                        title={`Back to ${PAGE_TITLE_MAP[activeInvestigation.sourcePage] || 'Previous Page'}`}
                       >
-                        {PAGE_TITLE_MAP[activeInvestigation.sourcePage] || (activeInvestigation.sourcePage === 'assistant' ? 'Ask VEYRA' : 'Previous Page')}
+                        {PAGE_TITLE_MAP[activeInvestigation.sourcePage] || 'Previous Page'}
                       </span>
                       <span className="breadcrumb-separator">/</span>
                     </>
@@ -992,27 +962,15 @@ export default function App() {
                   <span
                     className="breadcrumb-ancestor"
                     onClick={handleClose}
-                    title="Back to Ask VEYRA"
+                    title="Back to Dashboard"
                   >
-                    Ask VEYRA
+                    Dashboard
                   </span>
                   <span className="breadcrumb-separator">/</span>
                   <span className="breadcrumb-current">Investigation Details</span>
                 </>
               ) : currentPage === 'dashboard' ? (
                 <span className="breadcrumb-current">Dashboard</span>
-              ) : currentPage === 'assistant' ? (
-                <>
-                  <span
-                    className="breadcrumb-ancestor"
-                    onClick={() => handlePageSelect('dashboard')}
-                    title="Back to Dashboard"
-                  >
-                    Dashboard
-                  </span>
-                  <span className="breadcrumb-separator">/</span>
-                  <span className="breadcrumb-current">Ask VEYRA</span>
-                </>
               ) : RISK_CHILD_IDS.has(currentPage) ? (
                 <>
                   <span
@@ -1232,7 +1190,6 @@ export default function App() {
               <Dashboard
                 currentUser={currentUser}
                 userRole={userRole}
-                onFAQSelect={handleFAQSelect}
                 environmentMode={environmentMode}
                 onInvestigate={(type, id, name) => handleInvestigate(type, id, name, undefined, 'dashboard')}
                 hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
@@ -1242,23 +1199,6 @@ export default function App() {
               />
             </div>
           )}
-          <div style={{
-            display: currentPage === 'assistant' ? 'flex' : 'none',
-            height: '100%',
-            flexDirection: 'column'
-          }}>
-            <Assistant
-              currentUser={currentUser}
-              initialQuestion={faqQuestion}
-              clearInitialQuestion={() => setFaqQuestion('')}
-              environmentMode={environmentMode}
-              onNavigatePage={(pageId, filter) => {
-                handlePageSelect(pageId, filter);
-              }}
-              onInvestigate={(type, id, name, initialTab) => handleInvestigate(type, id, name, initialTab, 'assistant')}
-              onOpenFullInvestigation={handleOpenQueryInvestigation}
-            />
-          </div>
           {currentPage === 'users' && (
             <div style={{ height: '100%' }}>
               <UsersPage

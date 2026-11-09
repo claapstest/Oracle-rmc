@@ -1362,7 +1362,7 @@ function getTableColumns(
                     borderRadius: '4px',
                     whiteSpace: 'nowrap'
                   }}
-                  title="View worksheet directly in chat"
+                  title="View worksheet"
                 >
                   <span>Worksheet</span>
                   <ArrowRight size={11} />

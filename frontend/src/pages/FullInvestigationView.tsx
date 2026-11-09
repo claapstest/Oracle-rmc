@@ -159,7 +159,7 @@ export default function FullInvestigationView({
     if (onInvestigate) {
       onInvestigate(type, id, name);
     } else {
-      const ent = { type, id, name, sourcePage: 'assistant' };
+      const ent = { type, id, name, sourcePage: 'dashboard' };
       setInternalHistory(prev => [...prev, ent]);
       setInternalEntity(ent);
     }
@@ -174,7 +174,7 @@ export default function FullInvestigationView({
           setInternalHistory([]);
         }}
         onNavigate={(type, id, name) => {
-          const ent = { type, id, name, sourcePage: 'assistant' };
+          const ent = { type, id, name, sourcePage: 'dashboard' };
           setInternalHistory(prev => [...prev, ent]);
           setInternalEntity(ent);
         }}
@@ -262,7 +262,7 @@ export default function FullInvestigationView({
             </div>
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>Ask VEYRA Investigation</span>
+                <span>Security Investigation</span>
               </div>
             </div>
           </div>
@@ -304,7 +304,7 @@ export default function FullInvestigationView({
             style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: onBack ? 'var(--text-primary)' : 'var(--accent-red)' }}
           >
             {onBack ? <ArrowLeft size={12} /> : <X size={12} />}
-            <span>{onBack ? 'Return to Assistant' : 'Close Tab'}</span>
+            <span>{onBack ? 'Return to Previous Page' : 'Close Tab'}</span>
           </button>
         </div>
       </header>
@@ -321,7 +321,7 @@ export default function FullInvestigationView({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.4rem 0.85rem', fontWeight: 600 }}
             >
               <ArrowLeft size={14} />
-              <span>Back to Ask VEYRA Results</span>
+              <span>Back to Previous View</span>
             </button>
           </div>
         )}
@@ -334,7 +334,7 @@ export default function FullInvestigationView({
                 User Question / Query Scope
               </div>
               <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                {title || userQuery || 'Ask VEYRA Analysis'}
+                {title || userQuery || 'Security Analysis'}
               </h1>
               {userQuery && (
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>

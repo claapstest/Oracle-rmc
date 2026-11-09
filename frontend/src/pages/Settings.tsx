@@ -26,7 +26,6 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
-  const [groqModel, setGroqModel] = useState('');
   const [serverState, setServerState] = useState<any>({});
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; status?: string; message: string } | null>(null);
@@ -55,7 +54,6 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
         setBaseUrl(configState.baseUrl || '');
         setAuthType(configState.authType || 'BASIC');
         setUsername(configState.username || '');
-        setGroqModel(configState.groqModel || 'openai/gpt-oss-120b');
         setIsAdmin(true);
       } catch (err) {
         console.error('Failed to retrieve configurations:', err);
@@ -123,7 +121,7 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
 
   const handleRefreshCatalog = async () => {
     setSyncingCatalog(true);
-    setCatalogSyncMessage('Synchronization running in background. Active catalog continues serving chatbot queries.');
+    setCatalogSyncMessage('Synchronization running in background. Active catalog continues serving queries.');
     try {
       const res = await api.syncRolePrivilegeCatalog();
       if (res?.success) {
@@ -244,7 +242,6 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
         username,
         password: password || undefined,
         token: token || undefined,
-        groqModel,
       });
       setEnvironmentMode(res.settings.mode);
       setServerState(res.settings);
@@ -517,66 +514,6 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
                   )}
                 </div>
 
-              </div>
-            </div>
-
-            {/* AI Language Model Configuration Panel */}
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                <Key size={18} style={{ color: 'var(--accent-gold)' }} />
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, fontFamily: 'var(--font-header)', margin: 0 }}>
-                  AI Language Model Configuration
-                </h3>
-              </div>
-              
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
-                Configure the Together AI Large Language Model used to parse conversational queries, compile Text-to-SQL, and synthesize grounded risk findings.
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="settings-grid-split" style={{ alignItems: 'flex-start' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                      Select Together AI Model
-                    </label>
-                    <select
-                      className="form-select"
-                      style={{ width: '100%' }}
-                      value={groqModel}
-                      onChange={(e) => setGroqModel(e.target.value)}
-                    >
-                      <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Recommended Paid Production Model)</option>
-                      <option value="meta-llama/Llama-3.3-70B-Instruct-Turbo">meta-llama/Llama-3.3-70B-Instruct-Turbo (High-Speed Turbo)</option>
-                      <option value="deepseek-ai/DeepSeek-V4.1-Flash">deepseek-ai/DeepSeek-V4.1-Flash (Ultra-Low Latency)</option>
-                      <option value="mistralai/Mixtral-8x7B-Instruct-v0.1">mistralai/Mixtral-8x7B-Instruct-v0.1 (Mixture of Experts)</option>
-                      <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Legacy 20B Model)</option>
-                    </select>
-                  </div>
-
-                  <div style={{ marginTop: '1.8rem' }}>
-                    <div style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.75rem',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span className="badge" style={{
-                        backgroundColor: serverState.hasGeminiKey ? 'rgba(16, 185, 129, 0.1)' : 'rgba(217, 119, 6, 0.1)',
-                        color: serverState.hasGeminiKey ? 'var(--accent-green)' : 'var(--accent-gold)',
-                        width: '100%',
-                        textAlign: 'center',
-                        fontWeight: 600
-                      }}>
-                        {serverState.hasGeminiKey ? 'Active (Together AI Paid Engine)' : 'Fallback (Offline Keyword)'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 

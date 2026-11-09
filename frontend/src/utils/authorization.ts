@@ -11,7 +11,6 @@ export interface AuthContext {
 // Privileges (any one grants) per frontend page. 'dashboard' needs auth only.
 const PAGE_PRIVILEGES: Record<string, string[]> = {
   dashboard: [],
-  assistant: ['ASK_VEYRA'],
   users: ['USERS_LIST', 'USER_READ'],
   'user-management': ['USER_MANAGEMENT'],
   roles: ['ROLES_CATALOG', 'ROLE_READ'],

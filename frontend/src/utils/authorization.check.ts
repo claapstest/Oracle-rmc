@@ -18,10 +18,11 @@ const BARE = { isAdmin: false, role: 'VIEWER', permissions: [] as string[] };
 // AC1/AC6 — unauthenticated sees nothing
 no(canAccessPage('dashboard', null), 'anon dashboard');
 no(canAccessPage('reports', null), 'anon reports');
-// AC2 — Audit Manager reaches all seven mock-4 modules
-for (const p of ['dashboard', 'assistant', 'risk', 'reports', 'users', 'roles', 'audit']) {
+// AC2 — Audit Manager reaches core modules (AI-free: no assistant)
+for (const p of ['dashboard', 'risk', 'reports', 'users', 'roles', 'audit']) {
   ok(canAccessPage(p, AUDIT_MGR), `audit-mgr ${p}`);
 }
+no(canAccessPage('assistant', AUDIT_MGR), 'audit-mgr assistant denied (AI-free)');
 // AC3 — privileged admin-only modules hidden without grant
 no(canAccessPage('settings', AUDIT_MGR), 'audit-mgr settings');
 no(canAccessPage('command-center', AUDIT_MGR), 'audit-mgr console');
