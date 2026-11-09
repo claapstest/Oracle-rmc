@@ -133,6 +133,7 @@ export function validateConfig() {
     const missing: string[] = [];
     if (!config.entra.tenantId || config.entra.tenantId.trim() === '') missing.push('ENTRA_TENANT_ID');
     if (!config.entra.clientId || config.entra.clientId.trim() === '') missing.push('ENTRA_CLIENT_ID');
+    if (!config.entra.redirectUri || config.entra.redirectUri.trim() === '') missing.push('ENTRA_REDIRECT_URI');
     if (missing.length > 0) {
       throw new Error(`[Config Error] AUTH_PROVIDER is set to ENTRA, but required configuration is missing: ${missing.join(', ')}.`);
     }

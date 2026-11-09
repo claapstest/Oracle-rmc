@@ -16,7 +16,8 @@
     "test:story8": "node scripts/test_story_008_ai_permission_removal.cjs",
     "test:story9": "node scripts/test_story_009_regression.cjs",
     "test:regression": "node scripts/test_story_009_regression.cjs",
-    "test:auth-provider": "node scripts/test_story_auth_provider.cjs"
+    "test:auth-provider": "node scripts/test_story_auth_provider.cjs",
+    "test:story11": "tsx scripts/test_story_011_entra_oidc.ts && tsx scripts/test_story_011_external_identity.ts"
   },
   "dependencies": {
     "axios": "^1.6.8",
@@ -24,6 +25,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "jose": "^6.2.16",
     "oracle-fusion-security-assistant": "file:..",
     "pg": "^8.11.3",
     "xlsx": "^0.18.5",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Lock, Mail, AlertCircle, ArrowLeft, Key, Check, X, Eye, EyeOff, Shield, Users, FileText, ShieldAlert, Clock } from 'lucide-react';
 import { api } from '../services/api';
 import { normalizeEmail, validateLoginInputs, mapLoginError, isActiveSessionError, type LoginFieldErrors } from '../utils/loginValidation';
@@ -23,6 +23,82 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // VYR-011: Microsoft Entra ID sign-in (Authorization Code + PKCE via the backend)
+  const [entraEnabled, setEntraEnabled] = useState(false);
+  const [entraLoading, setEntraLoading] = useState(false);
+  const entraCallbackHandled = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getAuthConfig()
+      .then((res: any) => { if (!cancelled) setEntraEnabled(Boolean(res?.entraEnabled)); })
+      .catch(() => { if (!cancelled) setEntraEnabled(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Handles the IdP redirect once. The code/state are exchanged server-side.
+  useEffect(() => {
+    if (entraCallbackHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const oauthError = params.get('error');
+    if (!code && !oauthError) return;
+
+    entraCallbackHandled.current = true;
+
+    // Strip IdP params so a refresh cannot replay the callback.
+    const url = new URL(window.location.href);
+    ['code', 'state', 'session_state', 'error', 'error_description'].forEach((key) => url.searchParams.delete(key));
+    window.history.replaceState({}, '', url.toString());
+
+    if (oauthError) {
+      setError(oauthError === 'access_denied'
+        ? 'Microsoft sign-in was cancelled. Please try again.'
+        : 'Microsoft sign-in could not be completed. Please try again.');
+      return;
+    }
+
+    if (!code || !state) {
+      setError('Microsoft sign-in could not be completed. Please try again.');
+      return;
+    }
+
+    setLoading(true);
+    api.completeEntraLogin({ code, state })
+      .then((res: any) => {
+        if (res?.success && res.token) {
+          onLoginSuccess(res.email, res.token, res.environmentMode, {
+            role: res.role,
+            permissions: res.permissions,
+            isAdmin: res.isAdmin
+          });
+        } else {
+          setError(mapLoginError(res));
+        }
+      })
+      .catch((err: any) => setError(mapLoginError(err)))
+      .finally(() => setLoading(false));
+  }, [onLoginSuccess]);
+
+  const handleEntraLogin = async () => {
+    if (entraLoading || loading) return;
+    setError('');
+    setEntraLoading(true);
+    try {
+      const res = await api.startEntraLogin();
+      if (res?.authorizationUrl) {
+        window.location.assign(res.authorizationUrl);
+        return;
+      }
+      setError('Microsoft sign-in could not be started. Please try again.');
+    } catch (err: any) {
+      setError(mapLoginError(err));
+    } finally {
+      setEntraLoading(false);
+    }
+  };
 
   // View control: 'LOGIN', 'RESET_PASSWORD', or 'ACTIVE_SESSION'
   const [view, setView] = useState<'LOGIN' | 'RESET_PASSWORD' | 'ACTIVE_SESSION'>('LOGIN');

@@ -613,21 +613,6 @@ export class AuthService {
         [resolvedEmail]
       );
 
-      // If external provider (e.g. ENTRA) and user doesn't exist yet in veyra_user, auto-provision
-      if (userRes.rows.length === 0 && provider.metadata.isExternal) {
-        try {
-          const insertUser = await dbQuery(
-            `INSERT INTO veyra_user (email, display_name, status, is_local_user, password_hash, created_by)
-             VALUES ($1, $2, 'ACTIVE', false, null, 'ENTRA_FEDERATION')
-             RETURNING id, email, password_hash, display_name, status, is_local_user, last_login_at`,
-            [resolvedEmail, identity.displayName || resolvedEmail.split('@')[0]]
-          );
-          userRes = insertUser;
-        } catch (provErr) {
-          console.error('[Auth Service] Failed to provision external federated user:', provErr);
-        }
-      }
-
       if (userRes.rows.length === 0) {
         return {
           success: false,
@@ -654,215 +639,319 @@ export class AuthService {
         };
       }
 
-      // 3. AC6: Transition any expired or inactive ACTIVE sessions for this user to EXPIRED status
-      try {
-        const inactivityTimeoutMs = getInactivityTimeoutMs();
-        const cutoffTime = new Date(Date.now() - inactivityTimeoutMs);
-        await dbQuery(
-          `UPDATE veyra_session
-           SET status = 'EXPIRED'
-           WHERE user_id = $1 AND status = 'ACTIVE' 
-             AND (
-               (expires_at IS NOT NULL AND expires_at < NOW())
-               OR (last_activity_at IS NOT NULL AND last_activity_at < $2)
-             )`,
-          [dbUser.id, cutoffTime]
-        );
-      } catch (expErr) {
-        console.error('[Auth Service] Error updating expired sessions:', expErr);
-      }
-
-      // 4. AC2 & AC3: Check if an ACTIVE session already exists for this user in PostgreSQL
-      const existingActiveRes = await dbQuery(
-        `SELECT id, session_id, created_at, expires_at, last_activity_at
-         FROM veyra_session
-         WHERE user_id = $1 AND status = 'ACTIVE'
-         LIMIT 1`,
-        [dbUser.id]
-      );
-
-      if (existingActiveRes.rows.length > 0) {
-        const existingRow = existingActiveRes.rows[0];
-        const now = Date.now();
-        const inactivityTimeout = getInactivityTimeoutMs();
-        const existingLastAct = existingRow.last_activity_at ? new Date(existingRow.last_activity_at).getTime() : new Date(existingRow.created_at).getTime();
-        const existingExpires = existingRow.expires_at ? new Date(existingRow.expires_at).getTime() : (existingLastAct + inactivityTimeout);
-
-        if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout) || credentials.clientMeta?.force) {
-          await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE id = $1`, [existingRow.id]);
-          activeSessions.delete(existingRow.session_id);
-        } else {
-          await auditService.recordAuditEvent({
-            userId: dbUser.id,
-            eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
-            ipAddress,
-            userAgent,
-            targetType: 'SESSION',
-            targetId: existingRow.session_id,
-            details: { reason: 'ACTIVE_SESSION_EXISTS' }
-          }).catch(() => {});
-          return {
-            success: false,
-            code: 'ACTIVE_SESSION_EXISTS',
-            message: 'An active session already exists for this user.'
-          };
-        }
-      }
-
-      // 5. Retrieve active roles assigned via veyra_user_role -> veyra_role
-      const rolesRes = await dbQuery(
-        `SELECT r.role_code, r.role_name
-         FROM veyra_role r
-         JOIN veyra_user_role ur ON ur.role_id = r.id
-         WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
-        [dbUser.id]
-      );
-
-      // 6. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
-      const privilegesRes = await dbQuery(
-        `SELECT DISTINCT p.privilege_code
-         FROM veyra_privilege p
-         JOIN veyra_role_privilege rp ON rp.privilege_id = p.id
-         JOIN veyra_user_role ur ON ur.role_id = rp.role_id
-         WHERE ur.user_id = $1 AND p.status = 'ACTIVE'`,
-        [dbUser.id]
-      );
-
-      const assignedRoleCodes: string[] = rolesRes.rows.map((r: any) => r.role_code);
-      const isSiteAdmin = assignedRoleCodes.includes('SITE_ADMIN') || resolvedEmail === 'admin@admin.com';
-      const primaryRole = isSiteAdmin ? 'SITE_ADMIN' : (assignedRoleCodes[0] || 'VIEWER');
-
-      let permissions: string[] = privilegesRes.rows.map((p: any) => p.privilege_code);
-
-      if (isSiteAdmin) {
-        if (!permissions.includes('ALL')) {
-          permissions = ['ALL', ...permissions];
-        }
-        for (const perm of (DEFAULT_ROLE_PERMISSIONS.SITE_ADMIN || [])) {
-          if (!permissions.includes(perm)) {
-            permissions.push(perm);
-          }
-        }
-      } else if (permissions.length === 0 && DEFAULT_ROLE_PERMISSIONS[primaryRole]) {
-        permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole];
-      }
-
-      // 7. Generate cryptographically secure session identifier & expiry
-      const sessionId = crypto.randomBytes(32).toString('hex');
-      const inactivityTimeoutMs = getInactivityTimeoutMs();
-      const expiresAt = new Date(Date.now() + inactivityTimeoutMs);
-
-      // 8. Create veyra_session row with PostgreSQL partial unique constraint protection
-      try {
-        await dbQuery(
-          `INSERT INTO veyra_session (
-             session_id, user_id, status, created_at, last_activity_at, expires_at, ip_address, user_agent, created_by
-           ) VALUES ($1, $2, 'ACTIVE', NOW(), NOW(), $3, $4, $5, 'AUTH_SERVICE')`,
-          [sessionId, dbUser.id, expiresAt, ipAddress, userAgent]
-        );
-      } catch (insertErr: any) {
-        if (
-          insertErr.code === '23505' &&
-          (insertErr.constraint === 'uq_veyra_session_user_active' ||
-           insertErr.message?.includes('uq_veyra_session_user_active') ||
-           insertErr.detail?.includes('user_id'))
-        ) {
-          console.warn(`[Auth Service] Caught concurrent active session race condition for user ${dbUser.id}`);
-          await auditService.recordAuditEvent({
-            userId: dbUser.id,
-            eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
-            ipAddress,
-            userAgent,
-            targetType: 'SESSION',
-            targetId: null,
-            details: { reason: 'ACTIVE_SESSION_EXISTS', concurrency: true }
-          }).catch(() => {});
-          return {
-            success: false,
-            code: 'ACTIVE_SESSION_EXISTS',
-            message: 'An active session already exists for this user.'
-          };
-        }
-        console.error('[Auth Service] Database session creation failure:', insertErr);
-        throw insertErr;
-      }
-
-      // 9. Update last_login_at in veyra_user
-      try {
-        await dbQuery(
-          `UPDATE veyra_user SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1`,
-          [dbUser.id]
-        );
-      } catch (auditErr) {
-        console.error('[Auth Service] Failed to update last_login_at in veyra_user:', auditErr);
-      }
-
-      // Record LOGIN_SUCCESS audit event
-      await auditService.recordAuditEvent({
-        userId: dbUser.id,
-        eventType: 'LOGIN_SUCCESS',
+      return this.completeDatabaseLogin(dbUser, resolvedEmail, {
         ipAddress,
         userAgent,
-        targetType: 'SESSION',
-        targetId: sessionId,
-        details: {
-          role: primaryRole,
-          email: resolvedEmail,
-          isAdmin: isSiteAdmin,
-          provider: provider.metadata.id
-        }
-      }).catch((auditLogErr) => {
-        console.error('[Auth Service] Failed to record LOGIN_SUCCESS audit event:', auditLogErr);
+        force: Boolean(credentials.clientMeta?.force),
+        providerId: provider.metadata.id
       });
-
-      // 10. Populate in-memory session cache for fast auth verification
-      const authUser: AuthUser = {
-        userId: dbUser.id,
-        email: dbUser.email,
-        displayName: dbUser.display_name || this.generateDisplayName(dbUser.email),
-        passwordHash: null,
-        status: dbUser.status as UserStatus,
-        role: primaryRole,
-        permissions,
-        setupCompleted: true,
-        isAdmin: isSiteAdmin,
-        isActive: true,
-        lastLoginAt: new Date().toISOString(),
-        resetCode: null
-      };
-
-      const now = Date.now();
-      activeSessions.set(sessionId, {
-        token: sessionId,
-        userId: dbUser.id,
-        email: resolvedEmail,
-        displayName: authUser.displayName,
-        role: primaryRole,
-        permissions,
-        isAdmin: isSiteAdmin,
-        createdAt: now,
-        lastActivityAt: now,
-        expiresAt: expiresAt.getTime(),
-        status: 'ACTIVE'
-      });
-
-      return {
-        success: true,
-        token: sessionId,
-        userId: dbUser.id,
-        displayName: authUser.displayName,
-        email: dbUser.email,
-        normalizedEmail: resolvedEmail,
-        role: primaryRole,
-        permissions,
-        status: dbUser.status as UserStatus,
-        isAdmin: isSiteAdmin,
-        setupCompleted: true,
-        message: 'Authentication successful.'
-      };
     } catch (dbErr: any) {
       console.warn(`[Auth Service] Database query error during login: ${dbErr.message}. Attempting fallback...`);
       return this.loginLocalFallback(normalized, credentials.password || '');
+    }
+  }
+
+  /**
+   * Completes login for an already-verified identity (local password or Entra).
+   * Enforces the single-active-session policy, resolves role/privileges, and issues the session.
+   */
+  private async completeDatabaseLogin(
+    dbUser: any,
+    resolvedEmail: string,
+    clientMeta: { ipAddress: string; userAgent: string; force?: boolean; providerId?: string }
+  ): Promise<LoginResult> {
+    const ipAddress = clientMeta.ipAddress;
+    const userAgent = clientMeta.userAgent;
+    const force = Boolean(clientMeta.force);
+    const providerId = clientMeta.providerId || 'LOCAL';
+    // 3. AC6: Transition any expired or inactive ACTIVE sessions for this user to EXPIRED status
+    try {
+      const inactivityTimeoutMs = getInactivityTimeoutMs();
+      const cutoffTime = new Date(Date.now() - inactivityTimeoutMs);
+      await dbQuery(
+        `UPDATE veyra_session
+         SET status = 'EXPIRED'
+         WHERE user_id = $1 AND status = 'ACTIVE' 
+           AND (
+             (expires_at IS NOT NULL AND expires_at < NOW())
+             OR (last_activity_at IS NOT NULL AND last_activity_at < $2)
+           )`,
+        [dbUser.id, cutoffTime]
+      );
+    } catch (expErr) {
+      console.error('[Auth Service] Error updating expired sessions:', expErr);
+    }
+
+    // 4. AC2 & AC3: Check if an ACTIVE session already exists for this user in PostgreSQL
+    const existingActiveRes = await dbQuery(
+      `SELECT id, session_id, created_at, expires_at, last_activity_at
+       FROM veyra_session
+       WHERE user_id = $1 AND status = 'ACTIVE'
+       LIMIT 1`,
+      [dbUser.id]
+    );
+
+    if (existingActiveRes.rows.length > 0) {
+      const existingRow = existingActiveRes.rows[0];
+      const now = Date.now();
+      const inactivityTimeout = getInactivityTimeoutMs();
+      const existingLastAct = existingRow.last_activity_at ? new Date(existingRow.last_activity_at).getTime() : new Date(existingRow.created_at).getTime();
+      const existingExpires = existingRow.expires_at ? new Date(existingRow.expires_at).getTime() : (existingLastAct + inactivityTimeout);
+
+      if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout) || force) {
+        await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE id = $1`, [existingRow.id]);
+        activeSessions.delete(existingRow.session_id);
+      } else {
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
+          ipAddress,
+          userAgent,
+          targetType: 'SESSION',
+          targetId: existingRow.session_id,
+          details: { reason: 'ACTIVE_SESSION_EXISTS' }
+        }).catch(() => {});
+        return {
+          success: false,
+          code: 'ACTIVE_SESSION_EXISTS',
+          message: 'An active session already exists for this user.'
+        };
+      }
+    }
+
+    // 5. Retrieve active roles assigned via veyra_user_role -> veyra_role
+    const rolesRes = await dbQuery(
+      `SELECT r.role_code, r.role_name
+       FROM veyra_role r
+       JOIN veyra_user_role ur ON ur.role_id = r.id
+       WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
+      [dbUser.id]
+    );
+
+    // 6. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
+    const privilegesRes = await dbQuery(
+      `SELECT DISTINCT p.privilege_code
+       FROM veyra_privilege p
+       JOIN veyra_role_privilege rp ON rp.privilege_id = p.id
+       JOIN veyra_user_role ur ON ur.role_id = rp.role_id
+       WHERE ur.user_id = $1 AND p.status = 'ACTIVE'`,
+      [dbUser.id]
+    );
+
+    const assignedRoleCodes: string[] = rolesRes.rows.map((r: any) => r.role_code);
+    const isSiteAdmin = assignedRoleCodes.includes('SITE_ADMIN') || resolvedEmail === 'admin@admin.com';
+    const primaryRole = isSiteAdmin ? 'SITE_ADMIN' : (assignedRoleCodes[0] || 'VIEWER');
+
+    let permissions: string[] = privilegesRes.rows.map((p: any) => p.privilege_code);
+
+    if (isSiteAdmin) {
+      if (!permissions.includes('ALL')) {
+        permissions = ['ALL', ...permissions];
+      }
+      for (const perm of (DEFAULT_ROLE_PERMISSIONS.SITE_ADMIN || [])) {
+        if (!permissions.includes(perm)) {
+          permissions.push(perm);
+        }
+      }
+    } else if (permissions.length === 0 && DEFAULT_ROLE_PERMISSIONS[primaryRole]) {
+      permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole];
+    }
+
+    // 7. Generate cryptographically secure session identifier & expiry
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const inactivityTimeoutMs = getInactivityTimeoutMs();
+    const expiresAt = new Date(Date.now() + inactivityTimeoutMs);
+
+    // 8. Create veyra_session row with PostgreSQL partial unique constraint protection
+    try {
+      await dbQuery(
+        `INSERT INTO veyra_session (
+           session_id, user_id, status, created_at, last_activity_at, expires_at, ip_address, user_agent, created_by
+         ) VALUES ($1, $2, 'ACTIVE', NOW(), NOW(), $3, $4, $5, 'AUTH_SERVICE')`,
+        [sessionId, dbUser.id, expiresAt, ipAddress, userAgent]
+      );
+    } catch (insertErr: any) {
+      if (
+        insertErr.code === '23505' &&
+        (insertErr.constraint === 'uq_veyra_session_user_active' ||
+         insertErr.message?.includes('uq_veyra_session_user_active') ||
+         insertErr.detail?.includes('user_id'))
+      ) {
+        console.warn(`[Auth Service] Caught concurrent active session race condition for user ${dbUser.id}`);
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
+          ipAddress,
+          userAgent,
+          targetType: 'SESSION',
+          targetId: null,
+          details: { reason: 'ACTIVE_SESSION_EXISTS', concurrency: true }
+        }).catch(() => {});
+        return {
+          success: false,
+          code: 'ACTIVE_SESSION_EXISTS',
+          message: 'An active session already exists for this user.'
+        };
+      }
+      console.error('[Auth Service] Database session creation failure:', insertErr);
+      throw insertErr;
+    }
+
+    // 9. Update last_login_at in veyra_user
+    try {
+      await dbQuery(
+        `UPDATE veyra_user SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [dbUser.id]
+      );
+    } catch (auditErr) {
+      console.error('[Auth Service] Failed to update last_login_at in veyra_user:', auditErr);
+    }
+
+    // Record LOGIN_SUCCESS audit event
+    await auditService.recordAuditEvent({
+      userId: dbUser.id,
+      eventType: 'LOGIN_SUCCESS',
+      ipAddress,
+      userAgent,
+      targetType: 'SESSION',
+      targetId: sessionId,
+      details: {
+        role: primaryRole,
+        email: resolvedEmail,
+        isAdmin: isSiteAdmin,
+        provider: providerId
+      }
+    }).catch((auditLogErr) => {
+      console.error('[Auth Service] Failed to record LOGIN_SUCCESS audit event:', auditLogErr);
+    });
+
+    // 10. Populate in-memory session cache for fast auth verification
+    const authUser: AuthUser = {
+      userId: dbUser.id,
+      email: dbUser.email,
+      displayName: dbUser.display_name || this.generateDisplayName(dbUser.email),
+      passwordHash: null,
+      status: dbUser.status as UserStatus,
+      role: primaryRole,
+      permissions,
+      setupCompleted: true,
+      isAdmin: isSiteAdmin,
+      isActive: true,
+      lastLoginAt: new Date().toISOString(),
+      resetCode: null
+    };
+
+    const now = Date.now();
+    activeSessions.set(sessionId, {
+      token: sessionId,
+      userId: dbUser.id,
+      email: resolvedEmail,
+      displayName: authUser.displayName,
+      role: primaryRole,
+      permissions,
+      isAdmin: isSiteAdmin,
+      createdAt: now,
+      lastActivityAt: now,
+      expiresAt: expiresAt.getTime(),
+      status: 'ACTIVE'
+    });
+
+    return {
+      success: true,
+      token: sessionId,
+      userId: dbUser.id,
+      displayName: authUser.displayName,
+      email: dbUser.email,
+      normalizedEmail: resolvedEmail,
+      role: primaryRole,
+      permissions,
+      status: dbUser.status as UserStatus,
+      isAdmin: isSiteAdmin,
+      setupCompleted: true,
+      message: 'Authentication successful.'
+    };
+  }
+
+  /**
+   * Resolves an Entra-authenticated identity to an existing ACTIVE VEYRA user.
+   * Fails closed: never auto-provisions and never falls back to the local user store.
+   */
+  public async loginWithExternalIdentity(
+    rawEmail: string,
+    clientMeta?: { ipAddress?: string; userAgent?: string }
+  ): Promise<LoginResult> {
+    const normalized = this.normalizeEmail(rawEmail);
+    if (!normalized || !this.validateEmailFormat(normalized)) {
+      return {
+        success: false,
+        code: 'IDENTITY_NOT_PROVISIONED',
+        message: 'Your Microsoft account is not authorized to access VEYRA.'
+      };
+    }
+
+    let rawIp = clientMeta?.ipAddress || '127.0.0.1';
+    if (rawIp.startsWith('::ffff:')) {
+      rawIp = rawIp.replace('::ffff:', '');
+    }
+    const ipAddress = (rawIp === '::1' || /^[\d.]+$/.test(rawIp) || /^[a-fA-F0-9:]+$/.test(rawIp)) ? rawIp : '127.0.0.1';
+    const userAgent = (clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
+
+    try {
+      const userRes = await dbQuery(
+        `SELECT id, email, password_hash, display_name, status, is_local_user, last_login_at
+         FROM veyra_user
+         WHERE email = $1`,
+        [normalized]
+      );
+
+      if (userRes.rows.length === 0) {
+        await auditService.recordAuditEvent({
+          userId: null,
+          eventType: 'LOGIN_FAILED',
+          ipAddress,
+          userAgent,
+          targetType: 'USER',
+          targetId: null,
+          details: { reason: 'IDENTITY_NOT_PROVISIONED' }
+        }).catch(() => {});
+        return {
+          success: false,
+          code: 'IDENTITY_NOT_PROVISIONED',
+          message: 'Your Microsoft account is not authorized to access VEYRA.'
+        };
+      }
+
+      const dbUser = userRes.rows[0];
+      if (dbUser.status !== 'ACTIVE') {
+        await auditService.recordAuditEvent({
+          userId: dbUser.id,
+          eventType: 'LOGIN_FAILED',
+          ipAddress,
+          userAgent,
+          targetType: 'USER',
+          targetId: dbUser.id,
+          details: { reason: 'ACCOUNT_INACTIVE', status: dbUser.status }
+        }).catch(() => {});
+        return {
+          success: false,
+          status: dbUser.status as UserStatus,
+          message: 'Your account is not active. Please contact a system administrator.'
+        };
+      }
+
+      return await this.completeDatabaseLogin(dbUser, normalized, {
+        ipAddress,
+        userAgent,
+        force: false,
+        providerId: 'ENTRA'
+      });
+    } catch (err) {
+      console.error('[Auth Service] Entra identity resolution failed:', err);
+      return {
+        success: false,
+        code: 'AUTH_BACKEND_UNAVAILABLE',
+        message: 'Sign-in is temporarily unavailable. Please try again.'
+      };
     }
   }
 

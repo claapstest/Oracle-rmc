@@ -286,23 +286,19 @@ async function runTests() {
     'LocalAuthenticationProvider resolves identity by normalized email'
   );
 
-  // 4.2 EntraAuthenticationProvider identity resolution and token authentication
+  // 4.2 EntraAuthenticationProvider fails closed on raw tokens (VYR-011)
   const testEntraProvider = new EntraAuthenticationProvider({
     tenantId: 'mock-tenant-001',
     clientId: 'mock-client-001'
   });
 
-  const entraAuthSuccess = await testEntraProvider.authenticate({
+  const entraAuthAttempt = await testEntraProvider.authenticate({
     token: 'mock_entra_token_valid',
     email: 'sarah.chen@claaps.com'
   });
   assert(
-    entraAuthSuccess.success === true && entraAuthSuccess.identity?.email === 'sarah.chen@claaps.com',
-    'EntraAuthenticationProvider authenticates valid federated token'
-  );
-  assert(
-    entraAuthSuccess.identity?.metadata?.provider === 'ENTRA',
-    'Entra identity includes external provider metadata'
+    entraAuthAttempt.success === false && entraAuthAttempt.code === 'ENTRA_AUTH_FAILED',
+    'EntraAuthenticationProvider rejects unverified tokens; the BFF callback is the only Entra path'
   );
 
   const entraMissingCreds = await testEntraProvider.authenticate({});

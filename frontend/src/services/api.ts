@@ -156,7 +156,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
         const message = errorData.message || errorData.error || `Request failed with status ${res.status}`;
         const code = errorData.code || errorData.errorCode || errorData.error_code;
 
-        if (res.status === 401 && endpoint !== '/auth/login') {
+        if (res.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/entra/callback') {
           const isExplicitSessionExpiry = code === 'SESSION_EXPIRED' || code === 'INVALID_TOKEN' || endpoint === '/auth/status' || endpoint === '/auth/refresh';
           if (isExplicitSessionExpiry) {
             console.warn('[API Service] Explicit session expiration received. Redirecting to login.');
@@ -540,6 +540,22 @@ export const api = {
   },
 
   // Authentication APIs
+  async getAuthConfig() {
+    return apiRequest('/auth/config');
+  },
+
+  async startEntraLogin() {
+    return apiRequest('/auth/entra/start', { credentials: 'include' });
+  },
+
+  async completeEntraLogin(params: { code: string; state: string }) {
+    return apiRequest('/auth/entra/callback', {
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify(params),
+    });
+  },
+
   async login(params: { email: string; password?: string; force?: boolean }) {
     return apiRequest('/auth/login', {
       method: 'POST',
