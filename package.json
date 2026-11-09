@@ -26,8 +26,5 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
-  },
-  "dependencies": {
-    "node-sql-parser": "^5.4.0"
   }
 }

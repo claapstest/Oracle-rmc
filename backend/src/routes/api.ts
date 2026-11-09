@@ -17,10 +17,6 @@ import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
 import { entitlementService } from '../services/entitlementService.js';
-import { schemaDiscoveryService } from '../services/schemaDiscoveryService.js';
-import { metadataCatalogService } from '../services/metadataCatalogService.js';
-import { universalDatabaseChatbotService } from '../services/universalDatabaseChatbotService.js';
-import { observabilityTraceService } from '../services/observabilityTraceService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1699,59 +1695,6 @@ apiRouter.get('/admin/users/summary', requirePrivilege('USER_MANAGEMENT'), (_req
     });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
-  }
-});
-
-
-// Universal Schema-Aware Database Chatbot Endpoints
-apiRouter.get('/database/schema', async (req: Request, res: Response) => {
-  try {
-    const force = req.query.refresh === 'true';
-    const schema = await schemaDiscoveryService.discoverSchema(force);
-    res.json({ success: true, schema });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-apiRouter.post('/database/schema/refresh', async (req: Request, res: Response) => {
-  try {
-    const schema = await schemaDiscoveryService.refreshSchema();
-    res.json({ success: true, tableCount: Object.keys(schema.tables).length, refreshedAt: schema.discoveredAt });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-apiRouter.get('/database/relationships', async (req: Request, res: Response) => {
-  try {
-    const relationships = await metadataCatalogService.getAllRelationships();
-    res.json({ success: true, count: relationships.length, relationships });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-apiRouter.get('/ai/universal-traces', async (req: Request, res: Response) => {
-  try {
-    const limit = parseInt(req.query.limit as string || '25', 10);
-    const traces = observabilityTraceService.getRecentTraces(limit);
-    res.json({ success: true, count: traces.length, traces });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-apiRouter.post('/ai/universal-query', async (req: Request, res: Response) => {
-  try {
-    const { query, context } = req.body;
-    if (!query) {
-      return res.status(400).json({ error: 'Query parameter is required' });
-    }
-    const result = await universalDatabaseChatbotService.processQuery(query, context);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: 'Universal query failed', details: err.message });
   }
 });
 

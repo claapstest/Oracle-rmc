@@ -1,5 +1,4 @@
 import { oracleService } from './oracleService.js';
-import { tools } from '../tools/index.js';
 import { config } from '../config.js';
 import { query as dbQuery } from '../db.js';
 import { reportDbService } from './reportDbService.js';
