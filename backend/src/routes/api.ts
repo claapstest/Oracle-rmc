@@ -127,7 +127,7 @@ export function requirePrivilege(requiredPrivileges: string | string[]) {
       const userPermSet = new Set(
         userPermissions.filter(Boolean).map(x => String(x).trim().toUpperCase())
       );
-      const hasPrivilege = reqPrivList.some(p => 
+      const hasPrivilege = reqPrivList.some(p =>
         p && userPermSet.has(String(p).trim().toUpperCase())
       );
 
@@ -333,7 +333,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
       logAudit(rawEmail, 'LOGIN_REJECTED', 'Invalid credentials (401 Unauthorized)');
       return res.status(401).json({ success: false, message: result.message });
     }
-    
+
     logAudit(result.normalizedEmail || rawEmail, 'USER_LOGIN', `Successful login (${result.role || 'User'}, isAdmin: ${result.isAdmin})`);
     return res.json({
       success: true,
@@ -516,7 +516,7 @@ apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT')
     if (!result) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
-    
+
     logAudit(res.locals.email, active ? 'ADMIN_ACTIVATE_ACCOUNT' : 'ADMIN_DEACTIVATE_ACCOUNT', `Updated status for ${email}`);
     res.json({ success: true, message: `Account status updated for ${email}.` });
   } catch (err) {
@@ -575,7 +575,7 @@ apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEME
     if (!result) {
       return res.status(404).json({ success: false, message: 'User not found or has no active reset code.' });
     }
-    
+
     logAudit(res.locals.email, 'ADMIN_REVOKE_RESET_CODE', `Revoked reset code for user ${email}`);
     res.json({ success: true, message: `Active reset code revoked for user ${email}.` });
   } catch (err) {
@@ -623,7 +623,7 @@ function validateAndNormalizeUrl(url: string): string {
 apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
   const adminUser = res.locals.email || res.locals.username;
   logAudit(adminUser, 'READ_SETTINGS', 'Retrieved settings metadata');
-  
+
   res.json({
     mode: config.environmentMode,
     baseUrl: config.oracle.baseUrl,
@@ -643,22 +643,22 @@ apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION
   const adminUser = res.locals.email || res.locals.username;
   try {
     const { baseUrl, authType, username, password, token } = req.body;
-    
+
     if (baseUrl !== undefined) {
       const normalizedBaseUrl = validateAndNormalizeUrl(baseUrl);
-      
+
       let testPassword = password;
       let testToken = token;
-      
+
       if (authType === 'BASIC' && !testPassword && username === config.oracle.username) {
         testPassword = config.oracle.password;
       }
       if (authType === 'BEARER' && !testToken) {
         testToken = config.oracle.token;
       }
-      
+
       logAudit(adminUser, 'TEST_CONNECTION_ATTEMPTED', `Proposed Base URL: ${normalizedBaseUrl}, Auth Type: ${authType}`);
-      
+
       const result = await oracleService.testConnection({
         baseUrl: normalizedBaseUrl,
         authType: authType as 'BASIC' | 'BEARER',
@@ -666,11 +666,11 @@ apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION
         password: testPassword,
         token: testToken
       });
-      
+
       logAudit(adminUser, 'TEST_CONNECTION_RESULT', `Success: ${result.success}, Status: ${result.status}`);
       return res.json(result);
     }
-    
+
     logAudit(adminUser, 'TEST_CONNECTION_ATTEMPTED', 'Current configuration test');
     const result = await oracleService.testConnection();
     logAudit(adminUser, 'TEST_CONNECTION_RESULT', `Success: ${result.success}, Status: ${result.status}`);
@@ -696,19 +696,19 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
     } else if (mode === undefined) {
       config.environmentMode = 'ORACLE_FUSION';
     }
-    
+
     if (baseUrl !== undefined) {
       config.oracle.baseUrl = validateAndNormalizeUrl(baseUrl);
     }
     if (username !== undefined) config.oracle.username = username;
-    
+
     if (password !== undefined && password !== '') {
       config.oracle.password = password;
     }
     if (token !== undefined && token !== '') {
       config.oracle.token = token;
     }
-    
+
     if (authType !== undefined) {
       config.oracle.authType = authType.toUpperCase() as 'BASIC' | 'BEARER';
     }
@@ -1769,7 +1769,7 @@ apiRouter.get('/users/:id', requireUsersListAccess, async (req: Request, res: Re
       try {
         const scopes = await authService.getUserApplicationScopes(user.id || user.email);
         (user as any).applicationScopes = scopes;
-      } catch (_) {}
+      } catch (_) { }
 
       logAudit(res.locals.email || 'UNKNOWN', 'READ_USER_DETAIL', `Viewed user details for ${user.email}`);
       return res.status(200).json({ success: true, user });
