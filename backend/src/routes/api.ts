@@ -5,6 +5,7 @@ import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogSer
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
+import { getAuthenticationProvider } from '../auth/index.js';
 import { auditProductCatalogService } from '../services/auditProductCatalogService.js';
 import { commandCenterService } from '../services/commandCenterService.js';
 import { userAccessReportService } from '../services/userAccessReportService.js';
@@ -305,18 +306,44 @@ export function requireUsersListAccess(req: Request, res: Response, next: () => 
 
 // --- Authentication Endpoints ---
 
-// POST /auth/login - VEYRA User Sign In (AC1-AC8)
+// GET /auth/provider - Expose Active Authentication Provider Metadata (AC1, AC3)
+apiRouter.get('/auth/provider', (_req: Request, res: Response) => {
+  const provider = getAuthenticationProvider();
+  res.json({
+    success: true,
+    provider: provider.getMetadata()
+  });
+});
+
+// POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled)
 apiRouter.post('/auth/login', async (req: Request, res: Response) => {
-  const { email: rawEmail, password, force } = req.body;
-  if (!rawEmail || !password) {
-    logAudit(rawEmail || 'unknown', 'LOGIN_REJECTED', 'Missing email or password (400 Bad Request)');
-    return res.status(400).json({ success: false, message: 'Please provide email and password.' });
+  // Provider choice is strictly bound to server configuration, never user-controlled request parameters
+  const provider = getAuthenticationProvider();
+
+  if (req.body.provider && typeof req.body.provider === 'string' && req.body.provider.toUpperCase() !== provider.metadata.type) {
+    logAudit(req.body.email || 'unknown', 'SECURITY_WARNING',
+      `Client attempted to override AUTH_PROVIDER with "${req.body.provider}". Enforcing configured deployment provider "${provider.metadata.type}".`
+    );
+  }
+
+  const { email: rawEmail, password, code, token, force } = req.body;
+  if (!rawEmail && !token && !code) {
+    logAudit('unknown', 'LOGIN_REJECTED', 'Missing authentication credentials (400 Bad Request)');
+    return res.status(400).json({ success: false, message: 'Please provide authentication credentials.' });
   }
 
   try {
     const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
     const userAgent = req.get('user-agent') || 'Unknown Client';
-    const result = await authService.login(rawEmail, password, { ipAddress: rawIp, userAgent, force: Boolean(force) });
+
+    // Controller consumes the AuthenticationProvider abstraction via authService
+    const result = await authService.authenticateWithProvider(provider, {
+      email: rawEmail,
+      password,
+      code,
+      token,
+      clientMeta: { ipAddress: rawIp, userAgent, force: Boolean(force) }
+    });
 
     if (!result.success) {
       if (result.code === 'ACTIVE_SESSION_EXISTS') {
@@ -334,7 +361,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: result.message });
     }
 
-    logAudit(result.normalizedEmail || rawEmail, 'USER_LOGIN', `Successful login (${result.role || 'User'}, isAdmin: ${result.isAdmin})`);
+    logAudit(result.normalizedEmail || rawEmail, 'USER_LOGIN', `Successful login (${result.role || 'User'}, isAdmin: ${result.isAdmin}) [Provider: ${provider.metadata.type}]`);
     return res.json({
       success: true,
       token: result.token,
@@ -348,6 +375,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
       isAdmin: result.isAdmin,
       setupCompleted: result.setupCompleted,
       environmentMode: config.environmentMode,
+      authProvider: provider.metadata.type,
       message: result.message
     });
   } catch (err) {

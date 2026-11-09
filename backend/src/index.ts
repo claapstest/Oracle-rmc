@@ -11,6 +11,7 @@ import { auditRawDbService } from './services/auditRawDbService.js';
 import { auditProductCatalogService } from './services/auditProductCatalogService.js';
 import { scheduledSyncService } from './services/scheduledSyncService.js';
 import { apiRouter } from './routes/api.js';
+import { initializeAuthProvider } from './auth/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,6 +88,7 @@ app.use((req, res) => {
 loadPersistedConfig();
 oracleService.recreateClient();
 validateConfig();
+const authProvider = initializeAuthProvider();
 rolePrivilegeCatalogService.initialize(oracleService);
 privilegeRoleCatalogService.initialize();
 app.listen(config.port, '0.0.0.0', () => {
@@ -94,6 +96,7 @@ app.listen(config.port, '0.0.0.0', () => {
   console.log(`  Oracle Fusion Security & Risk Intelligence Assistant`);
   console.log(`  Server is listening on port: http://localhost:${config.port}`);
   console.log(`  Environment Mode: ${config.environmentMode}`);
+  console.log(`  Auth Provider:    ${authProvider.getMetadata().name} (${authProvider.getMetadata().type})`);
   console.log(`===========================================================`);
   // Scheduled Off-Peak Sync: Syncs full Oracle baseline data daily at 11:00 PM during non-working hours.
   // Sync is NEVER triggered on user login or by multiple concurrent users.

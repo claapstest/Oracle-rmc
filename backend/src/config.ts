@@ -15,6 +15,13 @@ export const config = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   environmentMode: (process.env.ENVIRONMENT_MODE || 'ORACLE_FUSION').toUpperCase() as 'DEMO' | 'ORACLE_FUSION',
+  authProvider: (process.env.AUTH_PROVIDER || 'LOCAL').trim().toUpperCase() as 'LOCAL' | 'ENTRA',
+  entra: {
+    tenantId: process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID || '',
+    clientId: process.env.ENTRA_CLIENT_ID || process.env.AZURE_CLIENT_ID || '',
+    clientSecret: process.env.ENTRA_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET || '',
+    redirectUri: process.env.ENTRA_REDIRECT_URI || '',
+  },
   oracle: {
     baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',
     authType: (process.env.ORACLE_AUTH_TYPE || 'BASIC').toUpperCase() as 'BASIC' | 'BEARER',
@@ -116,6 +123,22 @@ export function savePersistedConfig() {
 }
 
 export function validateConfig() {
+  // 1. Validate AUTH_PROVIDER deployment configuration (fails closed if invalid or missing required keys)
+  const providerType = config.authProvider;
+  if (providerType !== 'LOCAL' && providerType !== 'ENTRA') {
+    throw new Error(`[Config Error] Invalid AUTH_PROVIDER "${providerType}". Supported providers are LOCAL and ENTRA.`);
+  }
+
+  if (providerType === 'ENTRA') {
+    const missing: string[] = [];
+    if (!config.entra.tenantId || config.entra.tenantId.trim() === '') missing.push('ENTRA_TENANT_ID');
+    if (!config.entra.clientId || config.entra.clientId.trim() === '') missing.push('ENTRA_CLIENT_ID');
+    if (missing.length > 0) {
+      throw new Error(`[Config Error] AUTH_PROVIDER is set to ENTRA, but required configuration is missing: ${missing.join(', ')}.`);
+    }
+  }
+
+  // 2. Validate Oracle configuration if active
   if (config.environmentMode === 'ORACLE_FUSION') {
     if (!config.oracle.baseUrl) {
       console.warn('[Config Warning] ENVIRONMENT_MODE is set to ORACLE_FUSION, but ORACLE_FUSION_BASE_URL is missing.');

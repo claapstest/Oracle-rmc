@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { query as dbQuery, pool } from '../db.js';
 import { auditService } from './auditService.js';
+import { AuthenticationProvider, AuthCredentials, getAuthenticationProvider } from '../auth/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -541,48 +542,41 @@ export class AuthService {
    * Main Login Handler for Claaps VEYRA using PostgreSQL as Single Source of Truth
    * Enforces SINGLE ACTIVE SESSION per user via database check + partial unique index.
    */
-  public async login(
-    rawEmail: string,
-    rawPassword: string,
-    clientMeta?: { ipAddress?: string; userAgent?: string; force?: boolean }
+  public async authenticateWithProvider(
+    provider: AuthenticationProvider,
+    credentials: AuthCredentials
   ): Promise<LoginResult> {
-    // 1. Normalization: trim and lowercase email before database lookup
+    const rawEmail = credentials.email || '';
     const normalized = this.normalizeEmail(rawEmail);
 
-    if (!normalized || !rawPassword) {
-      return {
-        success: false,
-        message: GENERIC_AUTH_FAILURE_MSG
-      };
-    }
-
-    if (!this.validateEmailFormat(normalized)) {
-      // Generic failure response (never reveal format error vs credentials)
-      return {
-        success: false,
-        message: GENERIC_AUTH_FAILURE_MSG
-      };
+    if (provider.metadata.type === 'LOCAL') {
+      if (!normalized || !credentials.password) {
+        return {
+          success: false,
+          message: GENERIC_AUTH_FAILURE_MSG
+        };
+      }
+      if (!this.validateEmailFormat(normalized)) {
+        return {
+          success: false,
+          message: GENERIC_AUTH_FAILURE_MSG
+        };
+      }
     }
 
     // Sanitize client metadata early for audit logging
-    let rawIp = clientMeta?.ipAddress || '127.0.0.1';
+    let rawIp = credentials.clientMeta?.ipAddress || '127.0.0.1';
     if (rawIp.startsWith('::ffff:')) {
       rawIp = rawIp.replace('::ffff:', '');
     }
     const ipAddress = (rawIp === '::1' || /^[\d.]+$/.test(rawIp) || /^[a-fA-F0-9:]+$/.test(rawIp)) ? rawIp : '127.0.0.1';
-    const userAgent = (clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
+    const userAgent = (credentials.clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
 
     try {
-      // 2. Query veyra_user from PostgreSQL by normalized email
-      const userRes = await dbQuery(
-        `SELECT id, email, password_hash, display_name, status, is_local_user, last_login_at
-         FROM veyra_user
-         WHERE email = $1`,
-        [normalized]
-      );
+      // 1. Delegate credential verification to AuthenticationProvider abstraction
+      const authResult = await provider.authenticate(credentials);
 
-      // 3. If user does not exist in database, return generic failure (no account enumeration)
-      if (userRes.rows.length === 0) {
+      if (!authResult.success) {
         await auditService.recordAuditEvent({
           userId: null,
           eventType: 'LOGIN_FAILED',
@@ -590,8 +584,51 @@ export class AuthService {
           userAgent,
           targetType: 'USER',
           targetId: null,
-          details: { reason: 'INVALID_CREDENTIALS' }
+          details: { reason: authResult.code || 'INVALID_CREDENTIALS', provider: provider.metadata.id }
         }).catch(() => {});
+
+        return {
+          success: false,
+          code: authResult.code,
+          status: authResult.status as UserStatus | undefined,
+          message: authResult.message || GENERIC_AUTH_FAILURE_MSG
+        };
+      }
+
+      const identity = authResult.identity;
+      if (!identity || !identity.email) {
+        return {
+          success: false,
+          message: GENERIC_AUTH_FAILURE_MSG
+        };
+      }
+
+      const resolvedEmail = this.normalizeEmail(identity.email);
+
+      // 2. Query or locate veyra_user for local authorization mapping & session tracking
+      let userRes = await dbQuery(
+        `SELECT id, email, password_hash, display_name, status, is_local_user, last_login_at
+         FROM veyra_user
+         WHERE email = $1`,
+        [resolvedEmail]
+      );
+
+      // If external provider (e.g. ENTRA) and user doesn't exist yet in veyra_user, auto-provision
+      if (userRes.rows.length === 0 && provider.metadata.isExternal) {
+        try {
+          const insertUser = await dbQuery(
+            `INSERT INTO veyra_user (email, display_name, status, is_local_user, password_hash, created_by)
+             VALUES ($1, $2, 'ACTIVE', false, null, 'ENTRA_FEDERATION')
+             RETURNING id, email, password_hash, display_name, status, is_local_user, last_login_at`,
+            [resolvedEmail, identity.displayName || resolvedEmail.split('@')[0]]
+          );
+          userRes = insertUser;
+        } catch (provErr) {
+          console.error('[Auth Service] Failed to provision external federated user:', provErr);
+        }
+      }
+
+      if (userRes.rows.length === 0) {
         return {
           success: false,
           message: GENERIC_AUTH_FAILURE_MSG
@@ -600,7 +637,6 @@ export class AuthService {
 
       const dbUser = userRes.rows[0];
 
-      // 4. Validate user status: only ACTIVE accounts may authenticate (AC7)
       if (dbUser.status !== 'ACTIVE') {
         await auditService.recordAuditEvent({
           userId: dbUser.id,
@@ -618,41 +654,7 @@ export class AuthService {
         };
       }
 
-      // 5. Password verification against veyra_user.password_hash using bcrypt
-      if (!dbUser.password_hash) {
-        await auditService.recordAuditEvent({
-          userId: dbUser.id,
-          eventType: 'LOGIN_FAILED',
-          ipAddress,
-          userAgent,
-          targetType: 'USER',
-          targetId: dbUser.id,
-          details: { reason: 'INVALID_CREDENTIALS' }
-        }).catch(() => {});
-        return {
-          success: false,
-          message: GENERIC_AUTH_FAILURE_MSG
-        };
-      }
-
-      const isMatch = bcrypt.compareSync(rawPassword, dbUser.password_hash);
-      if (!isMatch) {
-        await auditService.recordAuditEvent({
-          userId: dbUser.id,
-          eventType: 'LOGIN_FAILED',
-          ipAddress,
-          userAgent,
-          targetType: 'USER',
-          targetId: dbUser.id,
-          details: { reason: 'INVALID_CREDENTIALS' }
-        }).catch(() => {});
-        return {
-          success: false,
-          message: GENERIC_AUTH_FAILURE_MSG
-        };
-      }
-
-      // 6. AC6: Transition any expired or inactive ACTIVE sessions for this user to EXPIRED status
+      // 3. AC6: Transition any expired or inactive ACTIVE sessions for this user to EXPIRED status
       try {
         const inactivityTimeoutMs = getInactivityTimeoutMs();
         const cutoffTime = new Date(Date.now() - inactivityTimeoutMs);
@@ -670,7 +672,7 @@ export class AuthService {
         console.error('[Auth Service] Error updating expired sessions:', expErr);
       }
 
-      // 7. AC2 & AC3: Check if an ACTIVE session already exists for this user in PostgreSQL
+      // 4. AC2 & AC3: Check if an ACTIVE session already exists for this user in PostgreSQL
       const existingActiveRes = await dbQuery(
         `SELECT id, session_id, created_at, expires_at, last_activity_at
          FROM veyra_session
@@ -686,12 +688,10 @@ export class AuthService {
         const existingLastAct = existingRow.last_activity_at ? new Date(existingRow.last_activity_at).getTime() : new Date(existingRow.created_at).getTime();
         const existingExpires = existingRow.expires_at ? new Date(existingRow.expires_at).getTime() : (existingLastAct + inactivityTimeout);
 
-        if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout) || clientMeta?.force) {
+        if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout) || credentials.clientMeta?.force) {
           await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE id = $1`, [existingRow.id]);
           activeSessions.delete(existingRow.session_id);
         } else {
-          // Active session already exists: reject second login with 409 conflict
-          // AC4: Existing session remains completely valid and untouched
           await auditService.recordAuditEvent({
             userId: dbUser.id,
             eventType: 'LOGIN_REJECTED_ACTIVE_SESSION',
@@ -709,7 +709,7 @@ export class AuthService {
         }
       }
 
-      // 8. Retrieve active roles assigned via veyra_user_role -> veyra_role
+      // 5. Retrieve active roles assigned via veyra_user_role -> veyra_role
       const rolesRes = await dbQuery(
         `SELECT r.role_code, r.role_name
          FROM veyra_role r
@@ -718,7 +718,7 @@ export class AuthService {
         [dbUser.id]
       );
 
-      // 9. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
+      // 6. Retrieve active privileges assigned via veyra_role_privilege -> veyra_privilege
       const privilegesRes = await dbQuery(
         `SELECT DISTINCT p.privilege_code
          FROM veyra_privilege p
@@ -729,12 +729,11 @@ export class AuthService {
       );
 
       const assignedRoleCodes: string[] = rolesRes.rows.map((r: any) => r.role_code);
-      const isSiteAdmin = assignedRoleCodes.includes('SITE_ADMIN') || normalized === 'admin@admin.com';
+      const isSiteAdmin = assignedRoleCodes.includes('SITE_ADMIN') || resolvedEmail === 'admin@admin.com';
       const primaryRole = isSiteAdmin ? 'SITE_ADMIN' : (assignedRoleCodes[0] || 'VIEWER');
 
       let permissions: string[] = privilegesRes.rows.map((p: any) => p.privilege_code);
 
-      // For SITE_ADMIN, guarantee ALL and full admin capabilities
       if (isSiteAdmin) {
         if (!permissions.includes('ALL')) {
           permissions = ['ALL', ...permissions];
@@ -748,13 +747,12 @@ export class AuthService {
         permissions = DEFAULT_ROLE_PERMISSIONS[primaryRole];
       }
 
-      // 10. Generate cryptographically secure session identifier & expiry
-      // Inactivity timeout sliding model: initial expiry is NOW() + inactivity timeout
+      // 7. Generate cryptographically secure session identifier & expiry
       const sessionId = crypto.randomBytes(32).toString('hex');
       const inactivityTimeoutMs = getInactivityTimeoutMs();
       const expiresAt = new Date(Date.now() + inactivityTimeoutMs);
 
-      // 11. AC1 & AC5: Create veyra_session row with PostgreSQL partial unique constraint protection
+      // 8. Create veyra_session row with PostgreSQL partial unique constraint protection
       try {
         await dbQuery(
           `INSERT INTO veyra_session (
@@ -763,7 +761,6 @@ export class AuthService {
           [sessionId, dbUser.id, expiresAt, ipAddress, userAgent]
         );
       } catch (insertErr: any) {
-        // AC5: Concurrency race protection — catch PostgreSQL unique constraint violation on partial index
         if (
           insertErr.code === '23505' &&
           (insertErr.constraint === 'uq_veyra_session_user_active' ||
@@ -790,7 +787,7 @@ export class AuthService {
         throw insertErr;
       }
 
-      // 12. Update last_login_at in veyra_user
+      // 9. Update last_login_at in veyra_user
       try {
         await dbQuery(
           `UPDATE veyra_user SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1`,
@@ -810,14 +807,15 @@ export class AuthService {
         targetId: sessionId,
         details: {
           role: primaryRole,
-          email: normalized,
-          isAdmin: isSiteAdmin
+          email: resolvedEmail,
+          isAdmin: isSiteAdmin,
+          provider: provider.metadata.id
         }
       }).catch((auditLogErr) => {
         console.error('[Auth Service] Failed to record LOGIN_SUCCESS audit event:', auditLogErr);
       });
 
-      // 13. Populate in-memory session cache for fast auth verification
+      // 10. Populate in-memory session cache for fast auth verification
       const authUser: AuthUser = {
         userId: dbUser.id,
         email: dbUser.email,
@@ -837,7 +835,7 @@ export class AuthService {
       activeSessions.set(sessionId, {
         token: sessionId,
         userId: dbUser.id,
-        email: normalized,
+        email: resolvedEmail,
         displayName: authUser.displayName,
         role: primaryRole,
         permissions,
@@ -848,14 +846,13 @@ export class AuthService {
         status: 'ACTIVE'
       });
 
-      // 14. Return safe authenticated context (never return password or hash)
       return {
         success: true,
         token: sessionId,
         userId: dbUser.id,
         displayName: authUser.displayName,
         email: dbUser.email,
-        normalizedEmail: normalized,
+        normalizedEmail: resolvedEmail,
         role: primaryRole,
         permissions,
         status: dbUser.status as UserStatus,
@@ -863,10 +860,23 @@ export class AuthService {
         setupCompleted: true,
         message: 'Authentication successful.'
       };
-    } catch (dbErr) {
-      console.warn('[Auth Service] PostgreSQL database offline or unreachable; falling back to local user store.');
-      return this.loginLocalFallback(normalized, rawPassword);
+    } catch (dbErr: any) {
+      console.warn(`[Auth Service] Database query error during login: ${dbErr.message}. Attempting fallback...`);
+      return this.loginLocalFallback(normalized, credentials.password || '');
     }
+  }
+
+  public async login(
+    rawEmail: string,
+    rawPassword: string,
+    clientMeta?: { ipAddress?: string; userAgent?: string; force?: boolean }
+  ): Promise<LoginResult> {
+    const provider = getAuthenticationProvider();
+    return this.authenticateWithProvider(provider, {
+      email: rawEmail,
+      password: rawPassword,
+      clientMeta
+    });
   }
 
   /**

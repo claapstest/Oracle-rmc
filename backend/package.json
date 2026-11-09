@@ -15,7 +15,8 @@
     "test:story7": "node scripts/test_story_007_ai_config_removal.cjs",
     "test:story8": "node scripts/test_story_008_ai_permission_removal.cjs",
     "test:story9": "node scripts/test_story_009_regression.cjs",
-    "test:regression": "node scripts/test_story_009_regression.cjs"
+    "test:regression": "node scripts/test_story_009_regression.cjs",
+    "test:auth-provider": "node scripts/test_story_auth_provider.cjs"
   },
   "dependencies": {
     "axios": "^1.6.8",
