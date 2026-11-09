@@ -22,7 +22,9 @@
     "db:migrate:down": "npm --prefix database run migrate:down",
     "db:seed": "npm --prefix database run seed",
     "db:provision-admin": "npm --prefix database run provision:admin",
-    "db:test": "npm --prefix database run test"
+    "db:test": "npm --prefix database run test",
+    "test:regression": "npm --prefix backend run test:story9",
+    "test:story9": "npm --prefix backend run test:story9"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
