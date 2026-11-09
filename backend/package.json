@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "clear-sessions": "node scripts/clear_sessions.cjs",
     "test:audit-supervisor-db": "node scripts/test_story_audit_supervisor_db.cjs",
-    "test:story19": "node scripts/test_story_019_reports_db.cjs"
+    "test:story19": "node scripts/test_story_019_reports_db.cjs",
+    "test:chat-contract": "node scripts/test_story_005_chat_removal.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

@@ -3,7 +3,7 @@
  * Story: VY-STRY-008
  *
  * Roles: SITE_ADMIN, AUDIT_MANAGER, AUDIT_SUPERVISOR, AUDIT_USER
- * Privileges: ASK_VEYRA, USERS_LIST, ROLES_CATALOG, AUDIT_TRAIL, RISK_MANAGEMENT,
+ * Privileges: USERS_LIST, ROLES_CATALOG, AUDIT_TRAIL, RISK_MANAGEMENT,
  *             REPORTS, USER_MANAGEMENT, ORACLE_INTEGRATION, ORACLE_API_CONSOLE
  * Bootstrap User: admin@admin.com -> SITE_ADMIN (password_hash = null)
  */
@@ -48,12 +48,6 @@ export const ROLES_DATA = [
 ];
 
 export const PRIVILEGES_DATA = [
-  {
-    privilege_code: 'ASK_VEYRA',
-    privilege_name: 'Ask VEYRA Assistant',
-    module: 'AI_ASSISTANT',
-    description: 'Conversational AI and investigation assistant',
-  },
   {
     privilege_code: 'USERS_LIST',
     privilege_name: 'Users Directory',
@@ -107,7 +101,6 @@ export const PRIVILEGES_DATA = [
 export const ROLE_PRIVILEGE_MAPPINGS: Record<string, string[]> = {
   SITE_ADMIN: ['USER_MANAGEMENT', 'ORACLE_INTEGRATION', 'ORACLE_API_CONSOLE'],
   AUDIT_MANAGER: [
-    'ASK_VEYRA',
     'USERS_LIST',
     'ROLES_CATALOG',
     'AUDIT_TRAIL',
@@ -183,6 +176,13 @@ export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
 
   try {
     await db.query('BEGIN');
+
+    // Purge decommissioned AI privileges and mappings on AI-free branch
+    await db.query(`
+      DELETE FROM veyra_role_privilege 
+      WHERE privilege_id IN (SELECT id FROM veyra_privilege WHERE privilege_code = 'ASK_VEYRA')
+    `);
+    await db.query(`DELETE FROM veyra_privilege WHERE privilege_code = 'ASK_VEYRA'`);
 
     // 1. Seed Roles
     const roleIdMap = new Map<string, string>();

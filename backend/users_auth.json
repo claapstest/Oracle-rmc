@@ -30,7 +30,6 @@
         "ORACLE_INTEGRATION",
         "SETTINGS_MANAGE",
         "ORACLE_API_CONSOLE",
-        "ASK_VEYRA",
         "ADMIN_USERS",
         "SECURITY_READ",
         "SECURITY_WRITE",
@@ -52,7 +51,6 @@
       "status": "ACTIVE",
       "role": "AUDIT_MANAGER",
       "permissions": [
-        "ASK_VEYRA",
         "USERS_LIST",
         "USER_READ",
         "ROLES_CATALOG",
@@ -321,7 +319,6 @@
       "status": "ACTIVE",
       "role": "AUDIT_MANAGER",
       "permissions": [
-        "ASK_VEYRA",
         "USERS_LIST",
         "USER_READ",
         "ROLES_CATALOG",
@@ -351,7 +348,6 @@
       "status": "ACTIVE",
       "role": "AUDIT_MANAGER",
       "permissions": [
-        "ASK_VEYRA",
         "USERS_LIST",
         "USER_READ",
         "ROLES_CATALOG",

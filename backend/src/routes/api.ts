@@ -2,11 +2,9 @@ import { Router, Request, Response } from 'express';
 import { oracleService } from '../services/oracleService.js';
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
-import { processUserMessage } from '../ai/orchestrator.js';
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
-import { tools } from '../tools/index.js';
 import { auditProductCatalogService } from '../services/auditProductCatalogService.js';
 import { commandCenterService } from '../services/commandCenterService.js';
 import { userAccessReportService } from '../services/userAccessReportService.js';
@@ -150,33 +148,6 @@ export function requirePrivilege(requiredPrivileges: string | string[]) {
   };
 }
 
-// Middleware to enforce Ask Veyra AI assistant access (AC8)
-export function requireAskVeyra(req: Request, res: Response, next: () => void) {
-  requireAuth(req, res, () => {
-    const userRole = (res.locals.role || '').toUpperCase();
-    const userPermissions: string[] = res.locals.permissions || [];
-    const isAdmin: boolean = res.locals.isAdmin === true || userRole === 'SITE_ADMIN';
-
-    // AC8: Audit Supervisor must not receive Ask Veyra privileges
-    if (userRole === 'AUDIT_SUPERVISOR') {
-      return res.status(403).json({
-        success: false,
-        code: 'FORBIDDEN',
-        message: 'Access denied. Audit Supervisor does not have privilege to access Ask Veyra.'
-      });
-    }
-
-    if (isAdmin || userPermissions.includes('ALL') || userPermissions.includes('ASK_VEYRA')) {
-      return next();
-    }
-
-    return res.status(403).json({
-      success: false,
-      code: 'FORBIDDEN',
-      message: 'Access denied. Ask Veyra privileges required.'
-    });
-  });
-}
 
 // Middleware to enforce Audit Manager Dashboard authorization (AC2, AC4)
 export function requireAuditManagerDashboard(req: Request, res: Response, next: () => void) {
@@ -1731,80 +1702,6 @@ apiRouter.get('/admin/users/summary', requirePrivilege('USER_MANAGEMENT'), (_req
   }
 });
 
-// 2. Chat / NLU Assistant API (AC8: Audit Supervisor blocked, requires ASK_VEYRA)
-apiRouter.post('/chat', requireAskVeyra, async (req: Request, res: Response) => {
-  const startTime = Date.now();
-  try {
-    const { message, context } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
-    const aiResponse = await processUserMessage(message, context);
-    const duration = Date.now() - startTime;
-
-    // Terminal Logging for every Ask Veyra query so user can inspect generated queries in terminal
-    const line = '═'.repeat(80);
-    console.log(`\n${line}`);
-    console.log(`🔍 [ASK VEYRA SEARCH & QUERY AUDIT LOG]`);
-    console.log(`${line}`);
-    console.log(`📝 User Question:    "${message}"`);
-    console.log(`🎯 Detected Intent:  ${aiResponse.intent}`);
-    console.log(`⚙️  Parameters:       ${JSON.stringify(aiResponse.parameters || {})}`);
-
-    let generatedQuery = '';
-    if (aiResponse.parameters?.generatedSql) {
-      generatedQuery = aiResponse.parameters.generatedSql;
-    } else if (aiResponse.toolResult?.parameters?.sql) {
-      generatedQuery = aiResponse.toolResult.parameters.sql;
-    } else if (aiResponse.toolResult?.data?.sqlQueryUsed) {
-      generatedQuery = aiResponse.toolResult.data.sqlQueryUsed.trim();
-    } else if (aiResponse.intent === 'SECURITY_STATISTICS') {
-      const tm = aiResponse.parameters?.targetMetric;
-      if (tm === 'TOTAL_CONTROLS' || tm === 'ACCESS_CONTROLS' || tm === 'TRANSACTION_CONTROLS') {
-        generatedQuery = `SELECT count(*) AS total_controls FROM oracle_raw_controls; (Total: 55 controls)`;
-      } else if (tm === 'DUTY_ROLES' || tm === 'JOB_ROLES' || tm === 'TOTAL_ROLES') {
-        generatedQuery = `SELECT category, count(*) FROM oracle_raw_roles GROUP BY category; (Total: 4,713 roles, 4,004 duty roles)`;
-      } else if (tm === 'TOTAL_INCIDENTS' || tm === 'ASSIGNED_INCIDENTS') {
-        generatedQuery = `SELECT sum(total_incidents) FROM oracle_control_incidents; (Total: 62,374 incidents)`;
-      } else if (tm === 'MULTIPLE_ROLE_USERS') {
-        generatedQuery = `SELECT COUNT(1) AS multiple_role_users FROM oracle_raw_users WHERE jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) > 1; (Authoritative Metrics: 907 multiple-role users out of 3,066 users, 29.6%)`;
-      } else if (tm === 'SINGLE_ROLE_USERS') {
-        generatedQuery = `SELECT COUNT(1) AS single_role_users FROM oracle_raw_users WHERE jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 1; (Authoritative Metrics: 105 single-role users out of 3,066 users, 3.4%)`;
-      } else if (tm === 'USERS_WITHOUT_ROLES') {
-        generatedQuery = `SELECT COUNT(1) AS users_without_roles FROM oracle_raw_users WHERE jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 0; (Authoritative Metrics: 2,054 users without roles out of 3,066 users, 67.0%)`;
-      } else {
-        generatedQuery = `SELECT * FROM oracle_control_incidents_summary;`;
-      }
-    } else if (aiResponse.intent === 'CERTIFICATION_DETAILS') {
-      generatedQuery = `SELECT certification_id, certification_name, owner_name, manager_name, status, percent_complete, due_date FROM oracle_raw_access_certifications WHERE CAST(certification_id AS TEXT) = '${aiResponse.parameters?.certificationId || '1'}';`;
-    } else if (aiResponse.intent === 'CONTROL_DETAILS') {
-      generatedQuery = `SELECT control_id, name, status, state FROM oracle_raw_controls WHERE control_id = '${aiResponse.parameters?.controlId || ''}' OR name ILIKE '%${aiResponse.parameters?.controlName || ''}%';`;
-    } else if (aiResponse.intent === 'CONTROLS_LIST') {
-      generatedQuery = `SELECT control_id, name, status, state FROM oracle_raw_controls LIMIT ${aiResponse.parameters?.limit || 25};`;
-    } else if (aiResponse.intent === 'LIST_USERS' || aiResponse.intent === 'GET_USER') {
-      generatedQuery = `SELECT username, display_name, email, is_active FROM oracle_raw_users LIMIT 50;`;
-    } else if (aiResponse.intent === 'LIST_ROLES' || aiResponse.intent === 'ROLE_SEARCH') {
-      generatedQuery = `SELECT role_code, role_name, category FROM oracle_raw_roles LIMIT 50;`;
-    }
-
-    if (generatedQuery) {
-      console.log(`💾 Generated SQL / Query:`);
-      console.log(`   ${generatedQuery.replace(/\n\s*/g, '\n   ')}`);
-    }
-
-    const dataSource = aiResponse.toolResult?.dataSource || 'PostgreSQL Authoritative Database';
-    console.log(`🗄️  Data Source:      ${dataSource}`);
-    const headline = (aiResponse.message || '').split('\n')[0].replace(/\*\*/g, '').trim();
-    console.log(`📊 Result Summary:    ${headline || 'Answer generated successfully'}`);
-    console.log(`⏱️  Execution Latency: ${duration}ms`);
-    console.log(`${line}\n`);
-
-    res.json(aiResponse);
-  } catch (err) {
-    console.error('[Ask Veyra Error]:', err);
-    res.status(500).json({ error: 'AI Orchestration failed', details: (err as Error).message });
-  }
-});
 
 // Universal Schema-Aware Database Chatbot Endpoints
 apiRouter.get('/database/schema', async (req: Request, res: Response) => {

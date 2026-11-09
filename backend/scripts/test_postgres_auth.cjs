@@ -152,7 +152,8 @@ async function runPostgresAuthTests() {
     const pgOnlyLogin = await authService.login(pgOnlyEmail, pgOnlyPass);
     assert(pgOnlyLogin.success === true, 'User existing only in PostgreSQL logs in successfully');
     assert(pgOnlyLogin.role === 'AUDIT_MANAGER', 'User role resolved from veyra_role');
-    assert(Array.isArray(pgOnlyLogin.permissions) && pgOnlyLogin.permissions.includes('ASK_VEYRA'), 'AUDIT_MANAGER receives ASK_VEYRA from veyra_privilege');
+    assert(Array.isArray(pgOnlyLogin.permissions) && !pgOnlyLogin.permissions.includes('ASK_VEYRA'), 'AUDIT_MANAGER does NOT receive ASK_VEYRA on AI-free branch');
+    assert(pgOnlyLogin.permissions.includes('REPORTS'), 'AUDIT_MANAGER receives standard REPORTS privilege from veyra_privilege');
     assert(pgOnlyLogin.userId === pgUserId, 'userId matches PostgreSQL veyra_user id');
 
     // Clean up test user

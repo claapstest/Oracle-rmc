@@ -35,13 +35,13 @@
 
 | File / Route / Symbol | Location / Lines | Classification | Current Role & Usage | Removal / Decoupling Action on AI-Free Branch |
 |---|---|---|---|---|
-| `POST /api/chat` | `backend/src/routes/api.ts` (L1735–L1807) | 🔴 **AI-Only** | Primary Ask VEYRA conversational entry point; calls `orchestrator.processUserMessage`. | **Delete route handler entirely.** |
-| `requireAskVeyra` | `backend/src/routes/api.ts` (L154–L179) | 🔴 **AI-Only** | Middleware checking `role !== AUDIT_SUPERVISOR` and requiring `ASK_VEYRA` or `ALL`. | **Delete middleware function.** |
+| `POST /api/chat` | `backend/src/routes/api.ts` (L1735–L1807) | 🔴 **AI-Only** | Primary Ask VEYRA conversational entry point; calls `orchestrator.processUserMessage`. | **Deleted in Story 5.** |
+| `requireAskVeyra` | `backend/src/routes/api.ts` (L154–L179) | 🔴 **AI-Only** | Middleware checking `role !== AUDIT_SUPERVISOR` and requiring `ASK_VEYRA` or `ALL`. | **Deleted in Story 5.** |
 | `POST /api/ai/universal-query` | `backend/src/routes/api.ts` (L1848–L1859) | 🔴 **AI-Only** | Experimental universal database query endpoint delegating to `universalDatabaseChatbotService`. | **Delete route handler.** |
 | `GET /api/ai/universal-traces` | `backend/src/routes/api.ts` (L1838–L1846) | 🔴 **AI-Only** | Retrieves observability traces from `observabilityTraceService`. | **Delete route handler.** |
 | `GET /api/database/schema`, `POST /refresh`, `GET /relationships` | `backend/src/routes/api.ts` (L1810–L1836) | ⚪ **Uncertain** | Metadata discovery endpoints used by Text-to-SQL engine. Not currently invoked by frontend UI. | **Review with team:** Delete if purely AI Text-to-SQL support; retain only if needed for general admin DB inspector. |
 | `GET /api/settings` & `POST /api/settings` | `backend/src/routes/api.ts` (L667–L669, L719, L748–L750, L768–L770) | 🟡 **Shared** | Exposes and persists `hasGeminiKey`, `groqModel`, and Together model settings. | **Strip AI properties** (`groqModel`, `hasGeminiKey`) from request/response payloads; preserve Oracle settings. |
-| Unused `import { tools }` | `backend/src/routes/api.ts` L9 | 🟡 **Shared** | Dead import from `../tools/index.js`. | **Remove dead import.** |
+| Unused `import { tools }` | `backend/src/routes/api.ts` L9 | 🟡 **Shared** | Dead import from `../tools/index.js`. | **Removed in Story 5.** |
 | `requireAuth` | `backend/src/routes/api.ts` L105 | 🟡 **Shared** | Session token validator for all authenticated endpoints. | **RETAIN UNCHANGED** (Used by all core API endpoints). |
 | `apiRouter.get('/capabilities')` | `backend/src/routes/api.ts` L797–L809 | 🟡 **Shared** | Demo mode feature flags (users, roles, audit, sod). | **RETAIN UNCHANGED** (Standard platform capability flags). |
 
@@ -114,7 +114,7 @@ The following services provide core Oracle RMC business logic, reporting, and RB
 | Database Asset | Location | Classification | Architectural Impact & Recommendation |
 |---|---|---|---|
 | Migration `1711000000017_create_certificate_knowledge_vectors_table.cjs` | `database/migrations/` | ⚪ **Uncertain** | Creates `certificate_knowledge_vector` and pgvector cosine function. **Options:** (A) Keep migration file so migration histories match across branches, but leave table unqueried; OR (B) Create down-migration on AI-free branch. *Recommendation: Option A for schema consistency across shared DB instances.* |
-| `ASK_VEYRA` Privilege Seed | `database/src/seeds/rbac_seed.ts` (L6, L52, L110) | 🟡 **Shared** | Seeds `ASK_VEYRA` privilege in `veyra_privilege`. Retain in seed or leave unassigned to prevent DB migration drift. |
+| `ASK_VEYRA` Privilege Seed | `database/src/seeds/rbac_seed.ts` (L6, L52, L110) | 🟡 **Shared** | Seeds `ASK_VEYRA` privilege in `veyra_privilege`. | **Purged from seed and active permissions in Story 5.** |
 | `backend/users_auth.json` | `backend/` | 🟡 **Shared** | Contains local demo user accounts. Safe to leave permissions or remove `ASK_VEYRA` from demo users. |
 
 ---

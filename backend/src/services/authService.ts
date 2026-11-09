@@ -114,7 +114,6 @@ export const VEYRA_ROLES: RoleInfo[] = [
       'REPORTS',
       'ORACLE_INTEGRATION',
       'ORACLE_API_CONSOLE',
-      'ASK_VEYRA',
       'SECURITY_READ',
       'SECURITY_WRITE'
     ],
@@ -126,7 +125,6 @@ export const VEYRA_ROLES: RoleInfo[] = [
     role_name: 'Audit Manager',
     description: 'Audit Manager responsible for reviews, risk, investigations, and reporting',
     privileges: [
-      'ASK_VEYRA',
       'USERS_LIST',
       'ROLES_CATALOG',
       'AUDIT_TRAIL',
@@ -165,9 +163,8 @@ export const VEYRA_ROLES: RoleInfo[] = [
     id: 'role_security_analyst',
     role_code: 'SECURITY_ANALYST',
     role_name: 'Security Analyst',
-    description: 'Security Analyst with threat review, SoD analysis, and Ask Veyra access',
+    description: 'Security Analyst with threat review, SoD analysis, and investigation access',
     privileges: [
-      'ASK_VEYRA',
       'USERS_LIST',
       'ROLES_CATALOG',
       'AUDIT_TRAIL',
@@ -213,14 +210,6 @@ export const VEYRA_PRIVILEGES: PrivilegeInfo[] = [
     privilege_name: 'Full Superuser Access',
     module: 'SYSTEM',
     description: 'Unrestricted superuser access to all system functions and resources',
-    status: 'ACTIVE'
-  },
-  {
-    id: 'priv_ask_veyra',
-    privilege_code: 'ASK_VEYRA',
-    privilege_name: 'Ask VEYRA Assistant',
-    module: 'AI_ASSISTANT',
-    description: 'Conversational AI and investigation assistant',
     status: 'ACTIVE'
   },
   {
@@ -314,7 +303,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'ORACLE_INTEGRATION',
     'SETTINGS_MANAGE',
     'ORACLE_API_CONSOLE',
-    'ASK_VEYRA',
     'ADMIN_USERS',
     'SECURITY_READ',
     'SECURITY_WRITE',
@@ -323,7 +311,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'INVESTIGATIONS_MANAGE'
   ],
   AUDIT_MANAGER: [
-    'ASK_VEYRA',
     'USERS_LIST',
     'USER_READ',
     'ROLES_CATALOG',
@@ -360,7 +347,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'REPORTS_MANAGE'
   ],
   SECURITY_ANALYST: [
-    'ASK_VEYRA',
     'USERS_LIST',
     'USER_READ',
     'ROLES_CATALOG',

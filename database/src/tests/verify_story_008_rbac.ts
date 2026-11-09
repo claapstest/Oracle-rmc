@@ -165,7 +165,7 @@ async function runVerification() {
     let privCodeUniqueWorks = false;
     try {
       await client.query(
-        `INSERT INTO veyra_privilege (privilege_code, privilege_name) VALUES ('ASK_VEYRA', 'Duplicate Ask');`
+        `INSERT INTO veyra_privilege (privilege_code, privilege_name) VALUES ('USERS_LIST', 'Duplicate Users');`
       );
     } catch (e: any) {
       if (e.code === '23505') privCodeUniqueWorks = true;
@@ -206,9 +206,8 @@ async function runVerification() {
     const missingRoles = expectedRoles.filter((r) => !actualRoles.has(r));
     record('Test 10: All 4 seed roles exist', missingRoles.length === 0, `Missing: ${missingRoles.join(', ')}`);
 
-    // 11. Seed privileges exist
+    // 11. Seed privileges exist (AI-free standard branch: 8 privileges)
     const expectedPrivs = [
-      'ASK_VEYRA',
       'USERS_LIST',
       'ROLES_CATALOG',
       'AUDIT_TRAIL',
@@ -221,7 +220,7 @@ async function runVerification() {
     const privsRes = await client.query(`SELECT privilege_code FROM veyra_privilege;`);
     const actualPrivs = new Set(privsRes.rows.map((r) => r.privilege_code));
     const missingPrivs = expectedPrivs.filter((p) => !actualPrivs.has(p));
-    record('Test 11: All 9 seed privileges exist', missingPrivs.length === 0, `Missing: ${missingPrivs.join(', ')}`);
+    record('Test 11: All 8 seed privileges exist', missingPrivs.length === 0, `Missing: ${missingPrivs.join(', ')}`);
 
     // 12. Role-privilege mappings are exact
     let mappingsMatch = true;

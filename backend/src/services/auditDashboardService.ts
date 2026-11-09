@@ -663,7 +663,7 @@ class AuditDashboardService {
       if (permissions.includes('RISK_MANAGEMENT') || permissions.includes('RISK_READ')) authorizedModules.push('RISK');
       if (permissions.includes('REPORTS') || permissions.includes('REPORTS_READ') || permissions.includes('REPORTS_MANAGE')) authorizedModules.push('REPORTS');
       if (permissions.includes('SECURITY_READ') || permissions.includes('USERS_LIST') || permissions.includes('ROLES_CATALOG')) authorizedModules.push('SECURITY');
-      if (permissions.includes('ASK_VEYRA')) authorizedModules.push('AI_ASSISTANT');
+      // AI_ASSISTANT removed on AI-free variant
     }
 
     const scopeLevel = isAdmin
@@ -686,9 +686,9 @@ class AuditDashboardService {
       scopeLevel,
       authorizedModules,
       hasFullAccess: isAdmin || userRole === 'AUDIT_MANAGER',
-      hasAskVeyraAccess: isAdmin || userRole === 'AUDIT_MANAGER' || permissions.includes('ASK_VEYRA'),
+      hasAskVeyraAccess: false,
       features: {
-        askVeyra: isAdmin || userRole === 'AUDIT_MANAGER' || permissions.includes('ASK_VEYRA'),
+        askVeyra: false,
         userManagement: isAdmin,
         rolesCatalog: isAdmin || permissions.includes('ROLES_CATALOG') || permissions.includes('SECURITY_READ'),
         auditTrail: isAdmin || permissions.includes('AUDIT_TRAIL') || permissions.includes('AUDIT_READ'),
