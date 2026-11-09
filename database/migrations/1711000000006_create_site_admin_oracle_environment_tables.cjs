@@ -210,7 +210,7 @@ exports.up = (pgm) => {
       'Standby - ready for connection testing and synchronization',
       true,
       true,
-      '{"region": "us-ashburn-1", "groqModel": "llama-3.3-70b-versatile", "catalogEndpointsCount": 42}'::jsonb
+      '{"region": "us-ashburn-1", "catalogEndpointsCount": 42}'::jsonb
     ) ON CONFLICT (env_code) DO NOTHING;
   `);
 };

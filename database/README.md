@@ -106,7 +106,7 @@ A strict distinction is maintained between the entity performing the action and 
 
 ## 🔒 Security Rules & Defense-in-Depth Sanitization
 
-1. **Zero Secret Persistence**: Passwords, password hashes, reset tokens, session secrets, JWTs, Authorization headers, cookies, Oracle credentials, Groq API keys, and private keys must **NEVER** be persisted in the audit trail.
+1. **Zero Secret Persistence**: Passwords, password hashes, reset tokens, session secrets, JWTs, Authorization headers, cookies, Oracle credentials, third-party API keys, and private keys must **NEVER** be persisted in the audit trail.
 2. **Automated Sanitization**: The Node.js `AuditService` recursively inspects and strips all sensitive keys from details JSON before database insertion.
 3. **No Account Enumeration**: Failed login responses and public messages remain generic ("Invalid email or password.") regardless of whether the email exists.
 4. **Preservation on Deletion**: `user_id` has `ON DELETE SET NULL`, ensuring historical audit events remain permanently preserved even if a user account is deleted.

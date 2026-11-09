@@ -109,6 +109,7 @@ export interface UserScopeContext {
 }
 
 export interface SupervisorFeatures {
+  // Retained for API compatibility on the AI-free branch; always false.
   askVeyra: boolean;
   userManagement: boolean;
   rolesCatalog: boolean;
@@ -127,6 +128,7 @@ export interface UserScopeInfo {
   scopeLevel: string;
   authorizedModules: string[];
   hasFullAccess: boolean;
+  // Retained for API compatibility on the AI-free branch; always false.
   hasAskVeyraAccess?: boolean;
   features?: SupervisorFeatures;
 }
@@ -655,14 +657,13 @@ class AuditDashboardService {
     // Build list of authorized functional modules for this user
     const authorizedModules: string[] = [];
     if (isAdmin) {
-      authorizedModules.push('DASHBOARD', 'AUDIT', 'RISK', 'REPORTS', 'SECURITY', 'ADMIN', 'AI_ASSISTANT');
+      authorizedModules.push('DASHBOARD', 'AUDIT', 'RISK', 'REPORTS', 'SECURITY', 'ADMIN');
     } else {
       authorizedModules.push('DASHBOARD');
       if (permissions.includes('AUDIT_TRAIL') || permissions.includes('AUDIT_READ')) authorizedModules.push('AUDIT');
       if (permissions.includes('RISK_MANAGEMENT') || permissions.includes('RISK_READ')) authorizedModules.push('RISK');
       if (permissions.includes('REPORTS') || permissions.includes('REPORTS_READ') || permissions.includes('REPORTS_MANAGE')) authorizedModules.push('REPORTS');
       if (permissions.includes('SECURITY_READ') || permissions.includes('USERS_LIST') || permissions.includes('ROLES_CATALOG')) authorizedModules.push('SECURITY');
-      // AI_ASSISTANT removed on AI-free variant
     }
 
     const scopeLevel = isAdmin
@@ -739,10 +740,7 @@ class AuditDashboardService {
     const userRole = (user.role || '').toUpperCase();
     const isSupervisor = userRole === 'AUDIT_SUPERVISOR';
 
-    // AC3: Strictly strip Ask Veyra / AI assistant from authorized modules
-    const filteredModules = baseResponse.userScope.authorizedModules.filter(
-      m => m !== 'AI_ASSISTANT' && m !== 'ASK_VEYRA'
-    );
+    const filteredModules = baseResponse.userScope.authorizedModules;
 
     const supervisorFeatures: SupervisorFeatures = {
       askVeyra: false, // AC3: Explicitly disabled for supervisor
@@ -1021,11 +1019,11 @@ class AuditDashboardService {
       displayName: user.displayName || 'Site Administrator',
       role: 'SITE_ADMIN',
       scopeLevel: 'ENTERPRISE_ADMINISTRATOR',
-      authorizedModules: ['DASHBOARD', 'AUDIT', 'RISK', 'REPORTS', 'SECURITY', 'ADMIN', 'AI_ASSISTANT'],
+      authorizedModules: ['DASHBOARD', 'AUDIT', 'RISK', 'REPORTS', 'SECURITY', 'ADMIN'],
       hasFullAccess: true,
-      hasAskVeyraAccess: true,
+      hasAskVeyraAccess: false,
       features: {
-        askVeyra: true,
+        askVeyra: false,
         userManagement: true,
         rolesCatalog: true,
         auditTrail: true,

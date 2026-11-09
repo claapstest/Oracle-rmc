@@ -88,7 +88,8 @@ async function runVerification() {
     // Expected: AUDIT_USER receives ONLY REPORTS
     assert(auditUserPrivs.length === 1 && auditUserPrivs[0] === 'REPORTS', 'TEST 4: AUDIT_USER has exactly 1 privilege (REPORTS)');
 
-    // Ensure AUDIT_USER does not receive any administrative or security privileges
+    // Ensure AUDIT_USER does not receive any administrative or security privileges.
+    // ASK_VEYRA is no longer seeded; it stays listed as a regression guard.
     const prohibitedPrivs = [
       'ASK_VEYRA',
       'USERS_LIST',

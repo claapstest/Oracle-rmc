@@ -450,7 +450,7 @@ async function runVerification() {
       authorization: 'Bearer secret_token_xyz',
       cookie: 'connect.sid=s%3Axyz',
       secret: 'superSecretKey',
-      apiKey: 'groq_api_key_12345',
+      apiKey: 'provider_api_key_12345',
       clientSecret: 'oracle_client_secret_67890',
       nested: {
         safeNested: 'nestedOk',
@@ -477,7 +477,7 @@ async function runVerification() {
       'newSecretPassword',
       'secret_token_xyz',
       'superSecretKey',
-      'groq_api_key_12345',
+      'provider_api_key_12345',
       'oracle_client_secret_67890',
       'hiddenPassword',
       'nestedSecretToken',
@@ -492,7 +492,7 @@ async function runVerification() {
     );
     record(
       'TEST 24: tokens/secrets/keys stripped by defense-in-depth sanitization',
-      !cleanedString.includes('groq_api_key_12345') && !cleanedString.includes('superSecretKey')
+      !cleanedString.includes('provider_api_key_12345') && !cleanedString.includes('superSecretKey')
     );
     record(
       'TEST 25: nested sensitive fields recursively stripped/redacted',

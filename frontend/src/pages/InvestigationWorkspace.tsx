@@ -232,7 +232,7 @@ export default function InvestigationWorkspace({
           .catch(err => console.warn('Hierarchy fetch error:', err))
           .finally(() => { if (isMounted) setHierarchyLoading(false); });
 
-        // Parallel Independent Task 3: Functional Privileges & AI Briefing (12s timeout, decoupled)
+        // Parallel Independent Task 3: Functional Privileges & Role Briefing (12s timeout, decoupled)
         setPrivilegeLoading(true);
         api.getRolePrivileges(entity.name)
           .then(privs => {

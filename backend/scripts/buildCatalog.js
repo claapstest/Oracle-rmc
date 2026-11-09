@@ -154,7 +154,7 @@ const catalog = rawCatalog.map(item => {
     });
   }
 
-  // Aliases for natural language chatbot resolution
+  // Aliases for catalog search resolution
   const aliasesSet = new Set([
     item.name,
     displayName,

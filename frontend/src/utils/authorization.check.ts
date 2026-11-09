@@ -10,7 +10,7 @@ function no(actual: unknown, name: string): void {
 const AUDIT_MGR = {
   isAdmin: false,
   role: 'AUDIT_MANAGER',
-  permissions: ['ASK_VEYRA', 'RISK_MANAGEMENT', 'RISK_READ', 'REPORTS', 'REPORTS_READ', 'USERS_LIST', 'USER_READ', 'ROLES_CATALOG', 'ROLE_READ', 'AUDIT_TRAIL', 'AUDIT_READ']
+  permissions: ['RISK_MANAGEMENT', 'RISK_READ', 'REPORTS', 'REPORTS_READ', 'USERS_LIST', 'USER_READ', 'ROLES_CATALOG', 'ROLE_READ', 'AUDIT_TRAIL', 'AUDIT_READ']
 };
 const ADMIN = { isAdmin: true, role: 'SITE_ADMIN', permissions: ['ALL'] };
 const BARE = { isAdmin: false, role: 'VIEWER', permissions: [] as string[] };
