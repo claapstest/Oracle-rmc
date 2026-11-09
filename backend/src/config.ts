@@ -15,11 +15,6 @@ export const config = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   environmentMode: (process.env.ENVIRONMENT_MODE || 'ORACLE_FUSION').toUpperCase() as 'DEMO' | 'ORACLE_FUSION',
-  togetherApiKey: process.env.TOGETHER_API_KEY || '',
-  togetherModel: process.env.TOGETHER_MODEL || 'openai/gpt-oss-120b',
-  llmEndpoint: process.env.LLM_ENDPOINT || 'https://api.together.xyz/v1/chat/completions',
-  groqApiKey: process.env.TOGETHER_API_KEY || process.env.GROQ_API_KEY || '',
-  groqModel: process.env.TOGETHER_MODEL || process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
   oracle: {
     baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',
     authType: (process.env.ORACLE_AUTH_TYPE || 'BASIC').toUpperCase() as 'BASIC' | 'BEARER',
@@ -74,12 +69,6 @@ export function loadPersistedConfig() {
       if (persisted.environmentMode !== undefined) {
         config.environmentMode = persisted.environmentMode;
       }
-      if (persisted.groqModel !== undefined) {
-        config.groqModel = (persisted.groqModel === 'llama-3.3-70b-versatile' || persisted.groqModel === 'gpt-oss-20b' || persisted.groqModel === 'openai/gpt-oss-20b')
-          ? 'openai/gpt-oss-120b'
-          : persisted.groqModel;
-        config.togetherModel = config.groqModel;
-      }
       if (persisted.oracle) {
         if (persisted.oracle.baseUrl !== undefined) config.oracle.baseUrl = persisted.oracle.baseUrl;
         if (persisted.oracle.authType !== undefined) config.oracle.authType = persisted.oracle.authType;
@@ -105,8 +94,6 @@ export function savePersistedConfig() {
   try {
     const dataToSave = {
       environmentMode: config.environmentMode,
-      groqModel: config.groqModel,
-      togetherModel: config.togetherModel,
       oracle: {
         baseUrl: config.oracle.baseUrl,
         authType: config.oracle.authType,
@@ -133,11 +120,5 @@ export function validateConfig() {
     if (!config.oracle.baseUrl) {
       console.warn('[Config Warning] ENVIRONMENT_MODE is set to ORACLE_FUSION, but ORACLE_FUSION_BASE_URL is missing.');
     }
-  }
-  const hasKey = !!(config.togetherApiKey || config.groqApiKey);
-  if (!hasKey) {
-    console.warn('[Config Warning] TOGETHER_API_KEY is not defined. The assistant will run using standard keyword/rule fallback NLU.');
-  } else {
-    console.log(`[Config] Primary AI Query Engine Model: Together AI (${config.groqModel})`);
   }
 }

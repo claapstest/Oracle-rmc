@@ -631,8 +631,6 @@ apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request
     username: config.oracle.username,
     hasPassword: !!config.oracle.password,
     hasToken: !!config.oracle.token,
-    hasGeminiKey: !!(config.togetherApiKey || config.groqApiKey),
-    groqModel: config.groqModel || config.togetherModel,
     isConfigured: oracleService.isConfigured(),
     status: oracleService.getConnectionStatus(),
     lastTestedAt: oracleService.getLastTestedAt(),
@@ -683,7 +681,7 @@ apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION
 
 apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
   const adminUser = res.locals.username;
-  const { mode, baseUrl, username, password, token, authType, groqModel } = req.body;
+  const { mode, baseUrl, username, password, token, authType } = req.body;
 
   try {
     const oldMode = config.environmentMode;
@@ -712,10 +710,6 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
     if (authType !== undefined) {
       config.oracle.authType = authType.toUpperCase() as 'BASIC' | 'BEARER';
     }
-    if (groqModel !== undefined) {
-      config.groqModel = groqModel;
-      config.togetherModel = groqModel;
-    }
 
     savePersistedConfig();
     oracleService.recreateClient();
@@ -732,8 +726,6 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
         username: config.oracle.username,
         hasPassword: !!config.oracle.password,
         hasToken: !!config.oracle.token,
-        hasGeminiKey: !!(config.togetherApiKey || config.groqApiKey),
-        groqModel: config.groqModel || config.togetherModel,
       }
     });
   } catch (err) {
@@ -1560,8 +1552,6 @@ apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Res
     username: config.oracle.username,
     hasPassword: !!config.oracle.password,
     hasToken: !!config.oracle.token,
-    hasGeminiKey: !!(config.togetherApiKey || config.groqApiKey),
-    groqModel: config.groqModel || config.togetherModel,
     status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
   });
 });
@@ -1569,7 +1559,7 @@ apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Res
 // POST /api/admin/oracle/integration - Update Oracle configuration (AC3, AC6)
 apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
-  const { baseUrl, username, password, token, authType, groqModel } = req.body;
+  const { baseUrl, username, password, token, authType } = req.body;
 
   try {
     const oldUrl = config.oracle.baseUrl;
@@ -1588,10 +1578,6 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Re
     if (authType !== undefined) {
       config.oracle.authType = authType.toUpperCase() as 'BASIC' | 'BEARER';
     }
-    if (groqModel !== undefined) {
-      config.groqModel = groqModel;
-      config.togetherModel = groqModel;
-    }
 
     savePersistedConfig();
     oracleService.recreateClient();
@@ -1608,8 +1594,6 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Re
         username: config.oracle.username,
         hasPassword: !!config.oracle.password,
         hasToken: !!config.oracle.token,
-        hasGeminiKey: !!(config.togetherApiKey || config.groqApiKey),
-        groqModel: config.groqModel || config.togetherModel,
         status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
       }
     });
