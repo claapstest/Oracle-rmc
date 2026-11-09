@@ -13,7 +13,8 @@
     "test:story19": "node scripts/test_story_019_reports_db.cjs",
     "test:chat-contract": "tsx test/chat_contract.test.ts",
     "test:response-composer": "tsx --test test/responseComposer.test.ts",
-    "test:frontend-consumption": "tsx ../frontend/src/test/assistant_consumption.test.ts"
+    "test:frontend-consumption": "tsx ../frontend/src/test/assistant_consumption.test.ts",
+    "test:auth-provider": "node scripts/test_story_auth_provider.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
