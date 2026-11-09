@@ -8,6 +8,12 @@ import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
 import { tools } from '../tools/index.js';
 import { getAuthenticationProvider } from '../auth/index.js';
+import {
+  completeAuthorization,
+  createAuthorizationRequest,
+  isEntraEnabled,
+  EntraOidcError,
+} from '../services/entraOidcService.js';
 import { auditProductCatalogService } from '../services/auditProductCatalogService.js';
 import { commandCenterService } from '../services/commandCenterService.js';
 import { userAccessReportService } from '../services/userAccessReportService.js';
@@ -348,6 +354,130 @@ apiRouter.get('/auth/provider', (_req: Request, res: Response) => {
   });
 });
 
+const ENTRA_STATE_COOKIE = 'veyra_entra_state';
+
+function readCookie(req: Request, name: string): string | null {
+  const header = req.headers.cookie || '';
+  for (const part of header.split(';')) {
+    const [key, ...value] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(value.join('='));
+  }
+  return null;
+}
+
+function entraStateCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: config.nodeEnv === 'production',
+    maxAge: 10 * 60 * 1000,
+    path: '/api/auth/entra',
+  };
+}
+
+// GET /auth/config - Public auth provider metadata (no secrets)
+apiRouter.get('/auth/config', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    provider: config.authProvider,
+    entraEnabled: isEntraEnabled(),
+  });
+});
+
+// GET /auth/entra/start - Begin Authorization Code + PKCE login
+apiRouter.get('/auth/entra/start', (_req: Request, res: Response) => {
+  if (!isEntraEnabled()) {
+    return res.status(404).json({
+      success: false,
+      code: 'ENTRA_NOT_CONFIGURED',
+      message: 'Microsoft Entra sign-in is not enabled for this deployment.',
+    });
+  }
+
+  const { authorizationUrl, state } = createAuthorizationRequest();
+  res.cookie(ENTRA_STATE_COOKIE, state, entraStateCookieOptions());
+  return res.json({ success: true, authorizationUrl });
+});
+
+// POST /auth/entra/callback - Validate state, exchange code, and issue a VEYRA session
+apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
+  if (!isEntraEnabled()) {
+    return res.status(404).json({
+      success: false,
+      code: 'ENTRA_NOT_CONFIGURED',
+      message: 'Microsoft Entra sign-in is not enabled for this deployment.',
+    });
+  }
+
+  const { code, state } = req.body || {};
+  const cookieState = readCookie(req, ENTRA_STATE_COOKIE);
+  res.clearCookie(ENTRA_STATE_COOKIE, { path: '/api/auth/entra' });
+
+  if (!code || !state || !cookieState || cookieState !== state) {
+    logAudit('unknown', 'LOGIN_REJECTED', 'Entra callback rejected: invalid state');
+    return res.status(400).json({
+      success: false,
+      code: 'INVALID_STATE',
+      message: 'The sign-in request is invalid or has expired. Please try again.',
+    });
+  }
+
+  const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+  const userAgent = req.get('user-agent') || 'Unknown Client';
+
+  try {
+    const identity = await completeAuthorization(code, state);
+    const result = await authService.loginWithExternalIdentity(identity.email, { ipAddress: rawIp, userAgent });
+
+    if (!result.success) {
+      if (result.code === 'ACTIVE_SESSION_EXISTS') {
+        logAudit(identity.email, 'LOGIN_REJECTED', 'Active session already exists for this user (409 Conflict)');
+        return res.status(409).json({
+          code: 'ACTIVE_SESSION_EXISTS',
+          message: 'An active session already exists for this user.',
+        });
+      }
+      if (result.code === 'IDENTITY_NOT_PROVISIONED') {
+        logAudit(identity.email, 'LOGIN_REJECTED', 'Entra identity is not provisioned in VEYRA (403 Forbidden)');
+        return res.status(403).json({ success: false, code: result.code, message: result.message });
+      }
+      if (result.code === 'AUTH_BACKEND_UNAVAILABLE') {
+        return res.status(503).json({ success: false, code: result.code, message: result.message });
+      }
+      if (result.status && result.status !== 'ACTIVE') {
+        logAudit(identity.email, 'LOGIN_REJECTED', `Account is not active: ${result.status} (403 Forbidden)`);
+        return res.status(403).json({ success: false, code: 'USER_DISABLED', message: result.message });
+      }
+      return res.status(401).json({ success: false, message: result.message });
+    }
+
+    logAudit(result.normalizedEmail || identity.email, 'USER_LOGIN', `Successful Entra ID login (${result.role || 'User'}, isAdmin: ${result.isAdmin})`);
+    return res.json({
+      success: true,
+      token: result.token,
+      sessionId: result.token,
+      userId: result.userId,
+      displayName: result.displayName,
+      email: result.email || identity.email,
+      role: result.role,
+      permissions: result.permissions,
+      status: result.status,
+      isAdmin: result.isAdmin,
+      setupCompleted: result.setupCompleted,
+      environmentMode: config.environmentMode,
+      message: result.message,
+    });
+  } catch (err) {
+    if (err instanceof EntraOidcError) {
+      logAudit('unknown', 'LOGIN_REJECTED', `Entra login failed: ${err.code}`);
+      return res.status(err.status).json({ success: false, code: err.code, message: err.message });
+    }
+    console.error('[Entra Callback Error]:', err);
+    logAudit('unknown', 'LOGIN_REJECTED', 'Internal error during Entra callback (500)');
+    return res.status(500).json({ success: false, message: 'An internal login error occurred.' });
+  }
+});
+
 // POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled)
 apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   // Provider choice is strictly bound to server configuration, never user-controlled request parameters
@@ -360,7 +490,8 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   }
 
   const { email: rawEmail, password, code, token, force } = req.body;
-  if (!rawEmail && !token && !code) {
+  const missingLocalPassword = provider.metadata.type === 'LOCAL' && !password;
+  if ((!rawEmail && !token && !code) || missingLocalPassword) {
     logAudit('unknown', 'LOGIN_REJECTED', 'Missing authentication credentials (400 Bad Request)');
     return res.status(400).json({ success: false, message: 'Please provide authentication credentials.' });
   }

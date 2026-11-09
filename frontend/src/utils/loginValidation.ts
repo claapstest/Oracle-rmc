@@ -85,6 +85,17 @@ export function mapLoginError(err: any): string {
   const rawMsg = typeof err === 'string' ? err : (err?.message || err?.data?.message || err?.error || '');
   const msg = (rawMsg || '').toLowerCase();
 
+  // VYR-011: Entra OIDC failures (checked before the generic 401 branch)
+  if (code === 'IDENTITY_NOT_PROVISIONED') {
+    return 'Your Microsoft account is not authorized to access VEYRA. Please contact your administrator.';
+  }
+  if (code === 'INVALID_STATE') {
+    return 'Your sign-in request has expired. Please try again.';
+  }
+  if (code === 'ENTRA_AUTH_FAILED' || code === 'TOKEN_EXCHANGE_FAILED' || code === 'INVALID_TOKEN' || code === 'ENTRA_NOT_CONFIGURED') {
+    return 'Microsoft sign-in could not be completed. Please try again.';
+  }
+
   // 403: User Disabled / Suspended / Account locked
   if (
     status === 403 ||

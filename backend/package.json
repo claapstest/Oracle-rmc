@@ -14,7 +14,8 @@
     "test:chat-contract": "tsx test/chat_contract.test.ts",
     "test:response-composer": "tsx --test test/responseComposer.test.ts",
     "test:frontend-consumption": "tsx ../frontend/src/test/assistant_consumption.test.ts",
-    "test:auth-provider": "node scripts/test_story_auth_provider.cjs"
+    "test:auth-provider": "node scripts/test_story_auth_provider.cjs",
+    "test:story11": "tsx scripts/test_story_011_entra_oidc.ts && tsx scripts/test_story_011_external_identity.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
@@ -24,6 +25,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "node-sql-parser": "^5.4.0",
+    "jose": "^6.2.16",
     "oracle-fusion-security-assistant": "file:..",
     "pg": "^8.11.3",
     "xlsx": "^0.18.5",
