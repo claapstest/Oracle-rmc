@@ -11,6 +11,34 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config(); // fallback to current working directory .env
 
+function parseRoleMapping(raw?: string): Record<string, string> {
+  if (!raw || !raw.trim()) return {};
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const result: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string') {
+          result[k.trim()] = v.trim().toUpperCase();
+        }
+      }
+      return result;
+    } catch {
+      console.warn('[Config] Failed to parse ENTRA_ROLE_MAPPING as JSON, falling back to empty mapping.');
+      return {};
+    }
+  }
+  const result: Record<string, string> = {};
+  for (const pair of trimmed.split(',')) {
+    const [claim, role] = pair.split(':').map(s => s?.trim());
+    if (claim && role) {
+      result[claim] = role.toUpperCase();
+    }
+  }
+  return result;
+}
+
 export const config = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -23,6 +51,8 @@ export const config = {
     redirectUri: process.env.ENTRA_REDIRECT_URI || '',
     jitProvisioning: process.env.ENTRA_JIT_PROVISIONING === 'true',
     defaultRole: (process.env.ENTRA_DEFAULT_ROLE || 'AUDIT_USER').trim().toUpperCase(),
+    roleMapping: parseRoleMapping(process.env.ENTRA_ROLE_MAPPING),
+    requireRoleMapping: process.env.ENTRA_REQUIRE_ROLE_MAPPING === 'true',
   },
   oracle: {
     baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',

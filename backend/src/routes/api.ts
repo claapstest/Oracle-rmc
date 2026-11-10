@@ -412,6 +412,10 @@ apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
         logAudit(identity.email, 'LOGIN_REJECTED', 'Entra identity is not provisioned in VEYRA (403 Forbidden)');
         return res.status(403).json({ success: false, code: result.code, message: result.message });
       }
+      if (result.code === 'ROLE_NOT_MAPPED') {
+        logAudit(identity.email, 'LOGIN_REJECTED', 'No approved Veyra role mapped for Entra identity (403 Forbidden)');
+        return res.status(403).json({ success: false, code: result.code, message: result.message });
+      }
       if (result.code === 'AUTH_BACKEND_UNAVAILABLE') {
         return res.status(503).json({ success: false, code: result.code, message: result.message });
       }

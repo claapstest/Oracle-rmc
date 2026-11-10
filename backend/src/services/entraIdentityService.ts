@@ -7,6 +7,21 @@ export interface EntraIdentityClaims {
   subject: string; // oid (Object ID) or sub
   tenantId: string;
   displayName?: string;
+  roles?: string[];
+  groups?: string[];
+}
+
+export const VEYRA_ROLE_RANKS: Record<string, number> = {
+  SITE_ADMIN: 40,
+  AUDIT_MANAGER: 30,
+  AUDIT_SUPERVISOR: 20,
+  AUDIT_USER: 10,
+};
+
+export interface EntraRoleResolution {
+  roleCode: string | null;
+  matchedClaim?: string;
+  source: 'CLAIM_MAPPING' | 'DIRECT_ROLE' | 'CONVENTION' | 'DEFAULT_FALLBACK' | 'UNMAPPED';
 }
 
 export interface EntraIdentityMappingRecord {
@@ -40,6 +55,167 @@ export interface EntraResolutionResult {
 }
 
 export class EntraIdentityService {
+  /**
+   * Resolves the target Veyra role from incoming Entra token claims (roles and groups)
+   * according to configured mappings, standard conventions, and role hierarchy precedence.
+   */
+  public resolveEntraRole(claims: EntraIdentityClaims): EntraRoleResolution {
+    const rawRoles = claims.roles || [];
+    const rawGroups = claims.groups || [];
+    const candidates = [...rawRoles, ...rawGroups].map(c => String(c).trim()).filter(Boolean);
+
+    const configuredMapping = config.entra.roleMapping || {};
+    // Normalize configured mapping keys for case-insensitive lookup
+    const normalizedConfigMap: Record<string, string> = {};
+    for (const [k, v] of Object.entries(configuredMapping)) {
+      normalizedConfigMap[k.toLowerCase()] = v.toUpperCase();
+    }
+
+    interface Match {
+      roleCode: string;
+      matchedClaim: string;
+      rank: number;
+      source: 'CLAIM_MAPPING' | 'DIRECT_ROLE' | 'CONVENTION';
+    }
+
+    const matches: Match[] = [];
+
+    for (const claim of candidates) {
+      const lowerClaim = claim.toLowerCase();
+
+      // 1. Configured mapping match (highest priority)
+      if (normalizedConfigMap[lowerClaim]) {
+        const target = normalizedConfigMap[lowerClaim];
+        if (VEYRA_ROLE_RANKS[target]) {
+          matches.push({
+            roleCode: target,
+            matchedClaim: claim,
+            rank: VEYRA_ROLE_RANKS[target],
+            source: 'CLAIM_MAPPING'
+          });
+          continue;
+        }
+      }
+
+      // 2. Direct role code match (case-insensitive)
+      const upperClaim = claim.toUpperCase();
+      if (VEYRA_ROLE_RANKS[upperClaim]) {
+        matches.push({
+          roleCode: upperClaim,
+          matchedClaim: claim,
+          rank: VEYRA_ROLE_RANKS[upperClaim],
+          source: 'DIRECT_ROLE'
+        });
+        continue;
+      }
+
+      // 3. Standard naming conventions:
+      if (lowerClaim === 'veyra.siteadmin' || lowerClaim === 'veyra.admin' || lowerClaim === 'siteadmin' || lowerClaim === 'site_admin') {
+        matches.push({ roleCode: 'SITE_ADMIN', matchedClaim: claim, rank: VEYRA_ROLE_RANKS.SITE_ADMIN, source: 'CONVENTION' });
+      } else if (lowerClaim === 'veyra.auditmanager' || lowerClaim === 'veyra.manager' || lowerClaim === 'auditmanager' || lowerClaim === 'audit_manager') {
+        matches.push({ roleCode: 'AUDIT_MANAGER', matchedClaim: claim, rank: VEYRA_ROLE_RANKS.AUDIT_MANAGER, source: 'CONVENTION' });
+      } else if (lowerClaim === 'veyra.auditsupervisor' || lowerClaim === 'veyra.supervisor' || lowerClaim === 'auditsupervisor' || lowerClaim === 'audit_supervisor') {
+        matches.push({ roleCode: 'AUDIT_SUPERVISOR', matchedClaim: claim, rank: VEYRA_ROLE_RANKS.AUDIT_SUPERVISOR, source: 'CONVENTION' });
+      } else if (lowerClaim === 'veyra.audituser' || lowerClaim === 'veyra.user' || lowerClaim === 'audituser' || lowerClaim === 'audit_user') {
+        matches.push({ roleCode: 'AUDIT_USER', matchedClaim: claim, rank: VEYRA_ROLE_RANKS.AUDIT_USER, source: 'CONVENTION' });
+      }
+    }
+
+    // Sort by rank descending so the highest-privilege role wins
+    if (matches.length > 0) {
+      matches.sort((a, b) => b.rank - a.rank);
+      const best = matches[0];
+      return {
+        roleCode: best.roleCode,
+        matchedClaim: best.matchedClaim,
+        source: best.source
+      };
+    }
+
+    // No claim matches found
+    if (config.entra.requireRoleMapping) {
+      return {
+        roleCode: null,
+        source: 'UNMAPPED'
+      };
+    }
+
+    const fallbackRole = (config.entra.defaultRole || 'AUDIT_USER').toUpperCase();
+    return {
+      roleCode: VEYRA_ROLE_RANKS[fallbackRole] ? fallbackRole : 'AUDIT_USER',
+      source: 'DEFAULT_FALLBACK'
+    };
+  }
+
+  /**
+   * Synchronizes a user's assigned role in veyra_user_role to match the target role.
+   * If the role changed, updates veyra_user_role atomically and records a ROLE_ASSIGNED audit event.
+   */
+  public async syncUserRole(
+    userId: string,
+    targetRoleCode: string,
+    meta?: { matchedClaim?: string; source?: string; ipAddress?: string; userAgent?: string }
+  ): Promise<{ changed: boolean; previousRole: string | null; currentRole: string }> {
+    const currentRoleRes = await dbQuery<{ role_code: string; role_id: string }>(
+      `SELECT r.role_code, r.id as role_id
+       FROM veyra_role r
+       JOIN veyra_user_role ur ON ur.role_id = r.id
+       WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
+      [userId]
+    );
+
+    const previousRole = currentRoleRes.rows[0]?.role_code || null;
+    if (previousRole === targetRoleCode) {
+      return { changed: false, previousRole, currentRole: targetRoleCode };
+    }
+
+    const targetRoleRes = await dbQuery<{ id: string }>(
+      `SELECT id FROM veyra_role WHERE role_code = $1 AND status = 'ACTIVE'`,
+      [targetRoleCode]
+    );
+
+    if (targetRoleRes.rows.length === 0) {
+      console.warn(`[EntraIdentityService] Target role ${targetRoleCode} not found in veyra_role.`);
+      return { changed: false, previousRole, currentRole: previousRole || targetRoleCode };
+    }
+
+    const newRoleId = targetRoleRes.rows[0].id;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`DELETE FROM veyra_user_role WHERE user_id = $1`, [userId]);
+      await client.query(
+        `INSERT INTO veyra_user_role (user_id, role_id, created_by)
+         VALUES ($1, $2, 'ENTRA_SYNC')`,
+        [userId, newRoleId]
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    await auditService.recordAuditEvent({
+      userId,
+      eventType: 'ROLE_ASSIGNED',
+      ipAddress: meta?.ipAddress || null,
+      userAgent: meta?.userAgent || null,
+      targetType: 'ROLE',
+      targetId: newRoleId,
+      details: {
+        provider: 'ENTRA',
+        previousRole,
+        newRole: targetRoleCode,
+        matchedClaim: meta?.matchedClaim || null,
+        source: meta?.source || 'CLAIM_MAPPING'
+      }
+    }).catch(() => {});
+
+    return { changed: true, previousRole, currentRole: targetRoleCode };
+  }
+
   /**
    * Validate that incoming token's tenant matches the configured enterprise tenant.
    */
@@ -149,6 +325,35 @@ export class EntraIdentityService {
       };
     }
 
+    // 2.1 Resolve target role from Entra claims (Story 13 - VYR-013)
+    const roleResolution = this.resolveEntraRole(claims);
+    if (!roleResolution.roleCode) {
+      await auditService.recordAuditEvent({
+        userId: null,
+        eventType: 'LOGIN_FAILED',
+        ipAddress,
+        userAgent,
+        targetType: 'USER',
+        targetId: null,
+        details: {
+          reason: 'ROLE_NOT_MAPPED',
+          provider: 'ENTRA',
+          email: normalizedEmail,
+          tenantId,
+          claims: {
+            roles: claims.roles || [],
+            groups: claims.groups || []
+          }
+        }
+      }).catch(() => {});
+
+      return {
+        success: false,
+        code: 'ROLE_NOT_MAPPED',
+        message: 'Your Microsoft account has not been assigned an approved VEYRA application role.'
+      };
+    }
+
     try {
       // 3. Primary lookup by immutable composite key (provider, tenantId, externalUserId)
       const existingMapping = await this.findMapping(tenantId, externalUserId);
@@ -195,6 +400,14 @@ export class EntraIdentityService {
              WHERE id = $3`,
             [normalizedEmail, displayName, existingMapping.id]
           );
+
+          // Synchronize user role from claims (Story 13 - VYR-013)
+          await this.syncUserRole(dbUser.id, roleResolution.roleCode, {
+            matchedClaim: roleResolution.matchedClaim,
+            source: roleResolution.source,
+            ipAddress,
+            userAgent
+          });
 
           return {
             success: true,
@@ -282,6 +495,14 @@ export class EntraIdentityService {
           }
         }).catch(() => {});
 
+        // Synchronize user role from claims (Story 13 - VYR-013)
+        await this.syncUserRole(dbUser.id, roleResolution.roleCode, {
+          matchedClaim: roleResolution.matchedClaim,
+          source: roleResolution.source,
+          ipAddress,
+          userAgent
+        });
+
         return {
           success: true,
           user: {
@@ -346,20 +567,20 @@ export class EntraIdentityService {
         );
         const newUser = insertUserRes.rows[0];
 
-        // 6.2 Assign default role
-        const defaultRoleCode = config.entra.defaultRole || 'AUDIT_USER';
+        // 6.2 Assign resolved role from claims (Story 13 - VYR-013)
+        const targetRoleCode = roleResolution.roleCode;
         const roleRes = await client.query(
           `SELECT id FROM veyra_role WHERE role_code = $1`,
-          [defaultRoleCode]
+          [targetRoleCode]
         );
 
-        if (roleRes.rows.length > 0) {
-          const roleId = roleRes.rows[0].id;
+        const assignedRoleId = roleRes.rows[0]?.id;
+        if (assignedRoleId) {
           await client.query(
-            `INSERT INTO veyra_user_role (user_id, role_id)
-             VALUES ($1, $2)
+            `INSERT INTO veyra_user_role (user_id, role_id, created_by)
+             VALUES ($1, $2, 'ENTRA_JIT')
              ON CONFLICT DO NOTHING`,
-            [newUser.id, roleId]
+            [newUser.id, assignedRoleId]
           );
         }
 
@@ -389,20 +610,22 @@ export class EntraIdentityService {
             provider: 'ENTRA',
             tenantId,
             externalUserId,
-            assignedRole: defaultRoleCode
+            assignedRole: targetRoleCode
           }
         }).catch(() => {});
 
-        if (roleRes.rows.length > 0) {
+        if (assignedRoleId) {
           await auditService.recordAuditEvent({
             userId: newUser.id,
             eventType: 'ROLE_ASSIGNED',
             ipAddress,
             userAgent,
             targetType: 'ROLE',
-            targetId: roleRes.rows[0].id,
+            targetId: assignedRoleId,
             details: {
-              roleCode: defaultRoleCode,
+              roleCode: targetRoleCode,
+              matchedClaim: roleResolution.matchedClaim || null,
+              source: roleResolution.source,
               assignedVia: 'ENTRA_JIT'
             }
           }).catch(() => {});

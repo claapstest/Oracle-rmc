@@ -33,10 +33,10 @@ export class AuthenticationProviderFactory {
     // 2. Select and instantiate the configured provider
     if (providerType === 'ENTRA') {
       const entraConfig: EntraConfig = {
-        tenantId: explicitEntraConfig?.tenantId || process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID || '',
-        clientId: explicitEntraConfig?.clientId || process.env.ENTRA_CLIENT_ID || process.env.AZURE_CLIENT_ID || '',
-        clientSecret: explicitEntraConfig?.clientSecret || process.env.ENTRA_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET || '',
-        redirectUri: explicitEntraConfig?.redirectUri || process.env.ENTRA_REDIRECT_URI || ''
+        tenantId: explicitEntraConfig?.tenantId !== undefined ? explicitEntraConfig.tenantId : (process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID || ''),
+        clientId: explicitEntraConfig?.clientId !== undefined ? explicitEntraConfig.clientId : (process.env.ENTRA_CLIENT_ID || process.env.AZURE_CLIENT_ID || ''),
+        clientSecret: explicitEntraConfig?.clientSecret !== undefined ? explicitEntraConfig.clientSecret : (process.env.ENTRA_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET || ''),
+        redirectUri: explicitEntraConfig?.redirectUri !== undefined ? explicitEntraConfig.redirectUri : (process.env.ENTRA_REDIRECT_URI || '')
       };
 
       const provider = new EntraAuthenticationProvider(entraConfig);

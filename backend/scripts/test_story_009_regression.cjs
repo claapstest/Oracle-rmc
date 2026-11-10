@@ -17,6 +17,8 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
+process.env.AUTH_PROVIDER = 'LOCAL';
+
 const TEST_PORT = 5099;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
