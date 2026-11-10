@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { query as dbQuery, pool } from '../db.js';
 import { auditService } from './auditService.js';
 import { AuthenticationProvider, AuthCredentials, getAuthenticationProvider } from '../auth/index.js';
+import { entraIdentityService, EntraIdentityClaims } from './entraIdentityService.js';
+import { config } from '../config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -877,10 +879,19 @@ export class AuthService {
    * Fails closed: never auto-provisions and never falls back to the local user store.
    */
   public async loginWithExternalIdentity(
-    rawEmail: string,
-    clientMeta?: { ipAddress?: string; userAgent?: string }
+    identityInput: string | EntraIdentityClaims,
+    clientMeta?: { ipAddress?: string; userAgent?: string; force?: boolean }
   ): Promise<LoginResult> {
-    const normalized = this.normalizeEmail(rawEmail);
+    const claims: EntraIdentityClaims = typeof identityInput === 'string'
+      ? {
+          email: identityInput,
+          subject: identityInput,
+          tenantId: config.entra.tenantId || 'default-tenant',
+          displayName: identityInput.split('@')[0]
+        }
+      : identityInput;
+
+    const normalized = this.normalizeEmail(claims.email);
     if (!normalized || !this.validateEmailFormat(normalized)) {
       return {
         success: false,
@@ -897,54 +908,38 @@ export class AuthService {
     const userAgent = (clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
 
     try {
-      const userRes = await dbQuery(
-        `SELECT id, email, password_hash, display_name, status, is_local_user, last_login_at
-         FROM veyra_user
-         WHERE email = $1`,
-        [normalized]
+      const resolution = await entraIdentityService.resolveOrProvision(
+        { ...claims, email: normalized },
+        { ipAddress, userAgent }
       );
 
-      if (userRes.rows.length === 0) {
-        await auditService.recordAuditEvent({
-          userId: null,
-          eventType: 'LOGIN_FAILED',
-          ipAddress,
-          userAgent,
-          targetType: 'USER',
-          targetId: null,
-          details: { reason: 'IDENTITY_NOT_PROVISIONED' }
-        }).catch(() => {});
+      if (!resolution.success) {
         return {
           success: false,
-          code: 'IDENTITY_NOT_PROVISIONED',
-          message: 'Your Microsoft account is not authorized to access VEYRA.'
+          code: resolution.code || 'IDENTITY_NOT_PROVISIONED',
+          status: resolution.status as UserStatus | undefined,
+          message: resolution.message || 'Your Microsoft account is not authorized to access VEYRA.'
         };
       }
 
-      const dbUser = userRes.rows[0];
-      if (dbUser.status !== 'ACTIVE') {
-        await auditService.recordAuditEvent({
-          userId: dbUser.id,
-          eventType: 'LOGIN_FAILED',
-          ipAddress,
-          userAgent,
-          targetType: 'USER',
-          targetId: dbUser.id,
-          details: { reason: 'ACCOUNT_INACTIVE', status: dbUser.status }
-        }).catch(() => {});
-        return {
-          success: false,
+      const dbUser = resolution.user!;
+      return await this.completeDatabaseLogin(
+        {
+          id: dbUser.id,
+          email: dbUser.email,
+          display_name: dbUser.displayName,
           status: dbUser.status as UserStatus,
-          message: 'Your account is not active. Please contact a system administrator.'
-        };
-      }
-
-      return await this.completeDatabaseLogin(dbUser, normalized, {
-        ipAddress,
-        userAgent,
-        force: false,
-        providerId: 'ENTRA'
-      });
+          is_local_user: dbUser.isLocalUser,
+          last_login_at: dbUser.lastLoginAt
+        },
+        normalized,
+        {
+          ipAddress,
+          userAgent,
+          force: Boolean(clientMeta?.force),
+          providerId: 'ENTRA'
+        }
+      );
     } catch (err) {
       console.error('[Auth Service] Entra identity resolution failed:', err);
       return {
