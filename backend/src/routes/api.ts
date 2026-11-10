@@ -586,7 +586,7 @@ apiRouter.post('/auth/reset-password', async (req: Request, res: Response) => {
 
   const email = authService.normalizeEmail(rawEmail);
   try {
-    const result = authService.resetPassword(email, resetCode, newPassword);
+    const result = await authService.resetPassword(email, resetCode, newPassword);
     if (!result.success) {
       return res.status(400).json({ success: false, message: result.message });
     }

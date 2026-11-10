@@ -551,21 +551,6 @@ export class AuthService {
     const rawEmail = credentials.email || '';
     const normalized = this.normalizeEmail(rawEmail);
 
-    if (provider.metadata.type === 'LOCAL') {
-      if (!normalized || !credentials.password) {
-        return {
-          success: false,
-          message: GENERIC_AUTH_FAILURE_MSG
-        };
-      }
-      if (!this.validateEmailFormat(normalized)) {
-        return {
-          success: false,
-          message: GENERIC_AUTH_FAILURE_MSG
-        };
-      }
-    }
-
     // Sanitize client metadata early for audit logging
     let rawIp = credentials.clientMeta?.ipAddress || '127.0.0.1';
     if (rawIp.startsWith('::ffff:')) {
@@ -649,7 +634,7 @@ export class AuthService {
       });
     } catch (dbErr: any) {
       console.warn(`[Auth Service] Database query error during login: ${dbErr.message}. Attempting fallback...`);
-      return this.loginLocalFallback(normalized, credentials.password || '');
+      return await this.loginLocalFallback(normalized, credentials.password || '');
     }
   }
 
@@ -966,7 +951,7 @@ export class AuthService {
   /**
    * Fallback login handler for offline development/testing using users_auth.json
    */
-  private loginLocalFallback(normalized: string, rawPassword: string): LoginResult {
+  private async loginLocalFallback(normalized: string, rawPassword: string): Promise<LoginResult> {
     this.loadUsers();
     const user = this.users[normalized];
 
@@ -995,7 +980,7 @@ export class AuthService {
       };
     }
 
-    const isMatch = bcrypt.compareSync(rawPassword, user.passwordHash);
+    const isMatch = await bcrypt.compare(rawPassword, user.passwordHash);
     if (!isMatch) {
       return {
         success: false,
@@ -1876,12 +1861,11 @@ export class AuthService {
       status = statusUpper as UserStatus;
     }
 
-    // AC11: Password handling (bcrypt hash salt >= 10, never returned)
+    // AC11: Password handling (asynchronous bcrypt hash salt >= 10, never returned)
     let passwordHash: string | null = null;
     let setupCompleted = false;
     if (data.password) {
-      const salt = bcrypt.genSaltSync(10);
-      passwordHash = bcrypt.hashSync(data.password, salt);
+      passwordHash = await bcrypt.hash(data.password, 10);
       setupCompleted = true;
     }
 
@@ -2140,8 +2124,7 @@ export class AuthService {
     }
 
     if (data.password) {
-      const salt = bcrypt.genSaltSync(10);
-      user.passwordHash = bcrypt.hashSync(data.password, salt);
+      user.passwordHash = await bcrypt.hash(data.password, 10);
       user.setupCompleted = true;
     }
 
@@ -2413,7 +2396,7 @@ export class AuthService {
     return true;
   }
 
-  public resetPassword(email: string, rawCode: string, newPassword: string): { success: boolean; message: string } {
+  public async resetPassword(email: string, rawCode: string, newPassword: string): Promise<{ success: boolean; message: string }> {
     this.loadUsers();
     const normalized = this.normalizeEmail(email);
     const user = this.users[normalized];
@@ -2427,8 +2410,7 @@ export class AuthService {
     }
 
     if (!user.passwordHash) {
-      const salt = bcrypt.genSaltSync(10);
-      user.passwordHash = bcrypt.hashSync(newPassword, salt);
+      user.passwordHash = await bcrypt.hash(newPassword, 10);
       user.setupCompleted = true;
       user.status = 'ACTIVE';
       user.isActive = true;
@@ -2454,8 +2436,7 @@ export class AuthService {
       return { success: false, message: 'Invalid reset code or email.' };
     }
 
-    const salt = bcrypt.genSaltSync(10);
-    user.passwordHash = bcrypt.hashSync(newPassword, salt);
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
     user.setupCompleted = true;
     user.status = 'ACTIVE';
     user.isActive = true;
