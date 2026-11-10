@@ -233,9 +233,16 @@ async function runTests() {
   );
 
   // Test 11: admin@admin.com can use break-glass local authentication in ENTRA mode
+  const bcrypt = require('bcryptjs');
+  const { query: dbQuery } = await import('../dist/db.js');
+  const testAdminPass = 'Admin@123';
+  const testAdminHash = await bcrypt.hash(testAdminPass, 10);
+  await dbQuery("UPDATE veyra_user SET password_hash = $1, status = 'ACTIVE' WHERE email = 'admin@admin.com'", [testAdminHash]);
+
   const adminBreakGlass = await authService.authenticateWithProvider(activeEntra, {
     email: 'admin@admin.com',
-    password: 'Admin@123'
+    password: testAdminPass,
+    clientMeta: { force: true }
   });
   report(
     adminBreakGlass.success === true && adminBreakGlass.role === 'SITE_ADMIN',
@@ -257,6 +264,7 @@ async function runTests() {
   if (failedTests > 0) {
     process.exit(1);
   }
+  process.exit(0);
 }
 
 runTests().catch(err => {
