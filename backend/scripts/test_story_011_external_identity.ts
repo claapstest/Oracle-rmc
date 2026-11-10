@@ -59,3 +59,4 @@ await test('Site Admin identity resolves through the same external path', async 
 });
 
 console.log(`\nVYR-011 external identity checks passed: ${passed} tests.`);
+process.exit(0);

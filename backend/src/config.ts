@@ -30,6 +30,8 @@ export const config = {
     clientId: process.env.ENTRA_CLIENT_ID || process.env.AZURE_CLIENT_ID || '',
     clientSecret: process.env.ENTRA_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET || '',
     redirectUri: process.env.ENTRA_REDIRECT_URI || '',
+    jitProvisioning: process.env.ENTRA_JIT_PROVISIONING === 'true',
+    defaultRole: (process.env.ENTRA_DEFAULT_ROLE || 'AUDIT_USER').trim().toUpperCase(),
   },
   oracle: {
     baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',

@@ -427,7 +427,7 @@ apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
 
   try {
     const identity = await completeAuthorization(code, state);
-    const result = await authService.loginWithExternalIdentity(identity.email, { ipAddress: rawIp, userAgent });
+    const result = await authService.loginWithExternalIdentity(identity, { ipAddress: rawIp, userAgent });
 
     if (!result.success) {
       if (result.code === 'ACTIVE_SESSION_EXISTS') {
@@ -436,6 +436,10 @@ apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
           code: 'ACTIVE_SESSION_EXISTS',
           message: 'An active session already exists for this user.',
         });
+      }
+      if (result.code === 'TENANT_MISMATCH') {
+        logAudit(identity.email, 'LOGIN_REJECTED', 'Entra tenant mismatch (403 Forbidden)');
+        return res.status(403).json({ success: false, code: result.code, message: result.message });
       }
       if (result.code === 'IDENTITY_NOT_PROVISIONED') {
         logAudit(identity.email, 'LOGIN_REJECTED', 'Entra identity is not provisioned in VEYRA (403 Forbidden)');
