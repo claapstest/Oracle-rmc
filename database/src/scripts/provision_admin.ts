@@ -17,12 +17,19 @@ const connectionString =
 
 export async function provisionAdminPassword(customPassword?: string): Promise<void> {
   const targetEmail = 'admin@admin.com';
-  // Check CLI argument, then environment variable, fallback to default local dev password
-  const password = customPassword || process.env.INITIAL_ADMIN_PASSWORD || process.argv[2] || 'Admin@123';
+  const isProd = (process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+  const candidatePassword = customPassword || process.env.INITIAL_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || process.argv[2];
+
+  if (isProd && !candidatePassword) {
+    throw new Error('[Security Gate] In PRODUCTION, administrator password must be supplied via ADMIN_INITIAL_PASSWORD secret injection or CLI argument.');
+  }
+
+  const password = candidatePassword || 'Admin@123';
 
   console.log(`===========================================================`);
   console.log(`🔐 VEYRA Local Admin Password Provisioning`);
   console.log(`   Target User : ${targetEmail}`);
+  console.log(`   Environment : ${isProd ? 'PRODUCTION' : (process.env.NODE_ENV || 'development')}`);
   console.log(`   Target DB   : ${connectionString.replace(/:[^:@]+@/, ':****@')}`);
   console.log(`===========================================================`);
 
@@ -40,9 +47,9 @@ export async function provisionAdminPassword(customPassword?: string): Promise<v
   try {
     await client.query('BEGIN');
 
-    // 1. Generate salt and bcrypt hash
-    const saltRounds = 10;
-    const passwordHash = bcrypt.hashSync(password, saltRounds);
+    // 1. Generate salt and bcrypt hash asynchronously (cost 12 for admin)
+    const saltRounds = isProd ? 12 : 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // 2. Check if admin user exists in veyra_user
     const userCheck = await client.query(

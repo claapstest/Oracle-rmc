@@ -18,7 +18,9 @@
     "test:story11": "tsx scripts/test_story_011_entra_oidc.ts && tsx scripts/test_story_011_external_identity.ts",
     "test:story12": "node scripts/test_story_012_entra_identity.cjs",
     "test:story13": "node scripts/test_story_013_entra_role_mapping.cjs",
-    "test:story14": "node scripts/test_story_014_local_auth_provider.cjs"
+    "test:story14": "node scripts/test_story_014_local_auth_provider.cjs",
+    "test:story15": "node scripts/test_story_015_local_user_provisioning.cjs",
+    "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

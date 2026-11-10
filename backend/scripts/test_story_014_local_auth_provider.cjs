@@ -256,6 +256,8 @@ async function runTests() {
   // -------------------------------------------------------------
   console.log('\n--- Section 5: HTTP Controller Integration (401, 403, 409, 200 Semantics) ---');
 
+  process.env.AUTH_PROVIDER = 'LOCAL';
+  config.authProvider = 'LOCAL';
   initializeAuthProvider();
   const testApp = express();
   testApp.use(express.json());
