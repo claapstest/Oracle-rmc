@@ -262,28 +262,38 @@ export async function seedRbacData(client?: pg.ClientBase): Promise<void> {
       );
     }
 
-    // 6. Seed Additional Personas (Audit Manager, Supervisor, User)
-    for (const persona of SEED_PERSONAS) {
-      const pEmail = persona.email.trim().toLowerCase();
-      const pRes = await db.query(
-        `INSERT INTO veyra_user (email, display_name, status, is_local_user, password_hash, created_by)
-         VALUES ($1, $2, $3, true, $4, $5)
-         ON CONFLICT (email) DO UPDATE SET
-           display_name = EXCLUDED.display_name,
-           status = EXCLUDED.status,
-           password_hash = COALESCE(EXCLUDED.password_hash, veyra_user.password_hash)
-         RETURNING id`,
-        [pEmail, persona.display_name, persona.status, persona.password_hash, persona.created_by]
-      );
-      const pUserId = pRes.rows[0].id;
-      const pRoleId = roleIdMap.get(persona.role_code);
-      if (pRoleId) {
-        await db.query(
-          `INSERT INTO veyra_user_role (user_id, role_id, created_by)
-           VALUES ($1, $2, 'SYSTEM_SEED')
-           ON CONFLICT (user_id, role_id) DO NOTHING`,
-          [pUserId, pRoleId]
+    // 6. Seed Additional Personas (Audit Manager, Supervisor, User) - Gated for non-production environments (VYR-015)
+    const isProduction = (process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+    const allowProdSeed = process.env.ALLOW_PRODUCTION_SEED === 'true';
+
+    if (isProduction && !allowProdSeed) {
+      console.log('ℹ️  [Security Gate] Skipping development persona seed in PRODUCTION environment (ALLOW_PRODUCTION_SEED is not enabled).');
+    } else {
+      if (isProduction && allowProdSeed) {
+        console.warn('⚠️  [SECURITY WARNING] Seeding development personas in PRODUCTION environment under explicit ALLOW_PRODUCTION_SEED override.');
+      }
+      for (const persona of SEED_PERSONAS) {
+        const pEmail = persona.email.trim().toLowerCase();
+        const pRes = await db.query(
+          `INSERT INTO veyra_user (email, display_name, status, is_local_user, password_hash, created_by)
+           VALUES ($1, $2, $3, true, $4, $5)
+           ON CONFLICT (email) DO UPDATE SET
+             display_name = EXCLUDED.display_name,
+             status = EXCLUDED.status,
+             password_hash = COALESCE(EXCLUDED.password_hash, veyra_user.password_hash)
+           RETURNING id`,
+          [pEmail, persona.display_name, persona.status, persona.password_hash, persona.created_by]
         );
+        const pUserId = pRes.rows[0].id;
+        const pRoleId = roleIdMap.get(persona.role_code);
+        if (pRoleId) {
+          await db.query(
+            `INSERT INTO veyra_user_role (user_id, role_id, created_by)
+             VALUES ($1, $2, 'SYSTEM_SEED')
+             ON CONFLICT (user_id, role_id) DO NOTHING`,
+            [pUserId, pRoleId]
+          );
+        }
       }
     }
 

@@ -470,28 +470,42 @@ export class AuthService {
   }
 
   private ensureInitialAdmin() {
-    // AC6 — Site Admin: admin@admin.com mapped to Site Admin role with local VEYRA auth
+    // AC6 — Site Admin: admin@admin.com mapped to Site Admin role with local VEYRA auth (VYR-015)
     const siteAdminEmail = 'admin@admin.com';
     const siteAdminNorm = this.normalizeEmail(siteAdminEmail);
     if (!this.users[siteAdminNorm]) {
-      const salt = bcrypt.genSaltSync(10);
-      const defaultAdminHash = bcrypt.hashSync('Admin@123', salt);
+      const isProd = (process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+      const injectedPassword = process.env.ADMIN_INITIAL_PASSWORD || process.env.INITIAL_ADMIN_PASSWORD;
+      const injectedHash = process.env.ADMIN_INITIAL_PASSWORD_HASH;
+
+      let passwordHash: string | null = null;
+      if (injectedHash) {
+        passwordHash = injectedHash;
+      } else if (injectedPassword) {
+        passwordHash = bcrypt.hashSync(injectedPassword, 12);
+      } else if (!isProd) {
+        passwordHash = bcrypt.hashSync('Admin@123', 10);
+      } else {
+        // In production without secret injection, leave null to require secure setup
+        passwordHash = null;
+      }
+
       this.users[siteAdminNorm] = {
         userId: 'usr_adm_0001',
         email: siteAdminEmail,
         displayName: 'Site Administrator',
-        passwordHash: defaultAdminHash,
+        passwordHash,
         status: 'ACTIVE',
         role: 'SITE_ADMIN',
         permissions: DEFAULT_ROLE_PERMISSIONS.SITE_ADMIN,
-        setupCompleted: true,
+        setupCompleted: passwordHash !== null,
         isAdmin: true,
         isActive: true,
         lastLoginAt: null,
         resetCode: null
       };
       this.saveUsers();
-      console.log(`[Auth Service] Provisioned default Site Admin account: ${siteAdminEmail}`);
+      console.log(`[Auth Service] Provisioned Site Admin account: ${siteAdminEmail}`);
     } else {
       this.users[siteAdminNorm].role = 'SITE_ADMIN';
       this.users[siteAdminNorm].isAdmin = true;
