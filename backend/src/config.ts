@@ -7,8 +7,10 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from the parent directories if needed
+// Load environment variables from the parent directories or workspace root if needed
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(process.cwd(), '../.env') });
 dotenv.config(); // fallback to current working directory .env
 
 function parseRoleMapping(raw?: string): Record<string, string> {
