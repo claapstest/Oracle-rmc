@@ -661,10 +661,55 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
                 {loading ? 'Signing in…' : 'Sign In'}
               </button>
 
+              {entraEnabled && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', margin: '0.25rem 0', color: '#94a3b8' }}>
+                    <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                    <span style={{ padding: '0 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>OR</span>
+                    <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                  </div>
+
+                  <button
+                    type="button"
+                    id="veyra-entra-login-btn"
+                    onClick={handleEntraLogin}
+                    disabled={entraLoading || loading}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.6rem',
+                      cursor: (entraLoading || loading) ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                      <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                      <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                      <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                    </svg>
+                    <span>{entraLoading ? 'Connecting to Microsoft…' : 'Sign in with Microsoft Entra'}</span>
+                  </button>
+                </>
+              )}
+
               <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5, borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
                   <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: '0.15rem', color: '#1d4ed8' }} />
-                  <span>Your organization&apos;s security policies apply. Microsoft Entra ID sign-in arrives in a future phase — Site Admin (admin@admin.com) always signs in here.</span>
+                  <span>
+                    {entraEnabled
+                      ? 'Single Sign-On is managed by Microsoft Entra ID. Site Admin (admin@admin.com) can sign in using local credentials above.'
+                      : 'Your organization\'s security policies apply. Site Admin (admin@admin.com) always signs in here.'}
+                  </span>
                 </div>
               </div>
             </form>
