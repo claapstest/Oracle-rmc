@@ -188,6 +188,15 @@ export function validateConfig() {
     }
   }
 
+  if (providerType === 'LOCAL') {
+    // In LOCAL mode, Entra credentials are NOT validated or required.
+    // Ensure database connection parameters are available.
+    const hasDb = Boolean(process.env.DATABASE_URL || process.env.POSTGRES_HOST);
+    if (!hasDb) {
+      console.warn('[Config Warning] AUTH_PROVIDER is set to LOCAL, but no PostgreSQL configuration (DATABASE_URL / POSTGRES_HOST) was detected.');
+    }
+  }
+
   // 2. Validate Oracle configuration if active
   if (config.environmentMode === 'ORACLE_FUSION') {
     if (!config.oracle.baseUrl) {
