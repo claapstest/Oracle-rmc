@@ -344,11 +344,30 @@ function entraStateCookieOptions() {
 
 // GET /auth/config - Public auth provider metadata (no secrets)
 apiRouter.get('/auth/config', (_req: Request, res: Response) => {
-  res.json({
+  const provider = getAuthenticationProvider();
+  const meta = provider.getMetadata();
+  const isEntra = isEntraEnabled();
+
+  const publicConfig: Record<string, any> = {
     success: true,
     provider: config.authProvider,
-    entraEnabled: isEntraEnabled(),
-  });
+    providerName: meta.name,
+    description: meta.description,
+    isExternal: meta.isExternal,
+    supportedAuthMethods: meta.supportedAuthMethods,
+    entraEnabled: isEntra,
+  };
+
+  if (isEntra && typeof (provider as any).getPublicConfig === 'function') {
+    const entraPub = (provider as any).getPublicConfig();
+    publicConfig.entra = {
+      tenantId: entraPub.tenantId,
+      clientId: entraPub.clientId,
+      redirectUri: entraPub.redirectUri,
+    };
+  }
+
+  res.json(publicConfig);
 });
 
 // GET /auth/entra/start - Begin Authorization Code + PKCE login
@@ -458,10 +477,19 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   // Provider choice is strictly bound to server configuration, never user-controlled request parameters
   const provider = getAuthenticationProvider();
 
-  if (req.body.provider && typeof req.body.provider === 'string' && req.body.provider.toUpperCase() !== provider.metadata.type) {
-    logAudit(req.body.email || 'unknown', 'SECURITY_WARNING',
-      `Client attempted to override AUTH_PROVIDER with "${req.body.provider}". Enforcing configured deployment provider "${provider.metadata.type}".`
-    );
+  // VYR-016: Users cannot switch provider by manipulating request payloads (AC2)
+  if (req.body.provider && typeof req.body.provider === 'string') {
+    const requestedProvider = req.body.provider.trim().toUpperCase();
+    if (requestedProvider !== provider.metadata.type) {
+      logAudit(req.body.email || 'unknown', 'SECURITY_WARNING',
+        `Client attempted to override AUTH_PROVIDER with "${req.body.provider}". Enforcing configured deployment provider "${provider.metadata.type}".`
+      );
+      return res.status(400).json({
+        success: false,
+        code: 'PROVIDER_OVERRIDE_REJECTED',
+        message: `Client cannot override deployment authentication provider. Configured provider is ${provider.metadata.type}.`
+      });
+    }
   }
 
   const { email: rawEmail, password, code, token, force } = req.body;

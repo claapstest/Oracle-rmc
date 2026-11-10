@@ -9,13 +9,14 @@
  */
 
 const path = require('path');
+const { pathToFileURL } = require('url');
 const dotenv = require('dotenv');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 async function main() {
-  const distProvisioning = path.join(__dirname, '../dist/services/localUserProvisioningService.js');
+  const distProvisioning = pathToFileURL(path.join(__dirname, '../dist/services/localUserProvisioningService.js')).href;
   const { localUserProvisioningService } = await import(distProvisioning);
 
   const isProd = localUserProvisioningService.isProduction();

@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { query as dbQuery, pool } from '../db.js';
 import { auditService } from './auditService.js';
-import { AuthenticationProvider, AuthCredentials, getAuthenticationProvider } from '../auth/index.js';
+import { AuthenticationProvider, AuthCredentials, getAuthenticationProvider, LocalAuthenticationProvider } from '../auth/index.js';
 import { entraIdentityService, EntraIdentityClaims } from './entraIdentityService.js';
 import { config } from '../config.js';
 
@@ -574,8 +574,14 @@ export class AuthService {
     const userAgent = (credentials.clientMeta?.userAgent || 'Unknown Client').substring(0, 1000);
 
     try {
+      // VYR-016: In ENTRA deployment mode, support break-glass local authentication for Site Admin (admin@admin.com)
+      let activeProvider = provider;
+      if (provider.metadata.type === 'ENTRA' && credentials.password && normalized === 'admin@admin.com') {
+        activeProvider = new LocalAuthenticationProvider();
+      }
+
       // 1. Delegate credential verification to AuthenticationProvider abstraction
-      const authResult = await provider.authenticate(credentials);
+      const authResult = await activeProvider.authenticate(credentials);
 
       if (!authResult.success) {
         await auditService.recordAuditEvent({

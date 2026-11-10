@@ -24,7 +24,8 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // VYR-011: Microsoft Entra ID sign-in (Authorization Code + PKCE via the backend)
+  // VYR-016: Deployment-level authentication provider selection
+  const [authProvider, setAuthProvider] = useState<'LOCAL' | 'ENTRA'>('LOCAL');
   const [entraEnabled, setEntraEnabled] = useState(false);
   const [entraLoading, setEntraLoading] = useState(false);
   const entraCallbackHandled = useRef(false);
@@ -32,8 +33,20 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
   useEffect(() => {
     let cancelled = false;
     api.getAuthConfig()
-      .then((res: any) => { if (!cancelled) setEntraEnabled(Boolean(res?.entraEnabled)); })
-      .catch(() => { if (!cancelled) setEntraEnabled(false); });
+      .then((res: any) => {
+        if (!cancelled) {
+          setEntraEnabled(Boolean(res?.entraEnabled));
+          if (res?.provider === 'ENTRA' || res?.provider === 'LOCAL') {
+            setAuthProvider(res.provider);
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEntraEnabled(false);
+          setAuthProvider('LOCAL');
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
