@@ -85,9 +85,12 @@ export function mapLoginError(err: any): string {
   const rawMsg = typeof err === 'string' ? err : (err?.message || err?.data?.message || err?.error || '');
   const msg = (rawMsg || '').toLowerCase();
 
-  // VYR-011: Entra OIDC failures (checked before the generic 401 branch)
+  // VYR-011 / VYR-013: Entra OIDC failures (checked before the generic 401 branch)
   if (code === 'IDENTITY_NOT_PROVISIONED') {
     return 'Your Microsoft account is not authorized to access VEYRA. Please contact your administrator.';
+  }
+  if (code === 'ROLE_NOT_MAPPED') {
+    return 'Your Microsoft account has not been assigned an approved VEYRA application role. Please contact your administrator.';
   }
   if (code === 'INVALID_STATE') {
     return 'Your sign-in request has expired. Please try again.';

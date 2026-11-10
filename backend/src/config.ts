@@ -15,6 +15,34 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 dotenv.config();
 
+function parseRoleMapping(raw?: string): Record<string, string> {
+  if (!raw || !raw.trim()) return {};
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const result: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string') {
+          result[k.trim()] = v.trim().toUpperCase();
+        }
+      }
+      return result;
+    } catch {
+      console.warn('[Config] Failed to parse ENTRA_ROLE_MAPPING as JSON, falling back to empty mapping.');
+      return {};
+    }
+  }
+  const result: Record<string, string> = {};
+  for (const pair of trimmed.split(',')) {
+    const [claim, role] = pair.split(':').map(s => s?.trim());
+    if (claim && role) {
+      result[claim] = role.toUpperCase();
+    }
+  }
+  return result;
+}
+
 export const config = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -32,6 +60,8 @@ export const config = {
     redirectUri: process.env.ENTRA_REDIRECT_URI || '',
     jitProvisioning: process.env.ENTRA_JIT_PROVISIONING === 'true',
     defaultRole: (process.env.ENTRA_DEFAULT_ROLE || 'AUDIT_USER').trim().toUpperCase(),
+    roleMapping: parseRoleMapping(process.env.ENTRA_ROLE_MAPPING),
+    requireRoleMapping: process.env.ENTRA_REQUIRE_ROLE_MAPPING === 'true',
   },
   oracle: {
     baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',
@@ -83,7 +113,7 @@ export function loadPersistedConfig() {
     if (fs.existsSync(CONFIG_FILE_PATH)) {
       const fileData = fs.readFileSync(CONFIG_FILE_PATH, 'utf8');
       const persisted = JSON.parse(fileData);
-      
+
       if (persisted.environmentMode !== undefined) {
         config.environmentMode = persisted.environmentMode;
       }
@@ -128,12 +158,12 @@ export function savePersistedConfig() {
         token: encrypt(config.oracle.token),
       }
     };
-    
+
     // Write configuration atomically to prevent file corruption
     const tempFilePath = CONFIG_FILE_PATH + '.tmp';
     fs.writeFileSync(tempFilePath, JSON.stringify(dataToSave, null, 2), { encoding: 'utf8', mode: 0o600 });
     fs.renameSync(tempFilePath, CONFIG_FILE_PATH);
-    
+
     console.log(`[Config] Persisted configuration saved to ${CONFIG_FILE_PATH}`);
   } catch (err) {
     console.error(`[Config Error] Failed to save persisted configuration:`, err);

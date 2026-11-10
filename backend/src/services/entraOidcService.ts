@@ -26,6 +26,9 @@ export interface EntraIdentity {
   email: string;
   subject: string;
   tenantId: string;
+  roles?: string[];
+  groups?: string[];
+  displayName?: string;
 }
 
 export class EntraOidcError extends Error {
@@ -243,9 +246,22 @@ export async function completeAuthorization(
     nonce: pending.nonce,
   });
 
+  const roles = Array.isArray(payload.roles)
+    ? (payload.roles as unknown[]).map(String)
+    : [];
+  const groups = Array.isArray(payload.groups)
+    ? (payload.groups as unknown[]).map(String)
+    : [];
+  const displayName = typeof payload.name === 'string'
+    ? payload.name
+    : undefined;
+
   return {
     email: extractIdentityEmail(payload) as string,
-    subject: String(payload.sub ?? ''),
+    subject: String(payload.oid ?? payload.sub ?? ''),
     tenantId: String(payload.tid ?? ''),
+    roles,
+    groups,
+    displayName,
   };
 }
