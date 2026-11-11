@@ -9,7 +9,7 @@ export interface TableLoadingStateProps {
 }
 
 export const TableLoadingState: React.FC<TableLoadingStateProps> = ({
-  title = 'Loading records from Oracle Fusion...',
+  title = 'Loading records...',
   subtitle = 'Retrieving live data, please wait',
   colSpan = 8,
   skeletonRows = 3,
@@ -39,7 +39,7 @@ export interface ContentLoadingStateProps {
 }
 
 export const ContentLoadingState: React.FC<ContentLoadingStateProps> = ({
-  title = 'Loading records from Oracle Fusion...',
+  title = 'Loading records...',
   subtitle = 'Retrieving live data, please wait',
   minHeight,
   showSkeleton = false,

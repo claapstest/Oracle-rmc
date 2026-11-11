@@ -3478,15 +3478,81 @@ class OracleService {
     };
   }
 
-  async getRiskIncidents(options?: { controlId?: string; controls?: string[]; user?: string; role?: string; forceRefresh?: boolean; limit?: number; offset?: number; page?: number; search?: string; status?: string; state?: string }): Promise<any> {
+  async getRiskIncidents(options?: { controlId?: string; controls?: string[]; user?: string; role?: string; forceRefresh?: boolean; limit?: number; offset?: number; page?: number; search?: string; status?: string; state?: string; domain?: string }): Promise<any> {
     const isDemo = this.isDemoMode();
     const catalogRes = await this.controlCatalogService.getAllControls(options?.forceRefresh);
-    const availableControls = (catalogRes.items || []).map(c => ({
+    const catalogItems = catalogRes.items || [];
+    const isTxControlType = (t: any): boolean => {
+      if (t === 174 || t === '174') return true;
+      const lower = String(t || '').trim().toLowerCase();
+      return lower === 'transaction' || lower === 'transaction control' || lower === 'transaction controls';
+    };
+    const computeDomainKpis = (ctrls: any[]) => {
+      let total = 0;
+      let assigned = 0;
+      let accepted = 0;
+      let remediate = 0;
+      let resolved = 0;
+      for (const c of ctrls) {
+        const cCount = c.incidentCount ?? 0;
+        total += cCount;
+        const bd = c.incidentBreakdown;
+        const bdSum = (bd?.assigned ?? 0) + (bd?.accepted ?? 0) + (bd?.remediate ?? 0) + (bd?.resolved ?? 0);
+        if (bd && bdSum > 0) {
+          assigned += bd.assigned ?? 0;
+          accepted += bd.accepted ?? 0;
+          remediate += bd.remediate ?? 0;
+          resolved += bd.resolved ?? 0;
+        } else {
+          assigned += cCount;
+        }
+      }
+      const sumBd = assigned + accepted + remediate + resolved;
+      let sAssigned = assigned;
+      let sAccepted = accepted;
+      let sRemediate = remediate;
+      let sResolved = resolved;
+      if (total > 0 && sumBd !== total) {
+        if (sumBd === 0) {
+          sAssigned = total;
+        } else {
+          sAssigned = Math.round((assigned / sumBd) * total);
+          sAccepted = Math.round((accepted / sumBd) * total);
+          sRemediate = Math.round((remediate / sumBd) * total);
+          sResolved = Math.max(0, total - (sAssigned + sAccepted + sRemediate));
+        }
+      }
+      return {
+        total,
+        assigned: sAssigned,
+        inRemediation: sRemediate,
+        openOrActive: sAssigned + sRemediate,
+        accepted: sAccepted,
+        closedOrResolved: sResolved,
+        status: 'READY'
+      };
+    };
+
+    const accessCatalog = catalogItems.filter(c => !isTxControlType(c.type));
+    const txCatalog = catalogItems.filter(c => isTxControlType(c.type));
+    const domainKpis = {
+      access: computeDomainKpis(accessCatalog),
+      transaction: computeDomainKpis(txCatalog)
+    };
+
+    const domainKey = String(options?.domain || 'ALL').trim().toUpperCase();
+    const domainCatalog = domainKey === 'TRANSACTION'
+      ? txCatalog
+      : (domainKey === 'ACCESS' ? accessCatalog : catalogItems);
+
+    const catalogById = new Map(catalogItems.map(c => [c.id, c]));
+    const availableControls = domainCatalog.map(c => ({
       id: c.id,
       name: c.name,
       status: c.status,
       state: c.state,
       type: c.type,
+      lastRunDate: c.lastRunDate,
       incidentCount: c.incidentCount
     }));
 
@@ -3511,6 +3577,7 @@ class OracleService {
         fetchedCount: items.length,
         lastSyncedAt: detail.control?.lastUpdateDate || new Date().toISOString(),
         availableControls,
+        domainKpis,
         kpis: {
           total: detail.incidentCount || items.length,
           assigned: demoCats.assigned,
@@ -3523,12 +3590,10 @@ class OracleService {
       };
     }
 
-    // Live Oracle Mode
-    const incidentCacheService = this.controlCatalogService.getIncidentCacheService();
+    // Live Oracle Mode — Single Unified PostgreSQL Read Path
     let targetControlId = options?.controlId;
 
-    // Resolve a real live default: top control by incident count.
-    // (The legacy '114281' default only exists in demo sample data.)
+    // Resolve a real live default within active domain: top control by incident count.
     const controlsByIncidents = [...availableControls].sort(
       (a, b) => (b.incidentCount || 0) - (a.incidentCount || 0)
     );
@@ -3536,83 +3601,91 @@ class OracleService {
       || controlsByIncidents[0]?.id;
 
     if (!targetControlId || targetControlId === 'ALL' || ((options?.controls?.length || 0) > 0) || options?.user || options?.role) {
-      // ALL-controls view: aggregate across every control from PostgreSQL
-      // (single-cell raw payloads synced by the background workers) instead of
-      // only the freshly-downloaded disk caches. Authoritative total comes from
-      // the lightweight per-control counts; the 4-way split is computed exactly
-      // in SQL over the synced rows.
-      // When `controls` is supplied (e.g. Top-10 domain drill-down), narrow the
-      // scope to those controls instead of the whole environment.
+      // ALL-controls view: aggregate across every control in scope from PostgreSQL
       const requested = new Set((options?.controls || []).map((s) => String(s).trim()).filter(Boolean));
       if (targetControlId && targetControlId !== 'ALL') requested.add(targetControlId);
-      const scopedControls = requested.size > 0 ? availableControls.filter((c) => requested.has(c.id)) : availableControls;
+      const scopedControls = requested.size > 0
+        ? domainCatalog.filter((c) => requested.has(c.id))
+        : domainCatalog;
       const scopeIds = scopedControls.map(c => c.id);
-      const scopeNames = new Map(availableControls.map(c => [c.id, c.name]));
-      const authoritativeTotal = scopedControls.reduce((s, c) => s + (c.incidentCount || 0), 0);
+      const domainSummaryKpis = computeDomainKpis(scopedControls);
 
-      if (scopeIds.length > 0) {
-        try {
-          const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
-          const pageSize = Math.min(100, Math.max(1, options?.limit || 25));
-          const page = Math.max(1, options?.page || (options?.offset ? Math.floor(options.offset / pageSize) + 1 : 1));
-          const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
-            controlIds: scopeIds,
-            offset: (page - 1) * pageSize,
-            limit: pageSize,
-            search: options?.search,
-            status: options?.status,
-            state: options?.state,
-            user: options?.user,
-            role: options?.role
-          });
-          const items = pg.rows.map(r =>
-            this.controlCatalogService.normalizeIncident(r.raw, r.control_id, scopeNames.get(r.control_id))
-          );
-          const openOrActive = coverage.assigned + coverage.remediate;
-          const calculatedSum = (coverage.assigned || 0) + (coverage.remediate || 0) + (coverage.accepted || 0) + (coverage.resolved || 0);
-          const effectiveTotal = Math.max(authoritativeTotal, coverage.synced || 0, calculatedSum);
-          const fullySynced = (coverage.synced >= effectiveTotal && effectiveTotal > 0) || (coverage.synced > 0 && coverage.synced >= calculatedSum);
-          return {
-            success: true,
-            dataSource: 'PostgreSQL Database',
-            selectedControlId: 'ALL',
-            selectedControl: null,
-            items,
-            totalCount: effectiveTotal,
-            filteredCount: pg.filteredTotal,
-            page,
-            pageSize,
-            cacheStatus: fullySynced || coverage.synced > 0 ? 'READY' : 'PARTIAL',
-            fetchedCount: coverage.synced,
-            lastSyncedAt: new Date().toISOString(),
-            availableControls,
-            message: `Loaded ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls from PostgreSQL database.`,
-            kpis: {
-              total: effectiveTotal,
-              assigned: coverage.assigned,
-              inRemediation: coverage.remediate,
-              openOrActive,
-              accepted: coverage.accepted,
-              closedOrResolved: coverage.resolved,
-              status: 'READY'
-            }
-          };
-        } catch (dbErr: any) {
-          console.warn('[getRiskIncidents] Database aggregation note (falling back to lightweight list):', dbErr.message);
-        }
+      if (scopeIds.length === 0) {
+        return {
+          success: true,
+          dataSource: 'PostgreSQL Database',
+          selectedControlId: 'ALL',
+          selectedControl: null,
+          items: [],
+          totalCount: 0,
+          filteredCount: 0,
+          page: 1,
+          pageSize: Math.min(100, Math.max(1, options?.limit || 25)),
+          cacheStatus: 'READY',
+          fetchedCount: 0,
+          lastSyncedAt: new Date().toISOString(),
+          availableControls,
+          domainKpis,
+          kpis: domainSummaryKpis
+        };
       }
-      // No controls in scope or DB query fallback: fall through to the top live control.
+
+      try {
+        const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
+        const pageSize = Math.min(100, Math.max(1, options?.limit || 25));
+        const page = Math.max(1, options?.page || (options?.offset ? Math.floor(options.offset / pageSize) + 1 : 1));
+        const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
+          controlIds: scopeIds,
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+          search: options?.search,
+          status: options?.status,
+          state: options?.state,
+          user: options?.user,
+          role: options?.role
+        });
+        const items = pg.rows.map(r => {
+          const ctrlMeta = catalogById.get(r.control_id);
+          const inc = this.controlCatalogService.normalizeIncident(r.raw, r.control_id, ctrlMeta?.name || r.control_name || undefined);
+          if (!inc.controlType && ctrlMeta?.type !== undefined && ctrlMeta?.type !== null) {
+            inc.controlType = String(ctrlMeta.type);
+          }
+          if (!inc.lastRunDate && ctrlMeta?.lastRunDate) {
+            inc.lastRunDate = ctrlMeta.lastRunDate;
+          }
+          return inc;
+        });
+        return {
+          success: true,
+          dataSource: 'PostgreSQL Database',
+          selectedControlId: 'ALL',
+          selectedControl: null,
+          items,
+          totalCount: domainSummaryKpis.total,
+          filteredCount: pg.filteredTotal,
+          page,
+          pageSize,
+          cacheStatus: 'READY',
+          fetchedCount: coverage.synced,
+          lastSyncedAt: new Date().toISOString(),
+          availableControls,
+          domainKpis,
+          message: `Loaded ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls from PostgreSQL database.`,
+          kpis: domainSummaryKpis
+        };
+      } catch (dbErr: any) {
+        console.warn('[getRiskIncidents] Database aggregation note (falling back to lightweight list):', dbErr.message);
+      }
+      // DB query error fallback: fall through to the top live control.
       targetControlId = topLiveControlId;
     } else if (!availableControls.some(c => c.id === targetControlId)) {
-      // Unknown control in this live instance (e.g. stale demo default):
-      // resolve to the top live control with incidents.
       targetControlId = topLiveControlId;
     }
 
     if (!targetControlId) {
       return {
         success: true,
-        dataSource: 'Live Oracle Fusion API',
+        dataSource: 'PostgreSQL Database',
         selectedControlId: null,
         selectedControl: null,
         items: [],
@@ -3621,6 +3694,7 @@ class OracleService {
         fetchedCount: 0,
         lastSyncedAt: new Date().toISOString(),
         availableControls,
+        domainKpis,
         kpis: {
           total: 0,
           assigned: 0,
@@ -3673,11 +3747,28 @@ class OracleService {
       const dbSummary = dbSummaries.find((s) => String(s.control_id) === String(targetControlId));
 
       if (dbRawIncidents.length > 0 || (dbSummary && dbSummary.total_incidents === 0)) {
-        const normalizedDbItems = dbRawIncidents.map((rawItem) =>
-          this.controlCatalogService.normalizeIncident(rawItem, targetControlId, detail.control?.name)
-        );
+        const normalizedDbItems = dbRawIncidents.map((rawItem) => {
+          const inc = this.controlCatalogService.normalizeIncident(rawItem, targetControlId, detail.control?.name);
+          if (!inc.controlType && detail.control?.type !== undefined && detail.control?.type !== null) {
+            inc.controlType = String(detail.control.type);
+          }
+          if (!inc.lastRunDate && detail.control?.lastRunDate) {
+            inc.lastRunDate = detail.control.lastRunDate;
+          }
+          return inc;
+        });
         const cats = this.categorizeRiskIncidents(normalizedDbItems);
         const effTotal = Math.max(dbSummary?.total_incidents || 0, normalizedDbItems.length);
+        const ctrlMeta = catalogById.get(targetControlId);
+        const kpiData = ctrlMeta ? computeDomainKpis([ctrlMeta]) : {
+          total: effTotal,
+          assigned: cats.assigned,
+          inRemediation: cats.inRemediation,
+          openOrActive: cats.openOrActive,
+          accepted: cats.accepted,
+          closedOrResolved: cats.closedOrResolved,
+          status: 'READY'
+        };
         return {
           success: true,
           dataSource: 'PostgreSQL Database',
@@ -3690,55 +3781,15 @@ class OracleService {
           lastSyncedAt: dbSummary?.last_synced_at ? new Date(dbSummary.last_synced_at).toISOString() : new Date().toISOString(),
           message: `Loaded ${normalizedDbItems.length.toLocaleString()} incidents from PostgreSQL database.`,
           availableControls,
-          kpis: {
-            total: effTotal,
-            assigned: cats.assigned,
-            inRemediation: cats.inRemediation,
-            openOrActive: cats.openOrActive,
-            accepted: cats.accepted,
-            closedOrResolved: cats.closedOrResolved,
-            status: 'READY'
-          }
+          domainKpis,
+          kpis: kpiData
         };
       }
     } catch (dbErr: any) {
       console.warn(`[getRiskIncidents] PostgreSQL read warning for control ${targetControlId}:`, dbErr.message);
     }
 
-    // 2. One-time backfill from complete local disk cache into PostgreSQL if available
-    const fullCache = incidentCacheService.readCache(targetControlId);
-    if (fullCache && fullCache.complete) {
-      controlRawDbService
-        .saveControlRawIncidents(targetControlId, fullCache.incidents, detail.control?.name, fullCache.incidents.length)
-        .catch(() => {});
-      const cats = this.categorizeRiskIncidents(fullCache.incidents);
-      const catSum = (cats.assigned || 0) + (cats.inRemediation || 0) + (cats.accepted || 0) + (cats.closedOrResolved || 0);
-      const effTotal = Math.max(fullCache.totalResults || 0, catSum, (fullCache.incidents || []).length);
-      return {
-        success: true,
-        dataSource: 'PostgreSQL Database',
-        selectedControlId: targetControlId,
-        selectedControl: detail.control,
-        items: fullCache.incidents,
-        totalCount: effTotal,
-        cacheStatus: 'READY',
-        fetchedCount: fullCache.incidents.length,
-        lastSyncedAt: fullCache.fetchedAt,
-        message: detail.message,
-        availableControls,
-        kpis: {
-          total: effTotal,
-          assigned: cats.assigned,
-          inRemediation: cats.inRemediation,
-          openOrActive: cats.openOrActive,
-          accepted: cats.accepted,
-          closedOrResolved: cats.closedOrResolved,
-          status: 'READY'
-        }
-      };
-    }
-
-    // 3. No live Oracle fetch on report load — return DB state awaiting scheduled sync
+    // 2. Single unified PostgreSQL state awaiting scheduled/global sync
     return {
       success: true,
       dataSource: 'PostgreSQL Database',
@@ -3751,6 +3802,7 @@ class OracleService {
       lastSyncedAt: detail.control?.lastUpdateDate || new Date().toISOString(),
       message: `No incident records synced in PostgreSQL for control ${targetControlId} yet. Data updates during scheduled sync.`,
       availableControls,
+      domainKpis,
       kpis: {
         total: totalCount || 0,
         assigned: 0,

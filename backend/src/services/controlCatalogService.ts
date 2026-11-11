@@ -76,6 +76,7 @@ export interface ControlIncidentItem {
   revisionDate?: string | null;
   comments?: string | null;
   attachments?: string | null;
+  numberOfOccurrences?: number | string | null;
   controlType?: string | null;
   incidentVersion?: string | null;
   raw?: any;
@@ -954,6 +955,7 @@ export class ControlCatalogService {
       revisionDate: raw.RevisionDate ?? raw.revisionDate ?? null,
       comments: raw.Comments ?? raw.comments ?? raw.IncidentComments ?? raw.incidentComments ?? null,
       attachments: raw.Attachments ?? raw.attachments ?? null,
+      numberOfOccurrences: raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences ?? null,
       controlType: raw.ControlType ?? raw.controlType ?? null,
       incidentVersion: raw.IncidentVersion ?? raw.incidentVersion ?? null,
       raw
@@ -1051,7 +1053,16 @@ export class ControlCatalogService {
       // 2. High-Performance PostgreSQL Read-Through (<10ms)
       const dbRes = await controlRawDbService.getRawIncidents(cleanId, { offset, limit });
       if (dbRes.total > 0 || dbRes.count > 0) {
-        const normalizedItems = dbRes.rawItems.map(item => this.normalizeIncident(item, cleanId, controlName));
+        const normalizedItems = dbRes.rawItems.map(item => {
+          const inc = this.normalizeIncident(item, cleanId, controlName);
+          if (!inc.controlType && control?.type !== undefined && control?.type !== null) {
+            inc.controlType = String(control.type);
+          }
+          if (!inc.lastRunDate && control?.lastRunDate) {
+            inc.lastRunDate = control.lastRunDate;
+          }
+          return inc;
+        });
         const watermark = await controlRawDbService.getWatermark(cleanId);
 
         return {
@@ -1063,7 +1074,7 @@ export class ControlCatalogService {
           offset,
           hasMore: offset + limit < dbRes.total,
           count: normalizedItems.length,
-          totalResults: watermark?.total_incidents || dbRes.total,
+          totalResults: Math.max(watermark?.total_incidents || 0, dbRes.total),
           countStatus: 'READY',
           items: normalizedItems
         };

@@ -482,7 +482,7 @@ export const api = {
     return apiRequest('/risk/capabilities');
   },
 
-  async getRiskIncidents(options?: { controlId?: string; controls?: string[]; user?: string; role?: string; refresh?: boolean; page?: number; limit?: number; search?: string; status?: string; state?: string }) {
+  async getRiskIncidents(options?: { controlId?: string; controls?: string[]; user?: string; role?: string; refresh?: boolean; page?: number; limit?: number; search?: string; status?: string; state?: string; domain?: string }) {
     const params = new URLSearchParams();
     if (options?.controlId) params.append('controlId', options.controlId);
     if (options?.controls && options.controls.length > 0) params.append('controls', options.controls.join(','));
@@ -494,6 +494,7 @@ export const api = {
     if (options?.search && options.search.trim()) params.append('search', options.search.trim());
     if (options?.status && options.status !== 'ALL') params.append('status', options.status);
     if (options?.state && options.state !== 'ALL') params.append('state', options.state);
+    if (options?.domain && options.domain !== 'ALL') params.append('domain', options.domain);
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/risk/incidents${query}`);
   },

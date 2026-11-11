@@ -428,7 +428,7 @@ export default function Audit({
         setLastQuerySummary(null);
         setHasSearched(false);
       } else if (res?.auditUnavailable) {
-        setError(res.message || 'Unable to retrieve audit history from Oracle Fusion.');
+        setError(res.message || 'Unable to retrieve audit history.');
         setConfigNotice('');
         setLogs([]);
         setTotalRecords(0);
@@ -457,7 +457,7 @@ export default function Audit({
       }
     } catch (err: any) {
       console.error('Audit search failed:', err);
-      const msg = err.response?.data?.message || err.message || 'Unable to retrieve audit history from Oracle Fusion.';
+      const msg = err.response?.data?.message || err.message || 'Unable to retrieve audit history.';
       setError(msg);
       setConfigNotice('');
       setHasSearched(true);
@@ -526,7 +526,7 @@ export default function Audit({
       }
     } catch (err: any) {
       console.error('Audit sync error:', err);
-      setError(err?.message || 'Failed to sync audit trail from Oracle Fusion.');
+      setError(err?.message || 'Failed to sync audit trail.');
     } finally {
       setIsSyncing(false);
     }
@@ -594,7 +594,7 @@ export default function Audit({
             Oracle Fusion Audit Trail
           </h1>
           <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
-            View and investigate audit history from Oracle Fusion applications.
+            View and investigate audit history across configured applications.
           </p>
         </div>
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -635,7 +635,7 @@ export default function Audit({
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
               transition: 'all 0.15s ease'
             }}
-            title="Fetch latest audit records live from Oracle Fusion"
+            title="Fetch latest audit records"
           >
             <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
             <span>{isSyncing ? 'Syncing...' : 'Sync Audit Trail'}</span>
@@ -659,7 +659,7 @@ export default function Audit({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <AlertCircle size={18} style={{ color: 'var(--accent-red)', flexShrink: 0 }} />
             <div>
-              <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--accent-red)' }}>Unable to retrieve audit history from Oracle Fusion</div>
+              <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--accent-red)' }}>Unable to retrieve audit history</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>{error}</div>
             </div>
           </div>
@@ -1085,8 +1085,8 @@ export default function Audit({
             {/* Loading State */}
             {isSearching ? (
               <TableLoadingState
-                title="Retrieving Audit History from Oracle Fusion..."
-                subtitle="Querying live audit trail logs within the selected scope"
+                title="Loading audit history..."
+                subtitle="Querying audit trail logs within the selected scope"
                 colSpan={10}
                 skeletonRows={4}
               />

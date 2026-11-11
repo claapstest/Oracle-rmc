@@ -601,7 +601,7 @@ export class ControlRawDbService {
 
     const q = (options.search || '').trim().toLowerCase();
     if (q) {
-      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserFirstName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserLastName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(t.control_name,'')) LIKE $${p} OR LOWER(t.control_id) LIKE $${p})`);
+      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserFirstName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserLastName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'GroupingValue',el->>'groupingValue','')) LIKE $${p} OR LOWER(COALESCE(el->>'ResultGroup',el->>'resultGroup','')) LIKE $${p} OR LOWER(COALESCE(el->>'ControlName',t.control_name,'')) LIKE $${p} OR LOWER(t.control_id) LIKE $${p})`);
       params.push(`%${q}%`);
       p++;
     }

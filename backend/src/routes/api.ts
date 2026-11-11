@@ -2942,7 +2942,8 @@ apiRouter.get('/risk/incidents', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ
     const search = req.query.search as string | undefined;
     const status = req.query.status as string | undefined;
     const state = req.query.state as string | undefined;
-    const result = await oracleService.getRiskIncidents({ controlId, controls, user, role, forceRefresh, page, limit, search, status, state });
+    const domain = req.query.domain as string | undefined;
+    const result = await oracleService.getRiskIncidents({ controlId, controls, user, role, forceRefresh, page, limit, search, status, state, domain });
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
