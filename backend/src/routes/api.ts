@@ -5,7 +5,7 @@ import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogSer
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
-import { getAuthenticationProvider } from '../auth/index.js';
+import { getAuthenticationProvider, keyManager } from '../auth/index.js';
 import {
   completeAuthorization,
   createAuthorizationRequest,
@@ -382,6 +382,19 @@ apiRouter.get('/auth/config', (_req: Request, res: Response) => {
   res.json(publicConfig);
 });
 
+// GET /.well-known/jwks.json - RFC 7517 JSON Web Key Set (VYR-020)
+apiRouter.get('/.well-known/jwks.json', async (_req: Request, res: Response) => {
+  try {
+    const jwks = await keyManager.getJwks();
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).json(jwks);
+  } catch (err: any) {
+    console.error('[JWKS API Error]:', err);
+    return res.status(500).json({ error: 'Failed to retrieve JWKS' });
+  }
+});
+
 // GET /auth/entra/start - Begin Authorization Code + PKCE login
 apiRouter.get('/auth/entra/start', (_req: Request, res: Response) => {
   if (!isEntraEnabled()) {
@@ -461,7 +474,8 @@ apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       token: result.token,
-      sessionId: result.token,
+      accessToken: result.accessToken || result.token,
+      sessionId: result.sessionId || result.token,
       userId: result.userId,
       displayName: result.displayName,
       email: result.email || identity.email,
@@ -544,7 +558,8 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       token: result.token,
-      sessionId: result.token,
+      accessToken: result.accessToken || result.token,
+      sessionId: result.sessionId || result.token,
       userId: result.userId,
       displayName: result.displayName,
       email: result.email || result.normalizedEmail || rawEmail,

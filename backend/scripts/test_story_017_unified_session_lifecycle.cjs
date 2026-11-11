@@ -38,6 +38,7 @@ async function runTests() {
   console.log('================================================================\n');
 
   const { authService } = await import('../dist/services/authService.js');
+  const { tokenService } = await import('../dist/auth/tokenService.js');
   const { buildEntraLogoutUrl, isEntraEnabled } = await import('../dist/services/entraOidcService.js');
   const { pool } = await import('../dist/db.js');
 
@@ -164,9 +165,10 @@ async function runTests() {
   );
 
   // Verify DB veyra_session status is no longer ACTIVE
+  const targetSessionId = tokenService.extractSessionId(session3Token) || session3Token;
   const dbPostLogoutRes = await pool.query(
     `SELECT status FROM veyra_session WHERE session_id = $1`,
-    [session3Token]
+    [targetSessionId]
   );
   report(
     dbPostLogoutRes.rows.length === 1 && dbPostLogoutRes.rows[0].status === 'LOGGED_OUT',
@@ -219,9 +221,10 @@ async function runTests() {
   );
 
   // Verify veyra_session was revoked in DB
+  const deactSessionId = tokenService.extractSessionId(deactToken) || deactToken;
   const dbDeactSessionRes = await pool.query(
     `SELECT status FROM veyra_session WHERE session_id = $1`,
-    [deactToken]
+    [deactSessionId]
   );
   report(
     dbDeactSessionRes.rows.length === 1 && dbDeactSessionRes.rows[0].status === 'EXPIRED',

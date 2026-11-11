@@ -26,6 +26,7 @@
     "test:story17": "node scripts/test_story_017_unified_session_lifecycle.cjs",
     "test:story18": "node scripts/test_story_018_auth_scenarios.cjs",
     "test:vyr19": "node scripts/test_story_019_jwt_contract.cjs",
+    "test:vyr20": "node scripts/test_story_020_jwt_issuance.cjs",
     "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {
