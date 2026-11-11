@@ -213,14 +213,23 @@ export default function App() {
     verifyAuth();
   }, []);
 
-  // Listen for session expiration events dispatched across the app
+  // Listen for session expiration and account deactivation events dispatched across the app
   useEffect(() => {
     const handleAuthExpired = () => {
       console.warn('Authentication session expired. Prompting for credentials.');
       handleLogout('EXPIRED');
     };
+    const handleAuthDisabled = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message?: string }>;
+      console.warn('Account disabled or inactive. Terminating session.');
+      handleLogout('DISABLED', customEvent.detail?.message);
+    };
     window.addEventListener('auth:expired', handleAuthExpired);
-    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+    window.addEventListener('auth:disabled', handleAuthDisabled);
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+      window.removeEventListener('auth:disabled', handleAuthDisabled);
+    };
   }, [currentUser]);
 
   // States to pass down filters when navigating from cards
@@ -275,8 +284,8 @@ export default function App() {
   const backTargetTitle = internalPageBack?.canGoBack && internalPageBack?.label
     ? internalPageBack.label
     : (activeInvestigation
-        ? (PAGE_TITLE_MAP[activeInvestigation.sourcePage || currentPage] || 'Previous Page')
-        : 'Dashboard');
+      ? (PAGE_TITLE_MAP[activeInvestigation.sourcePage || currentPage] || 'Previous Page')
+      : 'Dashboard');
 
   // Back Button Handler: strictly page-scoped
   const handleNavigateBack = () => {
@@ -631,7 +640,7 @@ export default function App() {
     }
   };
 
-  const handleLogout = async (reason: 'MANUAL' | 'EXPIRED' = 'MANUAL') => {
+  const handleLogout = async (reason: 'MANUAL' | 'EXPIRED' | 'DISABLED' = 'MANUAL', customNotice?: string) => {
     try {
       await api.logout();
     } catch (err) {
@@ -651,7 +660,9 @@ export default function App() {
     setVisitedPages(new Set(['dashboard']));
     setInternalPageBack(null);
 
-    if (reason === 'EXPIRED') {
+    if (reason === 'DISABLED') {
+      setSessionExpiredNotice(customNotice || 'Your account is disabled or inactive. Please contact your system administrator.');
+    } else if (reason === 'EXPIRED') {
       setSessionExpiredNotice('Your session has expired due to inactivity. Please log in again.');
     } else {
       setSessionExpiredNotice('');
@@ -1002,75 +1013,75 @@ export default function App() {
           </div>
 
           <div className="topbar-right-section">
-          {/* Topbar User Profile Dropdown Menu - Clean Unpill Layout */}
-          <div ref={userMenuRef} style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setUserMenuOpen(prev => !prev)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.55rem',
-                backgroundColor: 'transparent',
-                border: 'none',
-                padding: '0.2rem 0.3rem',
-                color: '#ffffff',
-                cursor: 'pointer',
-                transition: 'opacity 0.18s ease',
-                outline: 'none'
-              }}
-              title="User Account Options & Sign Out"
-              aria-expanded={userMenuOpen}
-            >
-              {/* Vibrant Blue Avatar Circle */}
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: '#2563EB',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
-                flexShrink: 0
-              }}>
-                {getUserInitials(currentUser)}
-              </div>
-
-              {/* User Name & Role Text Stack */}
-              <div className="topbar-user-info">
-                <span style={{ fontSize: '0.86rem', fontWeight: 700, letterSpacing: '0.01em', color: '#ffffff' }}>
-                  {getUserDisplayName(currentUser)}
-                </span>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500, fontStyle: 'italic' }}>
-                  {getRoleLabel(userRole)}
-                </span>
-              </div>
-
-              <ChevronDown size={14} style={{ color: 'rgba(255, 255, 255, 0.8)', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease', marginLeft: '0.15rem', flexShrink: 0 }} />
-            </button>
-
-            {/* Dropdown Menu Popup */}
-            {userMenuOpen && (
-              <div
+            {/* Topbar User Profile Dropdown Menu - Clean Unpill Layout */}
+            <div ref={userMenuRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(prev => !prev)}
                 style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  width: '240px',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1)',
-                  padding: '0.5rem',
-                  zIndex: 1000,
-                  animation: 'veyraMenuPop 0.15s ease-out'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.55rem',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  padding: '0.2rem 0.3rem',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.18s ease',
+                  outline: 'none'
                 }}
+                title="User Account Options & Sign Out"
+                aria-expanded={userMenuOpen}
               >
-                <style>{`
+                {/* Vibrant Blue Avatar Circle */}
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#2563EB',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
+                  flexShrink: 0
+                }}>
+                  {getUserInitials(currentUser)}
+                </div>
+
+                {/* User Name & Role Text Stack */}
+                <div className="topbar-user-info">
+                  <span style={{ fontSize: '0.86rem', fontWeight: 700, letterSpacing: '0.01em', color: '#ffffff' }}>
+                    {getUserDisplayName(currentUser)}
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500, fontStyle: 'italic' }}>
+                    {getRoleLabel(userRole)}
+                  </span>
+                </div>
+
+                <ChevronDown size={14} style={{ color: 'rgba(255, 255, 255, 0.8)', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease', marginLeft: '0.15rem', flexShrink: 0 }} />
+              </button>
+
+              {/* Dropdown Menu Popup */}
+              {userMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '240px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1)',
+                    padding: '0.5rem',
+                    zIndex: 1000,
+                    animation: 'veyraMenuPop 0.15s ease-out'
+                  }}
+                >
+                  <style>{`
                   @keyframes veyraMenuPop {
                     0% { opacity: 0; transform: translateY(-6px); }
                     100% { opacity: 1; transform: translateY(0); }
@@ -1102,244 +1113,244 @@ export default function App() {
                   }
                 `}</style>
 
-                {/* Account Details Header */}
-                <div style={{ padding: '0.65rem 0.85rem 0.55rem 0.85rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.35rem' }}>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>
-                    {getUserDisplayName(currentUser)}
+                  {/* Account Details Header */}
+                  <div style={{ padding: '0.65rem 0.85rem 0.55rem 0.85rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>
+                      {getUserDisplayName(currentUser)}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.15rem' }}>
+                      {currentUser || 'admin@admin.com'}
+                    </div>
+                    <div style={{ marginTop: '0.4rem' }}>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        backgroundColor: isAdmin ? '#EFF6FF' : '#F1F5F9',
+                        color: isAdmin ? '#1D4ED8' : '#475569',
+                        border: isAdmin ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '9999px',
+                        display: 'inline-block'
+                      }}>
+                        {getRoleLabel(userRole, true)}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.15rem' }}>
-                    {currentUser || 'admin@admin.com'}
-                  </div>
-                  <div style={{ marginTop: '0.4rem' }}>
-                    <span style={{
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      backgroundColor: isAdmin ? '#EFF6FF' : '#F1F5F9',
-                      color: isAdmin ? '#1D4ED8' : '#475569',
-                      border: isAdmin ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '9999px',
-                      display: 'inline-block'
-                    }}>
-                      {getRoleLabel(userRole, true)}
-                    </span>
-                  </div>
+
+                  {/* Settings Item */}
+                  <button
+                    type="button"
+                    className="veyra-menu-btn"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    <SettingsIcon size={15} style={{ color: '#64748B' }} />
+                    <span>Account Settings</span>
+                  </button>
+
+                  <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '0.35rem 0' }} />
+
+                  {/* Explicit Logout Option */}
+                  <button
+                    type="button"
+                    className="veyra-menu-btn veyra-menu-logout"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      handleLogout('MANUAL');
+                    }}
+                  >
+                    <LogOut size={15} />
+                    <span style={{ fontWeight: 600 }}>Sign Out / Logout</span>
+                  </button>
                 </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-                {/* Settings Item */}
-                <button
-                  type="button"
-                  className="veyra-menu-btn"
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                  }}
-                >
-                  <SettingsIcon size={15} style={{ color: '#64748B' }} />
-                  <span>Account Settings</span>
-                </button>
+        {/* View Switcher wrapper with display toggling to preserve component states */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
 
-                <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '0.35rem 0' }} />
-
-                {/* Explicit Logout Option */}
-                <button
-                  type="button"
-                  className="veyra-menu-btn veyra-menu-logout"
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    handleLogout('MANUAL');
-                  }}
-                >
-                  <LogOut size={15} />
-                  <span style={{ fontWeight: 600 }}>Sign Out / Logout</span>
-                </button>
+          {/* Main page content wrapper */}
+          <div style={{
+            flex: 1,
+            display: (activeInvestigation || activeQueryInvestigation) ? 'none' : 'block',
+            height: '100%',
+            overflowY: 'auto'
+          }}>
+            {isDeniedPage ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2rem' }}>
+                <div className="glass-panel" role="alert" style={{ maxWidth: '460px', width: '100%', padding: '2.5rem', textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', marginBottom: '1.25rem' }}>
+                    <Lock size={26} style={{ color: 'var(--accent-red)' }} />
+                  </div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.5rem 0' }}>Access Denied</h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 1.5rem 0' }}>
+                    You don&apos;t have permission to view {pageLabelMap.get(currentPage) || 'this page'}. Contact your administrator if you need access.
+                  </p>
+                  <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.5rem' }} onClick={() => handlePageSelect('dashboard')}>
+                    Back to Dashboard
+                  </button>
+                </div>
               </div>
+            ) : (
+              <>
+                {visitedPages.has('dashboard') && (
+                  <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
+                    <Dashboard
+                      currentUser={currentUser}
+                      userRole={userRole}
+                      environmentMode={environmentMode}
+                      onInvestigate={(type, id, name) => handleInvestigate(type, id, name, undefined, 'dashboard')}
+                      hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
+                      onNavigatePage={(pageId, filter) => {
+                        handlePageSelect(pageId, filter);
+                      }}
+                    />
+                  </div>
+                )}
+                {currentPage === 'users' && (
+                  <div style={{ height: '100%' }}>
+                    <UsersPage
+                      key={`users-${usersNavKey}-${initialUsersFilter}`}
+                      initialFilter={initialUsersFilter}
+                      isActive={currentPage === 'users'}
+                      onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'users')}
+                      onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'users')}
+                      hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
+                      onBack={handleNavigateBack}
+                      onRegisterBack={setInternalPageBack}
+                    />
+                  </div>
+                )}
+                {visitedPages.has('user-management') && (
+                  <div style={{ display: currentPage === 'user-management' ? 'block' : 'none', height: '100%' }}>
+                    <UserManagementPage
+                      hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
+                      onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'user-management')}
+                    />
+                  </div>
+                )}
+                {currentPage === 'roles' && (
+                  <div style={{ height: '100%' }}>
+                    <RolesPage
+                      key={`roles-${rolesNavKey}-${initialRolesCategory}`}
+                      initialCategory={initialRolesCategory}
+                      isActive={currentPage === 'roles'}
+                      onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'roles')}
+                      onBack={handleNavigateBack}
+                      onRegisterBack={setInternalPageBack}
+                    />
+                  </div>
+                )}
+                {currentPage === 'audit' && (
+                  <div style={{ height: '100%' }}>
+                    <AuditPage
+                      key={`audit-${auditNavKey}-${initialAuditProduct || ''}-${initialAuditBO || ''}-${initialAuditFromDate || ''}-${initialAuditToDate || ''}`}
+                      initialProductId={initialAuditProduct}
+                      initialBOId={initialAuditBO}
+                      initialFromDate={initialAuditFromDate}
+                      initialToDate={initialAuditToDate}
+                      onBack={handleNavigateBack}
+                      onRegisterBack={setInternalPageBack}
+                    />
+                  </div>
+                )}
+                {visitedPages.has('risk-controls') && (
+                  <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
+                    <AdvancedControlsPage
+                      environmentMode={environmentMode}
+                      isActive={currentPage === 'risk-controls'}
+                      onBack={handleNavigateBack}
+                      onRegisterBack={setInternalPageBack}
+                    />
+                  </div>
+                )}
+                {visitedPages.has('risk-certificates') && (
+                  <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
+                    <AccessCertificatesPage
+                      environmentMode={environmentMode}
+                      initialCertificationId={initialCertId}
+                      isActive={currentPage === 'risk-certificates'}
+                      onBack={handleNavigateBack}
+                      onRegisterBack={setInternalPageBack}
+                    />
+                  </div>
+                )}
+                {visitedPages.has('reports') && (
+                  <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
+                    <ReportsPage
+                      environmentMode={environmentMode}
+                      canGenerate={isAdmin || userPermissions.map((p) => String(p).toUpperCase()).includes('ALL')}
+                      isActive={currentPage === 'reports'}
+                      onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'reports')}
+                      onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'reports')}
+                      onBack={handleNavigateBack}
+                      onRegisterBack={setInternalPageBack}
+                    />
+                  </div>
+                )}
+                {visitedPages.has('settings') && (
+                  <div style={{ display: currentPage === 'settings' ? 'block' : 'none', height: '100%' }}>
+                    <SettingsPage
+                      environmentMode={environmentMode}
+                      setEnvironmentMode={setEnvironmentMode}
+                      currentUser={currentUser}
+                    />
+                  </div>
+                )}
+                {visitedPages.has('command-center') && (
+                  <div style={{ display: currentPage === 'command-center' ? 'block' : 'none', height: '100%' }}>
+                    <CommandCenter onNavigatePage={handlePageSelect} />
+                  </div>
+                )}
+              </>
             )}
           </div>
-        </div>
-      </header>
 
-      {/* View Switcher wrapper with display toggling to preserve component states */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-
-        {/* Main page content wrapper */}
-        <div style={{
-          flex: 1,
-          display: (activeInvestigation || activeQueryInvestigation) ? 'none' : 'block',
-          height: '100%',
-          overflowY: 'auto'
-        }}>
-          {isDeniedPage ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2rem' }}>
-              <div className="glass-panel" role="alert" style={{ maxWidth: '460px', width: '100%', padding: '2.5rem', textAlign: 'center' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', marginBottom: '1.25rem' }}>
-                  <Lock size={26} style={{ color: 'var(--accent-red)' }} />
-                </div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.5rem 0' }}>Access Denied</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 1.5rem 0' }}>
-                  You don&apos;t have permission to view {pageLabelMap.get(currentPage) || 'this page'}. Contact your administrator if you need access.
-                </p>
-                <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.5rem' }} onClick={() => handlePageSelect('dashboard')}>
-                  Back to Dashboard
-                </button>
-              </div>
-            </div>
-          ) : (
-          <>
-          {visitedPages.has('dashboard') && (
-            <div style={{ display: currentPage === 'dashboard' ? 'block' : 'none', height: '100%' }}>
-              <Dashboard
-                currentUser={currentUser}
-                userRole={userRole}
+          {/* Query Investigation View Panel (Same Tab) */}
+          {activeQueryInvestigation && !activeInvestigation && (
+            <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
+              <FullInvestigationView
+                investigationId={activeQueryInvestigation}
                 environmentMode={environmentMode}
-                onInvestigate={(type, id, name) => handleInvestigate(type, id, name, undefined, 'dashboard')}
-                hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
+                onInvestigate={handleInvestigateFromQuery}
                 onNavigatePage={(pageId, filter) => {
                   handlePageSelect(pageId, filter);
+                  handleClose();
                 }}
-              />
-            </div>
-          )}
-          {currentPage === 'users' && (
-            <div style={{ height: '100%' }}>
-              <UsersPage
-                key={`users-${usersNavKey}-${initialUsersFilter}`}
-                initialFilter={initialUsersFilter}
-                isActive={currentPage === 'users'}
-                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'users')}
-                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'users')}
-                hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
                 onBack={handleNavigateBack}
-                onRegisterBack={setInternalPageBack}
               />
             </div>
           )}
-          {visitedPages.has('user-management') && (
-            <div style={{ display: currentPage === 'user-management' ? 'block' : 'none', height: '100%' }}>
-              <UserManagementPage
-                hasAccess={(pageId) => canAccessPage(pageId, authCtx)}
-                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'user-management')}
-              />
-            </div>
-          )}
-          {currentPage === 'roles' && (
-            <div style={{ height: '100%' }}>
-              <RolesPage
-                key={`roles-${rolesNavKey}-${initialRolesCategory}`}
-                initialCategory={initialRolesCategory}
-                isActive={currentPage === 'roles'}
-                onInvestigateRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'roles')}
+
+          {/* Entity Investigation Workspace Panel */}
+          {activeInvestigation && (
+            <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
+              <InvestigationWorkspace
+                entity={activeInvestigation}
+                onClose={handleClose}
+                onNavigate={handleNavigate}
                 onBack={handleNavigateBack}
-                onRegisterBack={setInternalPageBack}
-              />
-            </div>
-          )}
-          {currentPage === 'audit' && (
-            <div style={{ height: '100%' }}>
-              <AuditPage
-                key={`audit-${auditNavKey}-${initialAuditProduct || ''}-${initialAuditBO || ''}-${initialAuditFromDate || ''}-${initialAuditToDate || ''}`}
-                initialProductId={initialAuditProduct}
-                initialBOId={initialAuditBO}
-                initialFromDate={initialAuditFromDate}
-                initialToDate={initialAuditToDate}
-                onBack={handleNavigateBack}
-                onRegisterBack={setInternalPageBack}
-              />
-            </div>
-          )}
-          {visitedPages.has('risk-controls') && (
-            <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
-              <AdvancedControlsPage
+                historyCount={investigationHistory.length}
+                onNavigateToPage={(pageId) => {
+                  handlePageSelect(pageId);
+                }}
                 environmentMode={environmentMode}
-                isActive={currentPage === 'risk-controls'}
-                onBack={handleNavigateBack}
-                onRegisterBack={setInternalPageBack}
               />
             </div>
-          )}
-          {visitedPages.has('risk-certificates') && (
-            <div style={{ display: currentPage === 'risk-certificates' ? 'block' : 'none', height: '100%' }}>
-              <AccessCertificatesPage
-                environmentMode={environmentMode}
-                initialCertificationId={initialCertId}
-                isActive={currentPage === 'risk-certificates'}
-                onBack={handleNavigateBack}
-                onRegisterBack={setInternalPageBack}
-              />
-            </div>
-          )}
-          {visitedPages.has('reports') && (
-            <div style={{ display: currentPage === 'reports' ? 'block' : 'none', height: '100%' }}>
-              <ReportsPage
-                environmentMode={environmentMode}
-                canGenerate={isAdmin || userPermissions.map((p) => String(p).toUpperCase()).includes('ALL')}
-                isActive={currentPage === 'reports'}
-                onInvestigateUser={(userId, displayName) => handleInvestigate('user', userId, displayName, undefined, 'reports')}
-                onInspectRole={(roleCode, displayName) => handleInvestigate('role', roleCode, displayName, undefined, 'reports')}
-                onBack={handleNavigateBack}
-                onRegisterBack={setInternalPageBack}
-              />
-            </div>
-          )}
-          {visitedPages.has('settings') && (
-            <div style={{ display: currentPage === 'settings' ? 'block' : 'none', height: '100%' }}>
-              <SettingsPage
-                environmentMode={environmentMode}
-                setEnvironmentMode={setEnvironmentMode}
-                currentUser={currentUser}
-              />
-            </div>
-          )}
-          {visitedPages.has('command-center') && (
-            <div style={{ display: currentPage === 'command-center' ? 'block' : 'none', height: '100%' }}>
-              <CommandCenter onNavigatePage={handlePageSelect} />
-            </div>
-          )}
-          </>
           )}
         </div>
+      </main>
 
-        {/* Query Investigation View Panel (Same Tab) */}
-        {activeQueryInvestigation && !activeInvestigation && (
-          <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
-            <FullInvestigationView
-              investigationId={activeQueryInvestigation}
-              environmentMode={environmentMode}
-              onInvestigate={handleInvestigateFromQuery}
-              onNavigatePage={(pageId, filter) => {
-                handlePageSelect(pageId, filter);
-                handleClose();
-              }}
-              onBack={handleNavigateBack}
-            />
-          </div>
-        )}
-
-        {/* Entity Investigation Workspace Panel */}
-        {activeInvestigation && (
-          <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
-            <InvestigationWorkspace
-              entity={activeInvestigation}
-              onClose={handleClose}
-              onNavigate={handleNavigate}
-              onBack={handleNavigateBack}
-              historyCount={investigationHistory.length}
-              onNavigateToPage={(pageId) => {
-                handlePageSelect(pageId);
-              }}
-              environmentMode={environmentMode}
-            />
-          </div>
-        )}
-      </div>
-    </main>
-
-      {/* Session Inactivity Timeout Warning Modal matching Mock Screen 3 */ }
-  <SessionTimeoutModal
-    isOpen={isWarningOpen}
-    secondsRemaining={secondsRemaining}
-    onStayLoggedIn={handleStayLoggedIn}
-    onLogoutNow={handleLogoutNow}
-  />
+      {/* Session Inactivity Timeout Warning Modal matching Mock Screen 3 */}
+      <SessionTimeoutModal
+        isOpen={isWarningOpen}
+        secondsRemaining={secondsRemaining}
+        onStayLoggedIn={handleStayLoggedIn}
+        onLogoutNow={handleLogoutNow}
+      />
     </div >
   );
 }

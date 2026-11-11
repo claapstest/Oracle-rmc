@@ -67,7 +67,7 @@ export function prepareInvestigationTabBridge(investigationId: string) {
       user: user || '',
       expiresAt: Date.now() + 15000 // 15 seconds validity
     }));
-  } catch (_) {}
+  } catch (_) { }
 }
 
 export function setActiveAuthSession(token: string, email: string, role?: string, permissions?: string[]) {
@@ -150,7 +150,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
         },
         ...options,
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         const message = errorData.message || errorData.error || `Request failed with status ${res.status}`;
@@ -163,10 +163,14 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
             clearActiveAuthSession();
             window.dispatchEvent(new CustomEvent('auth:expired'));
           }
+        } else if (res.status === 403 && (code === 'USER_DISABLED' || code === 'ACCOUNT_INACTIVE')) {
+          console.warn('[API Service] User account inactive or disabled. Revoking active session.');
+          clearActiveAuthSession();
+          window.dispatchEvent(new CustomEvent('auth:disabled', { detail: { message } }));
         }
         throw new ApiError(message, res.status, code, errorData);
       }
-      
+
       const data = await res.json();
 
       // Store successful GET responses in fast client memory cache
@@ -573,9 +577,10 @@ export const api = {
     });
   },
 
-  async logout() {
+  async logout(params?: { postLogoutRedirectUri?: string; upstream?: boolean }) {
     return apiRequest('/auth/logout', {
       method: 'POST',
+      body: params ? JSON.stringify(params) : undefined,
     });
   },
 

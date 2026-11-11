@@ -109,6 +109,23 @@ export function createAuthorizationRequest(
   };
 }
 
+/**
+ * Builds the Microsoft Entra ID end-session (logout) URL for upstream Single Logout (SLO).
+ * Story: VYR-017
+ */
+export function buildEntraLogoutUrl(
+  cfg: EntraConfig = entraConfig(),
+  postLogoutRedirectUri?: string
+): string {
+  const tenantId = cfg.tenantId || 'common';
+  const redirectUri = postLogoutRedirectUri || cfg.redirectUri;
+  const url = new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/logout`);
+  if (redirectUri) {
+    url.searchParams.set('post_logout_redirect_uri', redirectUri);
+  }
+  return url.toString();
+}
+
 export function consumeState(state: string, now = Date.now()): PendingAuthorization | null {
   const entry = pendingAuthorizations.get(state);
   if (!entry) return null;
