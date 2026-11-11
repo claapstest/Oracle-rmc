@@ -5,9 +5,21 @@
 // and binds user identity to the request context.
 
 import { Request, Response, NextFunction } from 'express';
-import { tokenService } from '../auth/tokenService.js';
 import { authService } from '../services/authService.js';
-import { logAudit } from '../services/auditService.js'; // assume audit helper exists
+import { recordAuditEvent } from '../services/auditService.js';
+
+function logSecurityAudit(email: string, action: string, details: string, req?: Request, userId?: string | null) {
+  console.log(`[AUDIT] [${new Date().toISOString()}] User: ${email} | Action: ${action} | Details: ${details}`);
+  if (action === 'SESSION_EXPIRED') {
+    recordAuditEvent({
+      userId: userId || null,
+      eventType: 'SESSION_EXPIRED',
+      ipAddress: req?.ip || null,
+      userAgent: req?.get('user-agent') || null,
+      details: { email, details }
+    }).catch(() => {});
+  }
+}
 
 /**
  * verifyJwtAndSession is a thin wrapper around authService.validateSession that
@@ -32,13 +44,13 @@ export async function verifyJwtAndSession(req: Request, res: Response, next: Nex
       const status = validation.code === 'SESSION_EXPIRED' ? 401 : validation.code === 'USER_DISABLED' ? 403 : 401;
       const code = validation.code || 'INVALID_TOKEN';
       const message = validation.message || 'Invalid or expired token.';
-      // Audit logging for security‑relevant rejections.
+      // Audit logging for security-relevant rejections.
       if (code === 'USER_DISABLED') {
         const email = validation.session?.email || 'Unknown User';
-        logAudit(email, 'ACCOUNT_DEACTIVATED', `Blocked request: account status is ${validation.status || 'DISABLED'}`);
+        logSecurityAudit(email, 'ACCOUNT_DEACTIVATED', `Blocked request: account status is ${validation.status || 'DISABLED'}`, req, validation.session?.userId);
       } else if (code === 'SESSION_EXPIRED') {
         const email = validation.session?.email || 'Unknown User';
-        logAudit(email, 'SESSION_EXPIRED', 'Session expired due to inactivity or expiry period');
+        logSecurityAudit(email, 'SESSION_EXPIRED', 'Session expired due to inactivity or expiry period', req, validation.session?.userId);
       }
       return res.status(status).json({ success: false, code, message });
     }
