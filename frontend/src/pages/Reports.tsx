@@ -18,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Database,
-  Play,
   Clock,
   Info,
   Activity,
@@ -263,14 +262,11 @@ export default function Reports({
   const [controlsSummaryReport, setControlsSummaryReport] = useState<any | null>(null);
   const [controlsData, setControlsData] = useState<any[]>([]);
   const [controlsLoading, setControlsLoading] = useState<boolean>(false);
-  const [controlsScanning, setControlsScanning] = useState<boolean>(false);
   const [controlsError, setControlsError] = useState<string>('');
   const [controlsSearch, setControlsSearch] = useState<string>('');
   const [controlsStatusFilter, setControlsStatusFilter] = useState<string>('ALL');
   const [controlsTypeFilter, setControlsTypeFilter] = useState<'ALL' | 'ACCESS' | 'TRANSACTION'>('ALL');
-  const [controlsCountsStatusFilter, setControlsCountsStatusFilter] = useState<string>('ALL');
   const [controlsIncidentFilter, setControlsIncidentFilter] = useState<string>('ALL');
-  const [probingControlId, setProbingControlId] = useState<string | null>(null);
   const controlsPollingRef = useRef<any>(null);
 
   // -------------------------------------------------------------
@@ -425,23 +421,19 @@ export default function Reports({
   // =============================================================
 
   // Loader 1: Control Summary Report
-  const loadControlsSummary = async (forceRefresh = false, scan = false) => {
+  const loadControlsSummary = async (forceRefresh = false) => {
     if (forceRefresh || controlsData.length === 0) {
       setControlsLoading(true);
-    }
-    if (scan) {
-      setControlsScanning(true);
     }
     setControlsError('');
 
     try {
-      const res = await api.getControlSummaryReport({ refresh: forceRefresh, scan });
+      const res = await api.getControlSummaryReport({ refresh: forceRefresh });
       if (res && res.success) {
         setControlsSummaryReport(res);
         setControlsData(res.controls || []);
 
         if (res.summaryStatus === 'CALCULATING') {
-          setControlsScanning(true);
           if (!controlsPollingRef.current) {
             controlsPollingRef.current = setInterval(async () => {
               try {
@@ -450,7 +442,6 @@ export default function Reports({
                   setControlsSummaryReport(pollRes);
                   setControlsData(pollRes.controls || []);
                   if (pollRes.summaryStatus !== 'CALCULATING') {
-                    setControlsScanning(false);
                     if (controlsPollingRef.current) {
                       clearInterval(controlsPollingRef.current);
                       controlsPollingRef.current = null;
@@ -463,7 +454,6 @@ export default function Reports({
             }, 3000);
           }
         } else {
-          setControlsScanning(false);
           if (controlsPollingRef.current) {
             clearInterval(controlsPollingRef.current);
             controlsPollingRef.current = null;
@@ -477,39 +467,6 @@ export default function Reports({
       setControlsError(err.message || 'Unable to retrieve advanced controls reporting summary.');
     } finally {
       setControlsLoading(false);
-    }
-  };
-
-  const probeSingleControl = async (controlId: string) => {
-    setProbingControlId(controlId);
-    try {
-      const res = await api.probeControlIncidentCount(controlId);
-      if (res && res.success && res.scan) {
-        setControlsData(prev => prev.map(c => {
-          if (c.controlId === controlId) {
-            const scan = res.scan;
-            // Lightweight probe verifies ONLY the total. Status-level breakdown
-            // stays null (rendered as "—") until detailed incidents are scanned.
-            return {
-              ...c,
-              totalIncidentCount: scan.totalIncidentCount,
-              assignedOrInRemediationCount: scan.totalIncidentCount === 0 ? 0 : null,
-              acceptedCount: scan.totalIncidentCount === 0 ? 0 : null,
-              closedOrResolvedCount: scan.totalIncidentCount === 0 ? 0 : null,
-              countsStatus: scan.totalIncidentCount === 0 ? 'READY' : (scan.totalIncidentCount !== null ? 'PARTIAL' : 'ERROR'),
-              lastCalculatedAt: scan.timestamp,
-              calculationNotes: scan.totalIncidentCount === 0
-                ? '0 incidents confirmed via lightweight query'
-                : (scan.totalIncidentCount !== null ? `Total count (${scan.totalIncidentCount.toLocaleString()}) verified via lightweight query; status breakdown not yet calculated` : scan.error)
-            };
-          }
-          return c;
-        }));
-      }
-    } catch (err: any) {
-      console.error(`Failed to probe control ${controlId}:`, err);
-    } finally {
-      setProbingControlId(null);
     }
   };
 
@@ -1301,17 +1258,13 @@ export default function Reports({
         (controlsTypeFilter === 'ACCESS' && isAccessControl(ctrl.controlTypeCode)) ||
         (controlsTypeFilter === 'TRANSACTION' && isTransactionControl(ctrl.controlTypeCode));
 
-      const matchesCountsStatus = controlsCountsStatusFilter === 'ALL' ||
-        (ctrl.countsStatus && String(ctrl.countsStatus).toUpperCase() === controlsCountsStatusFilter.toUpperCase());
-
       const matchesIncidents = controlsIncidentFilter === 'ALL' ||
         (controlsIncidentFilter === 'WITH_INCIDENTS' && (ctrl.totalIncidentCount || 0) > 0) ||
-        (controlsIncidentFilter === 'ZERO_INCIDENTS' && ctrl.totalIncidentCount === 0) ||
-        (controlsIncidentFilter === 'NOT_SCANNED' && ctrl.totalIncidentCount === null);
+        (controlsIncidentFilter === 'ZERO_INCIDENTS' && (ctrl.totalIncidentCount ?? 0) === 0);
 
-      return matchesSearch && matchesStatus && matchesType && matchesCountsStatus && matchesIncidents;
+      return matchesSearch && matchesStatus && matchesType && matchesIncidents;
     });
-  }, [controlsData, controlsSearch, controlsStatusFilter, controlsTypeFilter, controlsCountsStatusFilter, controlsIncidentFilter]);
+  }, [controlsData, controlsSearch, controlsStatusFilter, controlsTypeFilter, controlsIncidentFilter]);
 
   // 2. Incidents Detailed Filtered
   const filteredIncidents = useMemo(() => {
@@ -1548,17 +1501,15 @@ export default function Reports({
     if (controlsSearch) list.push({ label: 'Search', value: `"${controlsSearch}"` });
     if (controlsStatusFilter !== 'ALL') list.push({ label: 'Status', value: controlsStatusFilter });
     if (controlsTypeFilter !== 'ALL') list.push({ label: 'Control Type', value: controlsTypeFilter === 'ACCESS' ? 'Access Controls' : 'Transaction Controls' });
-    if (controlsCountsStatusFilter !== 'ALL') list.push({ label: 'Data Status', value: controlsCountsStatusFilter });
-    if (controlsIncidentFilter !== 'ALL') list.push({ label: 'Exposure', value: controlsIncidentFilter === 'WITH_INCIDENTS' ? 'With Incidents' : controlsIncidentFilter === 'ZERO_INCIDENTS' ? 'Zero Incidents' : 'Not Scanned' });
+    if (controlsIncidentFilter !== 'ALL') list.push({ label: 'Exposure', value: controlsIncidentFilter === 'WITH_INCIDENTS' ? 'With Incidents' : 'Zero Incidents' });
     return list;
-  }, [controlsSearch, controlsStatusFilter, controlsTypeFilter, controlsCountsStatusFilter, controlsIncidentFilter]);
+  }, [controlsSearch, controlsStatusFilter, controlsTypeFilter, controlsIncidentFilter]);
 
-  const hasActiveControlsFilters = Boolean(controlsSearch || controlsStatusFilter !== 'ALL' || controlsTypeFilter !== 'ALL' || controlsCountsStatusFilter !== 'ALL' || controlsIncidentFilter !== 'ALL');
+  const hasActiveControlsFilters = Boolean(controlsSearch || controlsStatusFilter !== 'ALL' || controlsTypeFilter !== 'ALL' || controlsIncidentFilter !== 'ALL');
   const resetControlsFilters = () => {
     setControlsSearch('');
     setControlsStatusFilter('ALL');
     setControlsTypeFilter('ALL');
-    setControlsCountsStatusFilter('ALL');
     setControlsIncidentFilter('ALL');
     setCurrentPage(1);
   };
@@ -1779,10 +1730,10 @@ export default function Reports({
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => loadControlsSummary(true, false)}
-                disabled={controlsLoading || controlsScanning}
+                onClick={() => loadControlsSummary(true)}
+                disabled={controlsLoading}
                 style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-                title="Force refresh entire control summary report from Oracle"
+                title="Refresh control summary report from PostgreSQL database"
               >
                 <RefreshCw size={13} className={controlsLoading ? 'animate-spin' : ''} />
                 <span>{controlsLoading ? 'Refreshing...' : 'Refresh'}</span>
@@ -1824,14 +1775,13 @@ export default function Reports({
                   { key: 'status', label: 'Status', defaultSelected: true },
                   { key: 'state', label: 'State', defaultSelected: true },
                   { key: 'controlType', label: 'Control Type', defaultSelected: true, getValue: (c: any) => c.controlTypeName || (c.controlTypeCode !== null && c.controlTypeCode !== undefined && String(c.controlTypeCode).trim() !== '' ? formatControlTypeName(c.controlTypeCode) : '—') },
-                  { key: 'totalIncidentCount', label: 'Total Incidents', defaultSelected: true, getValue: (c: any) => c.totalIncidentCount !== null ? c.totalIncidentCount : (c.countsStatus === 'NOT_STARTED' ? 'Not scanned' : c.countsStatus === 'CALCULATING' ? 'Calculating...' : 'Partial') },
-                  { key: 'assignedOrInRemediationCount', label: 'Assigned / In Remediation', defaultSelected: true, getValue: (c: any) => c.assignedOrInRemediationCount !== null ? c.assignedOrInRemediationCount : '—' },
-                  { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount !== null ? c.acceptedCount : '—' },
-                  { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount !== null ? c.closedOrResolvedCount : '—' },
+                  { key: 'totalIncidentCount', label: 'Total Incidents', defaultSelected: true, getValue: (c: any) => c.totalIncidentCount ?? 0 },
+                  { key: 'assignedOrInRemediationCount', label: 'Assigned / In Remediation', defaultSelected: true, getValue: (c: any) => c.assignedOrInRemediationCount ?? 0 },
+                  { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount ?? 0 },
+                  { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
                   { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: (c: any) => c.scheduledBy || '—' },
-                  { key: 'countsStatus', label: 'Data Status', defaultSelected: false },
-                  { key: 'lastCalculatedAt', label: 'Last Calculated At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' },
+                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' },
                   { key: 'calculationNotes', label: 'Calculation Notes', defaultSelected: false, getValue: (c: any) => c.calculationNotes || '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
@@ -2123,62 +2073,33 @@ export default function Reports({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Report Calculation Status:
+                  Data Source Status:
                 </span>
                 
                 {/* Status Badge */}
-                {controlsSummaryReport?.summaryStatus === 'READY' ? (
-                  <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem' }}>
-                    <Check size={12} /> READY
-                  </span>
-                ) : controlsSummaryReport?.summaryStatus === 'CALCULATING' || controlsScanning ? (
-                  <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#2563EB' }}>
-                    <RefreshCw size={12} className="animate-spin" /> CALCULATING
-                  </span>
-                ) : controlsSummaryReport?.summaryStatus === 'PARTIAL' ? (
-                  <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem' }}>
-                    <AlertCircle size={12} /> PARTIAL
-                  </span>
-                ) : (
-                  <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>
-                    {controlsSummaryReport?.summaryStatus || 'NOT_STARTED'}
-                  </span>
-                )}
+                <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem' }}>
+                  <Check size={12} /> {controlsLoading ? 'LOADING' : 'READY'}
+                </span>
 
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>•</span>
 
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Source: <strong>{controlsSummaryReport?.dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Controls Data')}</strong>
+                  Source: <strong>{controlsSummaryReport?.dataSource || (environmentMode === 'ORACLE_FUSION' ? 'PostgreSQL Database' : 'Sample Controls Data')}</strong>
                 </span>
 
                 {controlsSummaryReport?.calculatedAt && (
                   <>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>•</span>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Last calculated: <strong>{new Date(controlsSummaryReport.calculatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong>
+                      Last synced: <strong>{new Date(controlsSummaryReport.calculatedAt).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
                     </span>
                   </>
                 )}
 
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>•</span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Coverage: <strong>{controlsSummaryReport?.scannedControlsCount ?? controlsData.filter(c => c.countsStatus === 'READY' || c.countsStatus === 'PARTIAL').length} / {controlsSummaryReport?.totalControls ?? controlsData.length}</strong> controls scanned
+                  Controls loaded: <strong>{controlsSummaryReport?.totalControls ?? controlsData.length}</strong>
                 </span>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => loadControlsSummary(false, true)}
-                  disabled={controlsScanning || controlsLoading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
-                  title="Scan incident counts for unscanned controls via lightweight Oracle probe"
-                >
-                  <Play size={12} className={controlsScanning ? 'animate-spin' : ''} />
-                  <span>{controlsScanning ? 'Scanning...' : 'Scan Incident Counts'}</span>
-                </button>
               </div>
             </div>
 
@@ -2230,20 +2151,6 @@ export default function Reports({
                 <option value="ALL">Incidents: All</option>
                 <option value="WITH_INCIDENTS">With Incidents (&gt;0)</option>
                 <option value="ZERO_INCIDENTS">Zero Incidents (0)</option>
-                <option value="NOT_SCANNED">Not Scanned</option>
-              </select>
-
-              <select
-                className="form-select"
-                value={controlsCountsStatusFilter}
-                onChange={(e) => { setControlsCountsStatusFilter(e.target.value); setCurrentPage(1); }}
-                style={{ width: '150px', fontSize: '0.84rem' }}
-              >
-                <option value="ALL">Data Status: All</option>
-                <option value="READY">Ready</option>
-                <option value="PARTIAL">Partial</option>
-                <option value="NOT_STARTED">Not Started</option>
-                <option value="ERROR">Error</option>
               </select>
 
               {hasActiveControlsFilters && (
@@ -2286,12 +2193,6 @@ export default function Reports({
                   <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
                     Exposure: {controlsIncidentFilter}
                     <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setControlsIncidentFilter('ALL'); setCurrentPage(1); }} />
-                  </span>
-                )}
-                {controlsCountsStatusFilter !== 'ALL' && (
-                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
-                    Data: {controlsCountsStatusFilter}
-                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setControlsCountsStatusFilter('ALL'); setCurrentPage(1); }} />
                   </span>
                 )}
               </div>
@@ -3356,23 +3257,20 @@ export default function Reports({
                     <th style={{ width: '120px', textAlign: 'right' }}>Closed / Resolved</th>
                     <th style={{ width: '140px' }}>Last Run Date</th>
                     <th style={{ width: '130px' }}>Scheduled By</th>
-                    <th style={{ width: '110px' }}>Last Run By</th>
-                    <th style={{ width: '110px' }}>Data Status</th>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {controlsLoading ? (
                     <TableLoadingState
-                      title="Loading Controls Summary from Oracle Fusion..."
-                      subtitle="Scanning enterprise controls, scheduled jobs, and incident exposure"
-                      colSpan={14}
+                      title="Loading Controls Summary from PostgreSQL Database..."
+                      subtitle="Reading synced enterprise controls, scheduled jobs, and incident exposure"
+                      colSpan={11}
                       skeletonRows={5}
                       minHeight="280px"
                     />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                      <td colSpan={11} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
                           <Shield size={24} />
                         </div>
@@ -3389,7 +3287,6 @@ export default function Reports({
                             setControlsSearch('');
                             setControlsStatusFilter('ALL');
                             setControlsTypeFilter('ALL');
-                            setControlsCountsStatusFilter('ALL');
                             setControlsIncidentFilter('ALL');
                             setCurrentPage(1);
                           }}
@@ -3401,7 +3298,6 @@ export default function Reports({
                     </tr>
                   ) : (
                     paginatedSlice.map((ctrl: any) => {
-                      const isProbing = probingControlId === ctrl.controlId;
                       const hasIncidents = ctrl.totalIncidentCount !== null && ctrl.totalIncidentCount > 0;
 
                       return (
@@ -3528,55 +3424,6 @@ export default function Reports({
                           {/* 11. Scheduled By */}
                           <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                             {ctrl.scheduledBy || '—'}
-                          </td>
-
-                          {/* 12. Last Run By */}
-                          <td style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic' }} title="Oracle Advanced Controls REST API does not provide a LastRunBy attribute">
-                            Not available
-                          </td>
-
-                          {/* 13. Data Status */}
-                          <td>
-                            {ctrl.countsStatus === 'READY' ? (
-                              <span className="badge badge-active" style={{ fontSize: '0.64rem', padding: '0.1rem 0.4rem' }}>
-                                Ready
-                              </span>
-                            ) : ctrl.countsStatus === 'PARTIAL' ? (
-                              <span className="badge badge-gold" style={{ fontSize: '0.64rem', padding: '0.1rem 0.4rem' }}>
-                                Partial
-                              </span>
-                            ) : ctrl.countsStatus === 'CALCULATING' ? (
-                              <span className="badge" style={{ fontSize: '0.64rem', padding: '0.1rem 0.4rem', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#2563EB' }}>
-                                Syncing
-                              </span>
-                            ) : ctrl.countsStatus === 'ERROR' ? (
-                              <span className="badge badge-danger" style={{ fontSize: '0.64rem', padding: '0.1rem 0.4rem' }}>
-                                Error
-                              </span>
-                            ) : (
-                              <span className="badge badge-neutral" style={{ fontSize: '0.64rem', padding: '0.1rem 0.4rem' }}>
-                                Unscanned
-                              </span>
-                            )}
-                          </td>
-
-                          {/* 14. Action / Single Probe */}
-                          <td style={{ textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              onClick={() => probeSingleControl(ctrl.controlId || ctrl.id)}
-                              disabled={isProbing}
-                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                              title="Probe incident count via lightweight query"
-                            >
-                              {isProbing ? (
-                                <RefreshCw size={10} className="animate-spin" />
-                              ) : (
-                                <Play size={10} />
-                              )}
-                              <span>{ctrl.countsStatus === 'NOT_STARTED' ? 'Probe' : 'Re-probe'}</span>
-                            </button>
                           </td>
                         </tr>
                       );

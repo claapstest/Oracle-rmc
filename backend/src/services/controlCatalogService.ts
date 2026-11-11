@@ -374,13 +374,34 @@ export class ControlCatalogService {
         if (id) rawMap.set(id, rc);
       });
 
-      if (dbSummaries.length > 0) {
-        const loadedControls: AdvancedControlItem[] = dbSummaries.map(s => {
-          const rawEntry = rawMap.get(s.control_id) || {};
+      const dbSummaryMap = new Map(dbSummaries.map(s => [String(s.control_id).trim(), s]));
+      const orderedIds: string[] = [];
+      const seenIds = new Set<string>();
+
+      for (const s of dbSummaries) {
+        const id = String(s.control_id).trim();
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          orderedIds.push(id);
+        }
+      }
+      for (const rc of rawControls) {
+        const id = String(rc?.Id ?? rc?.id ?? '').trim();
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          orderedIds.push(id);
+        }
+      }
+
+      if (orderedIds.length > 0) {
+        const loadedControls: AdvancedControlItem[] = orderedIds.map(controlId => {
+          const s = dbSummaryMap.get(controlId);
+          const rawEntry = rawMap.get(controlId) || {};
           const raw = rawEntry.raw && typeof rawEntry.raw === 'object' ? { ...rawEntry.raw, ...rawEntry } : rawEntry;
+
           const ctrl = this.normalizeControl({
-            Id: s.control_id,
-            Name: s.control_name || raw.Name || raw.name || `Control ${s.control_id}`,
+            Id: controlId,
+            Name: s?.control_name || raw.Name || raw.name || `Control ${controlId}`,
             Description: raw.Description ?? raw.description ?? null,
             Priority: raw.Priority ?? raw.priority ?? raw.EnforcementType ?? raw.enforcementType ?? 1,
             EnforcementType: raw.EnforcementType ?? raw.enforcementType ?? null,
@@ -389,34 +410,77 @@ export class ControlCatalogService {
             Status: raw.Status ?? raw.status ?? (raw.StatusId === 1 ? 'ACTIVE' : 'ACTIVE'),
             State: raw.State ?? raw.state ?? raw.StateCode ?? 'APPROVED',
             Type: raw.Type ?? raw.type ?? raw.ControlType ?? 173,
-            LastRunDate: raw.LastRunDate ?? raw.lastRunDate ?? s.last_oracle_update_date,
-            LastUpdateDate: raw.LastUpdateDate ?? raw.lastUpdateDate ?? s.last_oracle_update_date,
+            LastRunDate: raw.LastRunDate ?? raw.lastRunDate ?? s?.last_oracle_update_date ?? null,
+            LastUpdateDate: raw.LastUpdateDate ?? raw.lastUpdateDate ?? s?.last_oracle_update_date ?? null,
             CreationDate: raw.CreationDate ?? raw.creationDate ?? null,
             CreatedBy: raw.CreatedBy ?? raw.createdBy ?? null,
             LastUpdatedBy: raw.LastUpdatedBy ?? raw.lastUpdatedBy ?? null,
-            IncidentCount: s.total_incidents,
+            IncidentCount: s ? s.total_incidents : (raw.IncidentCount ?? undefined),
             raw
           });
 
-          const effTotal = Math.max(
-            Number(s.total_incidents) || 0,
-            (Number(s.assigned_incidents) || 0) + (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0)
-          );
-          const nonAssigned = (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0);
-          const assigned = (Number(s.assigned_incidents) > 0)
-            ? Number(s.assigned_incidents)
-            : Math.max(0, effTotal - nonAssigned);
+          if (s) {
+            const effTotal = Math.max(
+              Number(s.total_incidents) || 0,
+              (Number(s.assigned_incidents) || 0) + (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0)
+            );
+            const nonAssigned = (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0);
+            const assigned = (Number(s.assigned_incidents) > 0)
+              ? Number(s.assigned_incidents)
+              : Math.max(0, effTotal - nonAssigned);
 
-          ctrl.incidentCount = effTotal;
-          ctrl.incidentBreakdown = {
-            assigned,
-            accepted: Number(s.accepted_incidents) || 0,
-            remediate: Number(s.remediate_incidents) || 0,
-            resolved: Number(s.resolved_incidents) || 0,
-          };
+            ctrl.incidentCount = effTotal;
+            ctrl.incidentBreakdown = {
+              assigned,
+              accepted: Number(s.accepted_incidents) || 0,
+              remediate: Number(s.remediate_incidents) || 0,
+              resolved: Number(s.resolved_incidents) || 0,
+            };
 
-          // Seed fast incident count cache immediately
-          this.incidentCountCacheService.setCount(ctrl.id, ctrl.incidentCount, 'READY', ctrl.incidentBreakdown);
+            this.incidentCountCacheService.setCount(ctrl.id, ctrl.incidentCount, 'READY', ctrl.incidentBreakdown);
+          } else {
+            const cachedCount = this.incidentCountCacheService.getCount(ctrl.id);
+            if (ctrl.incidentCount === undefined && cachedCount && typeof cachedCount.count === 'number') {
+              ctrl.incidentCount = cachedCount.count;
+            }
+            if (cachedCount && typeof cachedCount.assigned === 'number') {
+              ctrl.incidentBreakdown = {
+                assigned: cachedCount.assigned,
+                accepted: cachedCount.accepted ?? 0,
+                remediate: cachedCount.remediate ?? 0,
+                resolved: cachedCount.resolved ?? 0,
+              };
+            } else {
+              const cachedInc = this.incidentCacheService.readCache(ctrl.id);
+              if (cachedInc) {
+                const incList = Array.isArray(cachedInc.incidents) ? cachedInc.incidents : [];
+                let assigned = 0, accepted = 0, remediate = 0, resolved = 0;
+                for (const inc of incList) {
+                  const st = (inc.status || '').toUpperCase();
+                  const state = (inc.state || '').toUpperCase();
+                  if (st.includes('ACCEPT') || state.includes('ACCEPT')) accepted++;
+                  else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) remediate++;
+                  else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE') || inc.closedDate) resolved++;
+                  else assigned++;
+                }
+                const total = ctrl.incidentCount ?? cachedInc.totalResults ?? incList.length;
+                ctrl.incidentCount = total;
+                ctrl.incidentBreakdown = incList.length > 0
+                  ? { assigned, accepted, remediate, resolved }
+                  : { assigned: total, accepted: 0, remediate: 0, resolved: 0 };
+              } else if (typeof ctrl.incidentCount === 'number') {
+                ctrl.incidentBreakdown = {
+                  assigned: ctrl.incidentCount,
+                  accepted: 0,
+                  remediate: 0,
+                  resolved: 0,
+                };
+              } else {
+                ctrl.incidentCount = 0;
+                ctrl.incidentBreakdown = { assigned: 0, accepted: 0, remediate: 0, resolved: 0 };
+              }
+            }
+          }
 
           return ctrl;
         });
@@ -428,11 +492,11 @@ export class ControlCatalogService {
         const activeCount = loadedControls.filter(c => c.status === 'ACTIVE').length;
         const approvedCount = loadedControls.filter(c => c.state === 'APPROVED').length;
 
-        console.log(`[Control Catalog] Loaded ${loadedControls.length} controls with complete incident totals directly from PostgreSQL.`);
+        console.log(`[Control Catalog] Loaded ${loadedControls.length} controls directly from PostgreSQL.`);
 
         return {
           success: true,
-          dataSource: 'Live Oracle Fusion API (Cached)',
+          dataSource: 'PostgreSQL Database',
           items: loadedControls,
           totalCount: loadedControls.length,
           lastRefreshed: this.lastRefreshedAt,

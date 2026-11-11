@@ -6,6 +6,7 @@ import { OracleFusionClient } from '../oracle/client.js';
 import { config } from '../config.js';
 import { ControlCatalogService, AdvancedControlItem, ControlIncidentItem } from './controlCatalogService.js';
 import { IncidentCacheService } from './incidentCacheService.js';
+import { controlRawDbService } from './controlRawDbService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +130,20 @@ export class ControlSummaryService {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
       const data = JSON.parse(content) as ControlSummaryReportResult;
+      const isDemo = this.catalogService.isDemoMode();
+
+      if (!isDemo) {
+        if (
+          data.dataSource !== 'PostgreSQL Database' ||
+          data.summaryStatus !== 'READY' ||
+          data.controls?.some(c => c.countsStatus === 'PARTIAL')
+        ) {
+          return null; // Reject stale pre-DB or partial cache
+        }
+      } else if (data.dataSource !== 'Sample Controls Data') {
+        return null;
+      }
+
       const ttlMs = this.getTTLMinutes() * 60 * 1000;
       const fetchedTime = new Date(data.calculatedAt).getTime();
 
@@ -274,10 +289,29 @@ export class ControlSummaryService {
       }
     }
 
-    // 2. Fetch or resolve the authoritative 40 controls from catalog
+    // 2. Fetch authoritative controls from catalog (PostgreSQL-backed)
     const catalogRes = await this.catalogService.getAllControls(options.forceRefresh);
     const controls = catalogRes.items || [];
     const isDemo = this.catalogService.isDemoMode();
+    const isPostgresSource = catalogRes.dataSource === 'PostgreSQL Database';
+
+    let dbSyncTimeByControl = new Map<string, string>();
+    let latestDbSyncMs = 0;
+    if (!isDemo) {
+      try {
+        const dbSummaries = await controlRawDbService.getAllControlIncidentsSummary();
+        for (const row of dbSummaries) {
+          if (row.last_synced_at) {
+            const iso = new Date(row.last_synced_at).toISOString();
+            dbSyncTimeByControl.set(String(row.control_id), iso);
+            const ms = new Date(row.last_synced_at).getTime();
+            if (!isNaN(ms) && ms > latestDbSyncMs) latestDbSyncMs = ms;
+          }
+        }
+      } catch (err: any) {
+        console.warn('[ControlSummaryService] Unable to read DB sync timestamps:', err.message);
+      }
+    }
 
     const incidentCacheService = this.catalogService.getIncidentCacheService();
     const summaryItems: ControlSummaryItem[] = [];
@@ -288,13 +322,14 @@ export class ControlSummaryService {
     for (const ctrl of controls) {
       // Check if detailed incidents are already cached on disk
       const fullCache = incidentCacheService.readCache(ctrl.id);
+      const dbSyncIso = dbSyncTimeByControl.get(String(ctrl.id)) || null;
 
       let totalIncidentCount: number | null = null;
       let assignedOrInRemediationCount: number | null = null;
       let acceptedCount: number | null = null;
       let closedOrResolvedCount: number | null = null;
       let countsStatus: 'READY' | 'PARTIAL' | 'CALCULATING' | 'NOT_STARTED' | 'ERROR' = 'NOT_STARTED';
-      let calculationNotes = 'Awaiting lightweight incident count scan';
+      let calculationNotes = 'Awaiting incident data';
 
       if (isDemo) {
         // Demo mode: known controls
@@ -313,6 +348,23 @@ export class ControlSummaryService {
           countsStatus = 'READY';
           calculationNotes = 'Demo sample data';
         }
+      } else if (ctrl.incidentBreakdown) {
+        const assigned = Number(ctrl.incidentBreakdown.assigned || 0);
+        const remediate = Number(ctrl.incidentBreakdown.remediate || 0);
+        const accepted = Number(ctrl.incidentBreakdown.accepted || 0);
+        const resolved = Number(ctrl.incidentBreakdown.resolved || 0);
+        const breakdownTotal = assigned + remediate + accepted + resolved;
+
+        assignedOrInRemediationCount = assigned + remediate;
+        acceptedCount = accepted;
+        closedOrResolvedCount = resolved;
+        totalIncidentCount = (ctrl.incidentCount !== undefined && !isNaN(ctrl.incidentCount))
+          ? ctrl.incidentCount
+          : breakdownTotal;
+        countsStatus = 'READY';
+        calculationNotes = dbSyncIso
+          ? 'Loaded from PostgreSQL database'
+          : 'Loaded from PostgreSQL database (precomputed incident breakdown)';
       } else if (fullCache && fullCache.complete) {
         // Detailed incident cache HIT: calculate exact breakdown
         const cats = this.calculateCategoryCountsFromIncidents(fullCache.incidents);
@@ -323,10 +375,29 @@ export class ControlSummaryService {
         countsStatus = 'READY';
         calculationNotes = `Aggregated from ${fullCache.incidents.length.toLocaleString()} cached incident records`;
       } else if (ctrl.incidentCount !== undefined && !isNaN(ctrl.incidentCount)) {
-        // Pre-recorded count
         totalIncidentCount = ctrl.incidentCount;
-        countsStatus = 'PARTIAL';
-        calculationNotes = 'Incident count available; detailed status breakdown requires scan';
+        if (totalIncidentCount === 0) {
+          assignedOrInRemediationCount = 0;
+          acceptedCount = 0;
+          closedOrResolvedCount = 0;
+          countsStatus = 'READY';
+          calculationNotes = 'Loaded from PostgreSQL database (0 incidents)';
+        } else {
+          assignedOrInRemediationCount = 0;
+          acceptedCount = 0;
+          closedOrResolvedCount = 0;
+          countsStatus = isPostgresSource ? 'READY' : 'PARTIAL';
+          calculationNotes = isPostgresSource
+            ? 'Loaded from PostgreSQL database (breakdown pending scheduled sync)'
+            : 'Incident count available; detailed status breakdown requires scan';
+        }
+      } else if (isPostgresSource) {
+        totalIncidentCount = 0;
+        assignedOrInRemediationCount = 0;
+        acceptedCount = 0;
+        closedOrResolvedCount = 0;
+        countsStatus = 'READY';
+        calculationNotes = 'Loaded from PostgreSQL database';
       }
 
       if (totalIncidentCount !== null && totalIncidentCount > 0) {
@@ -335,6 +406,8 @@ export class ControlSummaryService {
       if (countsStatus === 'READY' || countsStatus === 'PARTIAL') {
         scannedCount++;
       }
+
+      const itemDataSource = isDemo ? 'Sample Controls Data' : (catalogRes.dataSource || 'PostgreSQL Database');
 
       const summaryItem: ControlSummaryItem = {
         controlId: ctrl.id,
@@ -358,8 +431,8 @@ export class ControlSummaryService {
         acceptedCount,
         closedOrResolvedCount,
         countsStatus,
-        lastCalculatedAt: fullCache ? fullCache.fetchedAt : (totalIncidentCount !== null ? new Date().toISOString() : null),
-        dataSource: isDemo ? 'Sample Controls Data' : 'Live Oracle Fusion API',
+        lastCalculatedAt: dbSyncIso || (fullCache ? fullCache.fetchedAt : (totalIncidentCount !== null ? new Date().toISOString() : null)),
+        dataSource: itemDataSource,
         calculationNotes
       };
 
@@ -368,11 +441,15 @@ export class ControlSummaryService {
 
     const activeControls = controls.filter(c => c.status === 'ACTIVE').length;
     const approvedControls = controls.filter(c => c.state === 'APPROVED').length;
+    const resolvedDataSource = isDemo ? 'Sample Controls Data' : (catalogRes.dataSource || 'PostgreSQL Database');
+    const resolvedCalculatedAt = latestDbSyncMs > 0
+      ? new Date(latestDbSyncMs).toISOString()
+      : new Date().toISOString();
 
     const reportResult: ControlSummaryReportResult = {
       success: true,
-      dataSource: isDemo ? 'Sample Controls Data' : 'Live Oracle Fusion API',
-      calculatedAt: new Date().toISOString(),
+      dataSource: resolvedDataSource,
+      calculatedAt: resolvedCalculatedAt,
       summaryStatus: scannedCount === controls.length ? 'READY' : (scannedCount > 0 ? 'PARTIAL' : 'CALCULATING'),
       totalControls: controls.length,
       activeControls,
@@ -380,16 +457,18 @@ export class ControlSummaryService {
       controlsWithIncidents,
       scannedControlsCount: scannedCount,
       controls: summaryItems,
-      message: scannedCount === controls.length 
-        ? 'Authoritative control summary report generated.' 
-        : `Summary generated (${scannedCount}/${controls.length} controls scanned for incidents).`
+      message: isPostgresSource
+        ? 'Authoritative control summary loaded from PostgreSQL database.'
+        : (scannedCount === controls.length
+          ? 'Authoritative control summary report generated.'
+          : `Summary generated (${scannedCount}/${controls.length} controls scanned for incidents).`)
     };
 
     // Save current baseline to disk
     this.writeSummaryCacheAtomically(reportResult);
 
-    // If scan requested and not in demo mode, launch background scanner for unscanned items
-    if (options.scan && !isDemo && !this.isScanning) {
+    // Only launch live Oracle background scan when not backed by PostgreSQL DB
+    if (options.scan && !isDemo && !isPostgresSource && !this.isScanning) {
       this.startBackgroundScan(controls);
     }
 
