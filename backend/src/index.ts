@@ -15,7 +15,7 @@ import { scheduledSyncService } from './services/scheduledSyncService.js';
 import { roleHierarchyService } from './services/roleHierarchyService.js';
 import { userAccessReportService } from './services/userAccessReportService.js';
 import { apiRouter } from './routes/api.js';
-import { initializeAuthProvider } from './auth/index.js';
+import { initializeAuthProvider, keyManager } from './auth/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,6 +93,19 @@ app.get(['/health', '/api/health'], (_req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
+// RFC 7517 JSON Web Key Set endpoint (VYR-020)
+app.get(['/.well-known/jwks.json', '/api/.well-known/jwks.json'], async (_req, res) => {
+  try {
+    const jwks = await keyManager.getJwks();
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json(jwks);
+  } catch (err: any) {
+    console.error('[JWKS Error]:', err);
+    res.status(500).json({ error: 'Failed to retrieve JWKS' });
+  }
+});
+
 // API Routes
 app.use('/api', apiRouter);
 
@@ -105,7 +118,7 @@ if (hasFrontendBuild) {
   app.use(express.static(frontendDistPath));
   // Single Page Application (SPA) catch-all fallback for client-side routing
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/.well-known')) {
       return next();
     }
     res.sendFile(path.join(frontendDistPath, 'index.html'));
