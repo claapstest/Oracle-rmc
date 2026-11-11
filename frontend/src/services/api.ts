@@ -259,14 +259,21 @@ export const api = {
   },
 
   // Users
-  async getUsers(filter?: string, startIndex?: number, count?: number, category?: string, status?: string) {
+  async getUsers(
+    filter?: string,
+    startIndex?: number,
+    count?: number,
+    category?: string,
+    status?: string,
+    source: 'oracle' | 'database' = 'oracle'
+  ) {
     const params = new URLSearchParams();
     if (filter) params.append('filter', filter);
     if (category && category !== 'ALL') params.append('category', category);
     if (status && status !== 'ALL') params.append('status', status);
     if (startIndex) params.append('startIndex', String(startIndex));
     if (count) params.append('count', String(count));
-    params.append('source', 'oracle');
+    params.append('source', source);
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/users${query}`);
   },
@@ -353,6 +360,7 @@ export const api = {
       action?: string;
       pageNumber?: number;
       pageSize?: number;
+      source?: 'live' | 'database';
     },
     legacyAction?: string
   ) {
@@ -369,6 +377,7 @@ export const api = {
       if (filterOrParams.action && filterOrParams.action !== 'ALL') params.append('action', filterOrParams.action);
       if (filterOrParams.pageNumber) params.append('pageNumber', String(filterOrParams.pageNumber));
       if (filterOrParams.pageSize) params.append('pageSize', String(filterOrParams.pageSize));
+      if (filterOrParams.source) params.append('source', filterOrParams.source);
     }
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/audit${query}`);

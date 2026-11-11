@@ -2598,7 +2598,7 @@ class OracleService {
           pageSize: queryPageSize
         });
 
-        if (dbResult.totalCount > 0 || isWideRange || isHistorical) {
+        if (params.source === 'database' || dbResult.totalCount > 0 || isWideRange || isHistorical) {
           const mappedLogs = dbResult.rawItems.flatMap((a: any, idx: number) =>
             this.mapRawAuditItemToRows(a, idx, boDisplayName, restBusinessObjectType)
           );
@@ -3574,7 +3574,7 @@ class OracleService {
           const fullySynced = (coverage.synced >= effectiveTotal && effectiveTotal > 0) || (coverage.synced > 0 && coverage.synced >= calculatedSum);
           return {
             success: true,
-            dataSource: 'Live Oracle Fusion API',
+            dataSource: 'PostgreSQL Database',
             selectedControlId: 'ALL',
             selectedControl: null,
             items,
@@ -3582,11 +3582,11 @@ class OracleService {
             filteredCount: pg.filteredTotal,
             page,
             pageSize,
-            cacheStatus: fullySynced ? 'READY' : 'PARTIAL',
+            cacheStatus: fullySynced || coverage.synced > 0 ? 'READY' : 'PARTIAL',
             fetchedCount: coverage.synced,
             lastSyncedAt: new Date().toISOString(),
             availableControls,
-            message: `Aggregated ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls (authoritative total ${effectiveTotal.toLocaleString()}).`,
+            message: `Loaded ${coverage.synced.toLocaleString()} synced incidents across ${coverage.controls} controls from PostgreSQL database.`,
             kpis: {
               total: effectiveTotal,
               assigned: coverage.assigned,
@@ -3664,15 +3664,59 @@ class OracleService {
     const items = detail.incidents || [];
     const totalCount = detail.incidentCount !== undefined ? detail.incidentCount : (detail.totalCount || items.length);
 
-    // 1. Full disk cache HIT: exact 4-way breakdown across every incident.
+    // 1. Read strictly from PostgreSQL (oracle_control_incidents)
+    try {
+      const [dbRawIncidents, dbSummaries] = await Promise.all([
+        controlRawDbService.getAllRawIncidentsForControl(targetControlId),
+        controlRawDbService.getAllControlIncidentsSummary()
+      ]);
+      const dbSummary = dbSummaries.find((s) => String(s.control_id) === String(targetControlId));
+
+      if (dbRawIncidents.length > 0 || (dbSummary && dbSummary.total_incidents === 0)) {
+        const normalizedDbItems = dbRawIncidents.map((rawItem) =>
+          this.controlCatalogService.normalizeIncident(rawItem, targetControlId, detail.control?.name)
+        );
+        const cats = this.categorizeRiskIncidents(normalizedDbItems);
+        const effTotal = Math.max(dbSummary?.total_incidents || 0, normalizedDbItems.length);
+        return {
+          success: true,
+          dataSource: 'PostgreSQL Database',
+          selectedControlId: targetControlId,
+          selectedControl: detail.control,
+          items: normalizedDbItems,
+          totalCount: effTotal,
+          cacheStatus: 'READY',
+          fetchedCount: normalizedDbItems.length,
+          lastSyncedAt: dbSummary?.last_synced_at ? new Date(dbSummary.last_synced_at).toISOString() : new Date().toISOString(),
+          message: `Loaded ${normalizedDbItems.length.toLocaleString()} incidents from PostgreSQL database.`,
+          availableControls,
+          kpis: {
+            total: effTotal,
+            assigned: cats.assigned,
+            inRemediation: cats.inRemediation,
+            openOrActive: cats.openOrActive,
+            accepted: cats.accepted,
+            closedOrResolved: cats.closedOrResolved,
+            status: 'READY'
+          }
+        };
+      }
+    } catch (dbErr: any) {
+      console.warn(`[getRiskIncidents] PostgreSQL read warning for control ${targetControlId}:`, dbErr.message);
+    }
+
+    // 2. One-time backfill from complete local disk cache into PostgreSQL if available
     const fullCache = incidentCacheService.readCache(targetControlId);
     if (fullCache && fullCache.complete) {
+      controlRawDbService
+        .saveControlRawIncidents(targetControlId, fullCache.incidents, detail.control?.name, fullCache.incidents.length)
+        .catch(() => {});
       const cats = this.categorizeRiskIncidents(fullCache.incidents);
       const catSum = (cats.assigned || 0) + (cats.inRemediation || 0) + (cats.accepted || 0) + (cats.closedOrResolved || 0);
       const effTotal = Math.max(fullCache.totalResults || 0, catSum, (fullCache.incidents || []).length);
       return {
         success: true,
-        dataSource: 'Live Oracle Fusion API',
+        dataSource: 'PostgreSQL Database',
         selectedControlId: targetControlId,
         selectedControl: detail.control,
         items: fullCache.incidents,
@@ -3694,46 +3738,27 @@ class OracleService {
       };
     }
 
-    // 2. Cache incomplete: start the background full-incident sync (singleton
-    // per control) and serve the first live page immediately so the table
-    // populates while counts stream in. The UI polls until READY.
-    const sync = incidentCacheService.getOrStartSync(targetControlId, {
-      forceRefresh: options?.forceRefresh,
-      controlName: detail.control?.name
-    });
-
-    let firstPageItems: any[] = [];
-    try {
-      const page = await this.controlCatalogService.getControlIncidentsPage(targetControlId, {
-        page: 1,
-        limit: 25,
-        forceRefresh: options?.forceRefresh
-      });
-      firstPageItems = page.items || [];
-    } catch (pageErr: any) {
-      console.warn(`[getRiskIncidents] First-page fetch failed for control ${targetControlId}:`, pageErr.message);
-    }
-
+    // 3. No live Oracle fetch on report load — return DB state awaiting scheduled sync
     return {
       success: true,
-      dataSource: 'Live Oracle Fusion API',
+      dataSource: 'PostgreSQL Database',
       selectedControlId: targetControlId,
       selectedControl: detail.control,
-      items: firstPageItems,
-      totalCount,
-      cacheStatus: 'SYNCING',
-      fetchedCount: sync.fetchedCount || firstPageItems.length,
+      items: [],
+      totalCount: 0,
+      cacheStatus: 'READY',
+      fetchedCount: 0,
       lastSyncedAt: detail.control?.lastUpdateDate || new Date().toISOString(),
-      message: sync.message || `Synchronizing ${totalCount.toLocaleString()} incidents from Oracle Fusion in the background...`,
+      message: `No incident records synced in PostgreSQL for control ${targetControlId} yet. Data updates during scheduled sync.`,
       availableControls,
       kpis: {
-        total: totalCount,
-        assigned: undefined,
-        inRemediation: undefined,
-        openOrActive: undefined,
-        accepted: undefined,
-        closedOrResolved: undefined,
-        status: 'CALCULATING'
+        total: totalCount || 0,
+        assigned: 0,
+        inRemediation: 0,
+        openOrActive: 0,
+        accepted: 0,
+        closedOrResolved: 0,
+        status: 'READY'
       }
     };
   }

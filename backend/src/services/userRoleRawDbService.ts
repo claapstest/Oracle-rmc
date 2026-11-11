@@ -294,16 +294,29 @@ export class UserRoleRawDbService {
         const username = String(user.userName || user.username || user.id || '').trim();
         if (!username) return;
 
-        const displayName = user.displayName || `${user.name?.givenName || user.firstName || ''} ${user.name?.familyName || user.lastName || ''}`.trim() || username;
-        const email = user.email || (Array.isArray(user.emails) ? user.emails[0]?.value : null);
-        const isActive = typeof user.active === 'boolean' ? user.active : true;
-        const userCategory = user.userCategory || null;
+        const normalizedUser = (!Array.isArray(user.assignedRoles) && Array.isArray(user.roles))
+          ? {
+              ...user,
+              email: user.email || (Array.isArray(user.emails) ? user.emails[0]?.value : ''),
+              assignedRoles: user.roles.map((r: any) => ({
+                roleCode: r.value || r.roleCode || r.name || 'UNKNOWN',
+                roleName: r.displayName || r.roleName || r.value || 'Unknown Role',
+                category: r.category || 'Job',
+                isCustom: Boolean(String(r.value || '').startsWith('CUSTOM_') || String(r.value || '').startsWith('CLAAPS_'))
+              }))
+            }
+          : user;
+
+        const displayName = normalizedUser.displayName || `${normalizedUser.name?.givenName || normalizedUser.firstName || ''} ${normalizedUser.name?.familyName || normalizedUser.lastName || ''}`.trim() || username;
+        const email = normalizedUser.email || (Array.isArray(normalizedUser.emails) ? normalizedUser.emails[0]?.value : null);
+        const isActive = typeof normalizedUser.active === 'boolean' ? normalizedUser.active : true;
+        const userCategory = normalizedUser.userCategory || null;
 
         const baseIndex = values.length + 1;
         valueClauses.push(
           `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, NOW(), NOW())`
         );
-        values.push(host, username, displayName, email, isActive, userCategory, JSON.stringify(user));
+        values.push(host, username, displayName, email, isActive, userCategory, JSON.stringify(normalizedUser));
       });
 
       if (valueClauses.length === 0) continue;

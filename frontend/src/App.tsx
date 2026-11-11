@@ -257,6 +257,7 @@ export default function App() {
   const [initialAuditFromDate, setInitialAuditFromDate] = useState<string | undefined>(undefined);
   const [initialAuditToDate, setInitialAuditToDate] = useState<string | undefined>(undefined);
   const [auditNavKey, setAuditNavKey] = useState(0);
+  const [riskControlsNavKey, setRiskControlsNavKey] = useState(0);
   const [initialCertId, setInitialCertId] = useState<string | null>(null);
 
   // Stack navigation history item definition (for deep entity investigations)
@@ -542,6 +543,7 @@ export default function App() {
 
     if (
       currentPage === pageId &&
+      pageId !== 'risk-controls' &&
       !activeInvestigation &&
       !activeQueryInvestigation &&
       (pageId !== 'roles' || initialRolesCategory === rolesCat) &&
@@ -589,6 +591,9 @@ export default function App() {
       setInitialAuditFromDate(auditFrom);
       setInitialAuditToDate(auditTo);
       setAuditNavKey(prev => prev + 1);
+    }
+    if (pageId === 'risk-controls') {
+      setRiskControlsNavKey(prev => prev + 1);
     }
     setInitialCertId(certId);
 
@@ -1299,9 +1304,10 @@ export default function App() {
                     />
                   </div>
                 )}
-                {visitedPages.has('risk-controls') && (
-                  <div style={{ display: currentPage === 'risk-controls' ? 'block' : 'none', height: '100%' }}>
+                {currentPage === 'risk-controls' && (
+                  <div style={{ height: '100%' }}>
                     <AdvancedControlsPage
+                      key={`risk-controls-${riskControlsNavKey}`}
                       environmentMode={environmentMode}
                       isActive={currentPage === 'risk-controls'}
                       onBack={handleNavigateBack}

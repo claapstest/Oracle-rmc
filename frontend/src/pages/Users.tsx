@@ -161,15 +161,16 @@ export default function Users({
           startIndex,
           pageSize,
           activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
-          statusFilter !== 'ALL' ? statusFilter : undefined
+          statusFilter !== 'ALL' ? statusFilter : undefined,
+          'database'
         );
         if (!isCancelled && res?.users) {
           setUsers(res.users);
           setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
-          if (res.directoryTotal) setDirectoryTotal(res.directoryTotal);
+          if (res.directoryTotal !== undefined) setDirectoryTotal(res.directoryTotal);
           if (res.activeCount !== undefined) setActiveCount(res.activeCount);
           if (res.inactiveCount !== undefined) setInactiveCount(res.inactiveCount);
-          setDataSource(res.dataSource || 'Oracle Fusion SCIM API');
+          setDataSource(res.dataSource || 'PostgreSQL Database');
         }
       } catch (err) {
         if (!isCancelled) {
@@ -396,7 +397,7 @@ export default function Users({
               Identity & Access Management
             </h1>
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <span>Verify user statuses and trace role entitlements inside the {dataSource || 'Oracle Fusion'} catalog.</span>
+              <span>Verify user statuses and trace role entitlements inside the {dataSource || 'PostgreSQL Database'} catalog.</span>
               {activeCategoryFilter && activeCategoryFilter !== 'ALL' && (
                 <span style={{
                   display: 'inline-flex',
@@ -547,7 +548,8 @@ export default function Users({
                 1,
                 countToFetch,
                 scope === 'FILTERED' && activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
-                scope === 'FILTERED' && statusFilter !== 'ALL' ? statusFilter : undefined
+                scope === 'FILTERED' && statusFilter !== 'ALL' ? statusFilter : undefined,
+                'database'
               );
               return res?.users || [];
             }}
