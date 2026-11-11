@@ -691,32 +691,13 @@ export default function InvestigationWorkspace({
               <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', marginTop: '0.5rem', color: '#ffffff' }}>
                 {entity.name}
               </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.25rem', fontSize: '0.88rem', color: '#E0E7FF' }}>
-                <span>Identifier: <code style={{ color: '#ffffff', background: 'rgba(255,255,255,0.15)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{entity.id}</code></span>
-                {isRole ? (
-                  <>
-                    <span>•</span>
-                    <span>Assigned Users: {membersLoading ? (data?.members?.length || '...') : resolvedMemberList.length}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>•</span>
-                    <span>Email: {data?.email || 'N/A'}</span>
-                    {data?.userCategory && (
-                      <>
-                        <span>•</span>
-                        <span>Category: {data.userCategory}</span>
-                      </>
-                    )}
-                    <span>•</span>
-                    <span>Status: 
-                      <span className={`badge ${data?.active ? 'badge-active' : 'badge-inactive'}`} style={{ marginLeft: '0.3rem', fontSize: '0.65rem' }}>
-                        {data?.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </span>
-                  </>
-                )}
-              </div>
+              {isRole && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.25rem', fontSize: '0.88rem', color: '#E0E7FF' }}>
+                  <span>Identifier: <code style={{ color: '#ffffff', background: 'rgba(255,255,255,0.15)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{entity.id}</code></span>
+                  <span>•</span>
+                  <span>Assigned Users: {membersLoading ? (data?.members?.length || '...') : resolvedMemberList.length}</span>
+                </div>
+              )}
             </div>
 
             <div style={{ fontSize: '0.8rem', color: '#E0E7FF', textAlign: 'right' }}>
@@ -926,7 +907,7 @@ export default function InvestigationWorkspace({
                           <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                           <input
                             type="text"
-                            placeholder="Search roles by name or role code..."
+                            placeholder="Search roles by role or role code..."
                             value={rolesSearch}
                             onChange={(e) => setRolesSearch(e.target.value)}
                             className="input-search"
@@ -1328,7 +1309,7 @@ export default function InvestigationWorkspace({
                     <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
                       type="text"
-                      placeholder="Search assigned roles by name or role code..."
+                      placeholder="Search assigned roles by role or role code..."
                       value={rolesSearch}
                       onChange={(e) => setRolesSearch(e.target.value)}
                       className="input-search"
