@@ -160,33 +160,28 @@ const ACCESS_INCIDENT_COLUMNS: IncidentColumnDef[] = [
 ];
 
 // Transaction Controls Incidents columns (Oracle Type 174)
-// Purely matching Oracle Fusion Cloud REST API output and incident table layout.
-// Omitted columns not present in REST API output for Transaction Controls (Roles, Access Points, Global User).
-// Includes 5 structured fields parsed directly from GroupingValue:
-// [Person Identifier, Expense Type ID, Amount, Date, Reimbursement Currency Code]
+// Ordered per Transaction Control Incident specification:
+// Control Name >> Control Type >> Result ID >> Status >> Grouping Value >> Creation Date >> Closed Date >> Last Run Date >> State >> Created by >> Last Updated Date >> Incident Information >> Last Updated by >> Data Source >> Investigator >> Group >> Attachments >> Comments >> Number of Occurrences
 const TRANSACTION_INCIDENT_COLUMNS: IncidentColumnDef[] = [
-  { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px', stickyLeft: true },
+  { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '300px' },
+  { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
+  { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '125px' },
-  { key: 'incidentInformation', label: 'Person.Full Name', defaultVisible: true, minWidth: '200px' },
-  { key: 'txAmount', label: 'Expense Details.Amount', defaultVisible: true, minWidth: '170px' },
-  { key: 'txDate', label: 'Expense Details.Date', defaultVisible: true, minWidth: '150px' },
-  { key: 'txCurrency', label: 'Currency', defaultVisible: true, minWidth: '110px' },
-  { key: 'group', label: 'Group', defaultVisible: true, minWidth: '260px' },
   { key: 'groupingValue', label: 'Grouping Value', defaultVisible: true, minWidth: '320px' },
-  { key: 'txPersonId', label: 'Person Identifier', defaultVisible: false, minWidth: '180px' },
-  { key: 'txExpenseTypeId', label: 'Expense Type ID', defaultVisible: false, minWidth: '180px' },
+  { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '140px' },
+  { key: 'closedDate', label: 'Closed Date', defaultVisible: true, minWidth: '140px' },
+  { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '140px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '140px' },
-  { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '95px' },
-  { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '340px' },
+  { key: 'createdBy', label: 'Created by', defaultVisible: true, minWidth: '140px' },
+  { key: 'lastUpdatedDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '150px' },
+  { key: 'incidentInformation', label: 'Incident Information', defaultVisible: true, minWidth: '240px' },
+  { key: 'lastUpdatedBy', label: 'Last Updated by', defaultVisible: true, minWidth: '140px' },
+  { key: 'dataSource', label: 'Data Source', defaultVisible: true, minWidth: '130px' },
   { key: 'investigator', label: 'Investigator', defaultVisible: true, minWidth: '160px' },
-  { key: 'incidentVersion', label: 'Incident Version', defaultVisible: false, minWidth: '120px' },
-  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '140px' },
-  { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
-  { key: 'lastUpdatedDate', label: 'Last Updated Date', defaultVisible: false, minWidth: '140px' },
-  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: false, minWidth: '140px' },
-  { key: 'revisionDate', label: 'Revision Date', defaultVisible: false, minWidth: '140px' },
-  { key: 'dataSource', label: 'Data Source', defaultVisible: false, minWidth: '130px' },
-  { key: 'comments', label: 'Comments', defaultVisible: false, minWidth: '130px' },
+  { key: 'group', label: 'Group', defaultVisible: true, minWidth: '260px' },
+  { key: 'attachments', label: 'Attachments', defaultVisible: true, minWidth: '120px' },
+  { key: 'comments', label: 'Comments', defaultVisible: true, minWidth: '130px' },
+  { key: 'numberOfOccurrences', label: 'Number of Occurrences', defaultVisible: true, minWidth: '175px' },
 ];
 
 export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
@@ -900,10 +895,17 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return inc.investigator || inc.resultInvestigator || raw.Investigator || raw.investigator || raw.ResultInvestigator || raw.resultInvestigator || null;
       case 'comments':
         return inc.comments || raw.Comments || raw.comments || raw.IncidentComments || raw.incidentComments || null;
-      case 'attachments':
-        return (inc.attachments !== undefined && inc.attachments !== null) 
-          ? String(inc.attachments) 
-          : (raw.Attachments !== undefined && raw.Attachments !== null ? String(raw.Attachments) : null);
+      case 'attachments': {
+        const att = inc.attachments !== undefined && inc.attachments !== null
+          ? inc.attachments
+          : (raw.Attachments !== undefined && raw.Attachments !== null ? raw.Attachments : null);
+        if (att === null || att === undefined) return null;
+        return Array.isArray(att) ? String(att.length) : String(att);
+      }
+      case 'numberOfOccurrences': {
+        const occ = inc.numberOfOccurrences ?? raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences;
+        return (occ !== undefined && occ !== null && occ !== '') ? String(occ) : null;
+      }
       case 'globalUserId':
         return (inc.globalUserId !== undefined && inc.globalUserId !== null) 
           ? String(inc.globalUserId) 
@@ -929,7 +931,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'creationDate':
         return inc.creationDate || raw.CreationDate || raw.creationDate || null;
       case 'controlType':
-        return inc.controlType || raw.ControlType || raw.controlType || selectedControlDetail?.enforcementType || (selectedControlDetail?.type ? String(selectedControlDetail.type) : (isTxControl ? '174' : 'Access'));
+        return inc.controlType || raw.ControlType || raw.controlType || (selectedControlDetail?.type ? String(selectedControlDetail.type) : null) || selectedControlDetail?.enforcementType || (isTxControl ? '174' : 'Access');
       case 'controlName':
         return inc.controlName || raw.ControlName || raw.controlName || selectedControlDetail?.name || null;
       case 'priority':
@@ -974,15 +976,19 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     const isWrap = incidentWrapText;
 
     switch (colKey) {
-      case 'resultId':
+      case 'resultId': {
+        const isSticky = Boolean(currentIncidentColumns.find(c => c.key === colKey)?.stickyLeft);
         return (
           <td 
             key={colKey}
-            style={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+            style={isSticky
+              ? { position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)', whiteSpace: 'nowrap' }
+              : { whiteSpace: 'nowrap' }}
           >
             <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{rawVal || inc.id}</span>
           </td>
         );
+      }
 
       case 'status': {
         const s = String(rawVal || 'Assigned').toUpperCase();
@@ -1291,6 +1297,41 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             title={String(rawVal || '')}
           >
             <code>{renderFieldVal(rawVal)}</code>
+          </td>
+        );
+
+      case 'controlType': {
+        const isMappedType = isTransactionControl(rawVal) || isAccessControl(rawVal);
+        const typeText = isMappedType ? formatControlTypeName(rawVal) : rawVal;
+        const isTx = isTransactionControl(rawVal);
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+            {typeText ? (
+              <span
+                className="badge"
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  backgroundColor: isTx ? 'rgba(16, 185, 129, 0.12)' : 'rgba(139, 92, 246, 0.12)',
+                  color: isTx ? '#34D399' : '#A78BFA',
+                  border: isTx ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)'
+                }}
+              >
+                {typeText}
+              </span>
+            ) : renderFieldVal(null)}
+          </td>
+        );
+      }
+
+      case 'numberOfOccurrences':
+        return (
+          <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            {rawVal !== null && rawVal !== undefined && rawVal !== '' ? (
+              <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                {rawVal}
+              </span>
+            ) : renderFieldVal(null)}
           </td>
         );
 
@@ -2819,7 +2860,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 key={c.key}
                                 style={c.stickyLeft
                                   ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth, boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }
-                                  : { minWidth: c.minWidth, ...(c.key === 'priority' ? { textAlign: 'center' as const } : {}) }}
+                                  : { minWidth: c.minWidth, ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
                               >
                                 {c.label.toUpperCase()}
                               </th>
@@ -3045,9 +3086,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                     </strong>
                                   </div>
                                   <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Type</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(formatControlTypeName(getIncidentAttr(viewingIncident, 'controlType')))}
+                                    </span>
+                                  </div>
+                                  <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Priority</span>
                                     <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Number of Occurrences</span>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'numberOfOccurrences'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3108,9 +3161,27 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                     </span>
                                   </div>
                                   <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'lastRunDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {formatOracleDate(getIncidentAttr(viewingIncident, 'closedDate'))}
+                                    </span>
+                                  </div>
+                                  <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
