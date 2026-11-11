@@ -193,11 +193,29 @@ class KeyManager {
   }
 
   /**
+   * Key IDs removed by emergency revocation (comma-separated env list).
+   */
+  private revokedKeyIds(): Set<string> {
+    return new Set(
+      (process.env.JWT_REVOKED_KEY_IDS || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    );
+  }
+
+  /**
    * Produces RFC 7517 JSON Web Key Set containing active and retired public keys.
    */
   public async getJwks(): Promise<JwksResponse> {
     const active = await this.getSigningKeyBundle();
-    const keys: JwkPublicKey[] = [active.jwk];
+    const revoked = this.revokedKeyIds();
+
+    if (revoked.has(active.kid)) {
+      console.warn(`[KeyManager] Active signing key "${active.kid}" is revoked; it is withheld from JWKS and tokens signed with it will be rejected.`);
+    }
+
+    const keys: JwkPublicKey[] = revoked.has(active.kid) ? [] : [active.jwk];
 
     // Include previously configured rotated key if defined via environment
     const prevPem = this.loadPemSource(process.env.JWT_PREVIOUS_PUBLIC_KEY, process.env.JWT_PREVIOUS_PUBLIC_KEY_PATH);
@@ -211,7 +229,7 @@ class KeyManager {
     }
 
     for (const rotated of this.rotatedJwks.values()) {
-      if (rotated.kid !== active.kid) {
+      if (rotated.kid !== active.kid && !revoked.has(rotated.kid)) {
         keys.push(rotated);
       }
     }
