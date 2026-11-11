@@ -2390,20 +2390,6 @@ export default function Reports({
                     </span>
                   </button>
                 </div>
-
-                <span
-                  className="badge"
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    backgroundColor: incidentsDomain === 'TRANSACTION' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-                    color: incidentsDomain === 'TRANSACTION' ? '#10B981' : '#3B82F6',
-                    border: `1px solid ${incidentsDomain === 'TRANSACTION' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
-                    padding: '0.35rem 0.75rem'
-                  }}
-                >
-                  {incidentsDomain === 'TRANSACTION' ? 'Transaction Control Schema (19 Columns)' : 'Access Control Schema (28 Columns)'}
-                </span>
               </div>
 
               {/* Dual Domain Incident Status Cards: Access Controls & Transaction Controls */}
@@ -3540,94 +3526,98 @@ export default function Reports({
 
           {/* Table 2: Incidents Detailed (Unified Schema with Advanced Controls) */}
           {activeReportId === 'INCIDENTS_DETAILED' && (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2400px' : '1100px' }}>
-                <thead>
-                  <tr>
-                    {currentIncidentColumns.filter(c => visibleIncidentKeys.has(c.key)).map(c => (
-                      <th
-                        key={c.key}
-                        style={c.stickyLeft
-                          ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', boxShadow: '2px 0 5px rgba(0,0,0,0.08)' }
-                          : { minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
-                      >
-                        {c.label.toUpperCase()}
-                      </th>
-                    ))}
-                    <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '100px', textAlign: 'center', whiteSpace: 'nowrap', boxShadow: '-2px 0 5px rgba(0,0,0,0.08)' }}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {incidentsLoading ? (
-                    <TableLoadingState
-                      title="Loading incidents..."
-                      subtitle="Retrieving continuous monitoring incidents and compliance records"
-                      colSpan={Math.max(2, visibleIncidentKeys.size + 1)}
-                      skeletonRows={5}
-                      minHeight="280px"
-                    />
-                  ) : paginatedSlice.length === 0 ? (
+            <div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2400px' : '1100px' }}>
+                  <thead>
                     <tr>
-                      <td colSpan={Math.max(2, visibleIncidentKeys.size + 1)} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
-                          <ShieldAlert size={24} />
-                        </div>
-                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {selectedIncidentsControlId === '113308' ? 'Zero Incidents Confirmed' : 'No Incidents Found'}
-                        </h4>
-                        <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                          {selectedIncidentsControlId === '113308' 
-                            ? 'Control #113308 has 0 active continuous monitoring violations.' 
-                            : 'No incident records match the current domain, filter selection, or search criteria.'}
-                        </p>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setIncidentsSearch('');
-                            setIncidentsStatusFilter('ALL');
-                            setIncidentsStateFilter('ALL');
-                            setCurrentPage(1);
-                            if (selectedIncidentsControlId === 'ALL') {
-                              loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
-                            }
-                          }}
-                          style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
+                      {currentIncidentColumns.filter(c => visibleIncidentKeys.has(c.key)).map(c => (
+                        <th
+                          key={c.key}
+                          style={c.stickyLeft
+                            ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', boxShadow: '2px 0 5px rgba(0,0,0,0.08)' }
+                            : { minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
                         >
-                          Clear Filters
-                        </button>
-                      </td>
+                          {c.label.toUpperCase()}
+                        </th>
+                      ))}
+                      <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '100px', textAlign: 'center', whiteSpace: 'nowrap', boxShadow: '-2px 0 5px rgba(0,0,0,0.08)' }}>ACTION</th>
                     </tr>
-                  ) : (
-                    paginatedSlice.map((inc: any, idx: number) => (
-                      <tr key={inc.id || idx}>
-                        {currentIncidentColumns
-                          .filter(c => visibleIncidentKeys.has(c.key))
-                          .map(col => renderSharedIncidentCell(inc, col.key, {
-                            columns: currentIncidentColumns,
-                            wrapText: incidentWrapText,
-                            context: {
-                              controlName: resolveIncidentControlName(inc),
-                              isTxControl: incidentsDomain === 'TRANSACTION'
-                            }
-                          }))}
+                  </thead>
+                  {!incidentsLoading && paginatedSlice.length > 0 && (
+                    <tbody>
+                      {paginatedSlice.map((inc: any, idx: number) => (
+                        <tr key={inc.id || idx}>
+                          {currentIncidentColumns
+                            .filter(c => visibleIncidentKeys.has(c.key))
+                            .map(col => renderSharedIncidentCell(inc, col.key, {
+                              columns: currentIncidentColumns,
+                              wrapText: incidentWrapText,
+                              context: {
+                                controlName: resolveIncidentControlName(inc),
+                                isTxControl: incidentsDomain === 'TRANSACTION'
+                              }
+                            }))}
 
-                        <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', whiteSpace: 'nowrap', boxShadow: '-2px 0 5px rgba(0,0,0,0.08)' }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => setSelectedIncidentDetail(inc)}
-                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                          >
-                            <Eye size={12} />
-                            <span>Details</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                          <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', whiteSpace: 'nowrap', boxShadow: '-2px 0 5px rgba(0,0,0,0.08)' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => setSelectedIncidentDetail(inc)}
+                              style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                            >
+                              <Eye size={12} />
+                              <span>Details</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
                   )}
-                </tbody>
-              </table>
+                </table>
+              </div>
+
+              {incidentsLoading ? (
+                <div style={{ padding: '2rem 1rem', borderTop: '1px solid var(--border-color)' }}>
+                  <ContentLoadingState
+                    title="Loading incidents..."
+                    subtitle="Retrieving continuous monitoring incidents and compliance records"
+                    minHeight="280px"
+                    showSkeleton={true}
+                    skeletonRows={5}
+                  />
+                </div>
+              ) : paginatedSlice.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', borderTop: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
+                    <ShieldAlert size={24} />
+                  </div>
+                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {selectedIncidentsControlId === '113308' ? 'Zero Incidents Confirmed' : 'No Incidents Found'}
+                  </h4>
+                  <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                    {selectedIncidentsControlId === '113308' 
+                      ? 'Control #113308 has 0 active continuous monitoring violations.' 
+                      : 'No incident records match the current domain, filter selection, or search criteria.'}
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setIncidentsSearch('');
+                      setIncidentsStatusFilter('ALL');
+                      setIncidentsStateFilter('ALL');
+                      setCurrentPage(1);
+                      if (selectedIncidentsControlId === 'ALL') {
+                        loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
+                      }
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
 
