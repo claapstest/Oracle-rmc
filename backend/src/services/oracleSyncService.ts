@@ -4,6 +4,7 @@ import { roleHierarchyService } from './roleHierarchyService.js';
 import { auditRawDbService } from './auditRawDbService.js';
 import { auditProductCatalogService } from './auditProductCatalogService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
+import { userAccessReportService } from './userAccessReportService.js';
 
 export interface SyncStatus {
   isSyncing: boolean;
@@ -127,25 +128,53 @@ export class OracleSyncService {
         results.audit = { success: false, error: err.message };
       }
 
-      // 4. Users & Roles Sync
+      // 4. Users & Roles Sync (SCIM paginated)
       this.currentTask = 'Synchronizing Users & Roles Directory...';
       try {
-        console.log('[OracleSyncService] Step 4/4: Syncing Users & Roles...');
+        console.log('[OracleSyncService] Step 4/5: Syncing Users & Roles...');
         const client = (oracleService as any).client;
+        let syncedRolesCount = 0;
+        let syncedUsersCount = 0;
         if (client) {
-          const rolesRes = await client.getRoles({ limit: 500 });
-          if (Array.isArray(rolesRes?.items)) {
-            await userRoleRawDbService.saveRawRolesBatch(rolesRes.items);
+          let roleStart = 1;
+          let roleTotal: number | null = null;
+          while (roleTotal === null || roleStart <= roleTotal) {
+            const rolesRes = await client.getRoles({ count: 500, startIndex: roleStart });
+            const batch = rolesRes?.Resources || rolesRes?.items || [];
+            if (!Array.isArray(batch) || batch.length === 0) break;
+            if (typeof rolesRes?.totalResults === 'number') roleTotal = rolesRes.totalResults;
+            syncedRolesCount += await userRoleRawDbService.saveRawRolesBatch(batch);
+            roleStart += batch.length;
+            if (batch.length < 500) break;
           }
-          const usersRes = await client.getUsers({ limit: 500 });
-          if (Array.isArray(usersRes?.items)) {
-            await userRoleRawDbService.saveRawUsersBatch(usersRes.items);
+
+          let userStart = 1;
+          let userTotal: number | null = null;
+          while (userTotal === null || userStart <= userTotal) {
+            const usersRes = await client.getUsers({ count: 500, startIndex: userStart });
+            const batch = usersRes?.Resources || usersRes?.items || [];
+            if (!Array.isArray(batch) || batch.length === 0) break;
+            if (typeof usersRes?.totalResults === 'number') userTotal = usersRes.totalResults;
+            syncedUsersCount += await userRoleRawDbService.saveRawUsersBatch(batch);
+            userStart += batch.length;
+            if (batch.length < 500) break;
           }
         }
-        results.usersRoles = { success: true };
+        results.usersRoles = { success: true, roles: syncedRolesCount, users: syncedUsersCount };
       } catch (err: any) {
         console.warn('[OracleSyncService] Users/roles sync warning:', err.message);
         results.usersRoles = { success: false, error: err.message };
+      }
+
+      // 5. User Access Report Sync (SCIM + HCM Workers + BIP Auto-Provisioning)
+      this.currentTask = 'Synchronizing User Access Report...';
+      try {
+        console.log('[OracleSyncService] Step 5/5: Syncing User Access Report to PostgreSQL...');
+        const uaRes = await userAccessReportService.getUserAccessReport({ syncFromOracle: true });
+        results.userAccess = { success: uaRes.success, rows: uaRes.data?.length || 0 };
+      } catch (err: any) {
+        console.warn('[OracleSyncService] User Access sync warning:', err.message);
+        results.userAccess = { success: false, error: err.message };
       }
 
       this.releaseLock(true);

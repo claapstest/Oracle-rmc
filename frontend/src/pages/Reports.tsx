@@ -587,9 +587,9 @@ export default function Reports({
     setUserRoleLoading(true);
     setUserRoleError('');
     try {
-      // Load both users and role hierarchy report in parallel to build authoritative privileges lookup
+      // Load both users and role hierarchy report from PostgreSQL in parallel
       const [res, hierRes] = await Promise.all([
-        api.getUsers(undefined, 1, 1000),
+        api.getUsers(undefined, 1, 10000, undefined, undefined, 'database'),
         hierarchyData && hierarchyData.length > 0
           ? Promise.resolve({ items: hierarchyData })
           : api.getRoleHierarchyReport().catch(() => ({ items: [] }))
@@ -1127,7 +1127,8 @@ export default function Reports({
         username: auditUserQuery,
         action: auditActionFilter,
         pageNumber: 1,
-        pageSize: 5000
+        pageSize: 5000,
+        source: 'database'
       });
       const logsList = Array.isArray(res?.logs) ? res.logs : (Array.isArray(res?.items) ? res.items : []);
       setAuditLogs(logsList);
@@ -1748,7 +1749,7 @@ export default function Reports({
                 onClick={() => loadUserAccessReport(true)}
                 disabled={userAccessLoading}
                 style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-                title="Force refresh live user access data from Oracle Fusion"
+                title="Refresh user access report from PostgreSQL database"
               >
                 <RefreshCw size={13} className={userAccessLoading ? 'animate-spin' : ''} />
                 <span>{userAccessLoading ? 'Refreshing...' : 'Refresh'}</span>
@@ -2525,15 +2526,15 @@ export default function Reports({
                   }}
                   style={{ width: '280px', fontSize: '0.82rem' }}
                 >
-                  <option value="ALL">All Cached Controls</option>
+                  <option value="ALL">All Synced Controls</option>
                   {availableIncidentControls.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.id} - {c.name ? c.name.substring(0, 32) : 'Control'}{c.incidentCount !== undefined ? ` (${c.incidentCount.toLocaleString()})` : ''}
                     </option>
                   ))}
-                  {/* Placeholder while the live control list loads */}
+                  {/* Placeholder while the control list loads */}
                   {availableIncidentControls.length === 0 && (
-                    <option value="ALL" disabled>Loading live controls…</option>
+                    <option value="ALL" disabled>Loading controls…</option>
                   )}
                 </select>
               </div>
@@ -2599,7 +2600,7 @@ export default function Reports({
                 onClick={() => loadRiskIncidents(selectedIncidentsControlId, true)}
                 disabled={incidentsLoading}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.42rem 0.85rem' }}
-                title="Refresh incident records from Oracle Fusion"
+                title="Refresh incident records from PostgreSQL database"
               >
                 <RefreshCw size={13} className={incidentsLoading ? 'animate-spin' : ''} />
                 <span>{incidentsLoading ? 'Refreshing...' : 'Refresh'}</span>

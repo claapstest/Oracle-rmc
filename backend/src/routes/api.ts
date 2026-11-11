@@ -25,6 +25,7 @@ import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
 import { entitlementService } from '../services/entitlementService.js';
+import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1914,6 +1915,49 @@ apiRouter.get('/admin/users/summary', requirePrivilege('USER_MANAGEMENT'), (_req
 apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Response) => {
   try {
     const source = (req.query.source as string || '').toLowerCase();
+    // Read Oracle directory users directly from PostgreSQL (oracle_raw_user_access / oracle_raw_users)
+    if (source === 'database' || source === 'oracle-db') {
+      const filterText = (req.query.filter || req.query.search || req.query.q) as string | undefined;
+      const category = (req.query.category || req.query.insight || req.query.initialFilter) as string | undefined;
+      const status = (req.query.status || req.query.userStatus) as string | undefined;
+      const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : 1;
+      const count = req.query.count
+        ? parseInt(req.query.count as string, 10)
+        : (req.query.pageSize || req.query.limit ? parseInt((req.query.pageSize || req.query.limit) as string, 10) : 5000);
+
+      const dirRes = await userAccessReportService.getDirectoryUsersFromDatabase({
+        filterText,
+        category,
+        status,
+        startIndex,
+        count
+      });
+      if (dirRes) {
+        return res.json(dirRes);
+      }
+
+      const dbRes = await userRoleRawDbService.getRawUsers({
+        filterText,
+        filterType: category && category !== 'ALL' ? category : undefined,
+        limit: count,
+        offset: Math.max(0, startIndex - 1)
+      });
+      const normStatus = (status || '').trim().toUpperCase();
+      const filteredUsers = normStatus === 'ACTIVE'
+        ? dbRes.users.filter((u: any) => u.active !== false)
+        : normStatus === 'INACTIVE'
+          ? dbRes.users.filter((u: any) => u.active === false)
+          : dbRes.users;
+      return res.json({
+        success: true,
+        users: filteredUsers,
+        totalResults: normStatus === 'ACTIVE' || normStatus === 'INACTIVE' ? filteredUsers.length : dbRes.totalCount,
+        startIndex,
+        count: filteredUsers.length,
+        directoryTotal: dbRes.totalCount,
+        dataSource: 'PostgreSQL Database'
+      });
+    }
     // If explicitly requested Oracle SCIM directory source, delegate to oracleService
     if (source === 'oracle' || source === 'scim') {
       const filter = (req.query.filter || req.query.search || req.query.q) as string | undefined;
@@ -2236,7 +2280,8 @@ apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REP
 apiRouter.get('/reports/user-access', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
   try {
     const forceRefresh = req.query.refresh === 'true';
-    const result = await userAccessReportService.getUserAccessReport(forceRefresh);
+    const syncFromOracle = req.query.sync === 'true';
+    const result = await userAccessReportService.getUserAccessReport({ forceRefresh, syncFromOracle });
     res.json(result);
   } catch (err) {
     console.error('[API Route /reports/user-access] Error:', err);

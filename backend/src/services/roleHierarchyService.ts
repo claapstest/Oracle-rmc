@@ -62,6 +62,7 @@ export interface RoleHierarchyTreeResult {
 export class RoleHierarchyService {
   private bipClient: BipClient;
   private memoryCache: RoleHierarchyItem[] | null = null;
+  private dbLoaded = false;
   private isSyncing = false;
   private lastSyncedAt: string | null = null;
 
@@ -341,41 +342,7 @@ export class RoleHierarchyService {
 
       // Persist to PostgreSQL database in batches
       try {
-        const BATCH_SIZE = 500;
-        for (let i = 0; i < items.length; i += BATCH_SIZE) {
-          const batch = items.slice(i, i + BATCH_SIZE);
-          const values: any[] = [];
-          const valueClauses: string[] = [];
-
-          batch.forEach((item, bIdx) => {
-            const offset = bIdx * 8;
-            valueClauses.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}::jsonb)`);
-            values.push(
-              host,
-              item.parentRole,
-              item.parentRoleType,
-              item.childRole,
-              item.childRoleType,
-              item.roleCode,
-              item.category,
-              JSON.stringify(item)
-            );
-          });
-
-          const sql = `
-            INSERT INTO oracle_raw_role_hierarchy 
-              (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, raw_record)
-            VALUES ${valueClauses.join(', ')}
-            ON CONFLICT (environment_host, parent_role_name, child_role_name) DO UPDATE SET
-              parent_role_type = EXCLUDED.parent_role_type,
-              child_role_type = EXCLUDED.child_role_type,
-              role_code = EXCLUDED.role_code,
-              category = EXCLUDED.category,
-              raw_record = EXCLUDED.raw_record,
-              last_synced_at = NOW();
-          `;
-          await query(sql, values);
-        }
+        await this.persistItemsToDatabase(items);
         console.log(`[RoleHierarchyService] Successfully persisted ${items.length} records to oracle_raw_role_hierarchy in PostgreSQL.`);
       } catch (dbErr) {
         console.error('[RoleHierarchyService] DB persist error (fallback to file cache):', (dbErr as Error).message);
@@ -383,6 +350,7 @@ export class RoleHierarchyService {
 
       // Save to memory and disk cache
       this.memoryCache = items;
+      this.dbLoaded = true;
       this.saveCacheToDisk(items);
 
       return {
@@ -398,8 +366,52 @@ export class RoleHierarchyService {
     }
   }
 
+  public async persistItemsToDatabase(items: RoleHierarchyItem[]): Promise<void> {
+    if (!Array.isArray(items) || items.length === 0) return;
+    const host = this.getHost();
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const values: any[] = [];
+      const valueClauses: string[] = [];
+
+      batch.forEach((item, bIdx) => {
+        const offset = bIdx * 9;
+        valueClauses.push(
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}::jsonb)`
+        );
+        values.push(
+          host,
+          item.parentRole,
+          item.parentRoleType,
+          item.childRole,
+          item.childRoleType,
+          item.roleCode,
+          item.category,
+          item.relationshipType,
+          JSON.stringify(item)
+        );
+      });
+
+      const sql = `
+        INSERT INTO oracle_raw_role_hierarchy 
+          (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type, raw_record)
+        VALUES ${valueClauses.join(', ')}
+        ON CONFLICT (environment_host, parent_role_name, child_role_name) DO UPDATE SET
+          parent_role_type = EXCLUDED.parent_role_type,
+          child_role_type = EXCLUDED.child_role_type,
+          role_code = EXCLUDED.role_code,
+          category = EXCLUDED.category,
+          relationship_type = EXCLUDED.relationship_type,
+          raw_record = EXCLUDED.raw_record,
+          last_synced_at = NOW();
+      `;
+      await query(sql, values);
+    }
+  }
+
   /**
-   * Retrieves role hierarchy rows with filtering and pagination.
+   * Retrieves role hierarchy rows from PostgreSQL with filtering.
    */
   public async getHierarchyReport(options?: {
     search?: string;
@@ -414,14 +426,7 @@ export class RoleHierarchyService {
     totalCount: number;
     lastSyncedAt: string | null;
   }> {
-    if (options?.forceRefresh) {
-      try {
-        await this.syncFromBip();
-      } catch (err) {
-        console.warn('[RoleHierarchyService] Live sync failed on demand, using cached records if available:', (err as Error).message);
-      }
-    } else if (!this.memoryCache || this.memoryCache.length === 0) {
-      // 1. Try loading directly from PostgreSQL oracle_raw_role_hierarchy (streamlined lightweight load <30MB)
+    if (options?.forceRefresh || !this.dbLoaded) {
       const host = this.getHost();
       try {
         const res = await query(
@@ -430,8 +435,7 @@ export class RoleHierarchyService {
                   last_synced_at
            FROM oracle_raw_role_hierarchy 
            WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true)
-           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END), child_role_name ASC
-           LIMIT 1500`,
+           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END), child_role_name ASC`,
           [host]
         );
         if (res.rows.length > 0) {
@@ -446,31 +450,41 @@ export class RoleHierarchyService {
               parentRoleType: r.parent_role_type || 'DUTY',
               childRole: r.child_role_name,
               childRoleType: r.child_role_type || 'JOB',
-              relationshipType: r.relationship_type || `${r.parent_role_type} grants ${r.child_role_type}`,
+              relationshipType: r.relationship_type || `${r.parent_role_type || 'DUTY'} grants ${r.child_role_type || 'JOB'}`,
               privileges: privs,
               privilegeCount: privs.length,
             };
           });
           this.lastSyncedAt = res.rows[0].last_synced_at ? new Date(res.rows[0].last_synced_at).toISOString() : null;
-          console.log(`[RoleHierarchyService] Loaded ${this.memoryCache.length} authoritative role hierarchy relationships with complete privilege sets from PostgreSQL.`);
+          this.dbLoaded = true;
+          console.log(`[RoleHierarchyService] Loaded ${this.memoryCache.length} authoritative role hierarchy relationships from PostgreSQL.`);
         }
       } catch (err) {
         console.warn('[RoleHierarchyService] PostgreSQL load warning:', (err as Error).message);
       }
 
-      // 2. Fallback to seed file ONLY if database was completely empty or unavailable
-      if (!this.memoryCache || this.memoryCache.length === 0) {
-        if (fs.existsSync(SEED_FILE_PATH)) {
-          try {
-            const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
-            const parsedSeed = JSON.parse(rawSeed);
-            if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
-              this.memoryCache = parsedSeed.items;
-              this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
-              this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
-            }
-          } catch (_) {}
+      // One-time backfill to PostgreSQL if DB table is empty and disk cache already exists locally
+      if (!this.dbLoaded && this.memoryCache && this.memoryCache.length > 0) {
+        try {
+          await this.persistItemsToDatabase(this.memoryCache);
+          this.dbLoaded = true;
+          console.log(`[RoleHierarchyService] Backfilled ${this.memoryCache.length} hierarchy rows into PostgreSQL.`);
+        } catch (seedErr) {
+          console.warn('[RoleHierarchyService] Backfill warning:', (seedErr as Error).message);
         }
+      }
+
+      // 2. Fallback to seed file ONLY if database and disk cache are completely empty
+      if ((!this.memoryCache || this.memoryCache.length === 0) && fs.existsSync(SEED_FILE_PATH)) {
+        try {
+          const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
+          const parsedSeed = JSON.parse(rawSeed);
+          if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
+            this.memoryCache = parsedSeed.items;
+            this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
+            this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
+          }
+        } catch (_) {}
       }
     }
 
@@ -498,7 +512,7 @@ export class RoleHierarchyService {
 
     return {
       success: true,
-      dataSource: 'Live Oracle Fusion (BIP)',
+      dataSource: 'PostgreSQL Database',
       items: allItems,
       totalCount: allItems.length,
       lastSyncedAt: this.lastSyncedAt,
@@ -530,8 +544,7 @@ export class RoleHierarchyService {
         `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type,
                 COALESCE(raw_record->'privileges', '[]'::jsonb) AS privileges
          FROM oracle_raw_role_hierarchy 
-         WHERE (LOWER(child_role_name) = LOWER($1) OR LOWER(parent_role_name) = LOWER($1) OR LOWER(role_code) = LOWER($1))
-         LIMIT 200`,
+         WHERE (LOWER(child_role_name) = LOWER($1) OR LOWER(parent_role_name) = LOWER($1) OR LOWER(role_code) = LOWER($1))`,
         [target]
       );
       if (res.rows.length > 0) {

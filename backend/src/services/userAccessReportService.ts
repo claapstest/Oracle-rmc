@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { config, decrypt } from '../config.js';
+import { pool, query } from '../db.js';
 
 export interface UserAccessReportRow {
   username: string;
@@ -55,9 +56,19 @@ function getUserAccessReportCachePath(): string {
 const CACHE_FILE = getUserAccessReportCachePath();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours TTL
 
+export interface DirectoryUsersQuery {
+  filterText?: string;
+  category?: string;
+  status?: string;
+  startIndex?: number;
+  count?: number;
+}
+
 export class UserAccessReportService {
   private client!: AxiosInstance;
   private cachedReport: { summary: UserAccessReportSummary; data: UserAccessReportRow[]; calculatedAt: string } | null = null;
+  private cachedDirectorySourceRef: UserAccessReportRow[] | null = null;
+  private cachedDirectoryUsers: any[] = [];
   private isGenerating = false;
   private generationPromise: Promise<UserAccessReportResult> | null = null;
 
@@ -109,6 +120,215 @@ export class UserAccessReportService {
     } catch (err) {
       console.warn('[User Access Report] BIP Auto-Provisioning fetch failed (live-only, leaving null):', (err as Error).message);
       return [];
+    }
+  }
+
+  private getHost(): string {
+    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
+    try {
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        return new URL(rawUrl).host;
+      }
+    } catch (_) {}
+    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
+  }
+
+  public async persistToDatabase(payload: {
+    summary: UserAccessReportSummary;
+    data: UserAccessReportRow[];
+    calculatedAt: string;
+  }): Promise<void> {
+    const host = this.getHost();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`DELETE FROM oracle_raw_user_access WHERE environment_host = $1`, [host]);
+
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < payload.data.length; i += BATCH_SIZE) {
+        const chunk = payload.data.slice(i, i + BATCH_SIZE);
+        const values: any[] = [];
+        const clauses: string[] = [];
+
+        chunk.forEach((row) => {
+          const base = values.length + 1;
+          clauses.push(
+            `($${base}, $${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}, NOW())`
+          );
+          values.push(
+            host,
+            row.username,
+            row.userCategory ?? null,
+            row.firstName ?? null,
+            row.lastName ?? null,
+            row.displayName ?? null,
+            row.email ?? null,
+            typeof row.active === 'boolean' ? row.active : true,
+            row.roleName ?? null,
+            row.roleCode ?? null,
+            row.autoProvisioned ?? null,
+            row.personId ?? null,
+            row.personNumber ?? null,
+            row.department ?? null,
+            row.job ?? null,
+            row.businessUnit ?? null,
+            row.location ?? null,
+            row.manager ?? null
+          );
+        });
+
+        await client.query(
+          `INSERT INTO oracle_raw_user_access (
+            environment_host, username, user_category, first_name, last_name, display_name,
+            email, active, role_name, role_code, auto_provisioned, person_id, person_number,
+            department, job, business_unit, location, manager, last_synced_at
+          ) VALUES ${clauses.join(', ')}`,
+          values
+        );
+      }
+
+      await client.query(
+        `INSERT INTO oracle_user_access_summary (
+          environment_host, total_users, users_with_roles, users_without_roles,
+          total_role_assignments, active_users, inactive_users, calculated_at, last_synced_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz, NOW())
+        ON CONFLICT (environment_host) DO UPDATE SET
+          total_users = EXCLUDED.total_users,
+          users_with_roles = EXCLUDED.users_with_roles,
+          users_without_roles = EXCLUDED.users_without_roles,
+          total_role_assignments = EXCLUDED.total_role_assignments,
+          active_users = EXCLUDED.active_users,
+          inactive_users = EXCLUDED.inactive_users,
+          calculated_at = EXCLUDED.calculated_at,
+          last_synced_at = NOW()`,
+        [
+          host,
+          payload.summary.totalUsers,
+          payload.summary.usersWithRoles,
+          payload.summary.usersWithoutRoles,
+          payload.summary.totalRoleAssignments,
+          payload.summary.activeUsers,
+          payload.summary.inactiveUsers,
+          payload.calculatedAt
+        ]
+      );
+
+      await client.query('COMMIT');
+      console.log(`[User Access Report] Persisted ${payload.data.length} rows to PostgreSQL (oracle_raw_user_access).`);
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async loadFromDatabase(): Promise<UserAccessReportResult | null> {
+    const host = this.getHost();
+    try {
+      const hostRes = await query<{ environment_host: string }>(
+        `SELECT environment_host
+         FROM oracle_user_access_summary
+         WHERE environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END)
+         LIMIT 1`,
+        [host]
+      );
+      const targetHost = hostRes.rows[0]?.environment_host || host;
+
+      const [sumRes, rowsRes] = await Promise.all([
+        query<{
+          total_users: number;
+          users_with_roles: number;
+          users_without_roles: number;
+          total_role_assignments: number;
+          active_users: number;
+          inactive_users: number;
+          calculated_at: Date;
+        }>(`SELECT * FROM oracle_user_access_summary WHERE environment_host = $1 LIMIT 1`, [targetHost]),
+        query<{
+          username: string;
+          user_category: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          display_name: string | null;
+          email: string | null;
+          active: boolean;
+          role_name: string | null;
+          role_code: string | null;
+          auto_provisioned: 'Yes' | 'No' | null;
+          person_id: string | null;
+          person_number: string | null;
+          department: string | null;
+          job: string | null;
+          business_unit: string | null;
+          location: string | null;
+          manager: string | null;
+        }>(
+          `SELECT username, user_category, first_name, last_name, display_name, email, active,
+                  role_name, role_code, auto_provisioned, person_id, person_number,
+                  department, job, business_unit, location, manager
+           FROM oracle_raw_user_access
+           WHERE environment_host = $1
+           ORDER BY username ASC, role_name ASC NULLS LAST`,
+          [targetHost]
+        )
+      ]);
+
+      if (rowsRes.rows.length === 0) return null;
+
+      const sRow = sumRes.rows[0];
+      const data: UserAccessReportRow[] = rowsRes.rows.map((r) => ({
+        username: r.username,
+        userCategory: r.user_category,
+        firstName: r.first_name,
+        lastName: r.last_name,
+        displayName: r.display_name,
+        email: r.email,
+        active: Boolean(r.active),
+        roleName: r.role_name,
+        roleCode: r.role_code,
+        autoProvisioned: r.auto_provisioned,
+        personId: r.person_id,
+        personNumber: r.person_number,
+        department: r.department,
+        job: r.job,
+        businessUnit: r.business_unit,
+        location: r.location,
+        manager: r.manager
+      }));
+
+      const summary: UserAccessReportSummary = sRow
+        ? {
+            totalUsers: Number(sRow.total_users),
+            usersWithRoles: Number(sRow.users_with_roles),
+            usersWithoutRoles: Number(sRow.users_without_roles),
+            totalRoleAssignments: Number(sRow.total_role_assignments),
+            activeUsers: Number(sRow.active_users),
+            inactiveUsers: Number(sRow.inactive_users)
+          }
+        : {
+            totalUsers: new Set(data.map((d) => d.username)).size,
+            usersWithRoles: new Set(data.filter((d) => d.roleCode || d.roleName).map((d) => d.username)).size,
+            usersWithoutRoles: new Set(data.filter((d) => !d.roleCode && !d.roleName).map((d) => d.username)).size,
+            totalRoleAssignments: data.filter((d) => d.roleCode || d.roleName).length,
+            activeUsers: new Set(data.filter((d) => d.active).map((d) => d.username)).size,
+            inactiveUsers: new Set(data.filter((d) => !d.active).map((d) => d.username)).size
+          };
+
+      const calculatedAt = sRow?.calculated_at ? new Date(sRow.calculated_at).toISOString() : new Date().toISOString();
+      this.cachedReport = { summary, data, calculatedAt };
+
+      return {
+        success: true,
+        summary,
+        data,
+        calculatedAt,
+        source: 'PostgreSQL Database'
+      };
+    } catch (err) {
+      console.warn('[User Access Report] Failed to load from PostgreSQL:', (err as Error).message);
+      return null;
     }
   }
 
@@ -375,10 +595,15 @@ export class UserAccessReportService {
       summary,
       data: report,
       calculatedAt,
-      source: 'Oracle Fusion SCIM & Public Workers'
+      source: 'PostgreSQL Database'
     };
 
-    // Cache in memory and disk
+    // Persist to PostgreSQL and update caches
+    try {
+      await this.persistToDatabase({ summary, data: report, calculatedAt });
+    } catch (dbErr: any) {
+      console.warn('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
+    }
     this.cachedReport = { summary, data: report, calculatedAt };
     this.saveToDisk(this.cachedReport);
 
@@ -386,32 +611,191 @@ export class UserAccessReportService {
     return result;
   }
 
-  // Public retrieval method with caching and refresh support
-  async getUserAccessReport(forceRefresh = false): Promise<UserAccessReportResult> {
-    // If not forcing refresh, return in-memory cache if available
+  // Public retrieval method: reads strictly from PostgreSQL (only syncs from Oracle when syncFromOracle is true)
+  async getUserAccessReport(options: boolean | { forceRefresh?: boolean; syncFromOracle?: boolean } = false): Promise<UserAccessReportResult> {
+    const forceRefresh = typeof options === 'boolean' ? options : Boolean(options.forceRefresh);
+    const syncFromOracle = typeof options === 'object' ? Boolean(options.syncFromOracle) : false;
+
+    if (syncFromOracle) {
+      if (this.isGenerating && this.generationPromise) {
+        return this.generationPromise;
+      }
+      this.isGenerating = true;
+      this.generationPromise = this.generateUserAccessReport()
+        .finally(() => {
+          this.isGenerating = false;
+          this.generationPromise = null;
+        });
+      return this.generationPromise;
+    }
+
+    // Read from PostgreSQL (clear in-memory copy when refreshing from DB)
     if (!forceRefresh && this.cachedReport) {
       return {
         success: true,
         summary: this.cachedReport.summary,
         data: this.cachedReport.data,
         calculatedAt: this.cachedReport.calculatedAt,
-        source: 'Cache (Oracle Fusion)'
+        source: 'PostgreSQL Database'
       };
     }
 
-    // If generation is already in flight, reuse existing promise to prevent duplicate API bursts
-    if (this.isGenerating && this.generationPromise) {
-      return this.generationPromise;
+    const dbRes = await this.loadFromDatabase();
+    if (dbRes && dbRes.data.length > 0) {
+      return dbRes;
     }
 
-    this.isGenerating = true;
-    this.generationPromise = this.generateUserAccessReport()
-      .finally(() => {
-        this.isGenerating = false;
-        this.generationPromise = null;
-      });
+    // One-time backfill if local disk cache exists and PostgreSQL table is empty
+    if (this.cachedReport && this.cachedReport.data.length > 0) {
+      try {
+        await this.persistToDatabase(this.cachedReport);
+      } catch (err: any) {
+        console.warn('[User Access Report] Failed to backfill PostgreSQL from disk cache:', err.message);
+      }
+      return {
+        success: true,
+        summary: this.cachedReport.summary,
+        data: this.cachedReport.data,
+        calculatedAt: this.cachedReport.calculatedAt,
+        source: 'PostgreSQL Database'
+      };
+    }
 
-    return this.generationPromise;
+    return {
+      success: true,
+      summary: {
+        totalUsers: 0,
+        usersWithRoles: 0,
+        usersWithoutRoles: 0,
+        totalRoleAssignments: 0,
+        activeUsers: 0,
+        inactiveUsers: 0
+      },
+      data: [],
+      calculatedAt: new Date().toISOString(),
+      source: 'PostgreSQL Database'
+    };
+  }
+
+  /**
+   * Groups PostgreSQL `oracle_raw_user_access` rows into directory user objects
+   * and supports instant filtering, status/category KPI counts, and pagination.
+   */
+  public async getDirectoryUsersFromDatabase(params: DirectoryUsersQuery = {}) {
+    const reportRes = await this.getUserAccessReport();
+    if (!reportRes?.data || reportRes.data.length === 0) {
+      return null;
+    }
+
+    if (this.cachedDirectorySourceRef !== reportRes.data) {
+      const userMap = new Map<string, any>();
+      for (const r of reportRes.data) {
+        const key = r.username;
+        let u = userMap.get(key);
+        if (!u) {
+          u = {
+            id: r.username,
+            userName: r.username,
+            userCategory: r.userCategory || null,
+            displayName: r.displayName || `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username,
+            firstName: r.firstName || '',
+            lastName: r.lastName || '',
+            email: r.email || '',
+            phone: null,
+            active: Boolean(r.active),
+            personId: r.personId || null,
+            personNumber: r.personNumber || null,
+            department: r.department || null,
+            job: r.job || null,
+            businessUnit: r.businessUnit || null,
+            location: r.location || null,
+            manager: r.manager || null,
+            assignedRoles: [] as Array<{ roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>
+          };
+          userMap.set(key, u);
+        }
+        if (r.roleName || r.roleCode) {
+          u.assignedRoles.push({
+            roleName: r.roleName || r.roleCode || '',
+            roleCode: r.roleCode || r.roleName || '',
+            autoProvisioned: r.autoProvisioned ?? null
+          });
+        }
+      }
+      this.cachedDirectoryUsers = Array.from(userMap.values());
+      this.cachedDirectorySourceRef = reportRes.data;
+    }
+
+    const normCat = (params.category || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    const normStatus = (params.status || '').trim().toUpperCase();
+    const startIndex = Math.max(1, params.startIndex || 1);
+    const count = Math.max(1, params.count || 50);
+
+    let scopedUsers = this.cachedDirectoryUsers;
+
+    if (normCat && normCat !== 'ALL') {
+      if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
+        scopedUsers = scopedUsers.filter((u) => u.assignedRoles.length === 0);
+      } else if (normCat === 'SINGLE_ROLE' || normCat === 'SINGLE_ROLE_USERS') {
+        scopedUsers = scopedUsers.filter((u) => u.assignedRoles.length === 1);
+      } else if (normCat === 'MULTIPLE_ROLES' || normCat === 'MULTIPLE_ROLE_USERS') {
+        scopedUsers = scopedUsers.filter((u) => u.assignedRoles.length > 1);
+      } else if (
+        normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS' ||
+        normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS'
+      ) {
+        scopedUsers = scopedUsers.filter((u) =>
+          u.assignedRoles.some((r: any) => {
+            const val = r.roleName || r.roleCode || '';
+            return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
+          })
+        );
+      } else if (normCat === 'INACTIVE' || normCat === 'INACTIVE_ACCOUNTS') {
+        scopedUsers = scopedUsers.filter((u) => !u.active);
+      } else if (normCat === 'ACTIVE') {
+        scopedUsers = scopedUsers.filter((u) => u.active);
+      }
+    }
+
+    const directoryTotal = scopedUsers.length;
+    const activeCount = scopedUsers.filter((u) => u.active).length;
+    const inactiveCount = directoryTotal - activeCount;
+
+    let filtered = scopedUsers;
+    if (normStatus === 'ACTIVE') {
+      filtered = filtered.filter((u) => u.active);
+    } else if (normStatus === 'INACTIVE') {
+      filtered = filtered.filter((u) => !u.active);
+    }
+
+    if (params.filterText && params.filterText.trim()) {
+      const term = params.filterText.trim().toLowerCase();
+      filtered = filtered.filter((u) =>
+        (u.userName && u.userName.toLowerCase().includes(term)) ||
+        (u.displayName && u.displayName.toLowerCase().includes(term)) ||
+        (u.firstName && u.firstName.toLowerCase().includes(term)) ||
+        (u.lastName && u.lastName.toLowerCase().includes(term)) ||
+        (u.email && u.email.toLowerCase().includes(term)) ||
+        (u.personNumber && String(u.personNumber).toLowerCase().includes(term)) ||
+        (u.department && u.department.toLowerCase().includes(term)) ||
+        (u.businessUnit && u.businessUnit.toLowerCase().includes(term))
+      );
+    }
+
+    const totalResults = filtered.length;
+    const sliced = filtered.slice(startIndex - 1, startIndex - 1 + count);
+
+    return {
+      success: true,
+      users: sliced,
+      totalResults,
+      startIndex,
+      count: sliced.length,
+      directoryTotal,
+      activeCount,
+      inactiveCount,
+      dataSource: 'PostgreSQL Database'
+    };
   }
 }
 
