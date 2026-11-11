@@ -48,11 +48,13 @@ export interface Session {
   lastActivityAt: number;
   expiresAt: number;
   status: 'ACTIVE' | 'EXPIRED' | 'LOGGED_OUT';
+  authProvider?: 'LOCAL' | 'ENTRA';
 }
 
 export interface SessionValidationResult {
   valid: boolean;
-  code?: 'SESSION_EXPIRED' | 'INVALID_TOKEN' | 'SESSION_NOT_FOUND';
+  code?: 'SESSION_EXPIRED' | 'INVALID_TOKEN' | 'SESSION_NOT_FOUND' | 'USER_DISABLED' | 'ACCOUNT_INACTIVE';
+  status?: string;
   message?: string;
   session?: Session;
 }
@@ -409,13 +411,17 @@ export class AuthService {
 
   constructor() {
     this.loadUsers();
-    this.loadActiveSessionsFromDb().catch(() => {});
+    this.loadActiveSessionsFromDb().catch(() => { });
     const timer = setInterval(() => {
-      this.cleanupExpiredSessions().catch(() => {});
+      this.cleanupExpiredSessions().catch(() => { });
     }, 60 * 1000);
     if (timer && typeof (timer as any).unref === 'function') {
       (timer as any).unref();
     }
+  }
+
+  getEffectiveProvider(): 'LOCAL' | 'ENTRA' {
+    return (config.authProvider as 'LOCAL' | 'ENTRA') || 'LOCAL';
   }
 
   private loadUsers() {
@@ -606,7 +612,7 @@ export class AuthService {
           targetType: 'USER',
           targetId: null,
           details: { reason: authResult.code || 'INVALID_CREDENTIALS', provider: provider.metadata.id }
-        }).catch(() => {});
+        }).catch(() => { });
 
         return {
           success: false,
@@ -652,7 +658,7 @@ export class AuthService {
           targetType: 'USER',
           targetId: dbUser.id,
           details: { reason: 'ACCOUNT_INACTIVE', status: dbUser.status }
-        }).catch(() => {});
+        }).catch(() => { });
         return {
           success: false,
           status: dbUser.status as UserStatus,
@@ -731,7 +737,7 @@ export class AuthService {
           targetType: 'SESSION',
           targetId: existingRow.session_id,
           details: { reason: 'ACTIVE_SESSION_EXISTS' }
-        }).catch(() => {});
+        }).catch(() => { });
         return {
           success: false,
           code: 'ACTIVE_SESSION_EXISTS',
@@ -795,8 +801,8 @@ export class AuthService {
       if (
         insertErr.code === '23505' &&
         (insertErr.constraint === 'uq_veyra_session_user_active' ||
-         insertErr.message?.includes('uq_veyra_session_user_active') ||
-         insertErr.detail?.includes('user_id'))
+          insertErr.message?.includes('uq_veyra_session_user_active') ||
+          insertErr.detail?.includes('user_id'))
       ) {
         console.warn(`[Auth Service] Caught concurrent active session race condition for user ${dbUser.id}`);
         await auditService.recordAuditEvent({
@@ -807,7 +813,7 @@ export class AuthService {
           targetType: 'SESSION',
           targetId: null,
           details: { reason: 'ACTIVE_SESSION_EXISTS', concurrency: true }
-        }).catch(() => {});
+        }).catch(() => { });
         return {
           success: false,
           code: 'ACTIVE_SESSION_EXISTS',
@@ -874,7 +880,8 @@ export class AuthService {
       createdAt: now,
       lastActivityAt: now,
       expiresAt: expiresAt.getTime(),
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      authProvider: (providerId as 'LOCAL' | 'ENTRA') || 'LOCAL'
     });
 
     return {
@@ -903,11 +910,11 @@ export class AuthService {
   ): Promise<LoginResult> {
     const claims: EntraIdentityClaims = typeof identityInput === 'string'
       ? {
-          email: identityInput,
-          subject: identityInput,
-          tenantId: config.entra.tenantId || 'default-tenant',
-          displayName: identityInput.split('@')[0]
-        }
+        email: identityInput,
+        subject: identityInput,
+        tenantId: config.entra.tenantId || 'default-tenant',
+        displayName: identityInput.split('@')[0]
+      }
       : identityInput;
 
     const normalized = this.normalizeEmail(claims.email);
@@ -1106,13 +1113,61 @@ export class AuthService {
 
     let session = activeSessions.get(token);
 
-    // If session is active in memory and fresh, keep it active and slide expiration
+    // Verify user account state is active (fail closed if deactivated, suspended, or deprovisioned - VYR-017)
     if (session && session.status === 'ACTIVE') {
+      try {
+        const userRes = await dbQuery(
+          `SELECT id, status, is_local_user FROM veyra_user WHERE id = $1`,
+          [session.userId]
+        );
+        if (userRes && userRes.rows.length > 0) {
+          const uStatus = (userRes.rows[0].status || 'ACTIVE').toUpperCase();
+          if (uStatus !== 'ACTIVE') {
+            session.status = 'LOGGED_OUT';
+            activeSessions.delete(token);
+            await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1`, [token]).catch(() => { });
+            return {
+              valid: false,
+              code: 'USER_DISABLED',
+              status: uStatus,
+              message: 'Your account is not active. Please contact a system administrator.',
+              session
+            };
+          }
+        } else if (userRes && userRes.rows.length === 0) {
+          session.status = 'LOGGED_OUT';
+          activeSessions.delete(token);
+          await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1`, [token]).catch(() => { });
+          return {
+            valid: false,
+            code: 'USER_DISABLED',
+            status: 'DEPROVISIONED',
+            message: 'Your account is not active. Please contact a system administrator.',
+            session
+          };
+        }
+      } catch (_) {
+        // Fallback for offline dev/mock environments without database
+        const localU = this.users[session.email.toLowerCase()];
+        if (localU && (localU.status !== 'ACTIVE' || localU.isActive === false)) {
+          session.status = 'LOGGED_OUT';
+          activeSessions.delete(token);
+          return {
+            valid: false,
+            code: 'USER_DISABLED',
+            status: localU.status || 'DISABLED',
+            message: 'Your account is not active. Please contact a system administrator.',
+            session
+          };
+        }
+      }
+
+      // If session is active in memory and fresh, keep it active and slide expiration
       if (now - session.lastActivityAt < inactivityTimeout) {
         if (updateActivity) {
           session.lastActivityAt = now;
           session.expiresAt = now + inactivityTimeout;
-          this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => {});
+          this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => { });
         }
         return { valid: true, session };
       }
@@ -1121,23 +1176,37 @@ export class AuthService {
     // Check database authoritative source of truth for session status & expiry
     try {
       const dbRes = await dbQuery(
-        `SELECT s.session_id, s.user_id, s.status, s.last_activity_at, s.expires_at
+        `SELECT s.session_id, s.user_id, s.status, s.last_activity_at, s.expires_at, u.status as user_status
          FROM veyra_session s
+         LEFT JOIN veyra_user u ON u.id = s.user_id
          WHERE s.session_id = $1 LIMIT 1`,
         [token]
       );
       if (dbRes.rows.length > 0) {
         const dbRow = dbRes.rows[0];
+
+        // Fail closed if user is disabled, suspended, or inactive
+        if (dbRow.user_status && dbRow.user_status !== 'ACTIVE') {
+          activeSessions.delete(token);
+          return {
+            valid: false,
+            code: 'USER_DISABLED',
+            status: dbRow.user_status,
+            message: 'Your account is not active. Please contact a system administrator.'
+          };
+        }
+
         if (dbRow.status !== 'ACTIVE') {
           // If in-memory is active and recent, re-activate in DB
           if (session && session.status === 'ACTIVE' && now - session.lastActivityAt < inactivityTimeout) {
             await dbQuery(`UPDATE veyra_session SET status = 'ACTIVE', last_activity_at = NOW(), expires_at = NOW() + interval '15 minutes' WHERE session_id = $1`, [token]);
           } else {
             activeSessions.delete(token);
+            const isRevokedOrLoggedOut = dbRow.status === 'LOGGED_OUT' || dbRow.status === 'REVOKED';
             return {
               valid: false,
-              code: 'SESSION_EXPIRED',
-              message: 'Your session has expired. Please log in again.'
+              code: isRevokedOrLoggedOut ? 'INVALID_TOKEN' : 'SESSION_EXPIRED',
+              message: isRevokedOrLoggedOut ? 'Session has been logged out or revoked. Please sign in again.' : 'Your session has expired. Please log in again.'
             };
           }
         }
@@ -1186,7 +1255,7 @@ export class AuthService {
     if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
       activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => {});
+      this.markSessionExpiredInDb(token).catch(() => { });
       return {
         valid: false,
         code: 'SESSION_EXPIRED',
@@ -1199,7 +1268,7 @@ export class AuthService {
     if (updateActivity) {
       session.lastActivityAt = now;
       session.expiresAt = now + inactivityTimeout;
-      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => {});
+      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => { });
     }
 
     return { valid: true, session };
@@ -1221,14 +1290,14 @@ export class AuthService {
     if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
       activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => {});
+      this.markSessionExpiredInDb(token).catch(() => { });
       return null;
     }
 
     if (updateActivity) {
       session.lastActivityAt = now;
       session.expiresAt = now + inactivityTimeout;
-      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => {});
+      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => { });
     }
 
     return session;
@@ -1256,6 +1325,12 @@ export class AuthService {
 
       // Check inactivity on DB restored session
       if (Date.now() >= rowExpiresAt || (Date.now() - lastActivityTime >= inactivityTimeout)) {
+        await this.markSessionExpiredInDb(token);
+        return null;
+      }
+
+      // Fail-closed if user account is not active (VYR-017)
+      if (row.user_status && row.user_status.toUpperCase() !== 'ACTIVE') {
         await this.markSessionExpiredInDb(token);
         return null;
       }
@@ -1311,7 +1386,7 @@ export class AuthService {
                 u.email, u.display_name, u.status as user_status
          FROM veyra_session s
          JOIN veyra_user u ON u.id = s.user_id
-         WHERE s.status = 'ACTIVE' AND (s.expires_at IS NULL OR s.expires_at > NOW())`
+         WHERE s.status = 'ACTIVE' AND u.status = 'ACTIVE' AND (s.expires_at IS NULL OR s.expires_at > NOW())`
       );
 
       const now = Date.now();
@@ -1394,7 +1469,7 @@ export class AuthService {
           targetType: 'SESSION',
           targetId: token,
           details: { reason: 'USER_LOGOUT' }
-        }).catch(() => {});
+        }).catch(() => { });
       }
     } catch (err) {
       // ignore
@@ -1434,9 +1509,9 @@ export class AuthService {
           targetType: 'SESSION',
           targetId: row.session_id,
           details: { reason: 'INACTIVITY_TIMEOUT' }
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   private async markSessionExpiredInDb(token: string) {
@@ -1459,9 +1534,9 @@ export class AuthService {
           targetType: 'SESSION',
           targetId: row.session_id,
           details: { reason: 'INACTIVITY_TIMEOUT' }
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   private sessionDbLastWritten = new Map<string, number>();
@@ -1484,7 +1559,7 @@ export class AuthService {
          WHERE session_id = $3 AND status = 'ACTIVE'`,
         [actDate, expDate, token]
       );
-    } catch (_) {}
+    } catch (_) { }
   }
 
   public async refreshSessionActivity(token: string): Promise<{ success: boolean; lastActivityAt?: number; expiresAt?: number }> {
@@ -1504,7 +1579,7 @@ export class AuthService {
     if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
       activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => {});
+      this.markSessionExpiredInDb(token).catch(() => { });
       return { success: false };
     }
 
@@ -1673,7 +1748,7 @@ export class AuthService {
           }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // AC3 Search: name / email / id / role
     const searchTerm = (options.search || '').trim().toLowerCase();
@@ -1821,7 +1896,7 @@ export class AuthService {
           lastLoginAt: row.last_login_at || null
         };
       }
-    } catch (_) {}
+    } catch (_) { }
 
     return null;
   }
@@ -1868,7 +1943,7 @@ export class AuthService {
       if (existingDb.rows.length > 0) {
         return { success: false, code: 'USER_ALREADY_EXISTS', message: 'A user with this email already exists.' };
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // AC6, AC8: Role Validation & Site Admin handling
     let role = (data.role || 'AUDIT_USER').trim().toUpperCase().replace(/[\s-]+/g, '_');
@@ -2023,7 +2098,7 @@ export class AuthService {
         try {
           const actRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [this.normalizeEmail(data.createdBy)]);
           actorUserId = actRes.rows[0]?.id || null;
-        } catch (_) {}
+        } catch (_) { }
       }
       await auditService.recordAuditEvent({
         userId: actorUserId,
@@ -2051,7 +2126,7 @@ export class AuthService {
           }
         });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // AC11: Sanitize response: passwords/hashes/tokens/secrets are never returned
     const safeUser = await this.getUserByIdOrEmail(normalized);
@@ -2121,7 +2196,7 @@ export class AuthService {
           };
           this.users[userKey] = user;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!user) {
@@ -2147,13 +2222,19 @@ export class AuthService {
       user.status = newStatus;
       user.isActive = (newStatus === 'ACTIVE');
 
-      // If user is deactivated or disabled, terminate active sessions immediately
+      // If user is deactivated or disabled, terminate active sessions immediately (VYR-017)
       if (newStatus !== 'ACTIVE') {
         for (const [token, session] of activeSessions.entries()) {
           if (this.normalizeEmail(session.email) === userKey || session.userId === user.userId) {
             activeSessions.delete(token);
           }
         }
+        dbQuery(
+          `UPDATE veyra_session SET status = 'EXPIRED' WHERE user_id IN (
+             SELECT id FROM veyra_user WHERE email = $1 OR id::text = $2
+           ) AND status = 'ACTIVE'`,
+          [userKey, idOrEmail]
+        ).catch(() => { });
       }
     }
 
@@ -2181,7 +2262,7 @@ export class AuthService {
           );
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Record audit events: USER_UPDATED and ROLE_REMOVED / ROLE_ASSIGNED
     try {
@@ -2279,7 +2360,7 @@ export class AuthService {
           };
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (!user) {
       return { success: false, code: 'NOT_FOUND', message: 'User not found.' };
@@ -2301,7 +2382,7 @@ export class AuthService {
         if (targetUserDbRes.rows.length > 0) {
           dbTargetUserId = targetUserDbRes.rows[0].id;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Invalidate active sessions
@@ -2317,7 +2398,7 @@ export class AuthService {
     // Delete in PostgreSQL if available
     try {
       await dbQuery(`DELETE FROM veyra_user WHERE id::text = $1 OR LOWER(email) = LOWER($2)`, [idOrEmail, targetKey]);
-    } catch (_) {}
+    } catch (_) { }
 
     // Record audit event: USER_DELETED (AC9)
     try {

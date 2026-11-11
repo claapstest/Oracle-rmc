@@ -12,6 +12,7 @@ import {
   completeAuthorization,
   createAuthorizationRequest,
   isEntraEnabled,
+  buildEntraLogoutUrl,
   EntraOidcError,
 } from '../services/entraOidcService.js';
 import { auditProductCatalogService } from '../services/auditProductCatalogService.js';
@@ -76,6 +77,16 @@ export async function requireAuth(req: Request, res: Response, next: () => void)
     const token = authHeader.substring(7);
     const validation = await authService.validateSession(token, true);
     if (!validation.valid) {
+      if (validation.code === 'USER_DISABLED' || validation.code === 'ACCOUNT_INACTIVE') {
+        const email = validation.session?.email || 'Unknown User';
+        logAudit(email, 'ACCOUNT_DEACTIVATED', `Blocked request: account status is ${validation.status || 'DISABLED'}`);
+        return res.status(403).json({
+          success: false,
+          code: 'USER_DISABLED',
+          status: validation.status || 'DISABLED',
+          message: validation.message || 'Your account is inactive or disabled. Please contact your system administrator.'
+        });
+      }
       if (validation.code === 'SESSION_EXPIRED') {
         const email = validation.session?.email || 'Unknown User';
         logAudit(email, 'SESSION_EXPIRED', 'Session expired due to inactivity or expiry period');
@@ -99,6 +110,7 @@ export async function requireAuth(req: Request, res: Response, next: () => void)
     res.locals.permissions = session.permissions;
     res.locals.isAdmin = session.isAdmin;
     res.locals.token = token;
+    res.locals.authProvider = session.authProvider || authService.getEffectiveProvider();
     next();
   } catch (err: any) {
     console.error('[requireAuth Error]:', err);
@@ -595,6 +607,7 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
     role: res.locals.role,
     permissions: res.locals.permissions,
     isAdmin: res.locals.isAdmin,
+    authProvider: res.locals.authProvider || authService.getEffectiveProvider(),
     environmentMode: config.environmentMode
   });
 });
@@ -612,7 +625,7 @@ apiRouter.post('/auth/refresh', requireAuth, async (req: Request, res: Response)
   });
 });
 
-// POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9)
+// POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9, Story 17)
 apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
   const authHeader = req.header('Authorization');
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (req.body?.token || req.body?.sessionId);
@@ -625,9 +638,25 @@ apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
 
   const validation = await authService.validateSession(token, false);
   const email = validation.session?.email || 'Unknown User';
+  const sessionProvider = validation.session?.authProvider || authService.getEffectiveProvider();
   await authService.logout(token, { ipAddress: rawIp, userAgent });
-  logAudit(email, 'USER_LOGOUT', 'Logged out successfully; session invalidated');
-  res.json({ success: true, message: 'Logged out successfully.' });
+  logAudit(email, 'USER_LOGOUT', `Logged out successfully; local session invalidated (provider: ${sessionProvider})`);
+
+  const postLogoutRedirectUri = req.body?.postLogoutRedirectUri || req.query?.post_logout_redirect_uri || req.body?.post_logout_redirect_uri;
+  const upstreamSupported = isEntraEnabled();
+  const upstreamLogoutUrl = upstreamSupported
+    ? buildEntraLogoutUrl(undefined, typeof postLogoutRedirectUri === 'string' ? postLogoutRedirectUri : undefined)
+    : null;
+
+  res.json({
+    success: true,
+    message: 'Logged out successfully.',
+    localLogout: true,
+    sessionInvalidated: true,
+    authProvider: sessionProvider,
+    upstreamSignoutSupported: upstreamSupported,
+    upstreamLogoutUrl
+  });
 });
 
 // POST /admin/sessions/cleanup - Trigger Session Cleanup (AC8)

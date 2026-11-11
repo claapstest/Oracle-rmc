@@ -21,6 +21,7 @@
     "test:story14": "node scripts/test_story_014_local_auth_provider.cjs",
     "test:story15": "node scripts/test_story_015_local_user_provisioning.cjs",
     "test:story16": "node scripts/test_story_016_deployment_auth_provider.cjs",
+    "test:story17": "node scripts/test_story_017_unified_session_lifecycle.cjs",
     "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {

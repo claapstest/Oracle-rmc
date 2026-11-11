@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { config, validateConfig, loadPersistedConfig } from './config.js';
 import { oracleService } from './services/oracleService.js';
@@ -60,29 +61,45 @@ app.get(['/health', '/api/health'], (_req, res) => {
 // API Routes
 app.use('/api', apiRouter);
 
-// Root Service Status
-app.get('/', (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'Oracle Fusion Security & Risk Intelligence Assistant API',
-    version: '1.0.0',
-    mode: config.environmentMode,
-    endpoints: {
-      health: '/health',
-      apiDocs: '/api',
-      authStatus: '/api/auth/status',
-      users: '/api/users'
-    }
-  });
-});
+// Check if frontend build exists for unified Single Web Service deployment
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+const hasFrontendBuild = fs.existsSync(frontendDistPath) && fs.existsSync(path.join(frontendDistPath, 'index.html'));
 
-// 404 handler for unknown routes
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `API endpoint ${req.method} ${req.path} does not exist.`
+if (hasFrontendBuild) {
+  console.log(`[Static Serving] Serving production frontend build from: ${frontendDistPath}`);
+  app.use(express.static(frontendDistPath));
+  // Single Page Application (SPA) catch-all fallback for client-side routing
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
-});
+} else {
+  // Standalone API Mode: Root Service Status
+  app.get('/', (_req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      service: 'Oracle Fusion Security & Risk Intelligence Assistant API',
+      version: '1.0.0',
+      mode: config.environmentMode,
+      endpoints: {
+        health: '/health',
+        apiDocs: '/api',
+        authStatus: '/api/auth/status',
+        users: '/api/users'
+      }
+    });
+  });
+
+  // 404 handler for unknown routes in API mode
+  app.use((req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: `API endpoint ${req.method} ${req.path} does not exist.`
+    });
+  });
+}
 
 // Start Server
 loadPersistedConfig();
