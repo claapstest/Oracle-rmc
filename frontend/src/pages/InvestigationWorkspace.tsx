@@ -1023,12 +1023,6 @@ export default function InvestigationWorkspace({
                 </div>
               )}
 
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Contextual Description & Purpose</h4>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
-                {isRole 
-                  ? 'This security role operates within the Oracle Fusion ERP Cloud context. It enforces operational boundaries and provides duty allocations that distribute access controls to financial, administrative, or self-service features.'
-                  : `User account associated with identity profile ${data?.displayName || entity.name}. Represents an active database security subject evaluated under Segregation of Duties (SoD) boundary configurations.`}
-              </p>
 
               <div className="glass-panel" style={{ padding: '1rem', border: '1px solid var(--border-color)' }}>
                 <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
