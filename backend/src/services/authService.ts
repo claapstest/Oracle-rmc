@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { query as dbQuery, pool } from '../db.js';
 import { auditService } from './auditService.js';
-import { AuthenticationProvider, AuthCredentials, getAuthenticationProvider, LocalAuthenticationProvider } from '../auth/index.js';
+import { AuthenticationProvider, AuthCredentials, getAuthenticationProvider, LocalAuthenticationProvider, tokenService } from '../auth/index.js';
 import { entraIdentityService, EntraIdentityClaims } from './entraIdentityService.js';
 import { config } from '../config.js';
 
@@ -63,6 +63,8 @@ export interface LoginResult {
   success: boolean;
   code?: string;
   token?: string;
+  accessToken?: string;
+  sessionId?: string;
   userId?: string;
   displayName?: string;
   email?: string;
@@ -727,6 +729,10 @@ export class AuthService {
 
       if (now >= existingExpires || (now - existingLastAct >= inactivityTimeout) || force) {
         await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE id = $1`, [existingRow.id]);
+        const oldSession = activeSessions.get(existingRow.session_id);
+        if (oldSession) {
+          oldSession.status = 'EXPIRED';
+        }
         activeSessions.delete(existingRow.session_id);
       } else {
         await auditService.recordAuditEvent({
@@ -868,9 +874,15 @@ export class AuthService {
       resetCode: null
     };
 
+    // Story VYR-020: Issue signed RS256 JWT access token bound to sessionId (sid)
+    const accessToken = await tokenService.issueAccessToken({
+      userId: dbUser.id,
+      sessionId
+    });
+
     const now = Date.now();
-    activeSessions.set(sessionId, {
-      token: sessionId,
+    const sessionObj: Session = {
+      token: accessToken,
       userId: dbUser.id,
       email: resolvedEmail,
       displayName: authUser.displayName,
@@ -882,11 +894,15 @@ export class AuthService {
       expiresAt: expiresAt.getTime(),
       status: 'ACTIVE',
       authProvider: (providerId as 'LOCAL' | 'ENTRA') || 'LOCAL'
-    });
+    };
+
+    activeSessions.set(sessionId, sessionObj);
 
     return {
       success: true,
-      token: sessionId,
+      token: accessToken,
+      accessToken,
+      sessionId,
       userId: dbUser.id,
       displayName: authUser.displayName,
       email: dbUser.email,
@@ -1054,13 +1070,15 @@ export class AuthService {
       }
     }
 
-    const token = this.createSession(user);
+    const { sessionId, accessToken } = await this.createSession(user);
     user.lastLoginAt = new Date().toISOString();
     this.saveUsers();
 
     return {
       success: true,
-      token,
+      token: accessToken,
+      accessToken,
+      sessionId,
       userId: user.userId,
       displayName: user.displayName || this.generateDisplayName(user.email),
       email: user.email || normalized,
@@ -1075,15 +1093,21 @@ export class AuthService {
   }
 
   // Session management & creation
-  private createSession(user: AuthUser): string {
+  private async createSession(user: AuthUser): Promise<{ sessionId: string; accessToken: string }> {
     const normalized = this.normalizeEmail(user.email);
     const now = Date.now();
-    const token = crypto.randomBytes(32).toString('hex');
+    const sessionId = crypto.randomBytes(32).toString('hex');
     const inactivityTimeout = getInactivityTimeoutMs();
     const expiresAt = now + inactivityTimeout;
 
-    activeSessions.set(token, {
-      token,
+    // Story VYR-020: Issue signed RS256 JWT access token bound to sessionId (sid)
+    const accessToken = await tokenService.issueAccessToken({
+      userId: user.userId,
+      sessionId
+    });
+
+    const sessionObj: Session = {
+      token: accessToken,
       userId: user.userId,
       email: normalized,
       displayName: user.displayName,
@@ -1093,14 +1117,18 @@ export class AuthService {
       createdAt: now,
       lastActivityAt: now,
       expiresAt,
-      status: 'ACTIVE'
-    });
+      status: 'ACTIVE',
+      authProvider: 'LOCAL'
+    };
 
-    return token;
+    activeSessions.set(sessionId, sessionObj);
+
+    return { sessionId, accessToken };
   }
 
   /**
-   * Validate session with 5-minute continuous inactivity timeout and activity refresh.
+   * Validate session with 15-minute continuous inactivity timeout and activity refresh.
+   * Supports both VYR-019/VYR-020 RS256 JWT access tokens and legacy opaque session tokens.
    * As long as user activity is detected, expires_at slides forward (last_activity_at + timeout).
    */
   public async validateSession(token: string, updateActivity = true): Promise<SessionValidationResult> {
@@ -1108,10 +1136,35 @@ export class AuthService {
       return { valid: false, code: 'INVALID_TOKEN', message: 'Authentication required. Missing or malformed token.' };
     }
 
+    let subClaim: string | null = null;
+    let effectiveSessionKey = token;
+
+    if (tokenService.isJwt(token)) {
+      const verification = await tokenService.verifyAccessToken(token);
+      if (!verification.valid || !verification.claims) {
+        return {
+          valid: false,
+          code: verification.code || 'INVALID_TOKEN',
+          message: verification.message || 'Invalid or malformed token.'
+        };
+      }
+      effectiveSessionKey = verification.claims.sid;
+      subClaim = verification.claims.sub;
+    }
+
     const now = Date.now();
     const inactivityTimeout = getInactivityTimeoutMs();
 
-    let session = activeSessions.get(token);
+    let session = activeSessions.get(effectiveSessionKey) || activeSessions.get(token);
+
+    // Rule 11: If subClaim is present (from JWT), it must match the session userId
+    if (session && subClaim && session.userId !== subClaim) {
+      return {
+        valid: false,
+        code: 'INVALID_TOKEN',
+        message: 'Token subject does not match active session user.'
+      };
+    }
 
     // Verify user account state is active (fail closed if deactivated, suspended, or deprovisioned - VYR-017)
     if (session && session.status === 'ACTIVE') {
@@ -1124,8 +1177,9 @@ export class AuthService {
           const uStatus = (userRes.rows[0].status || 'ACTIVE').toUpperCase();
           if (uStatus !== 'ACTIVE') {
             session.status = 'LOGGED_OUT';
+            activeSessions.delete(effectiveSessionKey);
             activeSessions.delete(token);
-            await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1`, [token]).catch(() => { });
+            await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1`, [effectiveSessionKey]).catch(() => { });
             return {
               valid: false,
               code: 'USER_DISABLED',
@@ -1136,8 +1190,9 @@ export class AuthService {
           }
         } else if (userRes && userRes.rows.length === 0) {
           session.status = 'LOGGED_OUT';
+          activeSessions.delete(effectiveSessionKey);
           activeSessions.delete(token);
-          await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1`, [token]).catch(() => { });
+          await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE session_id = $1`, [effectiveSessionKey]).catch(() => { });
           return {
             valid: false,
             code: 'USER_DISABLED',
@@ -1151,6 +1206,7 @@ export class AuthService {
         const localU = this.users[session.email.toLowerCase()];
         if (localU && (localU.status !== 'ACTIVE' || localU.isActive === false)) {
           session.status = 'LOGGED_OUT';
+          activeSessions.delete(effectiveSessionKey);
           activeSessions.delete(token);
           return {
             valid: false,
@@ -1167,7 +1223,7 @@ export class AuthService {
         if (updateActivity) {
           session.lastActivityAt = now;
           session.expiresAt = now + inactivityTimeout;
-          this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => { });
+          this.updateLastActivityInDb(effectiveSessionKey, session.lastActivityAt, session.expiresAt).catch(() => { });
         }
         return { valid: true, session };
       }
@@ -1180,13 +1236,25 @@ export class AuthService {
          FROM veyra_session s
          LEFT JOIN veyra_user u ON u.id = s.user_id
          WHERE s.session_id = $1 LIMIT 1`,
-        [token]
+        [effectiveSessionKey]
       );
       if (dbRes.rows.length > 0) {
         const dbRow = dbRes.rows[0];
 
+        // Rule 11: token subject must match database session user
+        if (subClaim && dbRow.user_id !== subClaim) {
+          activeSessions.delete(effectiveSessionKey);
+          activeSessions.delete(token);
+          return {
+            valid: false,
+            code: 'INVALID_TOKEN',
+            message: 'Token subject does not match database session user.'
+          };
+        }
+
         // Fail closed if user is disabled, suspended, or inactive
         if (dbRow.user_status && dbRow.user_status !== 'ACTIVE') {
+          activeSessions.delete(effectiveSessionKey);
           activeSessions.delete(token);
           return {
             valid: false,
@@ -1199,8 +1267,9 @@ export class AuthService {
         if (dbRow.status !== 'ACTIVE') {
           // If in-memory is active and recent, re-activate in DB
           if (session && session.status === 'ACTIVE' && now - session.lastActivityAt < inactivityTimeout) {
-            await dbQuery(`UPDATE veyra_session SET status = 'ACTIVE', last_activity_at = NOW(), expires_at = NOW() + interval '15 minutes' WHERE session_id = $1`, [token]);
+            await dbQuery(`UPDATE veyra_session SET status = 'ACTIVE', last_activity_at = NOW(), expires_at = NOW() + interval '15 minutes' WHERE session_id = $1`, [effectiveSessionKey]);
           } else {
+            activeSessions.delete(effectiveSessionKey);
             activeSessions.delete(token);
             const isRevokedOrLoggedOut = dbRow.status === 'LOGGED_OUT' || dbRow.status === 'REVOKED';
             return {
@@ -1216,8 +1285,9 @@ export class AuthService {
 
         // Allow 2-minute safety grace buffer before marking expired
         if (now >= dbExpiresAt + 120000 && (now - dbLastAct >= inactivityTimeout + 120000)) {
+          activeSessions.delete(effectiveSessionKey);
           activeSessions.delete(token);
-          await this.markSessionExpiredInDb(token);
+          await this.markSessionExpiredInDb(effectiveSessionKey);
           return {
             valid: false,
             code: 'SESSION_EXPIRED',
@@ -1230,10 +1300,10 @@ export class AuthService {
     }
 
     if (!session) {
-      session = activeSessions.get(token);
+      session = activeSessions.get(effectiveSessionKey) || activeSessions.get(token);
     }
     if (!session) {
-      session = (await this.restoreSessionFromDb(token)) || undefined;
+      session = (await this.restoreSessionFromDb(effectiveSessionKey)) || undefined;
     }
 
     if (!session) {
@@ -1241,6 +1311,7 @@ export class AuthService {
     }
 
     if (session.status !== 'ACTIVE') {
+      activeSessions.delete(effectiveSessionKey);
       activeSessions.delete(token);
       return {
         valid: false,
@@ -1250,12 +1321,12 @@ export class AuthService {
       };
     }
 
-    // 5-minute continuous inactivity timeout check:
-    // If now >= session.expiresAt OR now - session.lastActivityAt >= inactivityTimeout
+    // Inactivity timeout check
     if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
+      activeSessions.delete(effectiveSessionKey);
       activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => { });
+      this.markSessionExpiredInDb(effectiveSessionKey).catch(() => { });
       return {
         valid: false,
         code: 'SESSION_EXPIRED',
@@ -1268,7 +1339,7 @@ export class AuthService {
     if (updateActivity) {
       session.lastActivityAt = now;
       session.expiresAt = now + inactivityTimeout;
-      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => { });
+      this.updateLastActivityInDb(effectiveSessionKey, session.lastActivityAt, session.expiresAt).catch(() => { });
     }
 
     return { valid: true, session };
@@ -1276,10 +1347,12 @@ export class AuthService {
 
   public verifySession(token: string, updateActivity = true): Session | null {
     if (!token) return null;
-    const session = activeSessions.get(token);
+    const effectiveToken = tokenService.extractSessionId(token) || token;
+    const session = activeSessions.get(effectiveToken) || activeSessions.get(token);
     if (!session) return null;
 
     if (session.status !== 'ACTIVE') {
+      activeSessions.delete(effectiveToken);
       activeSessions.delete(token);
       return null;
     }
@@ -1289,15 +1362,16 @@ export class AuthService {
 
     if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
+      activeSessions.delete(effectiveToken);
       activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => { });
+      this.markSessionExpiredInDb(effectiveToken).catch(() => { });
       return null;
     }
 
     if (updateActivity) {
       session.lastActivityAt = now;
       session.expiresAt = now + inactivityTimeout;
-      this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt).catch(() => { });
+      this.updateLastActivityInDb(effectiveToken, session.lastActivityAt, session.expiresAt).catch(() => { });
     }
 
     return session;
@@ -1305,6 +1379,7 @@ export class AuthService {
 
   public async restoreSessionFromDb(token: string): Promise<Session | null> {
     if (!token) return null;
+    const effectiveToken = tokenService.extractSessionId(token) || token;
     try {
       const res = await dbQuery(
         `SELECT s.session_id, s.user_id, s.created_at, s.last_activity_at, s.expires_at,
@@ -1313,7 +1388,7 @@ export class AuthService {
          JOIN veyra_user u ON u.id = s.user_id
          WHERE s.session_id = $1 AND s.status = 'ACTIVE' AND (s.expires_at IS NULL OR s.expires_at > NOW())
          LIMIT 1`,
-        [token]
+        [effectiveToken]
       );
 
       if (res.rows.length === 0) return null;
@@ -1325,13 +1400,13 @@ export class AuthService {
 
       // Check inactivity on DB restored session
       if (Date.now() >= rowExpiresAt || (Date.now() - lastActivityTime >= inactivityTimeout)) {
-        await this.markSessionExpiredInDb(token);
+        await this.markSessionExpiredInDb(effectiveToken);
         return null;
       }
 
       // Fail-closed if user account is not active (VYR-017)
       if (row.user_status && row.user_status.toUpperCase() !== 'ACTIVE') {
-        await this.markSessionExpiredInDb(token);
+        await this.markSessionExpiredInDb(effectiveToken);
         return null;
       }
 
@@ -1371,7 +1446,10 @@ export class AuthService {
         status: 'ACTIVE'
       };
 
-      activeSessions.set(token, session);
+      activeSessions.set(effectiveToken, session);
+      if (effectiveToken !== token) {
+        activeSessions.set(token, session);
+      }
       return session;
     } catch (err) {
       console.warn('[Auth Service] Could not restore session from DB:', (err as Error).message);
@@ -1444,11 +1522,14 @@ export class AuthService {
   // AC5 & AC6: Logout API & Invalidation
   public async logout(token: string, clientMeta?: { ipAddress?: string; userAgent?: string }) {
     if (!token) return;
+    const effectiveToken = tokenService.extractSessionId(token) || token;
+    this.sessionDbLastWritten.delete(effectiveToken);
     this.sessionDbLastWritten.delete(token);
-    const session = activeSessions.get(token);
+    const session = activeSessions.get(effectiveToken) || activeSessions.get(token);
     if (session) {
       session.status = 'LOGGED_OUT';
     }
+    activeSessions.delete(effectiveToken);
     activeSessions.delete(token);
     try {
       const updateRes = await dbQuery(
@@ -1456,7 +1537,7 @@ export class AuthService {
          SET status = 'LOGGED_OUT', logged_out_at = NOW() 
          WHERE session_id = $1 AND status = 'ACTIVE'
          RETURNING user_id, ip_address, user_agent`,
-        [token]
+        [effectiveToken]
       );
       const row = updateRes.rows[0];
       const userId = row?.user_id || session?.userId;
@@ -1467,7 +1548,7 @@ export class AuthService {
           ipAddress: clientMeta?.ipAddress || row?.ip_address,
           userAgent: clientMeta?.userAgent || row?.user_agent,
           targetType: 'SESSION',
-          targetId: token,
+          targetId: effectiveToken,
           details: { reason: 'USER_LOGOUT' }
         }).catch(() => { });
       }
@@ -1515,14 +1596,16 @@ export class AuthService {
   }
 
   private async markSessionExpiredInDb(token: string) {
+    const effectiveToken = tokenService.extractSessionId(token) || token;
     try {
+      this.sessionDbLastWritten.delete(effectiveToken);
       this.sessionDbLastWritten.delete(token);
       const res = await dbQuery(
         `UPDATE veyra_session 
          SET status = 'EXPIRED' 
          WHERE session_id = $1 AND status = 'ACTIVE'
          RETURNING session_id, user_id, ip_address, user_agent`,
-        [token]
+        [effectiveToken]
       );
       if (res.rows.length > 0) {
         const row = res.rows[0];
@@ -1542,13 +1625,14 @@ export class AuthService {
   private sessionDbLastWritten = new Map<string, number>();
 
   private async updateLastActivityInDb(token: string, lastActivityAt?: number, expiresAt?: number, forceImmediate = false) {
+    const effectiveToken = tokenService.extractSessionId(token) || token;
     const now = Date.now();
-    const lastWritten = this.sessionDbLastWritten.get(token) || 0;
+    const lastWritten = this.sessionDbLastWritten.get(effectiveToken) || 0;
     // Throttle database writes to at most once per 10 seconds unless forceImmediate is requested
     if (!forceImmediate && now - lastWritten < 10000) {
       return;
     }
-    this.sessionDbLastWritten.set(token, now);
+    this.sessionDbLastWritten.set(effectiveToken, now);
 
     try {
       const actDate = lastActivityAt ? new Date(lastActivityAt) : new Date(now);
@@ -1557,15 +1641,16 @@ export class AuthService {
         `UPDATE veyra_session 
          SET last_activity_at = $1, expires_at = $2 
          WHERE session_id = $3 AND status = 'ACTIVE'`,
-        [actDate, expDate, token]
+        [actDate, expDate, effectiveToken]
       );
     } catch (_) { }
   }
 
   public async refreshSessionActivity(token: string): Promise<{ success: boolean; lastActivityAt?: number; expiresAt?: number }> {
-    let session = activeSessions.get(token);
+    const effectiveToken = tokenService.extractSessionId(token) || token;
+    let session = activeSessions.get(effectiveToken) || activeSessions.get(token);
     if (!session) {
-      session = (await this.restoreSessionFromDb(token)) || undefined;
+      session = (await this.restoreSessionFromDb(effectiveToken)) || undefined;
     }
 
     if (!session || session.status !== 'ACTIVE') {
@@ -1578,15 +1663,16 @@ export class AuthService {
     // Check if session has expired
     if (now >= session.expiresAt || (now - session.lastActivityAt >= inactivityTimeout)) {
       session.status = 'EXPIRED';
+      activeSessions.delete(effectiveToken);
       activeSessions.delete(token);
-      this.markSessionExpiredInDb(token).catch(() => { });
+      this.markSessionExpiredInDb(effectiveToken).catch(() => { });
       return { success: false };
     }
 
     // Refresh activity & slide expires_at forward
     session.lastActivityAt = now;
     session.expiresAt = now + inactivityTimeout;
-    await this.updateLastActivityInDb(token, session.lastActivityAt, session.expiresAt, true);
+    await this.updateLastActivityInDb(effectiveToken, session.lastActivityAt, session.expiresAt, true);
 
     return {
       success: true,
@@ -1596,11 +1682,13 @@ export class AuthService {
   }
 
   public getSession(token: string): Session | undefined {
-    return activeSessions.get(token);
+    const effectiveToken = tokenService.extractSessionId(token) || token;
+    return activeSessions.get(effectiveToken) || activeSessions.get(token);
   }
 
   public _setSessionLastActivity(token: string, lastActivityAt: number) {
-    const session = activeSessions.get(token);
+    const effectiveToken = tokenService.extractSessionId(token) || token;
+    const session = activeSessions.get(effectiveToken) || activeSessions.get(token);
     if (session) {
       session.lastActivityAt = lastActivityAt;
     }

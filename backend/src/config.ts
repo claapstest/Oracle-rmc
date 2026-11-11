@@ -69,6 +69,17 @@ export const config = {
     username: process.env.ORACLE_USERNAME || '',
     password: process.env.ORACLE_PASSWORD || '',
     token: process.env.ORACLE_TOKEN || '',
+  },
+  jwt: {
+    issuer: process.env.JWT_ISSUER || 'veyra',
+    audience: process.env.JWT_AUDIENCE || 'veyra-api',
+    keyId: process.env.JWT_KEY_ID || 'veyra-key-1',
+    privateKey: process.env.JWT_PRIVATE_KEY || '',
+    publicKey: process.env.JWT_PUBLIC_KEY || '',
+    privateKeyPath: process.env.JWT_PRIVATE_KEY_PATH || '',
+    publicKeyPath: process.env.JWT_PUBLIC_KEY_PATH || '',
+    previousPublicKey: process.env.JWT_PREVIOUS_PUBLIC_KEY || '',
+    previousKeyId: process.env.JWT_PREVIOUS_KEY_ID || '',
   }
 };
 
