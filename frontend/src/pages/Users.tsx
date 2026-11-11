@@ -479,7 +479,7 @@ export default function Users({
               type="text"
               className="form-input"
               style={{ paddingLeft: '2.5rem' }}
-              placeholder="Search by username or display name..."
+              placeholder="Search by username..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -527,7 +527,6 @@ export default function Users({
               { key: 'userCategory', label: 'User Category', defaultSelected: true, getValue: (u: any) => u.userCategory || '' },
               { key: 'firstName', label: 'First Name', defaultSelected: true, getValue: (u: any) => u.firstName || '' },
               { key: 'lastName', label: 'Last Name', defaultSelected: true, getValue: (u: any) => u.lastName || '' },
-              { key: 'displayName', label: 'Display Name', defaultSelected: false },
               { key: 'email', label: 'Email Address', defaultSelected: true, getValue: (u: any) => u.email || 'N/A' },
               { key: 'status', label: 'Active', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
               { key: 'roleCount', label: 'Number of Roles', defaultSelected: true, getValue: (u: any) => Array.isArray(u.assignedRoles) ? u.assignedRoles.length : (typeof u.roleCount === 'number' ? u.roleCount : 0) },
