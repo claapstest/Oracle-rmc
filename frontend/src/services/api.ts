@@ -319,7 +319,21 @@ export const api = {
   },
 
   async getRoleHierarchyReport(forceRefresh = false) {
-    return apiRequest(`/reports/role-hierarchy${forceRefresh ? '?refresh=true' : ''}`);
+    const res = await apiRequest(`/reports/role-hierarchy${forceRefresh ? '?refresh=true' : ''}`);
+    if (res && Array.isArray(res.items) && Array.isArray(res.privilegesCatalog) && Array.isArray(res.privilegeSets)) {
+      const resolvedSets = res.privilegeSets.map((ids: number[]) =>
+        Array.isArray(ids) ? ids.map((id: number) => res.privilegesCatalog[id]).filter(Boolean) : []
+      );
+      res.items = res.items.map((item: any) => {
+        if (Array.isArray(item.privileges)) return item;
+        const setId = typeof item.privSetId === 'number' ? item.privSetId : -1;
+        return {
+          ...item,
+          privileges: setId >= 0 ? (resolvedSets[setId] || []) : []
+        };
+      });
+    }
+    return res;
   },
 
   async syncRoleHierarchy() {

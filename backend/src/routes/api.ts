@@ -2398,7 +2398,8 @@ apiRouter.get('/privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'PR
 apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
   try {
     const forceRefresh = req.query.refresh === 'true';
-    const result = await oracleService.getRoleHierarchyReport(forceRefresh);
+    const compact = req.query.format !== 'full';
+    const result = await oracleService.getRoleHierarchyReport(forceRefresh, compact);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import zlib from 'zlib';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -11,6 +12,8 @@ import { controlRawDbService } from './services/controlRawDbService.js';
 import { auditRawDbService } from './services/auditRawDbService.js';
 import { auditProductCatalogService } from './services/auditProductCatalogService.js';
 import { scheduledSyncService } from './services/scheduledSyncService.js';
+import { roleHierarchyService } from './services/roleHierarchyService.js';
+import { userAccessReportService } from './services/userAccessReportService.js';
 import { apiRouter } from './routes/api.js';
 import { initializeAuthProvider, keyManager } from './auth/index.js';
 
@@ -24,6 +27,38 @@ app.use(cors({
   origin: true,
   credentials: true
 }));
+// Compress large JSON payloads (>= 2KB) with gzip when client supports it
+app.use((req, res, next) => {
+  const acceptEncoding = String(req.headers['accept-encoding'] || '');
+  if (!acceptEncoding.includes('gzip')) {
+    return next();
+  }
+  const origJson = res.json.bind(res);
+  res.json = (body: any) => {
+    try {
+      const jsonStr = JSON.stringify(body);
+      if (Buffer.byteLength(jsonStr, 'utf8') < 2048) {
+        return origJson(body);
+      }
+      zlib.gzip(jsonStr, (err, compressed) => {
+        if (res.headersSent) return;
+        if (err) {
+          origJson(body);
+          return;
+        }
+        res.setHeader('Content-Encoding', 'gzip');
+        res.setHeader('Vary', 'Accept-Encoding');
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Content-Length', String(compressed.length));
+        res.end(compressed);
+      });
+      return res;
+    } catch {
+      return origJson(body);
+    }
+  };
+  next();
+});
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -131,4 +166,10 @@ app.listen(config.port, '0.0.0.0', () => {
   // Scheduled Off-Peak Sync: Syncs full Oracle baseline data daily at 11:00 PM during non-working hours.
   // Sync is NEVER triggered on user login or by multiple concurrent users.
   scheduledSyncService.initialize(oracleService, 23);
+
+  // Non-blocking background warm-up of heavy PostgreSQL report caches on boot
+  setTimeout(() => {
+    userAccessReportService.getUserAccessReport().catch(() => {});
+    roleHierarchyService.getHierarchyReport({ compact: true }).catch(() => {});
+  }, 500);
 });

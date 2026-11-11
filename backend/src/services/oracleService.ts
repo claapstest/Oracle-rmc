@@ -2850,7 +2850,7 @@ class OracleService {
     }
   }
 
-  async getRoleHierarchyReport(forceRefresh = false) {
+  async getRoleHierarchyReport(forceRefresh = false, compact = false) {
     if (this.isDemoMode()) {
       const rows: Array<{
         roleName: string;
@@ -2918,7 +2918,7 @@ class OracleService {
     }
 
     try {
-      const result = await roleHierarchyService.getHierarchyReport({ forceRefresh });
+      const result = await roleHierarchyService.getHierarchyReport({ forceRefresh, compact });
       return result;
     } catch (err: any) {
       return {

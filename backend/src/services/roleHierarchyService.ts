@@ -62,7 +62,9 @@ export interface RoleHierarchyTreeResult {
 export class RoleHierarchyService {
   private bipClient: BipClient;
   private memoryCache: RoleHierarchyItem[] | null = null;
+  private compactCache: { items: any[]; privilegesCatalog: any[]; privilegeSets: number[][]; lastSyncedAt: string | null } | null = null;
   private dbLoaded = false;
+  private dbLoadPromise: Promise<void> | null = null;
   private isSyncing = false;
   private lastSyncedAt: string | null = null;
 
@@ -350,6 +352,7 @@ export class RoleHierarchyService {
 
       // Save to memory and disk cache
       this.memoryCache = items;
+      this.compactCache = null;
       this.dbLoaded = true;
       this.saveCacheToDisk(items);
 
@@ -410,54 +413,91 @@ export class RoleHierarchyService {
     }
   }
 
-  /**
-   * Retrieves role hierarchy rows from PostgreSQL with filtering.
-   */
-  public async getHierarchyReport(options?: {
-    search?: string;
-    category?: string;
-    page?: number;
-    limit?: number;
-    forceRefresh?: boolean;
-  }): Promise<{
-    success: boolean;
-    dataSource: string;
-    items: RoleHierarchyItem[];
-    totalCount: number;
-    lastSyncedAt: string | null;
-  }> {
-    if (options?.forceRefresh || !this.dbLoaded) {
+  private async ensureLoadedFromDb(forceRefresh = false): Promise<void> {
+    if (!forceRefresh && this.dbLoaded) return;
+    if (this.dbLoadPromise) return this.dbLoadPromise;
+
+    this.dbLoadPromise = (async () => {
       const host = this.getHost();
       try {
-        const res = await query(
-          `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type,
-                  COALESCE(raw_record->'privileges', '[]'::jsonb) AS privileges,
-                  last_synced_at
-           FROM oracle_raw_role_hierarchy 
-           WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true)
-           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END), child_role_name ASC`,
+        const hostPickRes = await query<{ environment_host: string }>(
+          `SELECT environment_host
+           FROM oracle_raw_role_hierarchy
+           WHERE environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true
+           ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END)
+           LIMIT 1`,
           [host]
         );
-        if (res.rows.length > 0) {
-          this.memoryCache = res.rows.map((r, i) => {
-            const privs = Array.isArray(r.privileges) ? r.privileges : [];
-            return {
-              id: r.id || i + 1,
-              roleName: r.child_role_name,
-              roleCode: r.role_code || `ORA_ROLE_${i + 1}`,
-              category: r.category || 'Duty',
-              parentRole: r.parent_role_name,
-              parentRoleType: r.parent_role_type || 'DUTY',
-              childRole: r.child_role_name,
-              childRoleType: r.child_role_type || 'JOB',
-              relationshipType: r.relationship_type || `${r.parent_role_type || 'DUTY'} grants ${r.child_role_type || 'JOB'}`,
-              privileges: privs,
-              privilegeCount: privs.length,
-            };
-          });
-          this.lastSyncedAt = res.rows[0].last_synced_at ? new Date(res.rows[0].last_synced_at).toISOString() : null;
-          this.dbLoaded = true;
-          console.log(`[RoleHierarchyService] Loaded ${this.memoryCache.length} authoritative role hierarchy relationships from PostgreSQL.`);
+        const targetHost = hostPickRes.rows[0]?.environment_host;
+        if (targetHost) {
+          // Fetch edge metadata + MD5 hashes in parallel with only distinct privilege sets (~759 rows instead of 17,481)
+          const [edgesRes, setsRes] = await Promise.all([
+            query(
+              `SELECT id, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type,
+                      md5(COALESCE((raw_record->'privileges')::text, '[]')) AS priv_hash,
+                      last_synced_at
+               FROM oracle_raw_role_hierarchy
+               WHERE environment_host = $1
+               ORDER BY child_role_name ASC, id ASC`,
+              [targetHost]
+            ),
+            query(
+              `SELECT DISTINCT ON (md5(COALESCE((raw_record->'privileges')::text, '[]')))
+                      md5(COALESCE((raw_record->'privileges')::text, '[]')) AS priv_hash,
+                      COALESCE(raw_record->'privileges', '[]'::jsonb) AS privileges
+               FROM oracle_raw_role_hierarchy
+               WHERE environment_host = $1
+                 AND jsonb_array_length(COALESCE(raw_record->'privileges', '[]'::jsonb)) > 0`,
+              [targetHost]
+            )
+          ]);
+
+          const privIntern = new Map<string, { code: string; name: string; description: string }>();
+          const privByHash = new Map<string, Array<{ code: string; name: string; description: string }>>();
+          for (const s of setsRes.rows) {
+            const rawPrivs = Array.isArray(s.privileges) ? s.privileges : [];
+            const interned: Array<{ code: string; name: string; description: string }> = rawPrivs.map((p: any) => {
+              const code = p?.code || '';
+              const name = p?.name || '';
+              const desc = p?.description || '';
+              const pk = `${code}\u0000${name}\u0000${desc}`;
+              let obj = privIntern.get(pk);
+              if (!obj) {
+                obj = { code, name, description: desc };
+                privIntern.set(pk, obj);
+              }
+              return obj;
+            });
+            privByHash.set(String(s.priv_hash), interned);
+          }
+
+          if (edgesRes.rows.length > 0) {
+            const syncedAtIso = edgesRes.rows[0].last_synced_at
+              ? new Date(edgesRes.rows[0].last_synced_at).toISOString()
+              : null;
+            const loaded: RoleHierarchyItem[] = edgesRes.rows.map((r, idx) => {
+              const sharedPrivs = privByHash.get(String(r.priv_hash)) || [];
+              return {
+                id: r.id || idx + 1,
+                roleName: r.child_role_name,
+                roleCode: r.role_code || `ORA_ROLE_${idx + 1}`,
+                category: r.category || 'Duty',
+                parentRole: r.parent_role_name,
+                parentRoleType: r.parent_role_type || 'DUTY',
+                childRole: r.child_role_name,
+                childRoleType: r.child_role_type || 'JOB',
+                relationshipType: r.relationship_type || `${r.parent_role_type || 'DUTY'} grants ${r.child_role_type || 'JOB'}`,
+                privileges: sharedPrivs,
+                privilegeCount: sharedPrivs.length,
+              };
+            });
+
+            this.memoryCache = loaded;
+            this.compactCache = null;
+            this.lastSyncedAt = syncedAtIso;
+            this.dbLoaded = true;
+            console.log(`[RoleHierarchyService] Loaded ${loaded.length} authoritative role hierarchy relationships from PostgreSQL (${privIntern.size} unique privileges, ${privByHash.size} unique sets).`);
+          }
         }
       } catch (err) {
         console.warn('[RoleHierarchyService] PostgreSQL load warning:', (err as Error).message);
@@ -467,6 +507,7 @@ export class RoleHierarchyService {
       if (!this.dbLoaded && this.memoryCache && this.memoryCache.length > 0) {
         try {
           await this.persistItemsToDatabase(this.memoryCache);
+          this.compactCache = null;
           this.dbLoaded = true;
           console.log(`[RoleHierarchyService] Backfilled ${this.memoryCache.length} hierarchy rows into PostgreSQL.`);
         } catch (seedErr) {
@@ -474,18 +515,47 @@ export class RoleHierarchyService {
         }
       }
 
-      // 2. Fallback to seed file ONLY if database and disk cache are completely empty
+      // Fallback to seed file ONLY if database and disk cache are completely empty
       if ((!this.memoryCache || this.memoryCache.length === 0) && fs.existsSync(SEED_FILE_PATH)) {
         try {
           const rawSeed = fs.readFileSync(SEED_FILE_PATH, 'utf8');
           const parsedSeed = JSON.parse(rawSeed);
           if (Array.isArray(parsedSeed.items) && parsedSeed.items.length > 0) {
             this.memoryCache = parsedSeed.items;
+            this.compactCache = null;
             this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
             this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
           }
         } catch (_) {}
       }
+    })().finally(() => {
+      this.dbLoadPromise = null;
+    });
+
+    return this.dbLoadPromise;
+  }
+
+  /**
+   * Retrieves role hierarchy rows from PostgreSQL with filtering and optional lossless privilege deduplication.
+   */
+  public async getHierarchyReport(options?: {
+    search?: string;
+    category?: string;
+    page?: number;
+    limit?: number;
+    forceRefresh?: boolean;
+    compact?: boolean;
+  }): Promise<{
+    success: boolean;
+    dataSource: string;
+    items: any[];
+    privilegesCatalog?: Array<{ code: string; name: string; description: string }>;
+    privilegeSets?: number[][];
+    totalCount: number;
+    lastSyncedAt: string | null;
+  }> {
+    if (options?.forceRefresh || !this.dbLoaded) {
+      await this.ensureLoadedFromDb(Boolean(options?.forceRefresh));
     }
 
     let allItems = this.memoryCache || [];
@@ -508,6 +578,70 @@ export class RoleHierarchyService {
     if (options?.category && options.category !== 'ALL') {
       const cat = options.category.toLowerCase().trim();
       allItems = allItems.filter(i => i.category.toLowerCase() === cat);
+    }
+
+    if (options?.compact) {
+      const isUnfiltered = !options?.search && (!options?.category || options.category === 'ALL');
+      if (isUnfiltered && this.compactCache && this.compactCache.lastSyncedAt === this.lastSyncedAt) {
+        return {
+          success: true,
+          dataSource: 'PostgreSQL Database',
+          items: this.compactCache.items,
+          privilegesCatalog: this.compactCache.privilegesCatalog,
+          privilegeSets: this.compactCache.privilegeSets,
+          totalCount: this.compactCache.items.length,
+          lastSyncedAt: this.lastSyncedAt,
+        };
+      }
+
+      const privilegesCatalog: Array<{ code: string; name: string; description: string }> = [];
+      const privIdxMap = new Map<string, number>();
+      const privilegeSets: number[][] = [];
+      const setIdxMap = new Map<string, number>();
+
+      const compactItems = allItems.map((it) => {
+        const { privileges, ...rest } = it;
+        let privSetId = -1;
+        if (Array.isArray(privileges) && privileges.length > 0) {
+          const ids = privileges.map((p: any) => {
+            const code = p?.code || '';
+            const name = p?.name || '';
+            const description = p?.description || '';
+            const pk = `${code}\u0000${name}\u0000${description}`;
+            let idx = privIdxMap.get(pk);
+            if (idx === undefined) {
+              idx = privilegesCatalog.length;
+              privIdxMap.set(pk, idx);
+              privilegesCatalog.push({ code, name, description });
+            }
+            return idx;
+          });
+          const sk = ids.join(',');
+          const existingSetId = setIdxMap.get(sk);
+          if (existingSetId !== undefined) {
+            privSetId = existingSetId;
+          } else {
+            privSetId = privilegeSets.length;
+            setIdxMap.set(sk, privSetId);
+            privilegeSets.push(ids);
+          }
+        }
+        return { ...rest, privSetId };
+      });
+
+      if (isUnfiltered) {
+        this.compactCache = { items: compactItems, privilegesCatalog, privilegeSets, lastSyncedAt: this.lastSyncedAt };
+      }
+
+      return {
+        success: true,
+        dataSource: 'PostgreSQL Database',
+        items: compactItems,
+        privilegesCatalog,
+        privilegeSets,
+        totalCount: compactItems.length,
+        lastSyncedAt: this.lastSyncedAt,
+      };
     }
 
     return {
@@ -594,7 +728,7 @@ export class RoleHierarchyService {
         item.parentRole.toLowerCase() === canonicalLower;
 
       if (match && item.privileges && item.privileges.length > 0) {
-        item.privileges.forEach(p => {
+        item.privileges.forEach((p: any) => {
           if (p.code && !privMap.has(p.code.toUpperCase())) {
             privMap.set(p.code.toUpperCase(), {
               code: p.code,
