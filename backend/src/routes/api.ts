@@ -62,60 +62,8 @@ function logAudit(username: string, action: string, details: string) {
 }
 
 // Authentication middleware to verify session tokens (AC2, AC3, AC4, AC7)
-export async function requireAuth(req: Request, res: Response, next: () => void) {
-  try {
-    const authHeader = req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, message: 'Authentication required. Missing or malformed token.' });
-    }
-
-    const token = authHeader.substring(7);
-    const validation = await authService.validateSession(token, true);
-    if (!validation.valid) {
-      if (validation.code === 'USER_DISABLED' || validation.code === 'ACCOUNT_INACTIVE') {
-        const email = validation.session?.email || 'Unknown User';
-        logAudit(email, 'ACCOUNT_DEACTIVATED', `Blocked request: account status is ${validation.status || 'DISABLED'}`);
-        return res.status(403).json({
-          success: false,
-          code: 'USER_DISABLED',
-          status: validation.status || 'DISABLED',
-          message: validation.message || 'Your account is inactive or disabled. Please contact your system administrator.'
-        });
-      }
-      if (validation.code === 'SESSION_EXPIRED') {
-        const email = validation.session?.email || 'Unknown User';
-        logAudit(email, 'SESSION_EXPIRED', 'Session expired due to inactivity or expiry period');
-        return res.status(401).json({
-          code: 'SESSION_EXPIRED',
-          message: 'Your session has expired. Please log in again.'
-        });
-      }
-      return res.status(401).json({
-        success: false,
-        code: validation.code || 'INVALID_TOKEN',
-        message: validation.message || 'Session expired or invalid. Please sign in again.'
-      });
-    }
-
-    const session = validation.session!;
-    res.locals.userId = session.userId;
-    res.locals.email = session.email;
-    res.locals.displayName = session.displayName;
-    res.locals.role = session.role;
-    res.locals.permissions = session.permissions;
-    res.locals.isAdmin = session.isAdmin;
-    res.locals.token = token;
-    res.locals.authProvider = session.authProvider || authService.getEffectiveProvider();
-    next();
-  } catch (err: any) {
-    console.error('[requireAuth Error]:', err);
-    return res.status(401).json({
-      success: false,
-      code: 'AUTH_ERROR',
-      message: 'Session validation error: ' + (err?.message || 'Unknown error')
-    });
-  }
-}
+import { verifyJwtAndSession } from '../middleware/jwtAuthMiddleware.js';
+export const requireAuth = verifyJwtAndSession;
 
 // Middleware to enforce backend admin authorization (Site Admin only - AC6)
 export function requireAdmin(req: Request, res: Response, next: () => void) {
