@@ -283,7 +283,18 @@ export default function Roles({
       <span>Rows per page:</span>
       <select
         className="form-select"
-        style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+        style={{
+          width: '78px',
+          minWidth: '78px',
+          height: '28px',
+          padding: '0.15rem 1.6rem 0.15rem 0.6rem',
+          fontSize: '0.8rem',
+          lineHeight: 1.2,
+          backgroundPosition: 'right 0.45rem center',
+          backgroundSize: '0.75rem',
+          borderRadius: '6px',
+          cursor: 'pointer'
+        }}
         value={pageSize}
         onChange={(e) => {
           setPageSize(Number(e.target.value));

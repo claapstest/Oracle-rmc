@@ -1886,8 +1886,7 @@ export default function Reports({
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
                   { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: (c: any) => c.scheduledBy || '—' },
-                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' },
-                  { key: 'calculationNotes', label: 'Calculation Notes', defaultSelected: false, getValue: (c: any) => c.calculationNotes || '—' }
+                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -4152,7 +4151,7 @@ export default function Reports({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Rows per page:</span>
                 <select
                   className="form-select"
@@ -4161,7 +4160,18 @@ export default function Reports({
                     setPageSize(parseInt(e.target.value, 10));
                     setCurrentPage(1);
                   }}
-                  style={{ padding: '0.2rem 0.5rem', height: '28px', fontSize: '0.78rem' }}
+                  style={{
+                    width: '78px',
+                    minWidth: '78px',
+                    height: '28px',
+                    padding: '0.15rem 1.6rem 0.15rem 0.6rem',
+                    fontSize: '0.78rem',
+                    lineHeight: 1.2,
+                    backgroundPosition: 'right 0.45rem center',
+                    backgroundSize: '0.75rem',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -4371,15 +4381,15 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{resolveIncidentControlName(selectedIncidentDetail)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{resolveIncidentControlName(selectedIncidentDetail)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{getIncidentAttr(selectedIncidentDetail, 'controlType') || '-'}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{getIncidentAttr(selectedIncidentDetail, 'controlType') || '-'}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{getIncidentAttr(selectedIncidentDetail, 'resultId') || '-'}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{getIncidentAttr(selectedIncidentDetail, 'resultId') || '-'}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Status</span>
@@ -4405,15 +4415,15 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>User ID</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.globalUserId)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.globalUserId)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>First Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.userFirstName)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.userFirstName)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.userLastName)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.userLastName)}</span>
                   </div>
                 </div>
               </div>
@@ -4433,30 +4443,30 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                       {renderFieldVal(selectedIncidentDetail.conflictingRoles)}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Entitlement</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.entitlement)}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.entitlement)}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.accessPointType)}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.accessPointType)}</span>
                     </div>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Name</span>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                       {renderFieldVal(selectedIncidentDetail.accessPointName)}
                     </div>
                   </div>
                   {selectedIncidentDetail.conflictingAccPointName && (
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Access Point</span>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                         {renderFieldVal(selectedIncidentDetail.conflictingAccPointName)}
                       </div>
                     </div>
@@ -4473,34 +4483,34 @@ export default function Reports({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Incident Information</span>
-                    <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.65rem 0.85rem', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)', lineHeight: '1.4' }}>
+                    <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.65rem 0.85rem', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600, border: '1px solid var(--border-color)', lineHeight: '1.4' }}>
                       {renderFieldVal(selectedIncidentDetail.incidentInformation)}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginTop: '0.25rem' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Grouping Value</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'groupingValue'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'groupingValue'))}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'dataSource'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'dataSource'))}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'group'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'group'))}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Number of Occurrences</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'numberOfOccurrences'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'numberOfOccurrences'))}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'attachments'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'attachments'))}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'comments'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'comments'))}</span>
                     </div>
                   </div>
                 </div>
@@ -4515,35 +4525,35 @@ export default function Reports({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.createdBy)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.createdBy)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Created Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.creationDate)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(selectedIncidentDetail.creationDate)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.lastUpdatedBy)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.lastUpdatedBy)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Update Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.lastUpdateDate)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(selectedIncidentDetail.lastUpdateDate)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Closed By</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.closedBy)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.closedBy)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.closedDate)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(selectedIncidentDetail.closedDate)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(getIncidentAttr(selectedIncidentDetail, 'lastRunDate'))}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(getIncidentAttr(selectedIncidentDetail, 'lastRunDate'))}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'investigator'))}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'investigator'))}</span>
                   </div>
                 </div>
               </div>

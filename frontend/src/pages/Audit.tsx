@@ -1363,7 +1363,18 @@ export default function Audit({
               <span style={{ fontSize: '0.75rem' }}>Per page:</span>
               <select
                 className="form-select"
-                style={{ padding: '0.15rem 0.5rem', fontSize: '0.75rem', height: '28px' }}
+                style={{
+                  width: '78px',
+                  minWidth: '78px',
+                  height: '28px',
+                  padding: '0.15rem 1.6rem 0.15rem 0.6rem',
+                  fontSize: '0.75rem',
+                  lineHeight: 1.2,
+                  backgroundPosition: 'right 0.45rem center',
+                  backgroundSize: '0.75rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
                 value={pageSize}
                 onChange={(e) => {
                   const newSize = Number(e.target.value);
