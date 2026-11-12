@@ -57,7 +57,7 @@ export const config = {
     requireRoleMapping: process.env.ENTRA_REQUIRE_ROLE_MAPPING === 'true',
   },
   oracle: {
-    baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',
+    baseUrl: process.env.ORACLE_FUSION_BASE_URL || process.env.FUSION_HOST || 'https://eiiv-dev14.fa.us6.oraclecloud.com',
     authType: (process.env.ORACLE_AUTH_TYPE || 'BASIC').toUpperCase() as 'BASIC' | 'BEARER',
     username: process.env.ORACLE_USERNAME || '',
     password: process.env.ORACLE_PASSWORD || '',
@@ -187,9 +187,9 @@ export function validateConfig() {
   if (providerType === 'LOCAL') {
     // In LOCAL mode, Entra credentials are NOT validated or required.
     // Ensure database connection parameters are available.
-    const hasDb = Boolean(process.env.DATABASE_URL || process.env.POSTGRES_HOST);
+    const hasDb = Boolean(process.env.DATABASE_URL || process.env.DATABASE_URI || process.env.POSTGRES_HOST);
     if (!hasDb) {
-      console.warn('[Config Warning] AUTH_PROVIDER is set to LOCAL, but no PostgreSQL configuration (DATABASE_URL / POSTGRES_HOST) was detected.');
+      console.warn('[Config Warning] AUTH_PROVIDER is set to LOCAL, but no PostgreSQL configuration (DATABASE_URL / DATABASE_URI / POSTGRES_HOST) was detected.');
     }
   }
 

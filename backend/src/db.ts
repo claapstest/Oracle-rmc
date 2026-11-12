@@ -25,6 +25,7 @@ function normalizeConnectionString(rawUrl?: string): string {
 
 const rawConnectionString =
   process.env.DATABASE_URL ||
+  process.env.DATABASE_URI ||
   `postgresql://${process.env.POSTGRES_USER || 'postgres'}:${process.env.POSTGRES_PASSWORD || 'postgres'}@${process.env.POSTGRES_HOST || '127.0.0.1'}:${process.env.POSTGRES_PORT || '5433'}/${process.env.POSTGRES_DB || 'veyra_db'}`;
 
 const connectionString = normalizeConnectionString(rawConnectionString);

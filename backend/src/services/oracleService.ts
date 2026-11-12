@@ -1831,7 +1831,6 @@ class OracleService {
     startIndexArg?: number,
     countArg?: number
   ): Promise<{ roles: Role[]; totalResults: number; startIndex: number; count: number }> {
-    this.assertLiveInstance('Roles list');
     let filterText: string | undefined;
     let category: string | undefined = categoryArg;
     let startIndex = startIndexArg || 1;
@@ -1860,6 +1859,8 @@ class OracleService {
         count
       };
     }
+
+    this.assertLiveInstance('Roles list');
 
     if (this.isDemoMode()) {
       const results = searchAndRankRoles(mockRoles, filterText, category);
