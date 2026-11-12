@@ -115,3 +115,4 @@ In compliance with Acceptance Criteria 3:
 - **Deduplication Logs:** Log only `${method} ${endpoint}` (e.g. `GET /api/users`), never the request body or authorization header.
 - **Error Diagnostics:** In `ApiError` logging, output only status codes and message summaries (`HTTP 401 (INVALID_TOKEN)`), never raw token strings or serialized request bodies.
 - **Telemetry & URLs:** Tokens are never passed as query parameters, URL path segments, analytics events, or browser history states.
+
