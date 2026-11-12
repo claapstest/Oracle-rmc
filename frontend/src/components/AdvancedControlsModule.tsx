@@ -3468,13 +3468,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                         </div>
                                         <div>
                                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Person Identifier</span>
-                                          <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                                          <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-primary)', fontWeight: 600 }}>
                                             {parsedGrouping.personId || '-'}
                                           </span>
                                         </div>
                                         <div>
                                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Expense Type ID</span>
-                                          <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                                          <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-primary)', fontWeight: 600 }}>
                                             {parsedGrouping.expenseTypeId || '-'}
                                           </span>
                                         </div>
@@ -3489,7 +3489,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Type</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(formatControlTypeName(getIncidentAttr(viewingIncident, 'controlType')))}
                                     </span>
                                   </div>
@@ -3501,13 +3501,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Number of Occurrences</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'numberOfOccurrences'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Investigator</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
                                     </span>
                                   </div>
@@ -3534,61 +3534,61 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'creationDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Update Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'lastUpdatedDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Revision Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'revisionDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'lastRunDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'closedDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
                                     </span>
                                   </div>
@@ -3612,19 +3612,19 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User First Name</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User Last Name</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User ID</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--accent-gold)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
                                       <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
                                     </span>
                                   </div>
@@ -3645,37 +3645,37 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Entitlement</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information Codes</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', wordBreak: 'break-all' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', fontWeight: 600, wordBreak: 'break-all' }}>
                                       <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
                                     </span>
                                   </div>
@@ -3690,47 +3690,47 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)' }}>{renderFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
+                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Priority</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
-                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
@@ -3745,43 +3745,43 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'creationDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'lastRunDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'lastUpdatedDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'closedDate'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
                                     </span>
                                   </div>
