@@ -1174,6 +1174,33 @@ export class AuthService {
               session
             };
           }
+
+          // VYR-023: Re-sync role and permissions dynamically if updated in DB
+          try {
+            const roleRes = await dbQuery(
+              `SELECT r.role_code FROM veyra_role r
+               JOIN veyra_user_role ur ON ur.role_id = r.id
+               WHERE ur.user_id = $1 AND r.status = 'ACTIVE'`,
+              [session.userId]
+            );
+            if (roleRes && roleRes.rows.length > 0) {
+              const roleCodes = roleRes.rows.map((r: any) => r.role_code);
+              const isSiteAdmin = roleCodes.includes('SITE_ADMIN') || session.email.toLowerCase() === 'admin@admin.com';
+              session.role = isSiteAdmin ? 'SITE_ADMIN' : (roleCodes[0] || 'VIEWER');
+              session.isAdmin = isSiteAdmin;
+
+              const privsRes = await dbQuery(
+                `SELECT DISTINCT p.privilege_code FROM veyra_privilege p
+                 JOIN veyra_role_privilege rp ON rp.privilege_id = p.id
+                 JOIN veyra_user_role ur ON ur.role_id = rp.role_id
+                 WHERE ur.user_id = $1 AND p.status = 'ACTIVE'`,
+                [session.userId]
+              );
+              if (privsRes && privsRes.rows.length > 0) {
+                session.permissions = privsRes.rows.map((p: any) => p.privilege_code);
+              }
+            }
+          } catch (_) { }
         } else if (userRes && userRes.rows.length === 0) {
           session.status = 'LOGGED_OUT';
           activeSessions.delete(effectiveSessionKey);
@@ -1190,17 +1217,26 @@ export class AuthService {
       } catch (_) {
         // Fallback for offline dev/mock environments without database
         const localU = this.users[session.email.toLowerCase()];
-        if (localU && (localU.status !== 'ACTIVE' || localU.isActive === false)) {
-          session.status = 'LOGGED_OUT';
-          activeSessions.delete(effectiveSessionKey);
-          activeSessions.delete(token);
-          return {
-            valid: false,
-            code: 'USER_DISABLED',
-            status: localU.status || 'DISABLED',
-            message: 'Your account is not active. Please contact a system administrator.',
-            session
-          };
+        if (localU) {
+          if (localU.status !== 'ACTIVE' || localU.isActive === false) {
+            session.status = 'LOGGED_OUT';
+            activeSessions.delete(effectiveSessionKey);
+            activeSessions.delete(token);
+            return {
+              valid: false,
+              code: 'USER_DISABLED',
+              status: localU.status || 'DISABLED',
+              message: 'Your account is not active. Please contact a system administrator.',
+              session
+            };
+          }
+          if (localU.role) {
+            session.role = localU.role;
+            session.isAdmin = localU.isAdmin === true || localU.role === 'SITE_ADMIN';
+          }
+          if (localU.permissions && localU.permissions.length > 0) {
+            session.permissions = localU.permissions;
+          }
         }
       }
 
@@ -2516,22 +2552,43 @@ export class AuthService {
     return VEYRA_PRIVILEGES;
   }
 
-  public toggleAccountStatus(adminEmail: string, targetEmail: string, active: boolean): boolean {
+  public async toggleAccountStatus(adminEmail: string, targetEmail: string, active: boolean): Promise<boolean> {
     const normalizedAdmin = this.normalizeEmail(adminEmail);
     const normalizedTarget = this.normalizeEmail(targetEmail);
     if (normalizedAdmin === normalizedTarget) {
       throw new Error('Administrators cannot deactivate their own accounts.');
     }
     const user = this.users[normalizedTarget];
-    if (!user) return false;
+    if (user) {
+      user.isActive = active;
+      user.status = active ? 'ACTIVE' : 'DISABLED';
+      this.saveUsers();
+    }
 
-    user.isActive = active;
-    user.status = active ? 'ACTIVE' : 'DISABLED';
-    this.saveUsers();
+    // Also update PostgreSQL veyra_user status if available
+    try {
+      const dbStatus = active ? 'ACTIVE' : 'DISABLED';
+      const dbRes = await dbQuery(
+        `UPDATE veyra_user SET status = $1 WHERE LOWER(email) = LOWER($2) RETURNING id`,
+        [dbStatus, normalizedTarget]
+      );
+      if (dbRes && dbRes.rows.length > 0 && !active) {
+        // If deactivating, expire active sessions for this user in DB
+        const userId = dbRes.rows[0].id;
+        await dbQuery(`UPDATE veyra_session SET status = 'EXPIRED' WHERE user_id = $1`, [userId]).catch(() => {});
+        for (const [token, session] of activeSessions.entries()) {
+          if (session.userId === userId || this.normalizeEmail(session.email) === normalizedTarget) {
+            session.status = 'LOGGED_OUT';
+            activeSessions.delete(token);
+          }
+        }
+      }
+    } catch (_) { }
+
     return true;
   }
 
-  public deleteUserAccount(adminEmail: string, targetEmail: string): boolean {
+  public async deleteUserAccount(adminEmail: string, targetEmail: string): Promise<boolean> {
     const normalizedAdmin = this.normalizeEmail(adminEmail);
     const normalizedTarget = this.normalizeEmail(targetEmail);
 
@@ -2540,17 +2597,27 @@ export class AuthService {
     }
 
     const user = this.users[normalizedTarget];
-    if (!user) return false;
+    if (user) {
+      delete this.users[normalizedTarget];
+      this.saveUsers();
+    }
 
     // Terminate any active sessions for the deleted user
     for (const [token, session] of activeSessions.entries()) {
       if (this.normalizeEmail(session.email) === normalizedTarget) {
+        session.status = 'LOGGED_OUT';
         activeSessions.delete(token);
       }
     }
 
-    delete this.users[normalizedTarget];
-    this.saveUsers();
+    // Also delete from PostgreSQL if available
+    try {
+      await dbQuery(
+        `DELETE FROM veyra_user WHERE LOWER(email) = LOWER($1)`,
+        [normalizedTarget]
+      );
+    } catch (_) { }
+
     return true;
   }
 

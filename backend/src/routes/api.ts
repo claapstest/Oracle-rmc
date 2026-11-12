@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { oracleService } from '../services/oracleService.js';
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
@@ -61,13 +61,14 @@ function logAudit(username: string, action: string, details: string) {
   }
 }
 
-// Authentication middleware to verify session tokens (AC2, AC3, AC4, AC7)
+// Authentication and RBAC middleware integrating JWT verification (VYR-021 & VYR-023)
 import { verifyJwtAndSession } from '../middleware/jwtAuthMiddleware.js';
 export const requireAuth = verifyJwtAndSession;
 
-// Middleware to enforce backend admin authorization (Site Admin only - AC6)
-export function requireAdmin(req: Request, res: Response, next: () => void) {
-  requireAuth(req, res, () => {
+// Middleware to enforce backend admin authorization (Site Admin only - AC6, VYR-023)
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: any) => {
+    if (err) return next(err);
     const isAdmin = res.locals.isAdmin === true || res.locals.role === 'SITE_ADMIN' || res.locals.permissions?.includes('ALL');
     if (!isAdmin) {
       return res.status(403).json({
@@ -80,11 +81,12 @@ export function requireAdmin(req: Request, res: Response, next: () => void) {
   });
 }
 
-// Middleware to enforce specific privileges (AC5)
+// Middleware to enforce specific privileges (AC5, VYR-023)
 export function requirePrivilege(requiredPrivileges: string | string[]) {
   const reqPrivList = Array.isArray(requiredPrivileges) ? requiredPrivileges : [requiredPrivileges];
-  return (req: Request, res: Response, next: () => void) => {
-    requireAuth(req, res, () => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    requireAuth(req, res, (err?: any) => {
+      if (err) return next(err);
       const userPermissions: string[] = res.locals.permissions || [];
       const isAdmin: boolean = res.locals.isAdmin === true || res.locals.role === 'SITE_ADMIN';
 
@@ -113,9 +115,10 @@ export function requirePrivilege(requiredPrivileges: string | string[]) {
 }
 
 
-// Middleware to enforce Audit Manager Dashboard authorization (AC2, AC4)
-export function requireAuditManagerDashboard(req: Request, res: Response, next: () => void) {
-  requireAuth(req, res, () => {
+// Middleware to enforce Audit Manager Dashboard authorization (AC2, AC4, VYR-023)
+export function requireAuditManagerDashboard(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: any) => {
+    if (err) return next(err);
     const userRole = (res.locals.role || '').toUpperCase();
     const userPermissions: string[] = res.locals.permissions || [];
     const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
@@ -160,9 +163,10 @@ export function requireAuditManagerDashboard(req: Request, res: Response, next: 
   });
 }
 
-// Middleware to enforce Audit Supervisor Dashboard authorization (VY-STRY-015: AC1, AC2, AC5, AC6)
-export function requireAuditSupervisorDashboard(req: Request, res: Response, next: () => void) {
-  requireAuth(req, res, () => {
+// Middleware to enforce Audit Supervisor Dashboard authorization (VY-STRY-015: AC1, AC2, AC5, AC6, VYR-023)
+export function requireAuditSupervisorDashboard(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: any) => {
+    if (err) return next(err);
     const userRole = (res.locals.role || '').toUpperCase();
     const userPermissions: string[] = res.locals.permissions || [];
     const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
@@ -207,9 +211,10 @@ export function requireAuditSupervisorDashboard(req: Request, res: Response, nex
   });
 }
 
-// Middleware to enforce Reports-Only Dashboard authorization (VY-STRY-18: AC1, AC2, AC5, AC6)
-export function requireReportsDashboard(req: Request, res: Response, next: () => void) {
-  requireAuth(req, res, () => {
+// Middleware to enforce Reports-Only Dashboard authorization (VY-STRY-18: AC1, AC2, AC5, AC6, VYR-023)
+export function requireReportsDashboard(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: any) => {
+    if (err) return next(err);
     const userRole = (res.locals.role || '').toUpperCase();
     const userPermissions: string[] = res.locals.permissions || [];
     const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL');
@@ -234,9 +239,10 @@ export function requireReportsDashboard(req: Request, res: Response, next: () =>
   });
 }
 
-// Middleware to enforce Users List authorization (VY-STRY-24: AC1, AC2)
-export function requireUsersListAccess(req: Request, res: Response, next: () => void) {
-  requireAuth(req, res, () => {
+// Middleware to enforce Users List authorization (VY-STRY-24: AC1, AC2, VYR-023)
+export function requireUsersListAccess(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: any) => {
+    if (err) return next(err);
     const userRole = (res.locals.role || '').toUpperCase();
     const userPermissions: string[] = res.locals.permissions || [];
     const isAdmin = res.locals.isAdmin === true || userRole === 'SITE_ADMIN' || userPermissions.includes('ALL') || userPermissions.includes('USER_MANAGEMENT');
@@ -692,7 +698,7 @@ apiRouter.get('/admin/users', requirePrivilege('USER_MANAGEMENT'), (req: Request
 });
 
 // POST /admin/users/toggle-status - Activate/Deactivate Account
-apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
+apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
   const { email: rawEmail, active } = req.body;
   if (rawEmail === undefined || active === undefined) {
     return res.status(400).json({ success: false, message: 'Target email and active status are required.' });
@@ -700,7 +706,7 @@ apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT')
 
   const email = authService.normalizeEmail(rawEmail);
   try {
-    const result = authService.toggleAccountStatus(res.locals.email, email, active);
+    const result = await authService.toggleAccountStatus(res.locals.email, email, active);
     if (!result) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
@@ -713,7 +719,7 @@ apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT')
 });
 
 // POST /admin/users/delete - Permanently delete user account
-apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
+apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -721,7 +727,7 @@ apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), (req:
 
   const email = authService.normalizeEmail(rawEmail);
   try {
-    const result = authService.deleteUserAccount(res.locals.email, email);
+    const result = await authService.deleteUserAccount(res.locals.email, email);
     if (!result) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
