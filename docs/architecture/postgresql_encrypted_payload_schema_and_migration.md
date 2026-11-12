@@ -125,3 +125,4 @@ The `down` migration in `1711000000021_create_oracle_raw_encrypted_payloads_and_
 2. Drops indexes `ix_<table_name>_enc_status`.
 3. Drops the added columns (`is_encrypted`, `encryption_format_version`, `encryption_key_id`, `encrypted_at`) from all 10 raw tables.
 4. Uses `IF EXISTS` constructs to ensure idempotent execution without data loss on unmanaged columns.
+

@@ -96,3 +96,4 @@ exports.down = (pgm) => {
       DROP COLUMN IF EXISTS raw_payload;
   `);
 };
+
