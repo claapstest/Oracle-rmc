@@ -2749,7 +2749,7 @@ apiRouter.get('/risk/controls/:id', requirePrivilege(['RISK_MANAGEMENT', 'RISK_R
   }
 });
 
-// GET /risk/controls/:id/incidents - Fast paginated incident retrieval (default 25 rows)
+// GET /risk/controls/:id/incidents - Fast paginated & filtered incident retrieval (default 25 rows)
 apiRouter.get('/risk/controls/:id/incidents', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
     const controlId = req.params.id;
@@ -2757,10 +2757,37 @@ apiRouter.get('/risk/controls/:id/incidents', requirePrivilege(['RISK_MANAGEMENT
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 25;
     const forceRefresh = req.query.refresh === 'true';
 
+    const parseCsv = (val: unknown): string[] | undefined => {
+      if (typeof val !== 'string' || !val.trim()) return undefined;
+      const list = val.split(',').map(s => s.trim()).filter(Boolean);
+      return list.length > 0 ? list : undefined;
+    };
+
+    const strParam = (val: unknown): string | undefined =>
+      (typeof val === 'string' && val.trim() ? val.trim() : undefined);
+
     const result = await oracleService.getControlIncidentsPage(controlId, {
       page,
       limit,
-      forceRefresh
+      forceRefresh,
+      status: strParam(req.query.status),
+      statuses: parseCsv(req.query.statuses),
+      state: strParam(req.query.state),
+      states: parseCsv(req.query.states),
+      search: strParam(req.query.search),
+      globalUser: strParam(req.query.globalUser),
+      role: strParam(req.query.role),
+      accessEntitlement: strParam(req.query.accessEntitlement),
+      accessPointName: strParam(req.query.accessPointName),
+      accessPointType: strParam(req.query.accessPointType),
+      priority: strParam(req.query.priority),
+      groupingValue: strParam(req.query.groupingValue),
+      group: strParam(req.query.group),
+      dataSource: strParam(req.query.dataSource),
+      incidentInformation: strParam(req.query.incidentInformation),
+      createdBy: strParam(req.query.createdBy),
+      investigator: strParam(req.query.investigator),
+      lastUpdatedBy: strParam(req.query.lastUpdatedBy)
     });
 
     if (!result.success) {
@@ -2771,6 +2798,19 @@ apiRouter.get('/risk/controls/:id/incidents', requirePrivilege(['RISK_MANAGEMENT
     res.status(500).json({
       success: false,
       message: (err as Error).message || 'Unable to retrieve incidents from Oracle Fusion.'
+    });
+  }
+});
+
+// GET /risk/controls/:id/incidents/facets - Distinct filter dropdown options for a control
+apiRouter.get('/risk/controls/:id/incidents/facets', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
+  try {
+    const result = await oracleService.getControlIncidentFacets(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: (err as Error).message || 'Unable to load incident filter options.'
     });
   }
 });

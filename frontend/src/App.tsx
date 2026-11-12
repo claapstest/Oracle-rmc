@@ -1312,6 +1312,8 @@ export default function App() {
                       isActive={currentPage === 'risk-controls'}
                       onBack={handleNavigateBack}
                       onRegisterBack={setInternalPageBack}
+                      isSidebarOpen={isSidebarOpen}
+                      onSetSidebarOpen={setIsSidebarOpen}
                     />
                   </div>
                 )}

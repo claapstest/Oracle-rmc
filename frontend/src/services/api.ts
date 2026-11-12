@@ -436,8 +436,38 @@ export const api = {
     return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}${refresh ? '?refresh=true' : ''}`);
   },
 
-  async getControlIncidents(controlId: string, pageOrOptions?: number | { page?: number; limit?: number; refresh?: boolean }, limit?: number, refresh?: boolean) {
+  async getControlIncidents(
+    controlId: string,
+    pageOrOptions?: number | {
+      page?: number;
+      limit?: number;
+      refresh?: boolean;
+      filters?: {
+        statuses?: string[];
+        states?: string[];
+        search?: string;
+        globalUser?: string;
+        role?: string;
+        accessEntitlement?: string;
+        accessPointName?: string;
+        accessPointType?: string;
+        priority?: string;
+        groupingValue?: string;
+        group?: string;
+        dataSource?: string;
+        incidentInformation?: string;
+        createdBy?: string;
+        investigator?: string;
+        lastUpdatedBy?: string;
+      };
+    },
+    limit?: number,
+    refresh?: boolean,
+    filters?: Record<string, any>
+  ) {
     const params = new URLSearchParams();
+    let effectiveFilters: Record<string, any> | undefined = filters;
+
     if (typeof pageOrOptions === 'number') {
       params.append('page', String(pageOrOptions));
       if (limit) params.append('limit', String(limit));
@@ -446,9 +476,46 @@ export const api = {
       if (pageOrOptions.page) params.append('page', String(pageOrOptions.page));
       if (pageOrOptions.limit) params.append('limit', String(pageOrOptions.limit));
       if (pageOrOptions.refresh) params.append('refresh', 'true');
+      effectiveFilters = pageOrOptions.filters || effectiveFilters;
     }
+
+    if (effectiveFilters) {
+      if (Array.isArray(effectiveFilters.statuses) && effectiveFilters.statuses.length > 0) {
+        params.append('statuses', effectiveFilters.statuses.join(','));
+      }
+      if (Array.isArray(effectiveFilters.states) && effectiveFilters.states.length > 0) {
+        params.append('states', effectiveFilters.states.join(','));
+      }
+      const strKeys = [
+        'search',
+        'globalUser',
+        'role',
+        'accessEntitlement',
+        'accessPointName',
+        'accessPointType',
+        'priority',
+        'groupingValue',
+        'group',
+        'dataSource',
+        'incidentInformation',
+        'createdBy',
+        'investigator',
+        'lastUpdatedBy'
+      ];
+      for (const k of strKeys) {
+        const val = typeof effectiveFilters[k] === 'string' ? effectiveFilters[k].trim() : '';
+        if (val && val.toUpperCase() !== 'ALL') {
+          params.append(k, val);
+        }
+      }
+    }
+
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}/incidents${query}`);
+  },
+
+  async getControlIncidentFacets(controlId: string) {
+    return apiRequest(`/risk/controls/${encodeURIComponent(controlId)}/incidents/facets`);
   },
 
   async getControlIncidentCounts(sync?: boolean) {

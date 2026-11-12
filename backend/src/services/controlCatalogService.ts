@@ -98,7 +98,7 @@ export interface ControlCatalogResult {
 
 import { IncidentCacheService, IncidentSyncProgress } from './incidentCacheService.js';
 import { IncidentCountCacheService, CachedCountEntry, IncidentCountCache } from './incidentCountCacheService.js';
-import { controlRawDbService } from './controlRawDbService.js';
+import { controlRawDbService, IncidentQueryFilters, ControlIncidentFacets } from './controlRawDbService.js';
 
 export interface ControlDetailResult {
   success: boolean;
@@ -123,6 +123,8 @@ export interface ControlIncidentsPageResult {
   hasMore: boolean;
   count: number;
   totalResults: number | null;
+  filteredTotal?: number | null;
+  isFiltered?: boolean;
   countStatus: 'READY' | 'CALCULATING' | 'ERROR';
   items: ControlIncidentItem[];
   message?: string;
@@ -969,7 +971,7 @@ export class ControlCatalogService {
    */
   public async getControlIncidentsPage(
     controlId: string,
-    options: {
+    options: IncidentQueryFilters & {
       page?: number;
       limit?: number;
       forceRefresh?: boolean;
@@ -985,6 +987,8 @@ export class ControlCatalogService {
         hasMore: false,
         count: 0,
         totalResults: null,
+        filteredTotal: null,
+        isFiltered: false,
         countStatus: 'ERROR',
         items: [],
         message: 'Control ID is required.'
@@ -993,7 +997,7 @@ export class ControlCatalogService {
 
     const cleanId = controlId.trim();
     const page = Math.max(1, parseInt(String(options.page || 1), 10));
-    const limit = Math.min(100, Math.max(1, parseInt(String(options.limit || 25), 10)));
+    const limit = Math.min(250, Math.max(1, parseInt(String(options.limit || 25), 10)));
     const offset = (page - 1) * limit;
 
     // Demo Mode handling
@@ -1010,6 +1014,8 @@ export class ControlCatalogService {
         hasMore: offset + limit < demoIncidents.length,
         count: pageItems.length,
         totalResults: demoIncidents.length,
+        filteredTotal: demoIncidents.length,
+        isFiltered: false,
         countStatus: 'READY',
         items: pageItems
       };
@@ -1050,9 +1056,30 @@ export class ControlCatalogService {
       }
       const controlName = control?.name || `Control ${cleanId}`;
 
-      // 2. High-Performance PostgreSQL Read-Through (<10ms)
-      const dbRes = await controlRawDbService.getRawIncidents(cleanId, { offset, limit });
-      if (dbRes.total > 0 || dbRes.count > 0) {
+      // 2. High-Performance PostgreSQL Read & JSONB Filter (<150ms across all synced incidents)
+      const dbRes = await controlRawDbService.getRawIncidents(cleanId, {
+        offset,
+        limit,
+        statuses: options.statuses,
+        status: options.status,
+        states: options.states,
+        state: options.state,
+        search: options.search,
+        globalUser: options.globalUser,
+        role: options.role,
+        accessEntitlement: options.accessEntitlement,
+        accessPointName: options.accessPointName,
+        accessPointType: options.accessPointType,
+        priority: options.priority,
+        groupingValue: options.groupingValue,
+        group: options.group,
+        dataSource: options.dataSource,
+        incidentInformation: options.incidentInformation,
+        createdBy: options.createdBy,
+        investigator: options.investigator,
+        lastUpdatedBy: options.lastUpdatedBy
+      });
+      if (dbRes.fullSyncedTotal > 0) {
         const normalizedItems = dbRes.rawItems.map(item => {
           const inc = this.normalizeIncident(item, cleanId, controlName);
           if (!inc.controlType && control?.type !== undefined && control?.type !== null) {
@@ -1064,6 +1091,7 @@ export class ControlCatalogService {
           return inc;
         });
         const watermark = await controlRawDbService.getWatermark(cleanId);
+        const authoritativeTotal = Math.max(watermark?.total_incidents || 0, dbRes.fullSyncedTotal);
 
         return {
           success: true,
@@ -1074,7 +1102,9 @@ export class ControlCatalogService {
           offset,
           hasMore: offset + limit < dbRes.total,
           count: normalizedItems.length,
-          totalResults: Math.max(watermark?.total_incidents || 0, dbRes.total),
+          totalResults: authoritativeTotal,
+          filteredTotal: dbRes.total,
+          isFiltered: dbRes.isFiltered,
           countStatus: 'READY',
           items: normalizedItems
         };
@@ -1162,10 +1192,64 @@ export class ControlCatalogService {
         hasMore: false,
         count: 0,
         totalResults: null,
+        filteredTotal: null,
+        isFiltered: false,
         countStatus: 'ERROR',
         items: [],
         message: err.message || 'Unable to retrieve incidents from Oracle Fusion.'
       };
+    }
+  }
+
+  /**
+   * Returns distinct dropdown filter options (Investigator, Created By, Last Updated By, State, etc.)
+   * for a specific control from PostgreSQL.
+   */
+  public async getControlIncidentFacets(controlId: string): Promise<{
+    success: boolean;
+    controlId: string;
+    facets: ControlIncidentFacets;
+  }> {
+    const cleanId = String(controlId || '').trim();
+    const empty: ControlIncidentFacets = {
+      createdBy: [],
+      investigator: [],
+      lastUpdatedBy: [],
+      states: [],
+      accessPointTypes: [],
+      dataSources: [],
+      groups: [],
+      priorities: []
+    };
+    if (!cleanId) {
+      return { success: false, controlId: '', facets: empty };
+    }
+
+    if (this.isDemoMode()) {
+      const items = cleanId === '114281' ? DEMO_INCIDENTS_114281 : [];
+      const uniq = (vals: any[]) => Array.from(new Set(vals.map(v => String(v || '').trim()).filter(Boolean))).sort();
+      return {
+        success: true,
+        controlId: cleanId,
+        facets: {
+          createdBy: uniq(items.map(i => i.createdBy)),
+          investigator: uniq(items.map(i => i.investigator || i.resultInvestigator)),
+          lastUpdatedBy: uniq(items.map(i => i.lastUpdatedBy)),
+          states: uniq(items.map(i => i.state)),
+          accessPointTypes: uniq(items.map(i => i.accessPointType)),
+          dataSources: uniq(items.map(i => i.dataSource)),
+          groups: uniq(items.map(i => i.resultGroup || i.group)),
+          priorities: uniq(items.map(i => i.priority))
+        }
+      };
+    }
+
+    try {
+      const facets = await controlRawDbService.getControlIncidentFacets(cleanId);
+      return { success: true, controlId: cleanId, facets };
+    } catch (err: any) {
+      console.warn(`[Control Facets] Failed for ${cleanId}:`, err.message);
+      return { success: true, controlId: cleanId, facets: empty };
     }
   }
 }

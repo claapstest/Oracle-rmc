@@ -42,6 +42,40 @@ export interface MicroProbeResult {
   lastSyncedAt: string | null;
 }
 
+export interface IncidentQueryFilters {
+  statuses?: string[];
+  status?: string;
+  states?: string[];
+  state?: string;
+  search?: string;
+  searchTerms?: string[];
+  priority?: string;
+  user?: string;
+  role?: string;
+  globalUser?: string;
+  accessEntitlement?: string;
+  accessPointName?: string;
+  accessPointType?: string;
+  groupingValue?: string;
+  group?: string;
+  dataSource?: string;
+  incidentInformation?: string;
+  createdBy?: string;
+  investigator?: string;
+  lastUpdatedBy?: string;
+}
+
+export interface ControlIncidentFacets {
+  createdBy: string[];
+  investigator: string[];
+  lastUpdatedBy: string[];
+  states: string[];
+  accessPointTypes: string[];
+  dataSources: string[];
+  groups: string[];
+  priorities: string[];
+}
+
 export class ControlRawDbService {
   private schedulerTimer: NodeJS.Timeout | null = null;
   private isSchedulerRunning = false;
@@ -393,89 +427,134 @@ export class ControlRawDbService {
   }
 
   /**
-   * Retrieves raw incidents directly from the single JSONB cell in <5ms.
-   * Performs in-memory filtering and pagination on the raw Oracle JSON array.
+   * Retrieves raw incidents for a single control directly in PostgreSQL using JSONB filtering & pagination.
+   * Scans across all synced incident rows for the control before slicing the requested page.
    */
   public async getRawIncidents(
     controlId: string,
-    options: {
+    options: IncidentQueryFilters & {
       offset?: number;
       limit?: number;
-      status?: string;
-      search?: string;
     } = {}
-  ): Promise<{ total: number; rawItems: any[]; count: number }> {
+  ): Promise<{ total: number; rawItems: any[]; count: number; isFiltered: boolean; fullSyncedTotal: number }> {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
-    const limit = Math.min(500, Math.max(1, options.limit || 50));
+    const limit = Math.min(250, Math.max(1, options.limit || 25));
     const offset = Math.max(0, options.offset || 0);
 
+    const { conds, params, nextParam } = this.buildIncidentFilterConditions(options, 3, false);
+    const isFiltered = conds.length > 0;
+    const whereExtra = isFiltered ? `WHERE ${conds.join(' AND ')}` : '';
+
+    // Always inspect target row metadata first when empty or fast-path unfiltered check
+    const sql = `
+      WITH target AS (
+        SELECT control_id, control_name, raw_incidents, total_incidents,
+               jsonb_array_length(COALESCE(raw_incidents, '[]'::jsonb)) AS synced_len
+        FROM oracle_control_incidents
+        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)
+        LIMIT 1
+      )
+      SELECT t.synced_len, elem.el AS raw, COUNT(*) OVER() AS filtered_total
+      FROM target t
+      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(t.raw_incidents, '[]'::jsonb)) WITH ORDINALITY AS elem(el, ord)
+      ${whereExtra}
+      ORDER BY elem.ord
+      LIMIT $${nextParam} OFFSET $${nextParam + 1}
+    `;
+
     const res = await query<{
-      raw_incidents: any;
-      total_incidents: number;
-    }>(
-      `SELECT raw_incidents, total_incidents FROM oracle_control_incidents
+      synced_len: number;
+      raw: any;
+      filtered_total: string;
+    }>(sql, [host, cleanId, ...params, limit, offset]);
+
+    if (res.rows.length > 0) {
+      const total = Number(res.rows[0].filtered_total || 0);
+      const fullSyncedTotal = Number(res.rows[0].synced_len || total);
+      const rawItems = res.rows.map(r => r.raw);
+      return { total, rawItems, count: rawItems.length, isFiltered, fullSyncedTotal };
+    }
+
+    // Either no row exists in DB, offset exceeded, or filter matched 0 items — check fullSyncedTotal cheaply
+    const metaRes = await query<{ synced_len: number }>(
+      `SELECT jsonb_array_length(COALESCE(raw_incidents, '[]'::jsonb))::int AS synced_len
+       FROM oracle_control_incidents
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
-       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
+       ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)
+       LIMIT 1`,
+      [host, cleanId]
+    );
+    const fullSyncedTotal = Number(metaRes.rows[0]?.synced_len || 0);
+    return { total: 0, rawItems: [], count: 0, isFiltered, fullSyncedTotal };
+  }
+
+  /**
+   * Returns distinct dropdown filter values (Investigator, Created By, Last Updated By, State, etc.)
+   * computed from PostgreSQL across all synced incidents of a single control.
+   */
+  public async getControlIncidentFacets(controlId: string): Promise<ControlIncidentFacets> {
+    const host = this.getHost();
+    const cleanId = String(controlId).trim();
+
+    const emptyFacets: ControlIncidentFacets = {
+      createdBy: [],
+      investigator: [],
+      lastUpdatedBy: [],
+      states: [],
+      accessPointTypes: [],
+      dataSources: [],
+      groups: [],
+      priorities: []
+    };
+
+    const res = await query<{
+      created_by: string[] | null;
+      investigator: string[] | null;
+      last_updated_by: string[] | null;
+      states: string[] | null;
+      access_point_types: string[] | null;
+      data_sources: string[] | null;
+      groups: string[] | null;
+      priorities: string[] | null;
+    }>(
+      `WITH target AS (
+         SELECT raw_incidents
+         FROM oracle_control_incidents
+         WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)
+         LIMIT 1
+       ),
+       elems AS (
+         SELECT el
+         FROM target t,
+              LATERAL jsonb_array_elements(COALESCE(t.raw_incidents, '[]'::jsonb)) AS el
+       )
+       SELECT
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'CreatedBy', el->>'createdBy', '')), '') AS v FROM elems LIMIT 200) s WHERE v IS NOT NULL) AS created_by,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'ResultInvestigator', el->>'Investigator', el->>'resultInvestigator', el->>'investigator', '')), '') AS v FROM elems LIMIT 200) s WHERE v IS NOT NULL) AS investigator,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'LastUpdatedBy', el->>'lastUpdatedBy', '')), '') AS v FROM elems LIMIT 200) s WHERE v IS NOT NULL) AS last_updated_by,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'State', el->>'StateCode', el->>'state', '')), '') AS v FROM elems LIMIT 50) s WHERE v IS NOT NULL) AS states,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'AccessPointType', el->>'accessPointType', '')), '') AS v FROM elems LIMIT 50) s WHERE v IS NOT NULL) AS access_point_types,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'DataSource', el->>'TransactionDataSource', el->>'dataSource', '')), '') AS v FROM elems LIMIT 50) s WHERE v IS NOT NULL) AS data_sources,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'ResultGroup', el->>'Group', el->>'GroupName', el->>'resultGroup', el->>'group', '')), '') AS v FROM elems LIMIT 200) s WHERE v IS NOT NULL) AS groups,
+         (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(COALESCE(el->>'Priority', el->>'priority', '')), '') AS v FROM elems LIMIT 20) s WHERE v IS NOT NULL) AS priorities`,
       [host, cleanId]
     );
 
-    const row = res.rows[0];
-    if (!row || !Array.isArray(row.raw_incidents)) {
-      return { total: 0, rawItems: [], count: 0 };
-    }
-
-    let allItems: any[] = row.raw_incidents;
-
-    // In-memory status filter (supporting Oracle's 4 Lifecycle statuses: Accepted, Assigned, Remediate, Resolved)
-    if (options.status && options.status !== 'ALL') {
-      const filterKey = options.status.trim().toUpperCase();
-      allItems = allItems.filter((it) => {
-        const itemStatus = String(it.Status || it.status || '').trim().toUpperCase();
-        const itemState = String(it.State || it.state || it.StateCode || '').trim().toUpperCase();
-        const isClosed = Boolean(it.ClosedDate || it.closedDate);
-
-        if (filterKey === 'ACCEPTED') {
-          return itemStatus.includes('ACCEPT') || itemState.includes('ACCEPT');
-        } else if (filterKey === 'REMEDIATE') {
-          return itemStatus.includes('REMEDIAT') || itemState.includes('REMEDIAT');
-        } else if (filterKey === 'RESOLVED') {
-          return (
-            itemStatus.includes('RESOLV') ||
-            itemStatus.includes('CLOSE') ||
-            itemState.includes('RESOLV') ||
-            itemState.includes('CLOSE') ||
-            isClosed
-          );
-        } else if (filterKey === 'ASSIGNED') {
-          const isAcc = itemStatus.includes('ACCEPT') || itemState.includes('ACCEPT');
-          const isRem = itemStatus.includes('REMEDIAT') || itemState.includes('REMEDIAT');
-          const isRes =
-            itemStatus.includes('RESOLV') ||
-            itemStatus.includes('CLOSE') ||
-            itemState.includes('RESOLV') ||
-            itemState.includes('CLOSE') ||
-            isClosed;
-          return !isAcc && !isRem && !isRes;
-        }
-        return itemStatus === filterKey || itemState === filterKey;
-      });
-    }
-
-    // Optional in-memory search filter
-    if (options.search && options.search.trim()) {
-      const q = options.search.trim().toLowerCase();
-      allItems = allItems.filter((it) => {
-        const u = String(it.GlobalUserName || it.globalUserName || '').toLowerCase();
-        const r = String(it.Role || it.role || '').toLowerCase();
-        const id = String(it.Id || it.id || '').toLowerCase();
-        return u.includes(q) || r.includes(q) || id.includes(q);
-      });
-    }
-
-    const total = allItems.length;
-    const rawItems = allItems.slice(offset, offset + limit);
-    return { total, rawItems, count: rawItems.length };
+    const r = res.rows[0];
+    if (!r) return emptyFacets;
+    return {
+      createdBy: r.created_by || [],
+      investigator: r.investigator || [],
+      lastUpdatedBy: r.last_updated_by || [],
+      states: r.states || [],
+      accessPointTypes: r.access_point_types || [],
+      dataSources: r.data_sources || [],
+      groups: r.groups || [],
+      priorities: r.priorities || []
+    };
   }
 
   /**
@@ -490,6 +569,169 @@ export class ControlRawDbService {
     const closedDt = `NULLIF(TRIM(COALESCE(${alias}->>'ClosedDate',${alias}->>'closedDate','')),'') IS NOT NULL`;
     const resolved = `(NOT ${accepted} AND NOT (${st} LIKE '%REMEDIAT%' OR ${se} LIKE '%REMEDIAT%') AND (${st} LIKE '%RESOLV%' OR ${st} LIKE '%CLOSE%' OR ${se} LIKE '%RESOLV%' OR ${se} LIKE '%CLOSE%' OR ${closedDt}))`;
     return { accepted, remediate, resolved };
+  }
+
+  /**
+   * Shared SQL JSONB predicate builder used by both single-control and cross-control incident queries.
+   */
+  private buildIncidentFilterConditions(
+    options: IncidentQueryFilters,
+    startParamIdx = 3,
+    includeTableControlCols = true
+  ): { conds: string[]; params: any[]; nextParam: number } {
+    const conds: string[] = [];
+    const params: any[] = [];
+    let p = startParamIdx;
+    const lc = this.lifecycleCondition('el');
+
+    // Multi-select statuses (preferred) or legacy single status
+    const rawStatuses = Array.isArray(options.statuses) && options.statuses.length > 0
+      ? options.statuses
+      : (options.status && options.status !== 'ALL' ? options.status.split(',') : []);
+    const cleanStatuses = rawStatuses
+      .map(s => String(s || '').trim().toUpperCase())
+      .filter(s => s && s !== 'ALL');
+
+    if (cleanStatuses.length > 0) {
+      const orParts: string[] = [];
+      for (const statusKey of cleanStatuses) {
+        if (statusKey === 'ACCEPTED') orParts.push(`(${lc.accepted})`);
+        else if (statusKey === 'REMEDIATE' || statusKey === 'IN_REMEDIATION' || statusKey === 'REMEDIATION') orParts.push(`(${lc.remediate})`);
+        else if (statusKey === 'RESOLVED' || statusKey === 'CLOSED') orParts.push(`(${lc.resolved})`);
+        else if (statusKey === 'ASSIGNED') orParts.push(`(NOT (${lc.accepted} OR ${lc.remediate} OR ${lc.resolved}))`);
+        else {
+          orParts.push(`(UPPER(COALESCE(el->>'Status','')) = $${p} OR UPPER(COALESCE(el->>'State',el->>'StateCode','')) = $${p})`);
+          params.push(statusKey);
+          p++;
+        }
+      }
+      if (orParts.length > 0) {
+        conds.push(`(${orParts.join(' OR ')})`);
+      }
+    }
+
+    // Multi-select or single state
+    const rawStates = Array.isArray(options.states) && options.states.length > 0
+      ? options.states
+      : (options.state && options.state !== 'ALL' ? options.state.split(',') : []);
+    const cleanStates = rawStates
+      .map(s => String(s || '').trim().toUpperCase())
+      .filter(s => s && s !== 'ALL');
+
+    if (cleanStates.length > 0) {
+      const stateOrParts: string[] = [];
+      for (const stateKey of cleanStates) {
+        if (stateKey === 'APPROVED') {
+          stateOrParts.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) LIKE '%APPROV%')`);
+        } else if (stateKey === 'IN_INVESTIGATION' || stateKey === 'INVESTIGATION' || stateKey === 'IN INVESTIGATION') {
+          stateOrParts.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) LIKE '%INVESTIGAT%')`);
+        } else {
+          stateOrParts.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) = $${p})`);
+          params.push(stateKey);
+          p++;
+        }
+      }
+      if (stateOrParts.length > 0) {
+        conds.push(`(${stateOrParts.join(' OR ')})`);
+      }
+    }
+
+    // Quick free-text search across key incident columns
+    const q = (options.search || '').trim().toLowerCase();
+    if (q) {
+      const baseSearch = `(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserFirstName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserLastName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'GroupingValue',el->>'groupingValue','')) LIKE $${p} OR LOWER(COALESCE(el->>'ResultGroup',el->>'resultGroup','')) LIKE $${p} OR LOWER(COALESCE(el->>'Entitlement',el->>'AccessEntitlement','')) LIKE $${p}`;
+      if (includeTableControlCols) {
+        conds.push(`${baseSearch} OR LOWER(COALESCE(el->>'ControlName',t.control_name,'')) LIKE $${p} OR LOWER(t.control_id) LIKE $${p})`);
+      } else {
+        conds.push(`${baseSearch} OR LOWER(COALESCE(el->>'ControlName',t.control_name,'')) LIKE $${p})`);
+      }
+      params.push(`%${q}%`);
+      p++;
+    }
+
+    // Multi-term AND search
+    for (const rawTerm of options.searchTerms || []) {
+      const term = String(rawTerm || '').trim().toLowerCase();
+      if (!term) continue;
+      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'AccessPointName',el->>'accessPointName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Entitlement',el->>'entitlement','')) LIKE $${p})`);
+      params.push(`%${term}%`);
+      p++;
+    }
+
+    // Field-level Access & Transaction filters (text contains / case-insensitive)
+    const addContains = (val: string | undefined, expr: string) => {
+      const trimmed = (val || '').trim().toLowerCase();
+      if (!trimmed) return;
+      conds.push(`(${expr} LIKE $${p})`);
+      params.push(`%${trimmed}%`);
+      p++;
+    };
+
+    addContains(options.globalUser, `LOWER(COALESCE(el->>'GlobalUserName', el->>'globalUserName', el->>'GlobalUser', el->>'globalUser', el->>'UserFirstName', '') || ' ' || COALESCE(el->>'UserLastName', ''))`);
+    if (!includeTableControlCols) {
+      addContains(options.role, `LOWER(COALESCE(el->>'Role', el->>'role', el->>'ConflictingRoles', el->>'conflictingRoles', ''))`);
+    }
+    addContains(options.accessEntitlement, `LOWER(COALESCE(el->>'AccessEntitlement', el->>'accessEntitlement', el->>'Entitlement', el->>'entitlement', ''))`);
+    addContains(options.accessPointName, `LOWER(COALESCE(el->>'AccessPointName', el->>'accessPointName', el->>'AccessPoint', el->>'accessPoint', ''))`);
+    addContains(options.groupingValue, `LOWER(COALESCE(el->>'GroupingValue', el->>'groupingValue', ''))`);
+    addContains(options.group, `LOWER(COALESCE(el->>'ResultGroup', el->>'resultGroup', el->>'Group', el->>'group', el->>'GroupName', ''))`);
+    addContains(options.incidentInformation, `LOWER(COALESCE(el->>'IncidentInformation', el->>'incidentInformation', el->>'Description', el->>'description', ''))`);
+
+    const addExactTrim = (val: string | undefined, expr: string) => {
+      const trimmed = (val || '').trim();
+      if (!trimmed || trimmed.toUpperCase() === 'ALL') return;
+      conds.push(`(LOWER(TRIM(${expr})) = LOWER($${p}))`);
+      params.push(trimmed);
+      p++;
+    };
+
+    addExactTrim(options.accessPointType, `COALESCE(el->>'AccessPointType', el->>'accessPointType', '')`);
+    addExactTrim(options.dataSource, `COALESCE(el->>'DataSource', el->>'TransactionDataSource', el->>'dataSource', 'Oracle Cloud')`);
+    addExactTrim(options.createdBy, `COALESCE(el->>'CreatedBy', el->>'createdBy', '')`);
+    addExactTrim(options.investigator, `COALESCE(el->>'ResultInvestigator', el->>'Investigator', el->>'resultInvestigator', el->>'investigator', '')`);
+    addExactTrim(options.lastUpdatedBy, `COALESCE(el->>'LastUpdatedBy', el->>'lastUpdatedBy', '')`);
+
+    // Exact (case-insensitive) drill-down filters for Top-10 bar clicks
+    const exactUser = (options.user || '').trim();
+    if (exactUser) {
+      if (exactUser.toLowerCase() === 'unknown') {
+        conds.push(`(COALESCE(NULLIF(TRIM(el->>'GlobalUserName'), ''), NULLIF(TRIM(REGEXP_REPLACE(el->>'IncidentInformation', '^Person\\.Full Name:\\s*', '', 'i')), ''), 'Unknown') = 'Unknown')`);
+      } else {
+        conds.push(`(
+          LOWER(TRIM(COALESCE(el->>'GlobalUserName', el->>'globalUserName', ''))) = LOWER($${p})
+          OR LOWER(TRIM(REGEXP_REPLACE(COALESCE(el->>'IncidentInformation', ''), '^Person\\.Full Name:\\s*', '', 'i'))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(el->>'UserFirstName', ''))) = LOWER($${p})
+        )`);
+        params.push(exactUser);
+        p++;
+      }
+    }
+    const exactRole = (options.role || '').trim();
+    if (includeTableControlCols && exactRole) {
+      if (exactRole.toLowerCase() === 'unknown') {
+        conds.push(`(COALESCE(NULLIF(TRIM(el->>'Role'), ''), NULLIF(TRIM(t.control_name), ''), NULLIF(TRIM(el->>'ControlName'), ''), 'Unknown') = 'Unknown')`);
+      } else {
+        conds.push(`(
+          LOWER(TRIM(COALESCE(el->>'Role', el->>'role', ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(t.control_name, ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(el->>'ControlName', ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(el->>'ResultGroup', ''))) = LOWER($${p})
+        )`);
+        params.push(exactRole);
+        p++;
+      }
+    }
+
+    const prio = (options.priority || '').trim().toUpperCase();
+    if (prio && prio !== 'ALL') {
+      const prioMap: Record<string, string> = { HIGH: '1', MEDIUM: '2', LOW: '3' };
+      const prioVal = prioMap[prio] || prio;
+      conds.push(`(COALESCE(el->>'Priority',el->>'priority','') = $${p})`);
+      params.push(prioVal);
+      p++;
+    }
+
+    return { conds, params, nextParam: p };
   }
 
   /**
@@ -547,17 +789,10 @@ export class ControlRawDbService {
    * Cross-control paginated incident read (for "All controls" views).
    * Filters + total are computed in SQL so 60K+ rows never hit Node/V8.
    */
-  public async getAllRawIncidentsAcrossControls(options: {
+  public async getAllRawIncidentsAcrossControls(options: IncidentQueryFilters & {
     controlIds: string[];
     offset?: number;
     limit?: number;
-    search?: string;
-    searchTerms?: string[];
-    status?: string;
-    state?: string;
-    priority?: string;
-    user?: string;
-    role?: string;
   }): Promise<{
     filteredTotal: number;
     rows: Array<{ control_id: string; control_name: string | null; raw: any }>;
@@ -568,95 +803,7 @@ export class ControlRawDbService {
     const limit = Math.min(100, Math.max(1, options.limit || 25));
     const offset = Math.max(0, options.offset || 0);
 
-    const conds: string[] = [];
-    const params: any[] = [host, ids];
-    let p = 3;
-
-    const statusKey = (options.status || 'ALL').trim().toUpperCase();
-    if (statusKey && statusKey !== 'ALL') {
-      const lc = this.lifecycleCondition('el');
-      if (statusKey === 'ACCEPTED') conds.push(`(${lc.accepted})`);
-      else if (statusKey === 'REMEDIATE' || statusKey === 'IN_REMEDIATION' || statusKey === 'REMEDIATION') conds.push(`(${lc.remediate})`);
-      else if (statusKey === 'RESOLVED' || statusKey === 'CLOSED') conds.push(`(${lc.resolved})`);
-      else if (statusKey === 'ASSIGNED') conds.push(`(NOT (${lc.accepted} OR ${lc.remediate} OR ${lc.resolved}))`);
-      else {
-        conds.push(`(UPPER(COALESCE(el->>'Status','')) = $${p} OR UPPER(COALESCE(el->>'State',el->>'StateCode','')) = $${p})`);
-        params.push(statusKey);
-        p++;
-      }
-    }
-
-    const stateKey = (options.state || 'ALL').trim().toUpperCase();
-    if (stateKey && stateKey !== 'ALL') {
-      if (stateKey === 'APPROVED') {
-        conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) LIKE '%APPROV%')`);
-      } else if (stateKey === 'IN_INVESTIGATION' || stateKey === 'INVESTIGATION') {
-        conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) LIKE '%INVESTIGAT%')`);
-      } else {
-        conds.push(`(UPPER(COALESCE(el->>'State',el->>'StateCode','')) = $${p})`);
-        params.push(stateKey);
-        p++;
-      }
-    }
-
-    const q = (options.search || '').trim().toLowerCase();
-    if (q) {
-      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserFirstName','')) LIKE $${p} OR LOWER(COALESCE(el->>'UserLastName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'GroupingValue',el->>'groupingValue','')) LIKE $${p} OR LOWER(COALESCE(el->>'ResultGroup',el->>'resultGroup','')) LIKE $${p} OR LOWER(COALESCE(el->>'ControlName',t.control_name,'')) LIKE $${p} OR LOWER(t.control_id) LIKE $${p})`);
-      params.push(`%${q}%`);
-      p++;
-    }
-
-    // Multi-term AND search (each term matched against any text field)
-    for (const rawTerm of options.searchTerms || []) {
-      const term = String(rawTerm || '').trim().toLowerCase();
-      if (!term) continue;
-      conds.push(`(LOWER(COALESCE(el->>'GlobalUserName',el->>'globalUserName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Role',el->>'role','')) LIKE $${p} OR LOWER(COALESCE(el->>'Id',el->>'id','')) LIKE $${p} OR LOWER(COALESCE(el->>'IncidentInformation',el->>'incidentInformation','')) LIKE $${p} OR LOWER(COALESCE(el->>'AccessPointName',el->>'accessPointName','')) LIKE $${p} OR LOWER(COALESCE(el->>'Entitlement',el->>'entitlement','')) LIKE $${p})`);
-      params.push(`%${term}%`);
-      p++;
-    }
-
-    // Exact (case-insensitive) drill-down filters for Top-10 bar clicks.
-    // 'Unknown' matches rows with a blank/missing value so ranking totals reconcile.
-    const exactUser = (options.user || '').trim();
-    if (exactUser) {
-      if (exactUser.toLowerCase() === 'unknown') {
-        conds.push(`(COALESCE(NULLIF(TRIM(el->>'GlobalUserName'), ''), NULLIF(TRIM(REGEXP_REPLACE(el->>'IncidentInformation', '^Person\\.Full Name:\\s*', '', 'i')), ''), 'Unknown') = 'Unknown')`);
-      } else {
-        conds.push(`(
-          LOWER(TRIM(COALESCE(el->>'GlobalUserName', el->>'globalUserName', ''))) = LOWER($${p})
-          OR LOWER(TRIM(REGEXP_REPLACE(COALESCE(el->>'IncidentInformation', ''), '^Person\\.Full Name:\\s*', '', 'i'))) = LOWER($${p})
-          OR LOWER(TRIM(COALESCE(el->>'UserFirstName', ''))) = LOWER($${p})
-        )`);
-        params.push(exactUser);
-        p++;
-      }
-    }
-    const exactRole = (options.role || '').trim();
-    if (exactRole) {
-      if (exactRole.toLowerCase() === 'unknown') {
-        conds.push(`(COALESCE(NULLIF(TRIM(el->>'Role'), ''), NULLIF(TRIM(t.control_name), ''), NULLIF(TRIM(el->>'ControlName'), ''), 'Unknown') = 'Unknown')`);
-      } else {
-        conds.push(`(
-          LOWER(TRIM(COALESCE(el->>'Role', el->>'role', ''))) = LOWER($${p})
-          OR LOWER(TRIM(COALESCE(t.control_name, ''))) = LOWER($${p})
-          OR LOWER(TRIM(COALESCE(el->>'ControlName', ''))) = LOWER($${p})
-          OR LOWER(TRIM(COALESCE(el->>'ResultGroup', ''))) = LOWER($${p})
-        )`);
-        params.push(exactRole);
-        p++;
-      }
-    }
-
-    // Oracle numeric priority (verified live: every incident carries Priority "1")
-    const prio = (options.priority || '').trim().toUpperCase();
-    if (prio) {
-      const prioMap: Record<string, string> = { HIGH: '1', MEDIUM: '2', LOW: '3' };
-      const prioVal = prioMap[prio] || prio;
-      conds.push(`(COALESCE(el->>'Priority',el->>'priority','') = $${p})`);
-      params.push(prioVal);
-      p++;
-    }
-
+    const { conds, params, nextParam } = this.buildIncidentFilterConditions(options, 3, true);
     const whereExtra = conds.length > 0 ? `AND ${conds.join(' AND ')}` : '';
     const res = await query<{
       control_id: string;
@@ -669,8 +816,8 @@ export class ControlRawDbService {
             LATERAL jsonb_array_elements(COALESCE(t.raw_incidents,'[]'::jsonb)) AS el
        WHERE (t.environment_host = $1 OR t.environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND t.control_id = ANY($2) ${whereExtra}
        ORDER BY t.control_id, COALESCE(el->>'Id',el->>'id','')
-       LIMIT $${p} OFFSET $${p + 1}`,
-      [...params, limit, offset]
+       LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
+      [host, ids, ...params, limit, offset]
     );
     return {
       filteredTotal: Number(res.rows[0]?.filtered_total || 0),
