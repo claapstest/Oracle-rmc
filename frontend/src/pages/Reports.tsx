@@ -2330,8 +2330,8 @@ export default function Reports({
           return (
             <div>
               {/* Domain Switcher Buttons (Access Controls vs Transaction Controls) */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.1rem' }}>
-                <div style={{ display: 'inline-flex', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', padding: '0.3rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.1rem', maxWidth: '100%' }}>
+                <div style={{ display: 'inline-flex', flexWrap: 'wrap', maxWidth: '100%', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', padding: '0.3rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                   <button
                     type="button"
                     onClick={() => { if (incidentsDomain !== 'ACCESS') switchIncidentsDomain('ACCESS'); }}
@@ -2347,9 +2347,10 @@ export default function Reports({
                       border: incidentsDomain === 'ACCESS' ? 'none' : '1px solid transparent',
                       backgroundColor: incidentsDomain === 'ACCESS' ? '#3B82F6' : 'transparent',
                       color: incidentsDomain === 'ACCESS' ? '#ffffff' : 'var(--text-secondary)',
+                      maxWidth: '100%',
                     }}
                   >
-                    <Shield size={14} />
+                    <Shield size={14} style={{ flexShrink: 0 }} />
                     <span>Access Controls Incidents</span>
                     <span className="badge" style={{
                       fontSize: '0.7rem',
@@ -2376,9 +2377,10 @@ export default function Reports({
                       border: incidentsDomain === 'TRANSACTION' ? 'none' : '1px solid transparent',
                       backgroundColor: incidentsDomain === 'TRANSACTION' ? '#10B981' : 'transparent',
                       color: incidentsDomain === 'TRANSACTION' ? '#ffffff' : 'var(--text-secondary)',
+                      maxWidth: '100%',
                     }}
                   >
-                    <Scale size={14} />
+                    <Scale size={14} style={{ flexShrink: 0 }} />
                     <span>Transaction Controls Incidents</span>
                     <span className="badge" style={{
                       fontSize: '0.7rem',
@@ -2392,24 +2394,23 @@ export default function Reports({
                 </div>
               </div>
 
-              {/* Dual Domain Incident Status Cards: Access Controls & Transaction Controls */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(430px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-                <DomainIncidentStatusCard
-                  domain="ACCESS"
-                  stats={incidentsDomainKpis.access}
-                  activeFilter={toCardFilterKey(incidentsStatusFilter)}
-                  isActiveDomain={incidentsDomain === 'ACCESS'}
-                  onSelectDomain={() => { if (incidentsDomain !== 'ACCESS') switchIncidentsDomain('ACCESS'); }}
-                  onFilterChange={(next) => handleDomainStatusFilter('ACCESS', next)}
-                />
-                <DomainIncidentStatusCard
-                  domain="TRANSACTION"
-                  stats={incidentsDomainKpis.transaction}
-                  activeFilter={toCardFilterKey(incidentsStatusFilter)}
-                  isActiveDomain={incidentsDomain === 'TRANSACTION'}
-                  onSelectDomain={() => { if (incidentsDomain !== 'TRANSACTION') switchIncidentsDomain('TRANSACTION'); }}
-                  onFilterChange={(next) => handleDomainStatusFilter('TRANSACTION', next)}
-                />
+              {/* Active Domain Incident Status Card (Access OR Transaction based on selected tab) */}
+              <div style={{ marginBottom: '1.25rem', width: '100%', minWidth: 0 }}>
+                {incidentsDomain === 'ACCESS' ? (
+                  <DomainIncidentStatusCard
+                    domain="ACCESS"
+                    stats={incidentsDomainKpis.access}
+                    activeFilter={toCardFilterKey(incidentsStatusFilter)}
+                    onFilterChange={(next) => handleDomainStatusFilter('ACCESS', next)}
+                  />
+                ) : (
+                  <DomainIncidentStatusCard
+                    domain="TRANSACTION"
+                    stats={incidentsDomainKpis.transaction}
+                    activeFilter={toCardFilterKey(incidentsStatusFilter)}
+                    onFilterChange={(next) => handleDomainStatusFilter('TRANSACTION', next)}
+                  />
+                )}
               </div>
 
               {/* Active Filter Linkage Bar */}
