@@ -1919,6 +1919,14 @@ apiRouter.get('/users', requireUsersListAccess, async (req: Request, res: Respon
         return res.json(dirRes);
       }
 
+      // No directory rows resolved (usually an environment_host mismatch between the
+      // configured Fusion host and the stored oracle_raw_user_access rows). Surface it
+      // instead of silently serving the reduced raw-user fallback.
+      console.warn(
+        `[Users] Directory report returned no rows for host "${process.env.FUSION_HOST || config.oracle.baseUrl || 'unset'}"; ` +
+        'falling back to oracle_raw_users. Check FUSION_HOST/ORACLE_BASE_URL for this environment.'
+      );
+
       const dbRes = await userRoleRawDbService.getRawUsers({
         filterText,
         filterType: category && category !== 'ALL' ? category : undefined,

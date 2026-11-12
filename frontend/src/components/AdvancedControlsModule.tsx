@@ -3789,29 +3789,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                               </div>
                             </>
                           )}
-
-                          {/* Raw Oracle Fusion Live Payload Section */}
-                          <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                            <details style={{ cursor: 'pointer' }}>
-                              <summary style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent-blue)', outline: 'none' }}>
-                                View Raw Oracle Fusion REST API JSON
-                              </summary>
-                              <pre 
-                                style={{ 
-                                  marginTop: '0.75rem', 
-                                  padding: '0.85rem', 
-                                  backgroundColor: 'rgba(0,0,0,0.4)', 
-                                  borderRadius: '6px', 
-                                  fontSize: '0.75rem', 
-                                  color: '#A5B4FC', 
-                                  overflowX: 'auto',
-                                  maxHeight: '260px'
-                                }}
-                              >
-                                {JSON.stringify(viewingIncident.raw || viewingIncident, null, 2)}
-                              </pre>
-                            </details>
-                          </div>
                         </>
                       );
                     })()}
