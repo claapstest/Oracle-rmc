@@ -70,8 +70,13 @@ export function prepareInvestigationTabBridge(investigationId: string) {
   } catch (_) { }
 }
 
+export function updateActiveAuthToken(token: string) {
+  if (!token) return;
+  sessionStorage.setItem('authToken', token.trim());
+}
+
 export function setActiveAuthSession(token: string, email: string, role?: string, permissions?: string[]) {
-  sessionStorage.setItem('authToken', token);
+  sessionStorage.setItem('authToken', token.trim());
   sessionStorage.setItem('currentUser', email);
   if (role !== undefined) sessionStorage.setItem('userRole', role);
   if (permissions !== undefined) sessionStorage.setItem('userPermissions', JSON.stringify(permissions));
@@ -121,7 +126,11 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+export interface ApiRequestOptions extends RequestInit {
+  _isRetry?: boolean;
+}
+
+export async function apiRequest(endpoint: string, options: ApiRequestOptions = {}) {
   const method = options.method || 'GET';
   const body = options.body ? String(options.body) : '';
   const requestKey = `${method}:${endpoint}:${body}`;
@@ -135,7 +144,8 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   }
 
   if (inflightRequests.has(requestKey)) {
-    console.log(`[API Service] Deduplicating in-flight request: ${requestKey}`);
+    // Zero sensitive data logged: log only HTTP method and path, never request body
+    console.log(`[API Service] Deduplicating in-flight request: ${method} ${endpoint}`);
     return inflightRequests.get(requestKey);
   }
 
@@ -156,8 +166,55 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
         const message = errorData.message || errorData.error || `Request failed with status ${res.status}`;
         const code = errorData.code || errorData.errorCode || errorData.error_code;
 
+        // AC3: Transparent token renewal for 401 on protected endpoints (excluding auth routes)
+        // Hard guarantee: _isRetry prevents infinite retry loops
+        const isAuthEndpoint =
+          endpoint.startsWith('/auth/login') ||
+          endpoint.startsWith('/auth/logout') ||
+          endpoint.startsWith('/auth/refresh') ||
+          endpoint.startsWith('/auth/entra') ||
+          endpoint.startsWith('/auth/reset-password');
+
+        if (res.status === 401 && !isAuthEndpoint && !options._isRetry) {
+          try {
+            // Attempt silent session refresh to acquire a fresh RS256 JWT access token
+            const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+              },
+            });
+
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              const freshToken = refreshData.token || refreshData.accessToken;
+              if (freshToken) {
+                updateActiveAuthToken(freshToken);
+                // Retry the original request with the fresh token and _isRetry=true
+                const retryHeaders = {
+                  ...options.headers,
+                  'Authorization': `Bearer ${freshToken}`,
+                };
+                return await apiRequest(endpoint, {
+                  ...options,
+                  headers: retryHeaders,
+                  _isRetry: true,
+                });
+              }
+            }
+          } catch (_) {
+            // Silent refresh failed; fall through to session expiration handling
+          }
+        }
+
         if (res.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/entra/callback') {
-          const isExplicitSessionExpiry = code === 'SESSION_EXPIRED' || code === 'INVALID_TOKEN' || endpoint === '/auth/status' || endpoint === '/auth/refresh';
+          const isExplicitSessionExpiry =
+            code === 'SESSION_EXPIRED' ||
+            code === 'INVALID_TOKEN' ||
+            endpoint === '/auth/status' ||
+            endpoint === '/auth/refresh' ||
+            options._isRetry;
           if (isExplicitSessionExpiry) {
             console.warn('[API Service] Explicit session expiration received. Redirecting to login.');
             clearActiveAuthSession();
@@ -189,7 +246,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
       return data;
     } catch (err) {
-      console.error(`[API Service Error] Endpoint: ${endpoint}, Detail:`, err);
+      // AC3: Zero sensitive data logged. Only log error message string, never raw headers or payload
+      const safeDetail = err instanceof ApiError ? `HTTP ${err.status} (${err.code || 'UNKNOWN'})` : (err as Error)?.message || 'Unknown error';
+      console.error(`[API Service Error] Endpoint: ${endpoint}, Detail: ${safeDetail}`);
       throw err;
     } finally {
       inflightRequests.delete(requestKey);
@@ -653,18 +712,28 @@ export const api = {
   },
 
   async completeEntraLogin(params: { code: string; state: string }) {
-    return apiRequest('/auth/entra/callback', {
+    const res = await apiRequest('/auth/entra/callback', {
       method: 'POST',
       credentials: 'include',
       body: JSON.stringify(params),
     });
+    const token = res?.token || res?.accessToken;
+    if (res?.success && token) {
+      setActiveAuthSession(token, res.email, res.role, res.permissions);
+    }
+    return res;
   },
 
   async login(params: { email: string; password?: string; force?: boolean }) {
-    return apiRequest('/auth/login', {
+    const res = await apiRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify(params),
     });
+    const token = res?.token || res?.accessToken;
+    if (res?.success && token) {
+      setActiveAuthSession(token, res.email || params.email, res.role, res.permissions);
+    }
+    return res;
   },
 
   async getSessionStatus() {
@@ -672,16 +741,28 @@ export const api = {
   },
 
   async refreshSession() {
-    return apiRequest('/auth/refresh', {
+    const res = await apiRequest('/auth/refresh', {
       method: 'POST',
     });
+    const freshToken = res?.token || res?.accessToken;
+    if (res?.success && freshToken) {
+      updateActiveAuthToken(freshToken);
+    }
+    return res;
   },
 
   async logout(params?: { postLogoutRedirectUri?: string; upstream?: boolean }) {
-    return apiRequest('/auth/logout', {
-      method: 'POST',
-      body: params ? JSON.stringify(params) : undefined,
-    });
+    try {
+      const token = getActiveAuthToken();
+      return await apiRequest('/auth/logout', {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: params ? JSON.stringify({ ...params, token }) : (token ? JSON.stringify({ token }) : undefined),
+      });
+    } finally {
+      clearActiveAuthSession();
+      clearClientApiCache();
+    }
   },
 
   async resetPassword(params: { email: string; resetCode: string; newPassword?: string }) {
