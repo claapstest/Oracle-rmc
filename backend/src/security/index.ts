@@ -8,3 +8,4 @@ export * from './dataClassification.js';
 export * from './encryptionContract.js';
 export * from './encryptionService.js';
 export * from './kmsProvider.js';
+export * from './encryptionMigrationService.js';
