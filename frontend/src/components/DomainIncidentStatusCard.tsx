@@ -100,8 +100,13 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
       onClick={onSelectDomain}
       style={{
         padding: '1.25rem 1.4rem',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         border: isActiveDomain
-          ? `2px solid ${accentColor}`
+          ? `1px solid ${accentBorder}`
           : '1px solid var(--border-color)',
         backgroundColor: 'var(--bg-secondary)',
         borderRadius: '10px',
@@ -109,15 +114,14 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: onSelectDomain ? 'pointer' : 'default',
-        boxShadow: isActiveDomain ? `0 6px 20px -4px ${accentBg}` : undefined,
         transition: 'all 0.2s ease',
       }}
     >
       {/* Top Header Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
-        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem', minWidth: 0 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <PieChart size={17} style={{ color: accentColor }} />
+            <PieChart size={17} style={{ color: accentColor, flexShrink: 0 }} />
             <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
               {isAccess ? 'Access' : 'Transaction'} Controls Incident Status
             </h4>
@@ -133,22 +137,9 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
             >
               Oracle Lifecycle
             </span>
-            {isActiveDomain && (
-              <span
-                className="badge"
-                style={{
-                  fontSize: '0.68rem',
-                  backgroundColor: accentColor,
-                  color: '#ffffff',
-                  fontWeight: 700,
-                }}
-              >
-                Viewing
-              </span>
-            )}
           </div>
           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-            Continuous monitoring breakdown across 4 standard lifecycle statuses.
+            Continuous monitoring breakdown across 4 standard lifecycle statuses. Click any status to filter the table.
           </p>
         </div>
 
@@ -176,10 +167,10 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
         )}
       </div>
 
-      {/* Donut Pie Chart + 4 Lifecycle Status Cards */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
+      {/* Donut Pie Chart + 4 Responsive Lifecycle Status Cards */}
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', width: '100%', minWidth: 0 }}>
         {/* SVG Donut Chart */}
-        <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
+        <div style={{ position: 'relative', width: '128px', height: '128px', flexShrink: 0, margin: '0 auto' }}>
           <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
             <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
 
@@ -244,8 +235,18 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
           </div>
         </div>
 
-        {/* 4 Lifecycle Status Cards in 2x2 Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.65rem', flex: 1, minWidth: '240px' }}>
+        {/* 4 Responsive Lifecycle Status Cards (wraps cleanly at any zoom level) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 165px), 1fr))',
+            gap: '0.75rem',
+            flex: '1 1 320px',
+            minWidth: 0,
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
           {items.map(st => {
             const isSelected = (isActiveDomain === undefined || isActiveDomain) && activeFilter === st.key;
             const isHovered = hoveredKey === st.key;
@@ -261,7 +262,10 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
                 onMouseEnter={() => setHoveredKey(st.key)}
                 onMouseLeave={() => setHoveredKey(null)}
                 style={{
-                  padding: '0.65rem 0.8rem',
+                  padding: '0.7rem 0.85rem',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
                   backgroundColor: isSelected ? st.bg : (isHovered ? st.bg : 'var(--bg-primary)'),
                   border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
                   borderRadius: '8px',
@@ -272,10 +276,10 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
                   gap: '0.35rem',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    <IconComponent size={13} style={{ color: st.color }} />
-                    {st.label}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem', minWidth: 0 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: 0 }}>
+                    <IconComponent size={13} style={{ color: st.color, flexShrink: 0 }} />
+                    <span>{st.label}</span>
                   </span>
                   <span
                     className="badge"
@@ -286,12 +290,13 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
                       color: st.color,
                       border: `1px solid ${st.color}40`,
                       padding: '0.1rem 0.45rem',
+                      flexShrink: 0,
                     }}
                   >
                     {st.pct.toFixed(1)}%
                   </span>
                 </div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, overflowWrap: 'anywhere' }}>
                   {st.count.toLocaleString()}
                 </div>
                 <div style={{ width: '100%', height: '3px', backgroundColor: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden', marginTop: '0.1rem' }}>
