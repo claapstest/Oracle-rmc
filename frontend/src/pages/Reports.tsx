@@ -1886,8 +1886,7 @@ export default function Reports({
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
                   { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: (c: any) => c.scheduledBy || '—' },
-                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' },
-                  { key: 'calculationNotes', label: 'Calculation Notes', defaultSelected: false, getValue: (c: any) => c.calculationNotes || '—' }
+                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -4152,7 +4151,7 @@ export default function Reports({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Rows per page:</span>
                 <select
                   className="form-select"
@@ -4161,7 +4160,18 @@ export default function Reports({
                     setPageSize(parseInt(e.target.value, 10));
                     setCurrentPage(1);
                   }}
-                  style={{ padding: '0.2rem 0.5rem', height: '28px', fontSize: '0.78rem' }}
+                  style={{
+                    width: '78px',
+                    minWidth: '78px',
+                    height: '28px',
+                    padding: '0.15rem 1.6rem 0.15rem 0.6rem',
+                    fontSize: '0.78rem',
+                    lineHeight: 1.2,
+                    backgroundPosition: 'right 0.45rem center',
+                    backgroundSize: '0.75rem',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>

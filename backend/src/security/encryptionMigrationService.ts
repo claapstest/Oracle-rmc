@@ -369,3 +369,4 @@ export class EncryptionMigrationService {
 
 // Global active instance
 export const encryptionMigrationService = new EncryptionMigrationService();
+
