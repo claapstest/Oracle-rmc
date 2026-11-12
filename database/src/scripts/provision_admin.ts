@@ -20,12 +20,6 @@ export async function provisionAdminPassword(customPassword?: string): Promise<v
   const isProd = (process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
   const candidatePassword = customPassword || process.env.INITIAL_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || process.argv[2];
 
-  if (isProd && !candidatePassword) {
-    throw new Error('[Security Gate] In PRODUCTION, administrator password must be supplied via ADMIN_INITIAL_PASSWORD secret injection or CLI argument.');
-  }
-
-  const password = candidatePassword || 'Admin@123';
-
   console.log(`===========================================================`);
   console.log(`🔐 VEYRA Local Admin Password Provisioning`);
   console.log(`   Target User : ${targetEmail}`);
@@ -44,22 +38,35 @@ export async function provisionAdminPassword(customPassword?: string): Promise<v
   });
   await client.connect();
 
+  let inTransaction = false;
   try {
+    // Check if admin user already exists in veyra_user
+    const existingCheck = await client.query(
+      `SELECT id, email, status, (password_hash IS NOT NULL AND password_hash <> '') AS has_password
+       FROM veyra_user WHERE email = $1`,
+      [targetEmail]
+    );
+
+    if (isProd && !candidatePassword) {
+      if (existingCheck.rows[0]?.has_password) {
+        console.log(`✅ [Security Gate] ${targetEmail} is already provisioned in database; skipping password update in PRODUCTION.`);
+        return;
+      }
+      throw new Error('[Security Gate] In PRODUCTION, administrator password must be supplied via ADMIN_INITIAL_PASSWORD secret injection or CLI argument.');
+    }
+
+    const password = candidatePassword || 'Admin@123';
+
     await client.query('BEGIN');
+    inTransaction = true;
 
     // 1. Generate salt and bcrypt hash asynchronously (cost 12 for admin)
     const saltRounds = isProd ? 12 : 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // 2. Check if admin user exists in veyra_user
-    const userCheck = await client.query(
-      `SELECT id, email, status FROM veyra_user WHERE email = $1`,
-      [targetEmail]
-    );
-
     let userId: string;
 
-    if (userCheck.rows.length === 0) {
+    if (existingCheck.rows.length === 0) {
       console.log(`ℹ️  admin@admin.com not found. Creating user row in veyra_user...`);
       const insertRes = await client.query(
         `INSERT INTO veyra_user (email, display_name, status, is_local_user, password_hash, created_by)
@@ -69,7 +76,7 @@ export async function provisionAdminPassword(customPassword?: string): Promise<v
       );
       userId = insertRes.rows[0].id;
     } else {
-      userId = userCheck.rows[0].id;
+      userId = existingCheck.rows[0].id;
       const updateRes = await client.query(
         `UPDATE veyra_user
          SET password_hash = $1, status = 'ACTIVE', updated_at = NOW(), updated_by = 'PROVISION_SCRIPT'
@@ -102,7 +109,9 @@ export async function provisionAdminPassword(customPassword?: string): Promise<v
     console.log(`🎉 Password hash provisioned successfully for ${targetEmail}.`);
     console.log(`   (Plaintext password was not logged or stored in database/git.)`);
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (inTransaction) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
     console.error(`❌ Provisioning failed:`, err);
     throw err;
   } finally {
