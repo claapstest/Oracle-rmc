@@ -57,7 +57,7 @@ export const config = {
     requireRoleMapping: process.env.ENTRA_REQUIRE_ROLE_MAPPING === 'true',
   },
   oracle: {
-    baseUrl: process.env.ORACLE_FUSION_BASE_URL || '',
+    baseUrl: process.env.ORACLE_FUSION_BASE_URL || process.env.FUSION_HOST || 'https://eiiv-dev14.fa.us6.oraclecloud.com',
     authType: (process.env.ORACLE_AUTH_TYPE || 'BASIC').toUpperCase() as 'BASIC' | 'BEARER',
     username: process.env.ORACLE_USERNAME || '',
     password: process.env.ORACLE_PASSWORD || '',
