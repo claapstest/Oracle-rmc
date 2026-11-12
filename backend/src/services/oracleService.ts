@@ -12,7 +12,7 @@ import { userAccessReportService } from './userAccessReportService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { roleHierarchyService } from './roleHierarchyService.js';
 import { auditRawDbService } from './auditRawDbService.js';
-import { controlRawDbService } from './controlRawDbService.js';
+import { controlRawDbService, IncidentQueryFilters } from './controlRawDbService.js';
 import { accessCertRawDbService } from './accessCertRawDbService.js';
 export { classifyRoleRecord };
 
@@ -4055,8 +4055,12 @@ class OracleService {
     return this.controlSummaryService.scanSingleControlCount(controlId);
   }
 
-  async getControlIncidentsPage(controlId: string, options?: { page?: number; limit?: number; forceRefresh?: boolean }) {
+  async getControlIncidentsPage(controlId: string, options?: IncidentQueryFilters & { page?: number; limit?: number; forceRefresh?: boolean }) {
     return this.controlCatalogService.getControlIncidentsPage(controlId, options);
+  }
+
+  async getControlIncidentFacets(controlId: string) {
+    return this.controlCatalogService.getControlIncidentFacets(controlId);
   }
 
   getIncidentCounts() {

@@ -30,7 +30,8 @@ import {
   Wrench,
   ShieldCheck,
   UserCheck,
-  AlignLeft
+  AlignLeft,
+  RotateCcw
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { RankedBars, RankingDrilldownModal, useIncidentRankings, type RankingSelection } from './IncidentRankingPanels';
@@ -42,6 +43,15 @@ import {
   formatSecondaryTypeBadge 
 } from '../utils/controlTypeMapping';
 import { ContentLoadingState, TableLoadingState } from './TableLoadingState';
+import {
+  IncidentFilterPanel,
+  EMPTY_INCIDENT_FILTERS,
+  countActiveIncidentFilters,
+  getActiveFilterChips,
+  type IncidentFilterValues,
+  type IncidentFacetOptions,
+  type ActiveFilterChip
+} from './IncidentFilterPanel';
 
 export interface AdvancedControlRecord {
   id: string;
@@ -87,6 +97,8 @@ export interface AdvancedControlsModuleProps {
   isActive?: boolean;
   onBack?: () => void;
   onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
+  isSidebarOpen?: boolean;
+  onSetSidebarOpen?: (open: boolean) => void;
 }
 
 type SubSectionType = 'ACCESS' | 'TRANSACTION';
@@ -196,6 +208,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   isActive = true,
   onBack,
   onRegisterBack,
+  isSidebarOpen,
+  onSetSidebarOpen,
 }) => {
   // Active internal subsection tab
   const [activeSubSection, setActiveSubSection] = useState<SubSectionType>('ACCESS');
@@ -284,6 +298,28 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const [incidentStatusFilter, setIncidentStatusFilter] = useState<'ALL' | 'ASSIGNED' | 'ACCEPTED' | 'REMEDIATE' | 'RESOLVED'>('ALL');
   const [hoveredStatusKey, setHoveredStatusKey] = useState<string | null>(null);
 
+  // Server-backed Incident Filter Panel & Pre-filter Page Snapshot
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState<boolean>(false);
+  const sidebarWasOpenRef = useRef<boolean | null>(null);
+  const [draftFilters, setDraftFilters] = useState<IncidentFilterValues>({ ...EMPTY_INCIDENT_FILTERS });
+  const [appliedFilters, setAppliedFilters] = useState<IncidentFilterValues>({ ...EMPTY_INCIDENT_FILTERS });
+  const [activeSavedSearchId, setActiveSavedSearchId] = useState<string>('all');
+  const [preFilterSnapshot, setPreFilterSnapshot] = useState<{ page: number; pageSize: number } | null>(null);
+  const [filteredTotalCount, setFilteredTotalCount] = useState<number | undefined>(undefined);
+  const [isServerFiltered, setIsServerFiltered] = useState<boolean>(false);
+  const [incidentFacets, setIncidentFacets] = useState<IncidentFacetOptions>({
+    createdBy: [],
+    investigator: [],
+    lastUpdatedBy: [],
+    states: [],
+    accessPointTypes: [],
+    dataSources: [],
+    groups: [],
+    priorities: []
+  });
+  const [facetsLoading, setFacetsLoading] = useState<boolean>(false);
+  const unfilteredPageSampleRef = useRef<any[]>([]);
+
   // Catalog / Domain Incident Status Analytics & Filter state (Assigned, Accepted, Remediate, Resolved)
   const [domainIncidentLifecycleFilter, setDomainIncidentLifecycleFilter] = useState<'ALL' | 'ASSIGNED' | 'ACCEPTED' | 'REMEDIATE' | 'RESOLVED'>('ALL');
   const [hoveredDomainLifecycleKey, setHoveredDomainLifecycleKey] = useState<string | null>(null);
@@ -300,17 +336,48 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   const [detailIncidentPage, setDetailIncidentPage] = useState(1);
   const detailPollingRef = useRef<any>(null);
 
+  const restoreSidebarIfNeeded = useCallback(() => {
+    if (sidebarWasOpenRef.current) {
+      onSetSidebarOpen?.(true);
+      sidebarWasOpenRef.current = null;
+    }
+  }, [onSetSidebarOpen]);
+
+  const handleToggleFilterPanel = useCallback(() => {
+    setIsFilterPanelOpen(prev => {
+      if (!prev) {
+        sidebarWasOpenRef.current = isSidebarOpen ?? true;
+        onSetSidebarOpen?.(false);
+        return true;
+      } else {
+        if (sidebarWasOpenRef.current) {
+          onSetSidebarOpen?.(true);
+          sidebarWasOpenRef.current = null;
+        }
+        return false;
+      }
+    });
+  }, [isSidebarOpen, onSetSidebarOpen]);
+
   // Close control details and return to controls catalog
   const handleCloseDetail = useCallback(() => {
     if (detailPollingRef.current) {
       clearInterval(detailPollingRef.current);
       detailPollingRef.current = null;
     }
+    setIsFilterPanelOpen(false);
+    restoreSidebarIfNeeded();
+    setDraftFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setAppliedFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setPreFilterSnapshot(null);
+    setFilteredTotalCount(undefined);
+    setIsServerFiltered(false);
+    setActiveSavedSearchId('all');
     setSelectedControlId(null);
     setSelectedControlDetail(null);
     setDetailError('');
     setIncidentSyncState({ cacheStatus: 'NOT_CACHED' });
-  }, []);
+  }, [restoreSidebarIfNeeded]);
 
   // Synchronize detail view state with topbar Back button
   useEffect(() => {
@@ -351,6 +418,14 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       clearInterval(detailPollingRef.current);
       detailPollingRef.current = null;
     }
+    setIsFilterPanelOpen(false);
+    restoreSidebarIfNeeded();
+    setDraftFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setAppliedFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setPreFilterSnapshot(null);
+    setFilteredTotalCount(undefined);
+    setIsServerFiltered(false);
+    setActiveSavedSearchId('all');
     setSelectedControlId(null);
     setSelectedControlDetail(null);
     setDetailError('');
@@ -1355,17 +1430,39 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     }
   };
 
-  // Load a specific page of incidents for the active control
-  const loadIncidentsPage = async (ctrlId: string, page: number, size: number) => {
+  // Load a specific page of incidents for the active control (with optional PostgreSQL filters)
+  const loadIncidentsPage = async (
+    ctrlId: string,
+    page: number,
+    size: number,
+    filtersOverride?: IncidentFilterValues
+  ) => {
     setIncidentsLoading(true);
     setIncidentsError('');
+    const effectiveFilters = filtersOverride ?? appliedFilters;
+    const hasFilters = countActiveIncidentFilters(effectiveFilters) > 0;
     try {
-      const res = await api.getControlIncidents(ctrlId, page, size);
+      const res = await api.getControlIncidents(ctrlId, {
+        page,
+        limit: size,
+        filters: hasFilters ? effectiveFilters : undefined
+      });
       if (res && res.success) {
-        setIncidentsList(res.items || []);
+        const items = res.items || [];
+        setIncidentsList(items);
         setIncidentsHasMore(Boolean(res.hasMore));
         if (typeof res.totalResults === 'number') {
           setIncidentsTotalCount(res.totalResults);
+        }
+        const serverFiltered = Boolean(res.isFiltered) || hasFilters;
+        setIsServerFiltered(serverFiltered);
+        if (serverFiltered) {
+          setFilteredTotalCount(typeof res.filteredTotal === 'number' ? res.filteredTotal : items.length);
+        } else {
+          setFilteredTotalCount(undefined);
+          if (items.length > 0) {
+            unfilteredPageSampleRef.current = items;
+          }
         }
       } else {
         setIncidentsError(res?.message || 'Failed to retrieve continuous monitoring incidents from Oracle Fusion');
@@ -1375,6 +1472,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       setIncidentsError('Failed to fetch incidents from Oracle Fusion FSCM REST API.');
     } finally {
       setIncidentsLoading(false);
+    }
+  };
+
+  // Load distinct PostgreSQL facet options (Created By, Investigator, Last Updated By, State, etc.)
+  const loadControlIncidentFacets = async (ctrlId: string) => {
+    setFacetsLoading(true);
+    try {
+      const res = await api.getControlIncidentFacets(ctrlId);
+      if (res && res.success && res.facets) {
+        setIncidentFacets(res.facets);
+      }
+    } catch (err) {
+      console.warn('Error loading control incident facets:', err);
+    } finally {
+      setFacetsLoading(false);
     }
   };
 
@@ -1402,27 +1514,47 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   };
 
   // Calculate analytics distribution across the 4 Oracle Incident Lifecycle Statuses: Assigned, Accepted, Remediate, Resolved
+  // Uses authoritative control breakdown or unfiltered sample so applying status filters never warps the donut to 100%.
   const incidentStatusStats = useMemo(() => {
+    const bd = selectedControlDetail?.incidentBreakdown;
+    const bdSum = bd
+      ? (bd.assigned || 0) + (bd.accepted || 0) + (bd.remediate || 0) + (bd.resolved || 0)
+      : 0;
+
     let assigned = 0;
     let accepted = 0;
     let remediate = 0;
     let resolved = 0;
+    let sampleTotal = 0;
 
-    for (const inc of incidentsList) {
-      const st = (getIncidentAttr(inc, 'status') || '').toUpperCase();
-      const state = (getIncidentAttr(inc, 'state') || '').toUpperCase();
-      if (st.includes('ACCEPT') || state.includes('ACCEPT')) {
-        accepted++;
-      } else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) {
-        remediate++;
-      } else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE')) {
-        resolved++;
-      } else {
-        assigned++;
+    if (bd && bdSum > 0) {
+      assigned = bd.assigned || 0;
+      accepted = bd.accepted || 0;
+      remediate = bd.remediate || 0;
+      resolved = bd.resolved || 0;
+      sampleTotal = bdSum;
+    } else {
+      const sampleList =
+        isServerFiltered && unfilteredPageSampleRef.current.length > 0
+          ? unfilteredPageSampleRef.current
+          : incidentsList;
+
+      for (const inc of sampleList) {
+        const st = (getIncidentAttr(inc, 'status') || '').toUpperCase();
+        const state = (getIncidentAttr(inc, 'state') || '').toUpperCase();
+        if (st.includes('ACCEPT') || state.includes('ACCEPT')) {
+          accepted++;
+        } else if (st.includes('REMEDIAT') || state.includes('REMEDIAT')) {
+          remediate++;
+        } else if (st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE')) {
+          resolved++;
+        } else {
+          assigned++;
+        }
       }
+      sampleTotal = sampleList.length;
     }
 
-    const sampleTotal = incidentsList.length;
     const total = (typeof incidentsTotalCount === 'number' && incidentsTotalCount > 0)
       ? incidentsTotalCount
       : sampleTotal;
@@ -1497,29 +1629,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     ];
 
     return { total, items, sampleTotal };
-  }, [incidentsList, incidentsTotalCount]);
+  }, [selectedControlDetail?.incidentBreakdown, incidentsList, incidentsTotalCount, isServerFiltered]);
 
-  // Filtered incidents for the active page based on status selection
-  const filteredIncidents = useMemo(() => {
-    if (incidentStatusFilter === 'ALL') return incidentsList;
-    return incidentsList.filter(inc => {
-      const st = (getIncidentAttr(inc, 'status') || '').toUpperCase();
-      const state = (getIncidentAttr(inc, 'state') || '').toUpperCase();
-      if (incidentStatusFilter === 'ASSIGNED') {
-        return st.includes('ASSIGN') || (!st.includes('ACCEPT') && !st.includes('REMEDIAT') && !st.includes('RESOLV') && !st.includes('CLOSE'));
-      }
-      if (incidentStatusFilter === 'ACCEPTED') {
-        return st.includes('ACCEPT') || state.includes('ACCEPT');
-      }
-      if (incidentStatusFilter === 'REMEDIATE') {
-        return st.includes('REMEDIAT') || state.includes('REMEDIAT');
-      }
-      if (incidentStatusFilter === 'RESOLVED') {
-        return st.includes('RESOLV') || st.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE');
-      }
-      return true;
-    });
-  }, [incidentsList, incidentStatusFilter]);
+  // Incidents for the active page (PostgreSQL handles multi-page filtering server-side)
+  const filteredIncidents = incidentsList;
+  const activeIncidentChips = useMemo(() => getActiveFilterChips(appliedFilters), [appliedFilters]);
+  const activeIncidentFilterCount = countActiveIncidentFilters(appliedFilters);
 
   // Control detail inspection handler: fast header + independent incident page & count
   const handleOpenDetail = async (ctrlId: string, forceRefresh = false) => {
@@ -1537,6 +1652,23 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
     setViewingIncident(null);
     setIncidentStatusFilter('ALL');
     setHoveredStatusKey(null);
+    setDraftFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setAppliedFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setActiveSavedSearchId('all');
+    setPreFilterSnapshot(null);
+    setFilteredTotalCount(undefined);
+    setIsServerFiltered(false);
+    unfilteredPageSampleRef.current = [];
+    setIncidentFacets({
+      createdBy: [],
+      investigator: [],
+      lastUpdatedBy: [],
+      states: [],
+      accessPointTypes: [],
+      dataSources: [],
+      groups: [],
+      priorities: []
+    });
 
     // Pre-seed known count from incident counts cache immediately
     const cachedCountObj = incidentCounts[ctrlId];
@@ -1582,30 +1714,111 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       setDetailLoading(false);
     }
 
-    // 2. Launch REQUEST A: First 25 Incidents immediately
-    loadIncidentsPage(ctrlId, 1, incidentPageSize);
+    // 2. Launch REQUEST A: First 25 Incidents immediately (unfiltered)
+    loadIncidentsPage(ctrlId, 1, incidentPageSize, EMPTY_INCIDENT_FILTERS);
 
-    // 3. Launch REQUEST B: Total authoritative count in background
+    // 3. Launch REQUEST B: Total authoritative count & facet dropdown options in background
     loadIncidentCountSeparately(ctrlId, forceRefresh);
+    loadControlIncidentFacets(ctrlId);
+  };
+
+  // Apply incident filters against PostgreSQL across all pages of the active control
+  const handleApplyIncidentFilters = (nextFilters: IncidentFilterValues) => {
+    if (!selectedControlId) return;
+    const activeCount = countActiveIncidentFilters(nextFilters);
+    if (activeCount === 0) {
+      handleRemoveAllIncidentFilters();
+      return;
+    }
+
+    // Capture exact unfiltered page only on first transition into filtered mode
+    if (!isServerFiltered && !preFilterSnapshot) {
+      setPreFilterSnapshot({ page: incidentPage, pageSize: incidentPageSize });
+    }
+
+    setDraftFilters(nextFilters);
+    setAppliedFilters(nextFilters);
+    setIncidentStatusFilter(nextFilters.statuses.length === 1 ? (nextFilters.statuses[0] as any) : 'ALL');
+    setIncidentPage(1);
+    loadIncidentsPage(selectedControlId, 1, incidentPageSize, nextFilters);
+  };
+
+  // Clear all active filters and restore the user's exact pre-filter page
+  const handleRemoveAllIncidentFilters = () => {
+    const snap = preFilterSnapshot;
+    const targetPageSize = snap?.pageSize || incidentPageSize;
+    const maxPages =
+      incidentsTotalCount && incidentsTotalCount > 0
+        ? Math.max(1, Math.ceil(incidentsTotalCount / targetPageSize))
+        : undefined;
+    let restorePage = snap?.page || 1;
+    if (maxPages && restorePage > maxPages) {
+      restorePage = maxPages;
+    }
+
+    setDraftFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setAppliedFilters({ ...EMPTY_INCIDENT_FILTERS });
+    setActiveSavedSearchId('all');
+    setIncidentStatusFilter('ALL');
+    setPreFilterSnapshot(null);
+    setFilteredTotalCount(undefined);
+    setIsServerFiltered(false);
+    if (snap?.pageSize && snap.pageSize !== incidentPageSize) {
+      setIncidentPageSize(snap.pageSize);
+    }
+    setIncidentPage(restorePage);
+
+    if (selectedControlId) {
+      loadIncidentsPage(selectedControlId, restorePage, targetPageSize, EMPTY_INCIDENT_FILTERS);
+    }
+  };
+
+  const handleRemoveSingleFilterChip = (chip: ActiveFilterChip) => {
+    const next: IncidentFilterValues = { ...appliedFilters };
+    if (chip.key === 'statuses') {
+      next.statuses = [];
+    } else if (chip.key === 'states') {
+      next.states = [];
+    } else {
+      (next as any)[chip.key] = '';
+    }
+    handleApplyIncidentFilters(next);
+  };
+
+  const handleToggleStatusCard = (statusKey: 'ASSIGNED' | 'ACCEPTED' | 'REMEDIATE' | 'RESOLVED') => {
+    const exists = appliedFilters.statuses.includes(statusKey);
+    const nextStatuses = exists
+      ? appliedFilters.statuses.filter(s => s !== statusKey)
+      : [...appliedFilters.statuses, statusKey];
+    handleApplyIncidentFilters({
+      ...appliedFilters,
+      statuses: nextStatuses
+    });
+  };
+
+  const handleSelectSavedSearch = (presetId: string, presetFilters: IncidentFilterValues) => {
+    setActiveSavedSearchId(presetId);
+    handleApplyIncidentFilters(presetFilters);
   };
 
   const handleIncidentPageChange = (newPage: number) => {
     if (!selectedControlId || newPage < 1) return;
     setIncidentPage(newPage);
-    loadIncidentsPage(selectedControlId, newPage, incidentPageSize);
+    loadIncidentsPage(selectedControlId, newPage, incidentPageSize, appliedFilters);
   };
 
   const handleIncidentPageSizeChange = (newSize: number) => {
     if (!selectedControlId) return;
     setIncidentPageSize(newSize);
     setIncidentPage(1);
-    loadIncidentsPage(selectedControlId, 1, newSize);
+    loadIncidentsPage(selectedControlId, 1, newSize, appliedFilters);
   };
 
   const handleRefreshIncidents = () => {
     if (!selectedControlId) return;
-    loadIncidentsPage(selectedControlId, incidentPage, incidentPageSize);
+    loadIncidentsPage(selectedControlId, incidentPage, incidentPageSize, appliedFilters);
     loadIncidentCountSeparately(selectedControlId, true);
+    loadControlIncidentFacets(selectedControlId);
   };
 
   // Helper renderers for Continuous Monitoring Incidents pagination
@@ -1637,9 +1850,15 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   );
 
   const renderIncidentPaginationButtons = () => {
-    const totalIncidentPages = incidentsTotalCount ? Math.ceil(incidentsTotalCount / incidentPageSize) : undefined;
+    const activeTotal =
+      isServerFiltered && typeof filteredTotalCount === 'number'
+        ? filteredTotalCount
+        : incidentsTotalCount;
+    const totalIncidentPages = activeTotal ? Math.max(1, Math.ceil(activeTotal / incidentPageSize)) : undefined;
     const canPrev = incidentPage > 1 && !incidentsLoading;
-    const canNext = !incidentsLoading && Boolean(incidentsHasMore || (incidentsTotalCount && incidentPage * incidentPageSize < incidentsTotalCount));
+    const canNext = !incidentsLoading && Boolean(
+      incidentsHasMore || (activeTotal !== undefined && incidentPage * incidentPageSize < activeTotal)
+    );
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2364,12 +2583,22 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       className="badge" 
                       style={{ 
                         fontSize: '0.75rem', 
-                        backgroundColor: 'var(--bg-secondary)', 
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-secondary)'
+                        backgroundColor: isServerFiltered ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-secondary)', 
+                        border: isServerFiltered ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid var(--border-color)',
+                        color: isServerFiltered ? '#60A5FA' : 'var(--text-secondary)'
                       }}
                     >
-                      {incidentsList.length > 0 ? (
+                      {isServerFiltered ? (
+                        incidentsList.length > 0 ? (
+                          <>
+                            Showing {(incidentPage - 1) * incidentPageSize + 1}–{(incidentPage - 1) * incidentPageSize + incidentsList.length}
+                            {` of ${(filteredTotalCount ?? incidentsList.length).toLocaleString()} matching`}
+                            {incidentsTotalCount !== undefined ? ` (${incidentsTotalCount.toLocaleString()} total)` : ''}
+                          </>
+                        ) : (
+                          `0 matching${incidentsTotalCount !== undefined ? ` (${incidentsTotalCount.toLocaleString()} total)` : ''}`
+                        )
+                      ) : incidentsList.length > 0 ? (
                         <>
                           Showing {(incidentPage - 1) * incidentPageSize + 1}–{(incidentPage - 1) * incidentPageSize + incidentsList.length}
                           {incidentsTotalCount !== undefined ? ` of ${incidentsTotalCount.toLocaleString()}` : (incidentsHasMore ? ' of many' : '')}
@@ -2407,9 +2636,70 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {renderIncidentPageSizeSelect('top')}
                     {renderIncidentPaginationButtons()}
+
+                    <button
+                      type="button"
+                      onClick={handleToggleFilterPanel}
+                      className={`btn ${isFilterPanelOpen || activeIncidentFilterCount > 0 ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        fontSize: '0.8rem',
+                        padding: '0.4rem 0.85rem'
+                      }}
+                      title={
+                        isFilterPanelOpen
+                          ? 'Close Search & Filters panel and restore app sidebar'
+                          : 'Collapse sidebar and open Oracle-style Search & Filters panel'
+                      }
+                    >
+                      <Filter size={14} />
+                      <span>Search &amp; Filters</span>
+                      {activeIncidentFilterCount > 0 && (
+                        <span
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                            color: '#fff',
+                            borderRadius: '999px',
+                            padding: '0.05rem 0.45rem',
+                            fontSize: '0.7rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          {activeIncidentFilterCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {isServerFiltered && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAllIncidentFilters}
+                        disabled={incidentsLoading}
+                        className="btn btn-secondary"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontSize: '0.8rem',
+                          padding: '0.4rem 0.85rem',
+                          borderColor: 'rgba(245, 158, 11, 0.45)',
+                          color: '#FBBF24'
+                        }}
+                        title={
+                          preFilterSnapshot
+                            ? `Clear filters and return to page ${preFilterSnapshot.page}`
+                            : 'Clear all incident filters'
+                        }
+                      >
+                        <RotateCcw size={13} />
+                        <span>Remove Filters</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={handleRefreshIncidents}
@@ -2531,49 +2821,70 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
                 </div>
 
-                {/* Initial Loading State */}
-                {incidentsLoading && incidentsList.length === 0 && (
-                  <div style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
-                    <ContentLoadingState
-                      title={`Retrieving first ${incidentPageSize} incidents from Oracle Fusion...`}
-                      subtitle={`Querying endpoint with offset=${(incidentPage - 1) * incidentPageSize}&limit=${incidentPageSize}`}
+                {/* Side-by-side Filter Rail + Continuous Monitoring Table Workspace */}
+                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+                  {isFilterPanelOpen && (
+                    <IncidentFilterPanel
+                      isTxControl={isTxControl}
+                      draftFilters={draftFilters}
+                      appliedFilters={appliedFilters}
+                      facets={incidentFacets}
+                      facetsLoading={facetsLoading}
+                      activeSavedSearchId={activeSavedSearchId}
+                      preFilterPage={preFilterSnapshot?.page ?? null}
+                      loading={incidentsLoading}
+                      onChangeDraft={setDraftFilters}
+                      onSelectSavedSearch={handleSelectSavedSearch}
+                      onApply={handleApplyIncidentFilters}
+                      onRemoveAll={handleRemoveAllIncidentFilters}
+                      onClose={handleToggleFilterPanel}
                     />
-                  </div>
-                )}
+                  )}
 
-                {/* Error State */}
-                {incidentsError && incidentsList.length === 0 && (
-                  <div style={{ padding: '2rem 1.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
-                    <AlertCircle size={28} style={{ color: 'var(--accent-red)', marginBottom: '0.5rem' }} />
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-red)', marginBottom: '0.25rem' }}>
-                      {incidentsError}
-                    </div>
-                    <button
-                      onClick={() => loadIncidentsPage(selectedControlId, incidentPage, incidentPageSize)}
-                      className="btn btn-primary"
-                      style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
-                    >
-                      <RefreshCw size={13} /> Retry
-                    </button>
-                  </div>
-                )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Initial Loading State (when unfiltered and no prior table rendered) */}
+                    {incidentsLoading && incidentsList.length === 0 && !isServerFiltered && (
+                      <div style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
+                        <ContentLoadingState
+                          title={`Retrieving first ${incidentPageSize} incidents from Oracle Fusion...`}
+                          subtitle={`Querying endpoint with offset=${(incidentPage - 1) * incidentPageSize}&limit=${incidentPageSize}`}
+                        />
+                      </div>
+                    )}
 
-                {/* Empty State */}
-                {!incidentsLoading && !incidentsError && incidentsList.length === 0 && (
-                  <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
-                    <CheckCircle2 size={32} style={{ color: 'var(--accent-green)', marginBottom: '0.5rem' }} />
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                      No continuous monitoring incidents found for this control.
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Oracle Fusion returned zero incident records for control {selectedControlDetail.id}.
-                    </div>
-                  </div>
-                )}
+                    {/* Error State */}
+                    {incidentsError && incidentsList.length === 0 && (
+                      <div style={{ padding: '2rem 1.5rem', textAlign: 'center', borderLeft: '4px solid var(--accent-red)' }}>
+                        <AlertCircle size={28} style={{ color: 'var(--accent-red)', marginBottom: '0.5rem' }} />
+                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-red)', marginBottom: '0.25rem' }}>
+                          {incidentsError}
+                        </div>
+                        <button
+                          onClick={() => loadIncidentsPage(selectedControlId, incidentPage, incidentPageSize, appliedFilters)}
+                          className="btn btn-primary"
+                          style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
+                        >
+                          <RefreshCw size={13} /> Retry
+                        </button>
+                      </div>
+                    )}
 
-                {/* Incident Records Table */}
-                {incidentsList.length > 0 && (
-                  <div>
+                    {/* Truly Unfiltered Empty State */}
+                    {!incidentsLoading && !incidentsError && incidentsList.length === 0 && !isServerFiltered && !isFilterPanelOpen && (
+                      <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+                        <CheckCircle2 size={32} style={{ color: 'var(--accent-green)', marginBottom: '0.5rem' }} />
+                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                          No continuous monitoring incidents found for this control.
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Oracle Fusion returned zero incident records for control {selectedControlDetail.id}.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Incident Analytics & Table Workspace (stays visible for 0-match filtered results) */}
+                    {(incidentsList.length > 0 || isServerFiltered || (isFilterPanelOpen && !incidentsError)) && (
+                      <div>
                     {/* 1. Incident Status Analytics (Donut Pie Chart & Bar Graph Toggle) */}
                     <div 
                       className="glass-panel" 
@@ -2658,7 +2969,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   const offset = -accOffset;
                                   accOffset += dash;
                                   const isHovered = hoveredStatusKey === seg.key;
-                                  const isFiltered = incidentStatusFilter === seg.key;
+                                  const isFiltered = appliedFilters.statuses.includes(seg.key);
 
                                   return (
                                     <circle
@@ -2679,11 +2990,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                           : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
                                         opacity: hoveredStatusKey !== null 
                                           ? (isHovered ? 1 : 0.4) 
-                                          : (incidentStatusFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
+                                          : (appliedFilters.statuses.length > 0 ? (isFiltered ? 1 : 0.45) : 1)
                                       }}
                                       onMouseEnter={() => setHoveredStatusKey(seg.key)}
                                       onMouseLeave={() => setHoveredStatusKey(null)}
-                                      onClick={() => setIncidentStatusFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
+                                      onClick={() => handleToggleStatusCard(seg.key)}
                                     />
                                   );
                                 })}
@@ -2716,14 +3027,14 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         {/* Right: 4 Interactive Lifecycle Status Cards */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', flex: 1 }}>
                           {incidentStatusStats.items.map(st => {
-                            const isSelected = incidentStatusFilter === st.key;
+                            const isSelected = appliedFilters.statuses.includes(st.key);
                             const isHovered = hoveredStatusKey === st.key;
                             const IconComponent = st.icon;
 
                             return (
                               <div
                                 key={st.key}
-                                onClick={() => setIncidentStatusFilter(prev => prev === st.key ? 'ALL' : st.key)}
+                                onClick={() => handleToggleStatusCard(st.key)}
                                 onMouseEnter={() => setHoveredStatusKey(st.key)}
                                 onMouseLeave={() => setHoveredStatusKey(null)}
                                 style={{
@@ -2736,7 +3047,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   boxShadow: isSelected ? `0 0 12px ${st.color}35` : 'none',
                                   position: 'relative'
                                 }}
-                                title={`${st.description} - Click to filter incidents`}
+                                title={`${st.description} - Click to filter across all incidents`}
                               >
                                 {/* Status Name + Icon + Pill */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
@@ -2790,134 +3101,212 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         </div>
                       </div>
 
-                      {/* Filter Banner Indicator */}
-                      {incidentStatusFilter !== 'ALL' && (
-                        <div 
-                          style={{ 
-                            marginTop: '1rem', 
-                            padding: '0.5rem 0.85rem', 
-                            backgroundColor: 'rgba(59, 130, 246, 0.08)', 
-                            border: '1px solid rgba(59, 130, 246, 0.25)', 
-                            borderRadius: '6px',
+                      {/* Active PostgreSQL Filter Summary & Chips */}
+                      {isServerFiltered && activeIncidentChips.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: '1rem',
+                            padding: '0.65rem 0.9rem',
+                            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                            border: '1px solid rgba(59, 130, 246, 0.25)',
+                            borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '0.6rem',
                             fontSize: '0.8rem',
                             color: 'var(--text-primary)'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Filter size={13} style={{ color: 'var(--accent-blue)' }} />
-                            <span>
-                              Filtering incidents by status <strong>{incidentStatusFilter}</strong>: showing <strong>{filteredIncidents.length}</strong> of <strong>{incidentsList.length}</strong> records on this page.
+                          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem' }}>
+                            <Filter size={13} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                            <span style={{ color: 'var(--text-secondary)', marginRight: '0.2rem' }}>
+                              Matching <strong>{(filteredTotalCount ?? incidentsList.length).toLocaleString()}</strong>
+                              {incidentsTotalCount !== undefined ? ` of ${incidentsTotalCount.toLocaleString()}` : ''}:
                             </span>
+                            {activeIncidentChips.map((chip) => (
+                              <span
+                                key={`${chip.key}-${chip.valueLabel}`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  padding: '0.18rem 0.55rem',
+                                  borderRadius: '999px',
+                                  backgroundColor: 'rgba(59, 130, 246, 0.16)',
+                                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                                  fontSize: '0.74rem',
+                                  color: 'var(--text-primary)'
+                                }}
+                              >
+                                <span style={{ color: 'var(--text-muted)' }}>{chip.label}:</span>
+                                <strong>{chip.valueLabel}</strong>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSingleFilterChip(chip)}
+                                  title={`Remove ${chip.label} filter`}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </span>
+                            ))}
                           </div>
                           <button
                             type="button"
-                            onClick={() => setIncidentStatusFilter('ALL')}
+                            onClick={handleRemoveAllIncidentFilters}
+                            className="btn btn-secondary"
                             style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--accent-blue)',
-                              textDecoration: 'underline',
-                              fontSize: '0.78rem',
-                              cursor: 'pointer',
-                              fontWeight: 600
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontSize: '0.75rem',
+                              padding: '0.25rem 0.65rem',
+                              borderColor: 'rgba(245, 158, 11, 0.45)',
+                              color: '#FBBF24'
                             }}
                           >
-                            Show all statuses
+                            <RotateCcw size={12} />
+                            <span>
+                              Remove Filters
+                              {preFilterSnapshot ? ` (Return to Page ${preFilterSnapshot.page})` : ''}
+                            </span>
                           </button>
                         </div>
                       )}
                     </div>
 
-                    <div className="table-container" style={{ margin: 0, overflowX: 'auto', position: 'relative' }}>
-                      {/* Dimming overlay when changing page */}
+                    {/* Non-horizontally-scrolling wrapper so loader & zero-match state remain centered */}
+                    <div style={{ position: 'relative' }}>
                       {incidentsLoading && (
-                        <div 
+                        <div
                           style={{
                             position: 'absolute',
                             inset: 0,
-                            backgroundColor: 'rgba(10, 15, 29, 0.65)',
+                            backgroundColor: 'rgba(10, 15, 29, 0.72)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             zIndex: 10,
-                            backdropFilter: 'blur(2px)'
+                            backdropFilter: 'blur(2px)',
+                            borderRadius: '8px',
+                            minHeight: '200px'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.9rem' }}>
-                            <RefreshCw size={18} className="animate-spin" /> Loading page {incidentPage}...
-                          </div>
+                          <ContentLoadingState
+                            title={
+                              isServerFiltered
+                                ? `Filtering incidents (Page ${incidentPage})...`
+                                : `Loading page ${incidentPage} (${incidentPageSize} rows)...`
+                            }
+                            subtitle="Querying PostgreSQL synced incident store"
+                          />
                         </div>
                       )}
 
-                      <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2200px' : '100%' }}>
-                        <thead>
-                          <tr>
-                            {currentIncidentColumns.filter(c => showInc(c.key)).map(c => (
-                              <th
-                                key={c.key}
-                                style={c.stickyLeft
-                                  ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth, boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }
-                                  : { minWidth: c.minWidth, ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
-                              >
-                                {c.label.toUpperCase()}
-                              </th>
-                            ))}
-                            <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '95px', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredIncidents.length === 0 ? (
-                            <tr>
-                              <td colSpan={visibleIncidentKeys.size + 1} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                  <AlertCircle size={24} style={{ color: 'var(--accent-gold)' }} />
-                                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                    No incidents match status "{incidentStatusFilter}" on this page.
-                                  </div>
-                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                    All current loaded incident records are in other lifecycle statuses.
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setIncidentStatusFilter('ALL')}
-                                    className="btn btn-secondary"
-                                    style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}
+                      {!incidentsLoading && filteredIncidents.length === 0 ? (
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            padding: '3rem 1.5rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                            <AlertCircle size={26} style={{ color: 'var(--accent-gold)' }} />
+                            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              No incidents match the selected filters.
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '460px' }}>
+                              Try adjusting your search criteria in the filter panel or remove filters to restore your previous page.
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                              {isServerFiltered && (
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveAllIncidentFilters}
+                                  className="btn btn-primary"
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+                                >
+                                  <RotateCcw size={13} />
+                                  <span>
+                                    Remove Filters
+                                    {preFilterSnapshot ? ` (Return to Page ${preFilterSnapshot.page})` : ''}
+                                  </span>
+                                </button>
+                              )}
+                              {!isFilterPanelOpen && (
+                                <button
+                                  type="button"
+                                  onClick={handleToggleFilterPanel}
+                                  className="btn btn-secondary"
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+                                >
+                                  <Filter size={13} />
+                                  <span>Open Search &amp; Filters</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="table-container" style={{ margin: 0, overflowX: 'auto', position: 'relative' }}>
+                          <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2200px' : '100%' }}>
+                            <thead>
+                              <tr>
+                                {currentIncidentColumns.filter(c => showInc(c.key)).map(c => (
+                                  <th
+                                    key={c.key}
+                                    style={c.stickyLeft
+                                      ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth, boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }
+                                      : { minWidth: c.minWidth, ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
                                   >
-                                    Reset to All Statuses
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredIncidents.map((inc: any, idx: number) => (
-                              <tr key={inc.id || idx}>
-                                {currentIncidentColumns
-                                  .filter(c => showInc(c.key))
-                                  .map(col => renderIncidentCell(inc, col.key))}
-                                <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>
-                                  <button
-                                    onClick={() => setViewingIncident(inc)}
-                                    className="btn btn-secondary"
-                                    style={{ 
-                                      display: 'inline-flex', 
-                                      alignItems: 'center', 
-                                      gap: '0.35rem', 
-                                      fontSize: '0.75rem', 
-                                      padding: '0.3rem 0.65rem' 
-                                    }}
-                                    title="View complete Oracle incident record"
-                                  >
-                                    <Eye size={13} /> View
-                                  </button>
-                                </td>
+                                    {c.label.toUpperCase()}
+                                  </th>
+                                ))}
+                                <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '95px', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>Action</th>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {filteredIncidents.map((inc: any, idx: number) => (
+                                <tr key={inc.id || idx}>
+                                  {currentIncidentColumns
+                                    .filter(c => showInc(c.key))
+                                    .map(col => renderIncidentCell(inc, col.key))}
+                                  <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>
+                                    <button
+                                      onClick={() => setViewingIncident(inc)}
+                                      className="btn btn-secondary"
+                                      style={{ 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.35rem', 
+                                        fontSize: '0.75rem', 
+                                        padding: '0.3rem 0.65rem' 
+                                      }}
+                                      title="View complete Oracle incident record"
+                                    >
+                                      <Eye size={13} /> View
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
 
                     {/* Bottom Pagination Bar */}
@@ -2938,6 +3327,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     </div>
                   </div>
                 )}
+                  </div>
+                </div>
               </div>
 
               {/* Incident Details Modal (Drawer/Modal View) */}

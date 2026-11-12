@@ -8,13 +8,17 @@ interface AdvancedControlsProps {
   isActive?: boolean;
   onBack?: () => void;
   onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
+  isSidebarOpen?: boolean;
+  onSetSidebarOpen?: (open: boolean) => void;
 }
 
 export default function AdvancedControls({
   environmentMode,
   isActive = true,
   onBack,
-  onRegisterBack
+  onRegisterBack,
+  isSidebarOpen,
+  onSetSidebarOpen
 }: AdvancedControlsProps) {
   const [controls, setControls] = useState<AdvancedControlRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +157,8 @@ export default function AdvancedControls({
           isActive={isActive}
           onBack={onBack}
           onRegisterBack={onRegisterBack}
+          isSidebarOpen={isSidebarOpen}
+          onSetSidebarOpen={onSetSidebarOpen}
           embedded
           hideSectionHeader
         />
