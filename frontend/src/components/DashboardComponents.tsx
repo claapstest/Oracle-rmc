@@ -45,7 +45,9 @@ export function RoleLandscape({ stats, onNavigatePage }: RoleLandscapeProps) {
     { id: 'DUTY', label: 'Duty Roles', count: stats.dutyRolesCount || 4004, desc: 'Tasks & granular permissions', icon: Key, color: '#EC4899', bg: '#FDF2F8' },
     { id: 'DATA', label: 'Data Roles', count: stats.dataRolesCount || 48, desc: 'Data security & visibility', icon: FileText, color: '#F59E0B', bg: '#FFFBEB' },
     { id: 'ABSTRACT', label: 'Abstract Roles', count: stats.abstractRolesCount || 109, desc: 'Standard employee identities', icon: Layers, color: '#8B5CF6', bg: '#F5F3FF' },
-    { id: 'GRC', label: 'GRC Roles', count: stats.grcRolesCount || 12, desc: 'Governance & SoD definitions', icon: Lock, color: '#10B981', bg: '#ECFDF5' },
+    { id: 'GRC', label: 'GRC / Access Rules', count: stats.grcRolesCount || 12, desc: 'Governance & SoD definitions', icon: Lock, color: '#10B981', bg: '#ECFDF5' },
+    { id: 'OTHER', label: 'Other Roles', count: stats.otherRolesCount !== undefined ? stats.otherRolesCount : 27, desc: 'Unclassified & custom roles', icon: Award, color: '#64748B', bg: '#F1F5F9' },
+    { id: 'UNASSIGNED', label: 'Roles Without Users', count: stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4231, desc: 'Roles with 0 assigned members', icon: Users, color: '#7C3AED', bg: '#F5F3FF' }
   ];
 
   return (
@@ -554,6 +556,8 @@ interface RoleDistributionProps {
     dataRolesCount: number;
     abstractRolesCount: number;
     grcRolesCount: number;
+    otherRolesCount?: number;
+    rolesWithoutUsersCount?: number;
   };
   onNavigatePage?: (pageId: string, filter?: string) => void;
 }
@@ -568,11 +572,17 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
     { label: 'Duty Roles', count: stats.dutyRolesCount || 4004, color: '#EC4899', category: 'DUTY' },
     { label: 'Data Roles', count: stats.dataRolesCount || 48, color: '#F59E0B', category: 'DATA' },
     { label: 'Abstract Roles', count: stats.abstractRolesCount || 109, color: '#8B5CF6', category: 'ABSTRACT' },
-    { label: 'GRC Roles', count: stats.grcRolesCount || 12, color: '#10B981', category: 'GRC' }
+    { label: 'GRC / Access Rules', count: stats.grcRolesCount || 12, color: '#10B981', category: 'GRC' },
+    { label: 'Other Roles', count: stats.otherRolesCount !== undefined ? stats.otherRolesCount : 27, color: '#64748B', category: 'OTHER' }
   ];
 
   const segmentSum = segments.reduce((acc, s) => acc + (s.count || 0), 0);
   const total = segmentSum > 0 ? (stats.totalRoles && stats.totalRoles >= segmentSum ? stats.totalRoles : segmentSum) : (stats.totalRoles || 4713);
+
+  const unassignedCount = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4231;
+  const unassignedPercent = total > 0 ? ((unassignedCount / total) * 100).toFixed(1) : '89.8';
+  const isUnassignedHovered = hoveredIdx === -1;
+  const isUnassignedFiltered = activeFilter === 'UNASSIGNED';
 
   // Calculate SVG donut stroke arcs on a large prominent radius
   const radius = 76;
@@ -592,7 +602,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
     return { ...seg, frac, strokeDasharray, strokeDashoffset, percent: percentStr };
   });
 
-  const activeSegment = hoveredIdx !== null ? renderedArcs[hoveredIdx] : null;
+  const activeSegment = hoveredIdx !== null && hoveredIdx >= 0 ? renderedArcs[hoveredIdx] : null;
 
   const handleSelectFilter = (category: string) => {
     if (activeFilter === category) {
@@ -684,7 +694,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
                     filter: isHovered 
                       ? `drop-shadow(0 0 10px ${arc.color}90)` 
                       : isFiltered ? `drop-shadow(0 0 6px ${arc.color}60)` : 'none',
-                    opacity: hoveredIdx !== null ? (isHovered ? 1 : 0.45) : (activeFilter ? (isFiltered ? 1 : 0.5) : 1)
+                    opacity: hoveredIdx !== null ? (isHovered ? 1 : (hoveredIdx === -1 ? 0.35 : 0.45)) : (activeFilter ? (isFiltered ? 1 : 0.5) : 1)
                   }}
                   onMouseEnter={() => setHoveredIdx(i)}
                   onClick={() => handleSelectFilter(arc.category)}
@@ -720,6 +730,18 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
                   {activeSegment.count.toLocaleString()} roles
                 </span>
               </>
+            ) : isUnassignedHovered ? (
+              <>
+                <span style={{ fontSize: '1.45rem', fontWeight: 800, color: '#7C3AED', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                  {unassignedPercent}%
+                </span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1E293B', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
+                  Roles Without Users
+                </span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', marginTop: '2px' }}>
+                  {unassignedCount.toLocaleString()} unassigned
+                </span>
+              </>
             ) : (
               <>
                 <span style={{ fontSize: '1.45rem', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 }}>
@@ -753,10 +775,30 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
               {activeSegment.label}: {activeSegment.count.toLocaleString()} ({activeSegment.percent}%)
             </div>
           )}
+          {isUnassignedHovered && mousePos && (
+            <div style={{
+              position: 'absolute',
+              left: `${mousePos.x + 12}px`,
+              top: `${mousePos.y - 10}px`,
+              backgroundColor: 'rgba(15, 23, 42, 0.92)',
+              color: '#FFFFFF',
+              padding: '5px 10px',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+              zIndex: 30,
+              transform: 'translateY(-50%)'
+            }}>
+              Roles Without Users: {unassignedCount.toLocaleString()} ({unassignedPercent}%)
+            </div>
+          )}
         </div>
 
         {/* Dynamic Legend */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1, minWidth: 0 }}>
           {renderedArcs.map((seg, idx) => {
             const isHovered = hoveredIdx === idx;
             const isZero = seg.count === 0;
@@ -773,7 +815,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
                   justifyContent: 'space-between', 
                   fontSize: '0.84rem', 
                   cursor: 'pointer', 
-                  padding: '0.35rem 0.65rem',
+                  padding: '0.3rem 0.65rem',
                   borderRadius: '7px',
                   backgroundColor: isHovered ? '#F1F5F9' : (isFiltered ? '#EFF6FF' : 'transparent'),
                   opacity: isZero ? 0.45 : (hoveredIdx !== null ? (isHovered ? 1 : 0.6) : 1),
@@ -798,6 +840,43 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
               </div>
             );
           })}
+
+          {/* Roles Without Users Row */}
+          <div style={{ height: '1px', backgroundColor: 'var(--border-color, #E2E8F0)', margin: '0.15rem 0' }} />
+          <div 
+            onClick={() => handleSelectFilter('UNASSIGNED')}
+            onMouseEnter={() => setHoveredIdx(-1)}
+            onMouseLeave={() => setHoveredIdx(null)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              fontSize: '0.84rem', 
+              cursor: 'pointer', 
+              padding: '0.3rem 0.65rem',
+              borderRadius: '7px',
+              backgroundColor: isUnassignedHovered ? '#F5F3FF' : (isUnassignedFiltered ? '#EDE9FE' : 'transparent'),
+              border: isUnassignedFiltered ? '1px solid #C4B5FD' : '1px solid transparent',
+              opacity: hoveredIdx !== null ? (isUnassignedHovered ? 1 : 0.6) : 1,
+              transition: 'all 0.15s ease'
+            }}
+            title="Filter by Roles Without Users"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#7C3AED', flexShrink: 0 }} />
+              <span style={{ color: isUnassignedHovered ? '#6D28D9' : 'var(--text-secondary)', fontWeight: isUnassignedHovered ? 600 : 500 }}>
+                Roles Without Users
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontWeight: 800, color: '#7C3AED' }}>
+                {unassignedCount.toLocaleString()}
+              </span>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', minWidth: '42px', textAlign: 'right' }}>
+                {unassignedPercent}%
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
