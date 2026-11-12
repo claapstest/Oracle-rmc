@@ -31,8 +31,9 @@
     "test:vyr25": "node scripts/test_story_025_react_api_client.cjs",
     "test:vyr26": "node scripts/test_story_026_jwt_security_and_migration.cjs",
     "test:vyr27": "node scripts/test_story_027_data_classification_and_path_mapping.cjs",
+    "test:vyr28": "node scripts/test_story_028_encryption_contract_and_aad.cjs",
     "test:epic3": "npm run test:vyr19 && npm run test:vyr20 && npm run test:vyr22 && npm run test:vyr23 && npm run test:vyr24 && npm run test:vyr25 && npm run test:vyr26",
-    "test:epic4": "npm run test:vyr27",
+    "test:epic4": "npm run test:vyr27 && npm run test:vyr28",
     "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {
