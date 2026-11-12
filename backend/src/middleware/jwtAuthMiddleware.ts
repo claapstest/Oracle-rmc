@@ -12,6 +12,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/authService.js';
 import { recordAuditEvent } from '../services/auditService.js';
+import { tokenService } from '../auth/tokenService.js';
 
 function logSecurityAudit(email: string, action: string, details: string, req?: Request, userId?: string | null) {
   console.log(`[AUDIT] [${new Date().toISOString()}] User: ${email} | Action: ${action} | Details: ${details}`);
@@ -94,7 +95,7 @@ export async function verifyJwtAndSession(req: Request, res: Response, next: Nex
     res.locals.permissions = session.permissions;
     res.locals.isAdmin = session.isAdmin;
     res.locals.token = token;
-    res.locals.sessionId = session.token;
+    res.locals.sessionId = session.sessionId || tokenService.extractSessionId(token) || session.token;
     res.locals.authProvider = session.authProvider || authService.getEffectiveProvider();
 
     // Standard Express req.user binding for downstream handlers
@@ -106,6 +107,7 @@ export async function verifyJwtAndSession(req: Request, res: Response, next: Nex
       role: session.role,
       permissions: session.permissions,
       isAdmin: session.isAdmin,
+      sessionId: res.locals.sessionId,
       authProvider: res.locals.authProvider
     };
 
