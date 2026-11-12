@@ -169,6 +169,7 @@ app.listen(config.port, '0.0.0.0', () => {
 
   // Non-blocking background warm-up of heavy PostgreSQL report caches on boot
   setTimeout(() => {
+    controlRawDbService.ensureIncidentRowsInitialized().catch(() => {});
     userAccessReportService.getUserAccessReport().catch(() => {});
     roleHierarchyService.getHierarchyReport({ compact: true }).catch(() => {});
   }, 500);

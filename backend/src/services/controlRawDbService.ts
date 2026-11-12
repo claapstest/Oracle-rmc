@@ -80,6 +80,10 @@ export class ControlRawDbService {
   private schedulerTimer: NodeJS.Timeout | null = null;
   private isSchedulerRunning = false;
   private incidentCountCacheService: any = null;
+  private summaryHealedOnce = false;
+  private facetsCache = new Map<string, { facets: ControlIncidentFacets; cachedAt: number }>();
+  private incidentRowsInitPromise: Promise<void> | null = null;
+  private incidentRowsReady = false;
 
   public setIncidentCountCacheService(service: any): void {
     this.incidentCountCacheService = service;
@@ -272,21 +276,24 @@ export class ControlRawDbService {
     last_synced_at: string | null;
   }>> {
     const host = this.getHost();
-    // Auto-heal any controls where raw_incidents array has more items than total_incidents
-    try {
-      await query(
-        `UPDATE oracle_control_incidents
-         SET total_incidents = jsonb_array_length(raw_incidents),
-             assigned_incidents = CASE 
-               WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
-                 GREATEST(0, jsonb_array_length(raw_incidents) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0))
-               ELSE assigned_incidents 
-             END,
-             updated_at = NOW()
-         WHERE jsonb_typeof(raw_incidents) = 'array' 
-           AND jsonb_array_length(raw_incidents) > COALESCE(total_incidents, 0)`
-      );
-    } catch (_) {}
+    // One-time startup auto-heal for controls where raw_incidents exceeds total_incidents (avoids per-request TOAST scans)
+    if (!this.summaryHealedOnce) {
+      this.summaryHealedOnce = true;
+      try {
+        await query(
+          `UPDATE oracle_control_incidents
+           SET total_incidents = jsonb_array_length(raw_incidents),
+               assigned_incidents = CASE 
+                 WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
+                   GREATEST(0, jsonb_array_length(raw_incidents) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0))
+                 ELSE assigned_incidents 
+               END,
+               updated_at = NOW()
+           WHERE jsonb_typeof(raw_incidents) = 'array' 
+             AND jsonb_array_length(raw_incidents) > COALESCE(total_incidents, 0)`
+        );
+      } catch (_) {}
+    }
 
     const res = await query<{
       control_id: string;
@@ -412,7 +419,171 @@ export class ControlRawDbService {
       } catch (_) {}
     }
 
+    // Invalidate facets cache and sync indexed row table for this control
+    this.facetsCache.delete(`${host}|${cleanId}`);
+    this.syncSingleControlRowsFromDb(host, cleanId).catch(() => {});
+
     return rawIncidents.length;
+  }
+
+  /**
+   * Ensures normalized indexed table `oracle_incident_rows` exists and is backfilled
+   * from `oracle_control_incidents` (idempotent, runs once in background or on boot).
+   */
+  public async ensureIncidentRowsInitialized(): Promise<void> {
+    if (this.incidentRowsReady) return;
+    if (this.incidentRowsInitPromise) return this.incidentRowsInitPromise;
+
+    this.incidentRowsInitPromise = (async () => {
+      try {
+        await query(`
+          CREATE TABLE IF NOT EXISTS oracle_incident_rows (
+            environment_host TEXT NOT NULL,
+            control_id TEXT NOT NULL,
+            control_name TEXT,
+            ord INTEGER NOT NULL,
+            result_id TEXT DEFAULT '',
+            status TEXT DEFAULT '',
+            state TEXT DEFAULT '',
+            lifecycle VARCHAR(16) NOT NULL DEFAULT 'ASSIGNED',
+            priority TEXT DEFAULT '',
+            global_user TEXT DEFAULT '',
+            role_name TEXT DEFAULT '',
+            access_entitlement TEXT DEFAULT '',
+            access_point_name TEXT DEFAULT '',
+            access_point_type TEXT DEFAULT '',
+            grouping_value TEXT DEFAULT '',
+            group_name TEXT DEFAULT '',
+            data_source TEXT DEFAULT '',
+            incident_information TEXT DEFAULT '',
+            created_by TEXT DEFAULT '',
+            investigator TEXT DEFAULT '',
+            last_updated_by TEXT DEFAULT '',
+            raw JSONB NOT NULL,
+            PRIMARY KEY (environment_host, control_id, ord)
+          );
+          CREATE INDEX IF NOT EXISTS ix_oracle_inc_rows_ctrl_life_ord
+            ON oracle_incident_rows (environment_host, control_id, lifecycle, ord);
+          CREATE INDEX IF NOT EXISTS ix_oracle_inc_rows_life_ctrl_ord
+            ON oracle_incident_rows (environment_host, lifecycle, control_id, ord);
+          CREATE INDEX IF NOT EXISTS ix_oracle_inc_rows_ctrl_resid
+            ON oracle_incident_rows (environment_host, control_id, result_id);
+          CREATE TABLE IF NOT EXISTS oracle_incident_rows_sync (
+            environment_host TEXT NOT NULL,
+            control_id TEXT NOT NULL,
+            control_name TEXT,
+            row_count INTEGER NOT NULL DEFAULT 0,
+            last_synced_at TIMESTAMPTZ DEFAULT NOW(),
+            PRIMARY KEY (environment_host, control_id)
+          );
+        `);
+
+        const pendingRes = await query<{ environment_host: string; control_id: string }>(`
+          SELECT c.environment_host, c.control_id
+          FROM oracle_control_incidents c
+          LEFT JOIN oracle_incident_rows_sync s
+            ON s.environment_host = c.environment_host AND s.control_id = c.control_id
+          WHERE jsonb_typeof(c.raw_incidents) = 'array'
+            AND (s.control_id IS NULL OR (c.last_synced_at IS NOT NULL AND s.last_synced_at < c.last_synced_at))
+          ORDER BY c.control_id
+        `);
+
+        if (pendingRes.rows.length > 0) {
+          console.log(`[ControlRawDbService] Indexing ${pendingRes.rows.length} control(s) into oracle_incident_rows...`);
+          for (const row of pendingRes.rows) {
+            await this.syncSingleControlRowsFromDb(row.environment_host, row.control_id);
+          }
+          console.log(`[ControlRawDbService] Finished indexing ${pendingRes.rows.length} control(s) into oracle_incident_rows.`);
+        }
+
+        this.incidentRowsReady = true;
+      } catch (err: any) {
+        console.warn('[ControlRawDbService] Incident row index initialization note:', err?.message);
+      } finally {
+        this.incidentRowsInitPromise = null;
+      }
+    })();
+
+    return this.incidentRowsInitPromise;
+  }
+
+  /**
+   * Populates/refreshes `oracle_incident_rows` for a single (environment_host, control_id) inside PostgreSQL.
+   */
+  public async syncSingleControlRowsFromDb(environmentHost: string, controlId: string): Promise<number> {
+    const cleanHost = String(environmentHost || '').trim();
+    const cleanId = String(controlId || '').trim();
+    if (!cleanHost || !cleanId) return 0;
+
+    await query(
+      `DELETE FROM oracle_incident_rows WHERE environment_host = $1 AND control_id = $2`,
+      [cleanHost, cleanId]
+    );
+
+    const ins = await query<{ cnt: number }>(`
+      WITH inserted AS (
+        INSERT INTO oracle_incident_rows (
+          environment_host, control_id, control_name, ord,
+          result_id, status, state, lifecycle, priority,
+          global_user, role_name, access_entitlement, access_point_name, access_point_type,
+          grouping_value, group_name, data_source, incident_information,
+          created_by, investigator, last_updated_by, raw
+        )
+        SELECT
+          t.environment_host,
+          t.control_id,
+          t.control_name,
+          elem.ord::int,
+          COALESCE(elem.el->>'Id', elem.el->>'id', elem.el->>'IncidentId', elem.el->>'ResultId', ''),
+          COALESCE(elem.el->>'Status', elem.el->>'status', ''),
+          COALESCE(elem.el->>'State', elem.el->>'StateCode', elem.el->>'state', ''),
+          CASE
+            WHEN (UPPER(COALESCE(elem.el->>'Status','')) LIKE '%ACCEPT%' OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%ACCEPT%') THEN 'ACCEPTED'
+            WHEN (UPPER(COALESCE(elem.el->>'Status','')) LIKE '%REMEDIAT%' OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%REMEDIAT%') THEN 'REMEDIATE'
+            WHEN (
+              UPPER(COALESCE(elem.el->>'Status','')) LIKE '%RESOLV%'
+              OR UPPER(COALESCE(elem.el->>'Status','')) LIKE '%CLOSE%'
+              OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%RESOLV%'
+              OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%CLOSE%'
+              OR NULLIF(TRIM(COALESCE(elem.el->>'ClosedDate',elem.el->>'closedDate','')),'') IS NOT NULL
+            ) THEN 'RESOLVED'
+            ELSE 'ASSIGNED'
+          END,
+          COALESCE(elem.el->>'Priority', elem.el->>'priority', ''),
+          COALESCE(elem.el->>'GlobalUserName', elem.el->>'globalUserName', ''),
+          COALESCE(elem.el->>'Role', elem.el->>'role', ''),
+          COALESCE(elem.el->>'AccessEntitlement', elem.el->>'accessEntitlement', elem.el->>'Entitlement', elem.el->>'entitlement', ''),
+          COALESCE(elem.el->>'AccessPointName', elem.el->>'accessPointName', elem.el->>'AccessPoint', elem.el->>'accessPoint', ''),
+          COALESCE(elem.el->>'AccessPointType', elem.el->>'accessPointType', ''),
+          COALESCE(elem.el->>'GroupingValue', elem.el->>'groupingValue', ''),
+          COALESCE(elem.el->>'ResultGroup', elem.el->>'resultGroup', elem.el->>'Group', elem.el->>'group', elem.el->>'GroupName', ''),
+          COALESCE(elem.el->>'DataSource', elem.el->>'TransactionDataSource', elem.el->>'dataSource', ''),
+          COALESCE(elem.el->>'IncidentInformation', elem.el->>'incidentInformation', elem.el->>'Description', elem.el->>'description', ''),
+          COALESCE(elem.el->>'CreatedBy', elem.el->>'createdBy', ''),
+          COALESCE(elem.el->>'ResultInvestigator', elem.el->>'Investigator', elem.el->>'resultInvestigator', elem.el->>'investigator', ''),
+          COALESCE(elem.el->>'LastUpdatedBy', elem.el->>'lastUpdatedBy', ''),
+          elem.el
+        FROM oracle_control_incidents t
+        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(t.raw_incidents, '[]'::jsonb)) WITH ORDINALITY AS elem(el, ord)
+        WHERE t.environment_host = $1 AND t.control_id = $2
+        RETURNING 1
+      )
+      SELECT COUNT(*)::int AS cnt FROM inserted
+    `, [cleanHost, cleanId]);
+
+    const rowCount = Number(ins.rows[0]?.cnt || 0);
+    await query(`
+      INSERT INTO oracle_incident_rows_sync (environment_host, control_id, control_name, row_count, last_synced_at)
+      SELECT environment_host, control_id, control_name, $3, COALESCE(last_synced_at, NOW())
+      FROM oracle_control_incidents
+      WHERE environment_host = $1 AND control_id = $2
+      ON CONFLICT (environment_host, control_id) DO UPDATE SET
+        control_name = COALESCE(EXCLUDED.control_name, oracle_incident_rows_sync.control_name),
+        row_count = EXCLUDED.row_count,
+        last_synced_at = EXCLUDED.last_synced_at
+    `, [cleanHost, cleanId, rowCount]);
+
+    return rowCount;
   }
 
   /**
@@ -427,8 +598,197 @@ export class ControlRawDbService {
   }
 
   /**
-   * Retrieves raw incidents for a single control directly in PostgreSQL using JSONB filtering & pagination.
-   * Scans across all synced incident rows for the control before slicing the requested page.
+   * Resolves the winning indexed row-sync record for a single control if `oracle_incident_rows` is synced.
+   */
+  private async getIndexedControlMeta(host: string, cleanId: string): Promise<{ environment_host: string; control_name: string | null; row_count: number } | null> {
+    try {
+      const res = await query<{ environment_host: string; control_name: string | null; row_count: number }>(
+        `SELECT environment_host, control_name, row_count
+         FROM oracle_incident_rows_sync
+         WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)
+         LIMIT 1`,
+        [host, cleanId]
+      );
+      return res.rows[0] || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Builds SQL predicates targeting flat columns on `oracle_incident_rows r`.
+   */
+  private buildNormalizedRowFilterConditions(
+    options: IncidentQueryFilters,
+    startParamIdx = 3,
+    includeTableControlCols = true
+  ): { conds: string[]; params: any[]; nextParam: number } {
+    const conds: string[] = [];
+    const params: any[] = [];
+    let p = startParamIdx;
+
+    // Multi-select statuses (preferred) or legacy single status
+    const rawStatuses = Array.isArray(options.statuses) && options.statuses.length > 0
+      ? options.statuses
+      : (options.status && options.status !== 'ALL' ? options.status.split(',') : []);
+    const cleanStatuses = rawStatuses
+      .map(s => String(s || '').trim().toUpperCase())
+      .filter(s => s && s !== 'ALL');
+
+    if (cleanStatuses.length > 0) {
+      const lifecycles = new Set<string>();
+      const rawStatusLiterals: string[] = [];
+      for (const statusKey of cleanStatuses) {
+        if (statusKey === 'ACCEPTED') lifecycles.add('ACCEPTED');
+        else if (statusKey === 'REMEDIATE' || statusKey === 'IN_REMEDIATION' || statusKey === 'REMEDIATION') lifecycles.add('REMEDIATE');
+        else if (statusKey === 'RESOLVED' || statusKey === 'CLOSED') lifecycles.add('RESOLVED');
+        else if (statusKey === 'ASSIGNED') lifecycles.add('ASSIGNED');
+        else rawStatusLiterals.push(statusKey);
+      }
+
+      const statusOrParts: string[] = [];
+      if (lifecycles.size > 0) {
+        statusOrParts.push(`r.lifecycle = ANY($${p})`);
+        params.push(Array.from(lifecycles));
+        p++;
+      }
+      for (const lit of rawStatusLiterals) {
+        statusOrParts.push(`(UPPER(r.status) = $${p} OR UPPER(r.state) = $${p})`);
+        params.push(lit);
+        p++;
+      }
+      if (statusOrParts.length > 0) {
+        conds.push(`(${statusOrParts.join(' OR ')})`);
+      }
+    }
+
+    // Multi-select or single state
+    const rawStates = Array.isArray(options.states) && options.states.length > 0
+      ? options.states
+      : (options.state && options.state !== 'ALL' ? options.state.split(',') : []);
+    const cleanStates = rawStates
+      .map(s => String(s || '').trim().toUpperCase())
+      .filter(s => s && s !== 'ALL');
+
+    if (cleanStates.length > 0) {
+      const stateOrParts: string[] = [];
+      for (const stateKey of cleanStates) {
+        if (stateKey === 'APPROVED') {
+          stateOrParts.push(`(UPPER(r.state) LIKE '%APPROV%')`);
+        } else if (stateKey === 'IN_INVESTIGATION' || stateKey === 'INVESTIGATION' || stateKey === 'IN INVESTIGATION') {
+          stateOrParts.push(`(UPPER(r.state) LIKE '%INVESTIGAT%')`);
+        } else {
+          stateOrParts.push(`(UPPER(r.state) = $${p})`);
+          params.push(stateKey);
+          p++;
+        }
+      }
+      if (stateOrParts.length > 0) {
+        conds.push(`(${stateOrParts.join(' OR ')})`);
+      }
+    }
+
+    // Quick free-text search across key incident columns
+    const q = (options.search || '').trim().toLowerCase();
+    if (q) {
+      const baseSearch = `(LOWER(r.global_user) LIKE $${p} OR LOWER(COALESCE(r.raw->>'UserFirstName','')) LIKE $${p} OR LOWER(COALESCE(r.raw->>'UserLastName','')) LIKE $${p} OR LOWER(r.role_name) LIKE $${p} OR LOWER(r.result_id) LIKE $${p} OR LOWER(r.incident_information) LIKE $${p} OR LOWER(r.grouping_value) LIKE $${p} OR LOWER(r.group_name) LIKE $${p} OR LOWER(r.access_entitlement) LIKE $${p} OR LOWER(COALESCE(r.raw->>'ControlName',r.control_name,'')) LIKE $${p}`;
+      if (includeTableControlCols) {
+        conds.push(`${baseSearch} OR LOWER(r.control_id) LIKE $${p})`);
+      } else {
+        conds.push(`${baseSearch})`);
+      }
+      params.push(`%${q}%`);
+      p++;
+    }
+
+    // Multi-term AND search
+    for (const rawTerm of options.searchTerms || []) {
+      const term = String(rawTerm || '').trim().toLowerCase();
+      if (!term) continue;
+      conds.push(`(LOWER(r.global_user) LIKE $${p} OR LOWER(r.role_name) LIKE $${p} OR LOWER(r.result_id) LIKE $${p} OR LOWER(r.incident_information) LIKE $${p} OR LOWER(r.access_point_name) LIKE $${p} OR LOWER(r.access_entitlement) LIKE $${p})`);
+      params.push(`%${term}%`);
+      p++;
+    }
+
+    const addContains = (val: string | undefined, expr: string) => {
+      const trimmed = (val || '').trim().toLowerCase();
+      if (!trimmed) return;
+      conds.push(`(${expr} LIKE $${p})`);
+      params.push(`%${trimmed}%`);
+      p++;
+    };
+
+    addContains(options.globalUser, `LOWER(COALESCE(NULLIF(r.global_user,''), COALESCE(r.raw->>'GlobalUser', r.raw->>'globalUser', r.raw->>'UserFirstName', '')) || ' ' || COALESCE(r.raw->>'UserLastName', ''))`);
+    if (!includeTableControlCols) {
+      addContains(options.role, `LOWER(r.role_name || ' ' || COALESCE(r.raw->>'ConflictingRoles', r.raw->>'conflictingRoles', ''))`);
+    }
+    addContains(options.accessEntitlement, `LOWER(r.access_entitlement)`);
+    addContains(options.accessPointName, `LOWER(r.access_point_name)`);
+    addContains(options.groupingValue, `LOWER(r.grouping_value)`);
+    addContains(options.group, `LOWER(r.group_name)`);
+    addContains(options.incidentInformation, `LOWER(r.incident_information)`);
+
+    const addExactTrim = (val: string | undefined, expr: string) => {
+      const trimmed = (val || '').trim();
+      if (!trimmed || trimmed.toUpperCase() === 'ALL') return;
+      conds.push(`(LOWER(TRIM(${expr})) = LOWER($${p}))`);
+      params.push(trimmed);
+      p++;
+    };
+
+    addExactTrim(options.accessPointType, `r.access_point_type`);
+    addExactTrim(options.dataSource, `COALESCE(NULLIF(r.data_source, ''), 'Oracle Cloud')`);
+    addExactTrim(options.createdBy, `r.created_by`);
+    addExactTrim(options.investigator, `r.investigator`);
+    addExactTrim(options.lastUpdatedBy, `r.last_updated_by`);
+
+    const exactUser = (options.user || '').trim();
+    if (exactUser) {
+      if (exactUser.toLowerCase() === 'unknown') {
+        conds.push(`(COALESCE(NULLIF(TRIM(r.global_user), ''), NULLIF(TRIM(REGEXP_REPLACE(r.incident_information, '^Person\\.Full Name:\\s*', '', 'i')), ''), 'Unknown') = 'Unknown')`);
+      } else {
+        conds.push(`(
+          LOWER(TRIM(r.global_user)) = LOWER($${p})
+          OR LOWER(TRIM(REGEXP_REPLACE(r.incident_information, '^Person\\.Full Name:\\s*', '', 'i'))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(r.raw->>'UserFirstName', ''))) = LOWER($${p})
+        )`);
+        params.push(exactUser);
+        p++;
+      }
+    }
+
+    const exactRole = (options.role || '').trim();
+    if (includeTableControlCols && exactRole) {
+      if (exactRole.toLowerCase() === 'unknown') {
+        conds.push(`(COALESCE(NULLIF(TRIM(r.role_name), ''), NULLIF(TRIM(r.control_name), ''), NULLIF(TRIM(r.raw->>'ControlName'), ''), 'Unknown') = 'Unknown')`);
+      } else {
+        conds.push(`(
+          LOWER(TRIM(r.role_name)) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(r.control_name, ''))) = LOWER($${p})
+          OR LOWER(TRIM(COALESCE(r.raw->>'ControlName', ''))) = LOWER($${p})
+          OR LOWER(TRIM(r.group_name)) = LOWER($${p})
+        )`);
+        params.push(exactRole);
+        p++;
+      }
+    }
+
+    const prio = (options.priority || '').trim().toUpperCase();
+    if (prio && prio !== 'ALL') {
+      const prioMap: Record<string, string> = { HIGH: '1', MEDIUM: '2', LOW: '3' };
+      const prioVal = prioMap[prio] || prio;
+      conds.push(`(r.priority = $${p})`);
+      params.push(prioVal);
+      p++;
+    }
+
+    return { conds, params, nextParam: p };
+  }
+
+  /**
+   * Retrieves raw incidents for a single control directly in PostgreSQL using indexed `oracle_incident_rows`
+   * when synced (<15ms), falling back safely to `oracle_control_incidents` JSONB filtering otherwise.
    */
   public async getRawIncidents(
     controlId: string,
@@ -442,11 +802,48 @@ export class ControlRawDbService {
     const limit = Math.min(250, Math.max(1, options.limit || 25));
     const offset = Math.max(0, options.offset || 0);
 
+    // Fast indexed path from normalized `oracle_incident_rows`
+    const indexedMeta = await this.getIndexedControlMeta(host, cleanId);
+    if (indexedMeta && indexedMeta.row_count > 0) {
+      const { conds, params, nextParam } = this.buildNormalizedRowFilterConditions(options, 3, false);
+      const isFiltered = conds.length > 0;
+      const fullSyncedTotal = Number(indexedMeta.row_count);
+
+      if (!isFiltered) {
+        const fastRes = await query<{ raw: any }>(
+          `SELECT raw
+           FROM oracle_incident_rows
+           WHERE environment_host = $1 AND control_id = $2
+           ORDER BY ord
+           LIMIT $3 OFFSET $4`,
+          [indexedMeta.environment_host, cleanId, limit, offset]
+        );
+        const rawItems = fastRes.rows.map(r => r.raw);
+        return { total: fullSyncedTotal, rawItems, count: rawItems.length, isFiltered: false, fullSyncedTotal };
+      }
+
+      const whereClause = `WHERE r.environment_host = $1 AND r.control_id = $2 AND ${conds.join(' AND ')}`;
+      const filteredRes = await query<{ raw: any; filtered_total: string }>(
+        `SELECT r.raw, COUNT(*) OVER() AS filtered_total
+         FROM oracle_incident_rows r
+         ${whereClause}
+         ORDER BY r.ord
+         LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
+        [indexedMeta.environment_host, cleanId, ...params, limit, offset]
+      );
+      const total = filteredRes.rows.length > 0 ? Number(filteredRes.rows[0].filtered_total || 0) : 0;
+      const rawItems = filteredRes.rows.map(r => r.raw);
+      return { total, rawItems, count: rawItems.length, isFiltered: true, fullSyncedTotal };
+    }
+
+    // Kick off non-blocking indexing if not synced yet
+    this.ensureIncidentRowsInitialized().catch(() => {});
+
     const { conds, params, nextParam } = this.buildIncidentFilterConditions(options, 3, false);
     const isFiltered = conds.length > 0;
     const whereExtra = isFiltered ? `WHERE ${conds.join(' AND ')}` : '';
 
-    // Always inspect target row metadata first when empty or fast-path unfiltered check
+    // Fallback to raw JSONB cell if normalized rows aren't populated for this control yet
     const sql = `
       WITH target AS (
         SELECT control_id, control_name, raw_incidents, total_incidents,
@@ -492,11 +889,16 @@ export class ControlRawDbService {
 
   /**
    * Returns distinct dropdown filter values (Investigator, Created By, Last Updated By, State, etc.)
-   * computed from PostgreSQL across all synced incidents of a single control.
+   * with in-memory TTL cache + fast flat-column query on `oracle_incident_rows` when available.
    */
   public async getControlIncidentFacets(controlId: string): Promise<ControlIncidentFacets> {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
+    const cacheKey = `${host}|${cleanId}`;
+    const cached = this.facetsCache.get(cacheKey);
+    if (cached && (Date.now() - cached.cachedAt) < 10 * 60 * 1000) {
+      return cached.facets;
+    }
 
     const emptyFacets: ControlIncidentFacets = {
       createdBy: [],
@@ -508,6 +910,49 @@ export class ControlRawDbService {
       groups: [],
       priorities: []
     };
+
+    const indexedMeta = await this.getIndexedControlMeta(host, cleanId);
+    if (indexedMeta && indexedMeta.row_count > 0) {
+      const res = await query<{
+        created_by: string[] | null;
+        investigator: string[] | null;
+        last_updated_by: string[] | null;
+        states: string[] | null;
+        access_point_types: string[] | null;
+        data_sources: string[] | null;
+        groups: string[] | null;
+        priorities: string[] | null;
+      }>(
+        `WITH scoped AS (
+           SELECT created_by, investigator, last_updated_by, state, access_point_type, data_source, group_name, priority
+           FROM oracle_incident_rows
+           WHERE environment_host = $1 AND control_id = $2
+         )
+         SELECT
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(created_by), '') AS v FROM scoped LIMIT 200) s WHERE v IS NOT NULL) AS created_by,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(investigator), '') AS v FROM scoped LIMIT 200) s WHERE v IS NOT NULL) AS investigator,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(last_updated_by), '') AS v FROM scoped LIMIT 200) s WHERE v IS NOT NULL) AS last_updated_by,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(state), '') AS v FROM scoped LIMIT 50) s WHERE v IS NOT NULL) AS states,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(access_point_type), '') AS v FROM scoped LIMIT 50) s WHERE v IS NOT NULL) AS access_point_types,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(data_source), '') AS v FROM scoped LIMIT 50) s WHERE v IS NOT NULL) AS data_sources,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(group_name), '') AS v FROM scoped LIMIT 200) s WHERE v IS NOT NULL) AS groups,
+           (SELECT ARRAY_AGG(v ORDER BY v) FROM (SELECT DISTINCT NULLIF(TRIM(priority), '') AS v FROM scoped LIMIT 20) s WHERE v IS NOT NULL) AS priorities`,
+        [indexedMeta.environment_host, cleanId]
+      );
+      const r = res.rows[0];
+      const facets: ControlIncidentFacets = r ? {
+        createdBy: r.created_by || [],
+        investigator: r.investigator || [],
+        lastUpdatedBy: r.last_updated_by || [],
+        states: r.states || [],
+        accessPointTypes: r.access_point_types || [],
+        dataSources: r.data_sources || [],
+        groups: r.groups || [],
+        priorities: r.priorities || []
+      } : emptyFacets;
+      this.facetsCache.set(cacheKey, { facets, cachedAt: Date.now() });
+      return facets;
+    }
 
     const res = await query<{
       created_by: string[] | null;
@@ -545,7 +990,7 @@ export class ControlRawDbService {
 
     const r = res.rows[0];
     if (!r) return emptyFacets;
-    return {
+    const facets: ControlIncidentFacets = {
       createdBy: r.created_by || [],
       investigator: r.investigator || [],
       lastUpdatedBy: r.last_updated_by || [],
@@ -555,6 +1000,8 @@ export class ControlRawDbService {
       groups: r.groups || [],
       priorities: r.priorities || []
     };
+    this.facetsCache.set(cacheKey, { facets, cachedAt: Date.now() });
+    return facets;
   }
 
   /**
@@ -787,7 +1234,8 @@ export class ControlRawDbService {
 
   /**
    * Cross-control paginated incident read (for "All controls" views).
-   * Filters + total are computed in SQL so 60K+ rows never hit Node/V8.
+   * Uses indexed `oracle_incident_rows` when all active controls in scope are synced (<30ms),
+   * falling back cleanly to `oracle_control_incidents` JSONB filtering otherwise.
    */
   public async getAllRawIncidentsAcrossControls(options: IncidentQueryFilters & {
     controlIds: string[];
@@ -802,6 +1250,114 @@ export class ControlRawDbService {
     if (ids.length === 0) return { filteredTotal: 0, rows: [] };
     const limit = Math.min(100, Math.max(1, options.limit || 25));
     const offset = Math.max(0, options.offset || 0);
+
+    try {
+      const [metaRes, syncRes] = await Promise.all([
+        query<{ control_id: string }>(
+          `SELECT DISTINCT control_id
+           FROM oracle_control_incidents
+           WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
+             AND control_id = ANY($2)
+             AND COALESCE(total_incidents, 0) > 0`,
+          [host, ids]
+        ),
+        query<{ environment_host: string; control_id: string; control_name: string | null; row_count: number }>(
+          `SELECT DISTINCT ON (control_id) environment_host, control_id, control_name, row_count
+           FROM oracle_incident_rows_sync
+           WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
+             AND control_id = ANY($2)
+           ORDER BY control_id, (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)`,
+          [host, ids]
+        ),
+      ]);
+
+      const syncedByCtrl = new Map(syncRes.rows.map(r => [r.control_id, r]));
+      const allCovered = metaRes.rows.every(r => {
+        const s = syncedByCtrl.get(r.control_id);
+        return s !== undefined && Number(s.row_count) > 0;
+      });
+
+      if (allCovered) {
+        const activeSynced = syncRes.rows.filter(r => Number(r.row_count) > 0);
+        if (activeSynced.length === 0) {
+          return { filteredTotal: 0, rows: [] };
+        }
+
+        const { conds, params, nextParam } = this.buildNormalizedRowFilterConditions(options, 3, true);
+        if (conds.length === 0) {
+          let filteredTotal = 0;
+          const slices: Array<{ envHost: string; controlId: string; localOffset: number; localLimit: number }> = [];
+          let remainingSkip = offset;
+          let remainingTake = limit;
+
+          for (const s of activeSynced) {
+            const cnt = Number(s.row_count || 0);
+            filteredTotal += cnt;
+            if (remainingTake <= 0) continue;
+            if (remainingSkip >= cnt) {
+              remainingSkip -= cnt;
+              continue;
+            }
+            const takeHere = Math.min(remainingTake, cnt - remainingSkip);
+            slices.push({
+              envHost: s.environment_host,
+              controlId: s.control_id,
+              localOffset: remainingSkip,
+              localLimit: takeHere,
+            });
+            remainingSkip = 0;
+            remainingTake -= takeHere;
+          }
+
+          if (slices.length === 0) {
+            return { filteredTotal, rows: [] };
+          }
+
+          const sliceResults = await Promise.all(
+            slices.map(sl =>
+              query<{ control_id: string; control_name: string | null; raw: any }>(
+                `SELECT control_id, control_name, raw
+                 FROM oracle_incident_rows
+                 WHERE environment_host = $1 AND control_id = $2
+                 ORDER BY ord
+                 LIMIT $3 OFFSET $4`,
+                [sl.envHost, sl.controlId, sl.localLimit, sl.localOffset]
+              )
+            )
+          );
+          return {
+            filteredTotal,
+            rows: sliceResults.flatMap(r => r.rows),
+          };
+        }
+
+        const scopeHosts = activeSynced.map(s => s.environment_host);
+        const scopeCtrls = activeSynced.map(s => s.control_id);
+        const filteredRes = await query<{
+          control_id: string;
+          control_name: string | null;
+          raw: any;
+          filtered_total: string;
+        }>(
+          `SELECT r.control_id, r.control_name, r.raw, COUNT(*) OVER() AS filtered_total
+           FROM UNNEST($1::text[], $2::text[]) AS scope(env_host, ctrl_id)
+           JOIN oracle_incident_rows r
+             ON r.environment_host = scope.env_host AND r.control_id = scope.ctrl_id
+           WHERE ${conds.join(' AND ')}
+           ORDER BY r.control_id, r.ord
+           LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
+          [scopeHosts, scopeCtrls, ...params, limit, offset]
+        );
+        return {
+          filteredTotal: Number(filteredRes.rows[0]?.filtered_total || 0),
+          rows: filteredRes.rows.map(r => ({ control_id: r.control_id, control_name: r.control_name, raw: r.raw })),
+        };
+      }
+    } catch (_) {
+      // Fall back to JSONB path if normalized table is missing or incomplete
+    }
+
+    this.ensureIncidentRowsInitialized().catch(() => {});
 
     const { conds, params, nextParam } = this.buildIncidentFilterConditions(options, 3, true);
     const whereExtra = conds.length > 0 ? `AND ${conds.join(' AND ')}` : '';

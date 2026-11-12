@@ -554,8 +554,18 @@ export class RoleHierarchyService {
     totalCount: number;
     lastSyncedAt: string | null;
   }> {
-    if (options?.forceRefresh || !this.dbLoaded) {
-      await this.ensureLoadedFromDb(Boolean(options?.forceRefresh));
+    if (options?.forceRefresh) {
+      await this.ensureLoadedFromDb(true);
+    } else if (!this.dbLoaded) {
+      // Serve warm disk cache immediately instead of blocking HTTP requests for ~9s;
+      // reconcile PostgreSQL asynchronously once in the background.
+      if (this.memoryCache && this.memoryCache.length > 0) {
+        if (!this.dbLoadPromise) {
+          this.ensureLoadedFromDb(false).catch(() => {});
+        }
+      } else {
+        await this.ensureLoadedFromDb(false);
+      }
     }
 
     let allItems = this.memoryCache || [];
