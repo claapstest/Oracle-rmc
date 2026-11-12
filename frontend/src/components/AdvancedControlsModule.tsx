@@ -2643,13 +2643,24 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     <button
                       type="button"
                       onClick={handleToggleFilterPanel}
-                      className={`btn ${isFilterPanelOpen || activeIncidentFilterCount > 0 ? 'btn-primary' : 'btn-secondary'}`}
+                      className="btn btn-primary"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.45rem',
                         fontSize: '0.8rem',
-                        padding: '0.4rem 0.85rem'
+                        fontWeight: 600,
+                        padding: '0.42rem 0.95rem',
+                        background: isFilterPanelOpen || activeIncidentFilterCount > 0
+                          ? 'linear-gradient(135deg, #1D4ED8, #4338CA)'
+                          : 'linear-gradient(135deg, #2563EB, #4F46E5)',
+                        color: '#FFFFFF',
+                        border: isFilterPanelOpen || activeIncidentFilterCount > 0
+                          ? '1px solid #3730A3'
+                          : '1px solid #2563EB',
+                        boxShadow: isFilterPanelOpen || activeIncidentFilterCount > 0
+                          ? '0 0 0 3px rgba(59, 130, 246, 0.28), 0 4px 12px rgba(37, 99, 235, 0.35)'
+                          : '0 2px 8px rgba(37, 99, 235, 0.28)'
                       }}
                       title={
                         isFilterPanelOpen
@@ -2657,12 +2668,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                           : 'Collapse sidebar and open Oracle-style Search & Filters panel'
                       }
                     >
-                      <Filter size={14} />
+                      <Search size={14} />
                       <span>Search &amp; Filters</span>
                       {activeIncidentFilterCount > 0 && (
                         <span
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.25)',
                             color: '#fff',
                             borderRadius: '999px',
                             padding: '0.05rem 0.45rem',

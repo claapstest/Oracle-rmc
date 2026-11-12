@@ -289,7 +289,6 @@ export default function Reports({
   const [selectedIncidentsControlId, setSelectedIncidentsControlId] = useState<string>('ALL');
   const [availableIncidentControls, setAvailableIncidentControls] = useState<any[]>([]);
   const [incidentsStatusFilter, setIncidentsStatusFilter] = useState<string>('ALL');
-  const [incidentsStateFilter, setIncidentsStateFilter] = useState<string>('ALL');
   const [incidentsSyncState, setIncidentsSyncState] = useState<{
     cacheStatus?: 'NOT_CACHED' | 'SYNCING' | 'READY' | 'PARTIAL' | 'ERROR';
     fetchedCount?: number;
@@ -310,6 +309,8 @@ export default function Reports({
   // stay in Postgres; the UI only ever holds one page).
   const [incidentsServerTotal, setIncidentsServerTotal] = useState<number>(0);
   const incidentsPageReloadGuard = useRef(false);
+  const incidentsPagingMountedRef = useRef(false);
+  const prevIncidentsSearchRef = useRef(incidentsSearch);
   const [selectedIncidentDetail, setSelectedIncidentDetail] = useState<any | null>(null);
   const incidentsPollingRef = useRef<any>(null);
   const [incidentsDomain, setIncidentsDomain] = useState<'ACCESS' | 'TRANSACTION'>('ACCESS');
@@ -547,7 +548,7 @@ export default function Reports({
       const serverMode = (controlId || '') === 'ALL';
       const effSearch = searchOverride !== undefined ? searchOverride : incidentsSearch;
       const effStatus = statusOverride !== undefined ? statusOverride : incidentsStatusFilter;
-      const effState = stateOverride !== undefined ? stateOverride : incidentsStateFilter;
+      const effState = stateOverride !== undefined ? stateOverride : 'ALL';
       const effPage = pageOverride ?? currentPage;
       const effLimit = limitOverride ?? pageSize;
       const effDomain = domainOverride ?? incidentsDomain;
@@ -1246,7 +1247,12 @@ export default function Reports({
     if (activeReportId === 'CONTROL_SUMMARY' && controlsData.length === 0 && !controlsLoading) {
       loadControlsSummary();
     } else if (activeReportId === 'INCIDENTS_DETAILED' && incidentsData.length === 0 && !incidentsLoading) {
-      loadRiskIncidents(selectedIncidentsControlId);
+      if (currentPage !== 1) {
+        incidentsPageReloadGuard.current = true;
+        loadRiskIncidents(selectedIncidentsControlId, false, 1);
+      } else {
+        loadRiskIncidents(selectedIncidentsControlId);
+      }
     } else if (activeReportId === 'USER_ROLE_MAPPING' && userRoleData.length === 0 && !userRoleLoading) {
       loadUserRoleMappings();
     } else if (activeReportId === 'ROLE_HIERARCHY' && hierarchyData.length === 0 && !hierarchyLoading) {
@@ -1262,7 +1268,6 @@ export default function Reports({
     setIncidentsDomain(nextDomain);
     setSelectedIncidentsControlId('ALL');
     setIncidentsStatusFilter(initialStatus);
-    setIncidentsStateFilter('ALL');
     if (currentPage !== 1) {
       incidentsPageReloadGuard.current = true;
       setCurrentPage(1);
@@ -1272,20 +1277,26 @@ export default function Reports({
 
   // Server-mode incidents paging: shared pager drives backend page fetches.
   useEffect(() => {
+    if (!incidentsPagingMountedRef.current) {
+      incidentsPagingMountedRef.current = true;
+      return;
+    }
     if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
     if (incidentsPageReloadGuard.current) {
       incidentsPageReloadGuard.current = false;
       return;
     }
-    loadRiskIncidents('ALL', false, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter, incidentsDomain);
+    loadRiskIncidents('ALL', false, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize]);
 
   // Server-mode incidents search (debounced): reset to page 1 and refetch.
   useEffect(() => {
+    if (prevIncidentsSearchRef.current === incidentsSearch) return;
+    prevIncidentsSearchRef.current = incidentsSearch;
     if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
     const t = setTimeout(() => {
-      loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter, incidentsDomain);
+      loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
     }, 450);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1377,11 +1388,10 @@ export default function Reports({
         (item.incidentInformation && item.incidentInformation.toLowerCase().includes(q));
 
       const matchesStatus = matchesIncidentLifecycleStatus(item, incidentsStatusFilter);
-      const matchesState = matchesIncidentLifecycleState(item, incidentsStateFilter);
 
-      return matchesSearch && matchesStatus && matchesState;
+      return matchesSearch && matchesStatus;
     });
-  }, [incidentsData, incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
+  }, [incidentsData, incidentsSearch, incidentsStatusFilter]);
 
   // 3. User Role Mappings Filtered
   const filteredUserRoleData = useMemo(() => {
@@ -1620,15 +1630,13 @@ export default function Reports({
       const displayStatus = incidentsStatusFilter === 'IN_REMEDIATION' ? 'In Remediation' : incidentsStatusFilter === 'RESOLVED' ? 'Closed / Resolved' : incidentsStatusFilter === 'ACCEPTED' ? 'Accepted' : incidentsStatusFilter === 'ASSIGNED' ? 'Assigned' : incidentsStatusFilter;
       list.push({ label: 'Status', value: displayStatus });
     }
-    if (incidentsStateFilter !== 'ALL') list.push({ label: 'State', value: incidentsStateFilter });
     return list;
-  }, [incidentsDomain, selectedIncidentsControlId, incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
+  }, [incidentsDomain, selectedIncidentsControlId, incidentsSearch, incidentsStatusFilter]);
 
-  const hasActiveIncidentsFilters = Boolean(incidentsSearch || incidentsStatusFilter !== 'ALL' || incidentsStateFilter !== 'ALL');
+  const hasActiveIncidentsFilters = Boolean(incidentsSearch || incidentsStatusFilter !== 'ALL');
   const resetIncidentsFilters = () => {
     setIncidentsSearch('');
     setIncidentsStatusFilter('ALL');
-    setIncidentsStateFilter('ALL');
     setCurrentPage(1);
     if (selectedIncidentsControlId === 'ALL') {
       loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
@@ -2323,7 +2331,7 @@ export default function Reports({
             setIncidentsStatusFilter(mapped);
             setCurrentPage(1);
             if (selectedIncidentsControlId === 'ALL') {
-              loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, mapped, incidentsStateFilter, targetDomain);
+              loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, mapped, 'ALL', targetDomain);
             }
           };
 
@@ -2497,7 +2505,7 @@ export default function Reports({
                       incidentsPageReloadGuard.current = true;
                       setCurrentPage(1);
                     }
-                    loadRiskIncidents(newId, false, 1, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter, incidentsDomain);
+                    loadRiskIncidents(newId, false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
                   }}
                   style={{ width: '250px', fontSize: '0.82rem' }}
                 >
@@ -2535,7 +2543,7 @@ export default function Reports({
                   setIncidentsStatusFilter(newStatus);
                   setCurrentPage(1);
                   if (selectedIncidentsControlId === 'ALL') {
-                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, newStatus, incidentsStateFilter, incidentsDomain);
+                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, newStatus, 'ALL', incidentsDomain);
                   }
                 }}
                 style={{ width: '145px', fontSize: '0.84rem' }}
@@ -2545,27 +2553,6 @@ export default function Reports({
                 <option value="IN_REMEDIATION">In Remediation</option>
                 <option value="ACCEPTED">Accepted</option>
                 <option value="RESOLVED">Closed / Resolved</option>
-              </select>
-
-              {/* State Filter */}
-              <select
-                className="form-select"
-                value={incidentsStateFilter}
-                onChange={(e) => {
-                  const newState = e.target.value;
-                  setIncidentsStateFilter(newState);
-                  setCurrentPage(1);
-                  if (selectedIncidentsControlId === 'ALL') {
-                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, newState, incidentsDomain);
-                  }
-                }}
-                style={{ width: '155px', fontSize: '0.84rem' }}
-              >
-                <option value="ALL">State: All</option>
-                <option value="IN_INVESTIGATION">In Investigation</option>
-                <option value="APPROVED">Approved</option>
-                <option value="ACCEPTED">Accepted</option>
-                <option value="CLOSED">Closed</option>
               </select>
             </div>
 
@@ -2699,7 +2686,7 @@ export default function Reports({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => loadRiskIncidents(selectedIncidentsControlId, true, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter, incidentsDomain)}
+                  onClick={() => loadRiskIncidents(selectedIncidentsControlId, true, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain)}
                   disabled={incidentsLoading}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.42rem 0.85rem' }}
                   title="Refresh incident records from database"
@@ -2727,19 +2714,7 @@ export default function Reports({
                       setIncidentsStatusFilter('ALL');
                       setCurrentPage(1);
                       if (selectedIncidentsControlId === 'ALL') {
-                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, 'ALL', incidentsStateFilter, incidentsDomain);
-                      }
-                    }} />
-                  </span>
-                )}
-                {incidentsStateFilter !== 'ALL' && (
-                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
-                    State: {incidentsStateFilter === 'IN_INVESTIGATION' ? 'In Investigation' : incidentsStateFilter === 'APPROVED' ? 'Approved' : incidentsStateFilter}
-                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => {
-                      setIncidentsStateFilter('ALL');
-                      setCurrentPage(1);
-                      if (selectedIncidentsControlId === 'ALL') {
-                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
+                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, 'ALL', 'ALL', incidentsDomain);
                       }
                     }} />
                   </span>
@@ -3607,7 +3582,6 @@ export default function Reports({
                     onClick={() => {
                       setIncidentsSearch('');
                       setIncidentsStatusFilter('ALL');
-                      setIncidentsStateFilter('ALL');
                       setCurrentPage(1);
                       if (selectedIncidentsControlId === 'ALL') {
                         loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
