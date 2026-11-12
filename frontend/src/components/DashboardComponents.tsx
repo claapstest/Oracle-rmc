@@ -557,7 +557,6 @@ interface RoleDistributionProps {
     abstractRolesCount: number;
     grcRolesCount: number;
     otherRolesCount?: number;
-    rolesWithoutUsersCount?: number;
   };
   onNavigatePage?: (pageId: string, filter?: string) => void;
 }
@@ -579,11 +578,6 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
   const segmentSum = segments.reduce((acc, s) => acc + (s.count || 0), 0);
   const total = segmentSum > 0 ? (stats.totalRoles && stats.totalRoles >= segmentSum ? stats.totalRoles : segmentSum) : (stats.totalRoles || 4713);
 
-  const unassignedCount = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4231;
-  const unassignedPercent = total > 0 ? ((unassignedCount / total) * 100).toFixed(1) : '89.8';
-  const isUnassignedHovered = hoveredIdx === -1;
-  const isUnassignedFiltered = activeFilter === 'UNASSIGNED';
-
   // Calculate SVG donut stroke arcs on a large prominent radius
   const radius = 76;
   const strokeWidth = 26;
@@ -602,7 +596,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
     return { ...seg, frac, strokeDasharray, strokeDashoffset, percent: percentStr };
   });
 
-  const activeSegment = hoveredIdx !== null && hoveredIdx >= 0 ? renderedArcs[hoveredIdx] : null;
+  const activeSegment = hoveredIdx !== null ? renderedArcs[hoveredIdx] : null;
 
   const handleSelectFilter = (category: string) => {
     if (activeFilter === category) {
@@ -694,7 +688,7 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
                     filter: isHovered 
                       ? `drop-shadow(0 0 10px ${arc.color}90)` 
                       : isFiltered ? `drop-shadow(0 0 6px ${arc.color}60)` : 'none',
-                    opacity: hoveredIdx !== null ? (isHovered ? 1 : (hoveredIdx === -1 ? 0.35 : 0.45)) : (activeFilter ? (isFiltered ? 1 : 0.5) : 1)
+                    opacity: hoveredIdx !== null ? (isHovered ? 1 : 0.45) : (activeFilter ? (isFiltered ? 1 : 0.5) : 1)
                   }}
                   onMouseEnter={() => setHoveredIdx(i)}
                   onClick={() => handleSelectFilter(arc.category)}
@@ -730,18 +724,6 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
                   {activeSegment.count.toLocaleString()} roles
                 </span>
               </>
-            ) : isUnassignedHovered ? (
-              <>
-                <span style={{ fontSize: '1.45rem', fontWeight: 800, color: '#7C3AED', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                  {unassignedPercent}%
-                </span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1E293B', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
-                  Roles Without Users
-                </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', marginTop: '2px' }}>
-                  {unassignedCount.toLocaleString()} unassigned
-                </span>
-              </>
             ) : (
               <>
                 <span style={{ fontSize: '1.45rem', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 }}>
@@ -773,26 +755,6 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
               transform: 'translateY(-50%)'
             }}>
               {activeSegment.label}: {activeSegment.count.toLocaleString()} ({activeSegment.percent}%)
-            </div>
-          )}
-          {isUnassignedHovered && mousePos && (
-            <div style={{
-              position: 'absolute',
-              left: `${mousePos.x + 12}px`,
-              top: `${mousePos.y - 10}px`,
-              backgroundColor: 'rgba(15, 23, 42, 0.92)',
-              color: '#FFFFFF',
-              padding: '5px 10px',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              pointerEvents: 'none',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
-              zIndex: 30,
-              transform: 'translateY(-50%)'
-            }}>
-              Roles Without Users: {unassignedCount.toLocaleString()} ({unassignedPercent}%)
             </div>
           )}
         </div>
@@ -840,43 +802,6 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
               </div>
             );
           })}
-
-          {/* Roles Without Users Row */}
-          <div style={{ height: '1px', backgroundColor: 'var(--border-color, #E2E8F0)', margin: '0.15rem 0' }} />
-          <div 
-            onClick={() => handleSelectFilter('UNASSIGNED')}
-            onMouseEnter={() => setHoveredIdx(-1)}
-            onMouseLeave={() => setHoveredIdx(null)}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              fontSize: '0.84rem', 
-              cursor: 'pointer', 
-              padding: '0.3rem 0.65rem',
-              borderRadius: '7px',
-              backgroundColor: isUnassignedHovered ? '#F5F3FF' : (isUnassignedFiltered ? '#EDE9FE' : 'transparent'),
-              border: isUnassignedFiltered ? '1px solid #C4B5FD' : '1px solid transparent',
-              opacity: hoveredIdx !== null ? (isUnassignedHovered ? 1 : 0.6) : 1,
-              transition: 'all 0.15s ease'
-            }}
-            title="Filter by Roles Without Users"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#7C3AED', flexShrink: 0 }} />
-              <span style={{ color: isUnassignedHovered ? '#6D28D9' : 'var(--text-secondary)', fontWeight: isUnassignedHovered ? 600 : 500 }}>
-                Roles Without Users
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <span style={{ fontWeight: 800, color: '#7C3AED' }}>
-                {unassignedCount.toLocaleString()}
-              </span>
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', minWidth: '42px', textAlign: 'right' }}>
-                {unassignedPercent}%
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
