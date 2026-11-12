@@ -29,6 +29,8 @@
     "test:vyr23": "node scripts/test_story_023_jwt_rbac.cjs",
     "test:vyr24": "node scripts/test_story_024_jwt_session_lifecycle.cjs",
     "test:vyr25": "node scripts/test_story_025_react_api_client.cjs",
+    "test:vyr26": "node scripts/test_story_026_jwt_security_and_migration.cjs",
+    "test:epic3": "npm run test:vyr19 && npm run test:vyr20 && npm run test:vyr22 && npm run test:vyr23 && npm run test:vyr24 && npm run test:vyr25 && npm run test:vyr26",
     "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {

@@ -1169,6 +1169,16 @@ export class AuthService {
       }
       effectiveSessionKey = verification.claims.sid;
       subClaim = verification.claims.sub;
+    } else {
+      // VYR-026: Controlled backward-compatibility migration policy
+      const allowLegacy = process.env.ALLOW_LEGACY_OPAQUE_TOKENS === 'true';
+      if (!allowLegacy) {
+        return {
+          valid: false,
+          code: 'INVALID_TOKEN',
+          message: 'Legacy authentication token rejected. RFC 9068 RS256 JWT access token required. Please sign in again.'
+        };
+      }
     }
 
     const now = Date.now();

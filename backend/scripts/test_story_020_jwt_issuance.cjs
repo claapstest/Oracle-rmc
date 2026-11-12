@@ -307,7 +307,11 @@ async function main() {
     report(statusRes.status === 200 && statusRes.body.loggedIn === true, 'GET /api/auth/status accepts Bearer JWT access token (HTTP 200)');
     report(statusRes.body.email && statusRes.body.email.toLowerCase() === 'akash.meesarapu@claaps.com', 'Authenticated session correctly resolves user identity');
 
-    // 5. Dual Format Compatibility: legacy opaque sessionId token
+    // 5. Dual Format Compatibility: legacy opaque sessionId token.
+    //    VYR-026 made reject-by-default the production posture, so this case must explicitly
+    //    opt into the time-bounded migration window it is asserting.
+    const priorLegacyFlag = process.env.ALLOW_LEGACY_OPAQUE_TOKENS;
+    process.env.ALLOW_LEGACY_OPAQUE_TOKENS = 'true';
     const legacySessionId = loginRes.body.sessionId;
     const legacyRes = await requestHttp({
       hostname: '127.0.0.1',
@@ -318,7 +322,25 @@ async function main() {
         Authorization: `Bearer ${legacySessionId}`
       }
     });
-    report(legacyRes.status === 200 && legacyRes.body.loggedIn === true, 'Legacy opaque sessionId token accepted during migration transition');
+    report(legacyRes.status === 200 && legacyRes.body.loggedIn === true, 'Legacy opaque sessionId token accepted during migration transition (ALLOW_LEGACY_OPAQUE_TOKENS=true)');
+
+    // Restore the fail-closed default so later assertions run under production posture (VYR-026).
+    if (priorLegacyFlag === undefined) {
+      delete process.env.ALLOW_LEGACY_OPAQUE_TOKENS;
+    } else {
+      process.env.ALLOW_LEGACY_OPAQUE_TOKENS = priorLegacyFlag;
+    }
+
+    const legacyDefaultRes = await requestHttp({
+      hostname: '127.0.0.1',
+      port,
+      path: '/api/auth/status',
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${legacySessionId}`
+      }
+    });
+    report(legacyDefaultRes.status === 401 && legacyDefaultRes.body.code === 'INVALID_TOKEN', 'Legacy opaque sessionId token rejected under the fail-closed production default (VYR-026)');
 
     // 6. Instant Revocation on Logout
     const logoutRes = await requestHttp(
