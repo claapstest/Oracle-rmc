@@ -226,11 +226,15 @@ export class UserAccessReportService {
   public async loadFromDatabase(): Promise<UserAccessReportResult | null> {
     const host = this.getHost();
     try {
+      // Resolve the host from the table we actually read, so an environment whose
+      // configured Fusion host differs from the stored one (e.g. QA/dev deployments
+      // sharing a database) still serves the populated directory instead of falling back.
       const hostRes = await query<{ environment_host: string }>(
         `SELECT environment_host
-         FROM oracle_user_access_summary
-         WHERE environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' OR true
-         ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END)
+         FROM oracle_raw_user_access
+         GROUP BY environment_host
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 WHEN environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com' THEN 1 ELSE 2 END),
+                  COUNT(*) DESC
          LIMIT 1`,
         [host]
       );
