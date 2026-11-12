@@ -49,7 +49,7 @@ export function useSessionTimeout({
       await api.refreshSession();
       lastBackendSyncRef.current = Date.now();
     } catch (err) {
-      console.warn('[SessionTimeout] Failed to refresh backend session:', err);
+      console.warn('[SessionTimeout] Failed to refresh backend session:', (err as Error)?.message || 'Unknown error');
     }
   }, []);
 

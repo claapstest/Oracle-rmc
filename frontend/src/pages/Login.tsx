@@ -149,8 +149,9 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
     try {
       const cleanEmail = normalizeEmail(email);
       const res = await api.login({ email: cleanEmail, password: pw, force: true });
-      if (res.success && res.token) {
-        onLoginSuccess(res.email, res.token, res.environmentMode, {
+      const token = res.token || res.accessToken;
+      if (res.success && token) {
+        onLoginSuccess(res.email, token, res.environmentMode, {
           role: res.role,
           permissions: res.permissions,
           isAdmin: res.isAdmin
@@ -190,8 +191,9 @@ export default function Login({ onLoginSuccess, sessionExpiredNotice }: LoginPro
       // Entra ID here; admin@admin.com must always stay on this local VEYRA flow.
       // AC5 — local VEYRA auth only; frontend never touches the database directly.
       const res = await api.login({ email: cleanEmail, password });
-      if (res.success && res.token) {
-        onLoginSuccess(res.email, res.token, res.environmentMode, {
+      const token = res.token || res.accessToken;
+      if (res.success && token) {
+        onLoginSuccess(res.email, token, res.environmentMode, {
           role: res.role,
           permissions: res.permissions,
           isAdmin: res.isAdmin

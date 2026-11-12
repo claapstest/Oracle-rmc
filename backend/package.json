@@ -30,6 +30,7 @@
     "test:vyr22": "node scripts/test_story_022_key_rotation.cjs",
     "test:vyr23": "node scripts/test_story_023_jwt_rbac.cjs",
     "test:vyr24": "node scripts/test_story_024_jwt_session_lifecycle.cjs",
+    "test:vyr25": "node scripts/test_story_025_react_api_client.cjs",
     "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {
