@@ -545,15 +545,16 @@ async function runTests() {
     failed++;
   } finally {
     server.close();
+    try {
+      await pool.end();
+    } catch (_) {}
   }
 
   console.log('\n================================================================');
   console.log(`  Passed: ${passed}  Failed: ${failed}`);
   console.log('================================================================\n');
 
-  if (failed > 0) {
-    process.exit(1);
-  }
+  process.exit(failed > 0 ? 1 : 0);
 }
 
 runTests();

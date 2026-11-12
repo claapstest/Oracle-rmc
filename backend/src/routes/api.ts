@@ -534,7 +534,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   }
 });
 
-// GET /auth/status - Verify Session Status & Authorization Info
+// GET /auth/status - Verify Session Status & Authorization Info (VYR-024)
 apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
   res.json({
     success: true,
@@ -546,27 +546,41 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
     permissions: res.locals.permissions,
     isAdmin: res.locals.isAdmin,
     authProvider: res.locals.authProvider || authService.getEffectiveProvider(),
+    sessionId: res.locals.sessionId,
     environmentMode: config.environmentMode
   });
 });
 
-// POST /auth/refresh - Refresh Active Session Inactivity Timer (AC3)
+// POST /auth/refresh - Refresh Active Session Inactivity Timer & Issue Fresh JWT (AC3, AC4, VYR-024)
 apiRouter.post('/auth/refresh', requireAuth, async (req: Request, res: Response) => {
   const token = res.locals.token;
   const result = await authService.refreshSessionActivity(token);
+
+  if (!result.success) {
+    const status = result.code === 'USER_DISABLED' ? 403 : 401;
+    return res.status(status).json({
+      success: false,
+      code: result.code || 'SESSION_EXPIRED',
+      message: result.message || 'Failed to refresh session.'
+    });
+  }
+
   logAudit(res.locals.email, 'SESSION_REFRESH', 'User requested session keep-alive refresh');
   res.json({
     success: true,
     message: 'Session activity refreshed successfully.',
+    token: result.token || result.accessToken,
+    accessToken: result.accessToken || result.token,
+    sessionId: result.sessionId,
     lastActivityAt: result.lastActivityAt || Date.now(),
     expiresAt: result.expiresAt
   });
 });
 
-// POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9, Story 17)
+// POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9, Story 17, VYR-024)
 apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
   const authHeader = req.header('Authorization');
-  let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (req.body?.token || req.body?.sessionId);
+  let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : (req.body?.token || req.body?.sessionId);
   if (!token) {
     return res.status(400).json({ success: false, message: 'Missing token for logout.' });
   }
