@@ -33,8 +33,9 @@
     "test:vyr27": "node scripts/test_story_027_data_classification_and_path_mapping.cjs",
     "test:vyr28": "node scripts/test_story_028_encryption_contract_and_aad.cjs",
     "test:vyr29": "node scripts/test_story_029_aes_gcm_encryption_service.cjs",
+    "test:vyr30": "node scripts/test_story_030_kms_envelope_encryption.cjs",
     "test:epic3": "npm run test:vyr19 && npm run test:vyr20 && npm run test:vyr22 && npm run test:vyr23 && npm run test:vyr24 && npm run test:vyr25 && npm run test:vyr26",
-    "test:epic4": "npm run test:vyr27 && npm run test:vyr28 && npm run test:vyr29",
+    "test:epic4": "npm run test:vyr27 && npm run test:vyr28 && npm run test:vyr29 && npm run test:vyr30",
     "seed:local-users": "node scripts/seed_local_users.cjs"
   },
   "dependencies": {

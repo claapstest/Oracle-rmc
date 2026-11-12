@@ -395,3 +395,4 @@ export class EncryptionService {
 
 // Export singleton instance for app-wide reuse
 export const encryptionService = new EncryptionService();
+
