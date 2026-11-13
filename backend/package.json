@@ -43,6 +43,7 @@
     "test:vyr35": "node scripts/test_story_035_authorized_decryption.cjs",
     "test:vyr35b": "node scripts/test_story_035b_queryable_metadata.cjs",
     "test:vyr36": "node scripts/test_story_036_key_rotation.cjs",
+    "test:vyr37": "node scripts/test_story_037_plaintext_migration.cjs",
     "test:epic3": "npm run test:vyr19 && npm run test:vyr20 && npm run test:vyr22 && npm run test:vyr23 && npm run test:vyr24 && npm run test:vyr25 && npm run test:vyr26",
     "test:epic4": "npm run test:vyr27 && npm run test:vyr28 && npm run test:vyr29 && npm run test:vyr30 && npm run test:vyr31",
     "seed:local-users": "node scripts/seed_local_users.cjs"

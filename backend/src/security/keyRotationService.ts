@@ -60,7 +60,7 @@ export interface RewrapReport {
   totals: { candidates: number; rewrapped: number; skipped: number; failed: number };
 }
 
-interface TableShape {
+export interface RawTableShape {
   descriptor: RawTableDescriptor;
   keyColumns: string[];
   hasHost: boolean;
@@ -87,7 +87,7 @@ function findDescriptor(tableName: string): RawTableDescriptor {
   return descriptor;
 }
 
-async function describeTable(pool: pg.Pool, descriptor: RawTableDescriptor): Promise<TableShape | null> {
+export async function describeRawTable(pool: pg.Pool, descriptor: RawTableDescriptor): Promise<RawTableShape | null> {
   const res = await pool.query(
     `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
     [descriptor.tableName]
@@ -117,7 +117,7 @@ function assertWrapTarget(service: EncryptionService, keyId: string): void {
 export async function getKeyUsage(pool: pg.Pool, environmentHost?: string): Promise<KeyUsageRow[]> {
   const rows: KeyUsageRow[] = [];
   for (const descriptor of RAW_ORACLE_PERSISTENCE_TABLES) {
-    const shape = await describeTable(pool, descriptor);
+    const shape = await describeRawTable(pool, descriptor);
     if (!shape) continue;
     const params: any[] = [];
     let where = 'is_encrypted = true';
@@ -158,7 +158,7 @@ export async function rewrapTable(pool: pg.Pool, tableName: string, opts: Rewrap
     tableName, candidates: 0, rewrapped: 0, skipped: 0, failed: 0, failures: [], complete: false,
   };
 
-  const shape = await describeTable(pool, descriptor);
+  const shape = await describeRawTable(pool, descriptor);
   if (!shape) {
     result.complete = true;
     result.tableSkippedReason = 'table missing or has no encryption tracking columns';
@@ -294,7 +294,7 @@ export async function retireKey(
   let dependentRecords = 0;
 
   for (const descriptor of RAW_ORACLE_PERSISTENCE_TABLES) {
-    const shape = await describeTable(pool, descriptor);
+    const shape = await describeRawTable(pool, descriptor);
     if (!shape) continue;
     const res = await pool.query(
       `SELECT COUNT(*)::int AS c FROM ${q(descriptor.tableName)}
