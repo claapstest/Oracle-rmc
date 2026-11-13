@@ -1257,6 +1257,25 @@ export default function App() {
                     />
                   </div>
                 )}
+                {/* Ask VEYRA assistant. Kept mounted (display toggled) so chat
+                    history survives navigation, as it did before VYR-017. */}
+                <div style={{
+                  display: currentPage === 'assistant' ? 'flex' : 'none',
+                  height: '100%',
+                  flexDirection: 'column'
+                }}>
+                  <Assistant
+                    currentUser={currentUser}
+                    initialQuestion={faqQuestion}
+                    clearInitialQuestion={() => setFaqQuestion('')}
+                    environmentMode={environmentMode}
+                    onNavigatePage={(pageId, filter) => {
+                      handlePageSelect(pageId, filter);
+                    }}
+                    onInvestigate={(type, id, name, initialTab) => handleInvestigate(type, id, name, initialTab, 'assistant')}
+                    onOpenFullInvestigation={handleOpenQueryInvestigation}
+                  />
+                </div>
                 {currentPage === 'users' && (
                   <div style={{ height: '100%' }}>
                     <UsersPage
