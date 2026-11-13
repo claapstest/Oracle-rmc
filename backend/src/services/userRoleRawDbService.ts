@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { query } from '../db.js';
 import { config } from '../config.js';
+import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 
 export interface RawRoleRecord {
   environment_host: string;
@@ -60,6 +61,8 @@ export class UserRoleRawDbService {
     const isCustom = Boolean(role.isCustom || roleCode.startsWith('CUSTOM_') || roleCode.startsWith('CLAAPS_'));
     const memberCount = typeof role.memberCount === 'number' ? role.memberCount : (Array.isArray(role.members) ? role.members.length : 0);
 
+    const write = await encryptRawField('oracle_raw_roles', { role_code: roleCode }, role, host);
+
     const sql = `
       INSERT INTO oracle_raw_roles (
         environment_host,
@@ -69,20 +72,28 @@ export class UserRoleRawDbService {
         is_custom,
         member_count,
         raw_role,
+        is_encrypted,
+        encryption_format_version,
+        encryption_key_id,
+        encrypted_at,
         last_synced_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
       ON CONFLICT (environment_host, role_code) DO UPDATE SET
         role_name = EXCLUDED.role_name,
         category = EXCLUDED.category,
         is_custom = EXCLUDED.is_custom,
         member_count = EXCLUDED.member_count,
         raw_role = EXCLUDED.raw_role,
+        is_encrypted = EXCLUDED.is_encrypted,
+        encryption_format_version = EXCLUDED.encryption_format_version,
+        encryption_key_id = EXCLUDED.encryption_key_id,
+        encrypted_at = EXCLUDED.encrypted_at,
         last_synced_at = NOW(),
         updated_at = NOW();
     `;
 
-    await query(sql, [host, roleCode, roleName, category, isCustom, memberCount, JSON.stringify(role)]);
+    await query(sql, [host, roleCode, roleName, category, isCustom, memberCount, write.rawValue, ...trackingColumns(write)]);
   }
 
   /**
@@ -98,6 +109,7 @@ export class UserRoleRawDbService {
       const chunk = roles.slice(i, i + chunkSize);
       const values: any[] = [];
       const valueClauses: string[] = [];
+      const pending: Array<() => Promise<void>> = [];
 
       chunk.forEach((role, idx) => {
         const roleCode = String(role.roleCode || role.code || role.id || '').trim();
@@ -108,12 +120,18 @@ export class UserRoleRawDbService {
         const isCustom = Boolean(role.isCustom || roleCode.startsWith('CUSTOM_') || roleCode.startsWith('CLAAPS_'));
         const memberCount = typeof role.memberCount === 'number' ? role.memberCount : (Array.isArray(role.members) ? role.members.length : 0);
 
-        const baseIndex = values.length + 1;
-        valueClauses.push(
-          `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, NOW(), NOW())`
-        );
-        values.push(host, roleCode, roleName, category, isCustom, memberCount, JSON.stringify(role));
+        // Encrypted sync writes are awaited sequentially below (forEach body stays sync).
+        pending.push(async () => {
+          const write = await encryptRawField('oracle_raw_roles', { role_code: roleCode }, role, host);
+          const baseIndex = values.length + 1;
+          valueClauses.push(
+            `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, NOW(), NOW())`
+          );
+          values.push(host, roleCode, roleName, category, isCustom, memberCount, write.rawValue, ...trackingColumns(write));
+        });
       });
+
+      for (const task of pending) await task();
 
       if (valueClauses.length === 0) continue;
 
@@ -126,6 +144,10 @@ export class UserRoleRawDbService {
           is_custom,
           member_count,
           raw_role,
+          is_encrypted,
+          encryption_format_version,
+          encryption_key_id,
+          encrypted_at,
           last_synced_at,
           updated_at
         ) VALUES ${valueClauses.join(', ')}
@@ -135,6 +157,10 @@ export class UserRoleRawDbService {
           is_custom = EXCLUDED.is_custom,
           member_count = EXCLUDED.member_count,
           raw_role = EXCLUDED.raw_role,
+          is_encrypted = EXCLUDED.is_encrypted,
+          encryption_format_version = EXCLUDED.encryption_format_version,
+          encryption_key_id = EXCLUDED.encryption_key_id,
+          encrypted_at = EXCLUDED.encrypted_at,
           last_synced_at = NOW(),
           updated_at = NOW();
       `;
@@ -251,6 +277,8 @@ export class UserRoleRawDbService {
     const isActive = typeof user.active === 'boolean' ? user.active : true;
     const userCategory = user.userCategory || null;
 
+    const write = await encryptRawField('oracle_raw_users', { username }, user, host);
+
     const sql = `
       INSERT INTO oracle_raw_users (
         environment_host,
@@ -260,20 +288,28 @@ export class UserRoleRawDbService {
         is_active,
         user_category,
         raw_user,
+        is_encrypted,
+        encryption_format_version,
+        encryption_key_id,
+        encrypted_at,
         last_synced_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
       ON CONFLICT (environment_host, username) DO UPDATE SET
         display_name = EXCLUDED.display_name,
         email = EXCLUDED.email,
         is_active = EXCLUDED.is_active,
         user_category = EXCLUDED.user_category,
         raw_user = EXCLUDED.raw_user,
+        is_encrypted = EXCLUDED.is_encrypted,
+        encryption_format_version = EXCLUDED.encryption_format_version,
+        encryption_key_id = EXCLUDED.encryption_key_id,
+        encrypted_at = EXCLUDED.encrypted_at,
         last_synced_at = NOW(),
         updated_at = NOW();
     `;
 
-    await query(sql, [host, username, displayName, email, isActive, userCategory, JSON.stringify(user)]);
+    await query(sql, [host, username, displayName, email, isActive, userCategory, write.rawValue, ...trackingColumns(write)]);
   }
 
   /**
@@ -289,6 +325,7 @@ export class UserRoleRawDbService {
       const chunk = users.slice(i, i + chunkSize);
       const values: any[] = [];
       const valueClauses: string[] = [];
+      const pending: Array<() => Promise<void>> = [];
 
       chunk.forEach((user) => {
         const username = String(user.userName || user.username || user.id || '').trim();
@@ -312,12 +349,18 @@ export class UserRoleRawDbService {
         const isActive = typeof normalizedUser.active === 'boolean' ? normalizedUser.active : true;
         const userCategory = normalizedUser.userCategory || null;
 
-        const baseIndex = values.length + 1;
-        valueClauses.push(
-          `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, NOW(), NOW())`
-        );
-        values.push(host, username, displayName, email, isActive, userCategory, JSON.stringify(normalizedUser));
+        // Encrypted sync writes are awaited sequentially below (forEach body stays sync).
+        pending.push(async () => {
+          const write = await encryptRawField('oracle_raw_users', { username }, normalizedUser, host);
+          const baseIndex = values.length + 1;
+          valueClauses.push(
+            `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, NOW(), NOW())`
+          );
+          values.push(host, username, displayName, email, isActive, userCategory, write.rawValue, ...trackingColumns(write));
+        });
       });
+
+      for (const task of pending) await task();
 
       if (valueClauses.length === 0) continue;
 
@@ -330,6 +373,10 @@ export class UserRoleRawDbService {
           is_active,
           user_category,
           raw_user,
+          is_encrypted,
+          encryption_format_version,
+          encryption_key_id,
+          encrypted_at,
           last_synced_at,
           updated_at
         ) VALUES ${valueClauses.join(', ')}
@@ -339,6 +386,10 @@ export class UserRoleRawDbService {
           is_active = EXCLUDED.is_active,
           user_category = EXCLUDED.user_category,
           raw_user = EXCLUDED.raw_user,
+          is_encrypted = EXCLUDED.is_encrypted,
+          encryption_format_version = EXCLUDED.encryption_format_version,
+          encryption_key_id = EXCLUDED.encryption_key_id,
+          encrypted_at = EXCLUDED.encrypted_at,
           last_synced_at = NOW(),
           updated_at = NOW();
       `;

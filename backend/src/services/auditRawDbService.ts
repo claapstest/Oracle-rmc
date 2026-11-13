@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { query } from '../db.js';
 import { config } from '../config.js';
+import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 
 export interface RawAuditRecord {
   id: number;
@@ -204,7 +205,13 @@ export class AuditRawDbService {
 
       const username = item.userInternalName || item.userName || item.userId || null;
       const eventType = item.eventType || item.action || null;
-      const rawJson = JSON.stringify(item);
+
+      const write = await encryptRawField(
+        'oracle_raw_audit_records',
+        { record_unique_hash: hash },
+        item,
+        host
+      );
 
       const sql = `
         INSERT INTO oracle_raw_audit_records (
@@ -215,9 +222,13 @@ export class AuditRawDbService {
           event_timestamp,
           username,
           event_type,
-          raw_payload
+          raw_payload,
+          is_encrypted,
+          encryption_format_version,
+          encryption_key_id,
+          encrypted_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12)
         ON CONFLICT (environment_host, product, business_object, record_unique_hash)
         DO NOTHING
         RETURNING id;
@@ -232,7 +243,8 @@ export class AuditRawDbService {
           eventDate,
           username,
           eventType,
-          rawJson
+          write.rawValue,
+          ...trackingColumns(write)
         ]);
         if (res.rowCount && res.rowCount > 0) {
           insertedCount++;

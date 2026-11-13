@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { config, decrypt } from '../config.js';
 import { pool, query } from '../db.js';
+import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 
 export interface UserAccessReportRow {
   username: string;
@@ -149,39 +150,54 @@ export class UserAccessReportService {
         const chunk = payload.data.slice(i, i + BATCH_SIZE);
         const values: any[] = [];
         const clauses: string[] = [];
+        const pending: Array<() => Promise<void>> = [];
 
         chunk.forEach((row) => {
-          const base = values.length + 1;
-          clauses.push(
-            `($${base}, $${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}, NOW())`
-          );
-          values.push(
-            host,
-            row.username,
-            row.userCategory ?? null,
-            row.firstName ?? null,
-            row.lastName ?? null,
-            row.displayName ?? null,
-            row.email ?? null,
-            typeof row.active === 'boolean' ? row.active : true,
-            row.roleName ?? null,
-            row.roleCode ?? null,
-            row.autoProvisioned ?? null,
-            row.personId ?? null,
-            row.personNumber ?? null,
-            row.department ?? null,
-            row.job ?? null,
-            row.businessUnit ?? null,
-            row.location ?? null,
-            row.manager ?? null
-          );
+          // Encrypted sync writes are awaited sequentially below (forEach body stays sync).
+          pending.push(async () => {
+            const write = await encryptRawField(
+              'oracle_raw_user_access',
+              { username: row.username, role_code: row.roleCode },
+              row,
+              host
+            );
+            const base = values.length + 1;
+            clauses.push(
+              `($${base}, $${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}, $${base + 18}::jsonb, $${base + 19}, $${base + 20}, $${base + 21}, $${base + 22}, NOW())`
+            );
+            values.push(
+              host,
+              row.username,
+              row.userCategory ?? null,
+              row.firstName ?? null,
+              row.lastName ?? null,
+              row.displayName ?? null,
+              row.email ?? null,
+              typeof row.active === 'boolean' ? row.active : true,
+              row.roleName ?? null,
+              row.roleCode ?? null,
+              row.autoProvisioned ?? null,
+              row.personId ?? null,
+              row.personNumber ?? null,
+              row.department ?? null,
+              row.job ?? null,
+              row.businessUnit ?? null,
+              row.location ?? null,
+              row.manager ?? null,
+              write.rawValue,
+              ...trackingColumns(write)
+            );
+          });
         });
+
+        for (const task of pending) await task();
 
         await client.query(
           `INSERT INTO oracle_raw_user_access (
             environment_host, username, user_category, first_name, last_name, display_name,
             email, active, role_name, role_code, auto_provisioned, person_id, person_number,
-            department, job, business_unit, location, manager, last_synced_at
+            department, job, business_unit, location, manager, raw_payload,
+            is_encrypted, encryption_format_version, encryption_key_id, encrypted_at, last_synced_at
           ) VALUES ${clauses.join(', ')}`,
           values
         );
