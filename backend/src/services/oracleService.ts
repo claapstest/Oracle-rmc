@@ -12,7 +12,7 @@ import { userAccessReportService } from './userAccessReportService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { roleHierarchyService } from './roleHierarchyService.js';
 import { auditRawDbService } from './auditRawDbService.js';
-import { controlRawDbService, IncidentQueryFilters } from './controlRawDbService.js';
+import { controlRawDbService, IncidentQueryFilters, MAX_BULK_INCIDENT_PAGE_SIZE } from './controlRawDbService.js';
 import { accessCertRawDbService } from './accessCertRawDbService.js';
 export { classifyRoleRecord };
 
@@ -3621,7 +3621,7 @@ class OracleService {
           totalCount: 0,
           filteredCount: 0,
           page: 1,
-          pageSize: Math.min(100, Math.max(1, options?.limit || 25)),
+          pageSize: Math.min(MAX_BULK_INCIDENT_PAGE_SIZE, Math.max(1, options?.limit || 25)),
           cacheStatus: 'READY',
           fetchedCount: 0,
           lastSyncedAt: new Date().toISOString(),
@@ -3633,7 +3633,7 @@ class OracleService {
 
       try {
         const coverage = await controlRawDbService.getIncidentCoverage(scopeIds);
-        const pageSize = Math.min(100, Math.max(1, options?.limit || 25));
+        const pageSize = Math.min(MAX_BULK_INCIDENT_PAGE_SIZE, Math.max(1, options?.limit || 25));
         const page = Math.max(1, options?.page || (options?.offset ? Math.floor(options.offset / pageSize) + 1 : 1));
         const pg = await controlRawDbService.getAllRawIncidentsAcrossControls({
           controlIds: scopeIds,

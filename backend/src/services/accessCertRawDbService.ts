@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { query } from '../db.js';
 import { config } from '../config.js';
 import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
+import { decryptSingleRawField } from '../security/decryptedRecordReader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,9 +175,10 @@ export class AccessCertRawDbService {
       );
 
       if (res.rows && res.rows.length > 0) {
-        return res.rows.map(r => {
-          const raw = r.raw_data || {};
-          return {
+        const results: any[] = [];
+        for (const r of res.rows) {
+          const raw = await decryptSingleRawField('oracle_raw_access_certifications', 'raw_data', r, host) || {};
+          results.push({
             ...raw,
             id: Number(r.certification_id) || r.certification_id,
             certificationId: Number(r.certification_id) || r.certification_id,
@@ -191,8 +193,9 @@ export class AccessCertRawDbService {
             managerName: r.manager_name || raw.managerName,
             certifierName: r.certifier_name || raw.certifierName,
             source: 'PostgreSQL Database (Synced with BI Publisher)'
-          };
-        });
+          });
+        }
+        return results;
       }
     } catch (err: any) {
       console.warn('[AccessCertDb] DB read error for certifications (falling back to disk cache):', err.message);
@@ -332,9 +335,10 @@ export class AccessCertRawDbService {
       );
 
       if (res.rows && res.rows.length > 0) {
-        return res.rows.map(r => {
-          const raw = r.raw_data || {};
-          return {
+        const results: any[] = [];
+        for (const r of res.rows) {
+          const raw = await decryptSingleRawField('oracle_raw_certifier_worksheets', 'raw_data', r, host) || {};
+          results.push({
             ...raw,
             id: Number(cleanCertId) || cleanCertId,
             certificationId: Number(cleanCertId) || cleanCertId,
@@ -351,8 +355,9 @@ export class AccessCertRawDbService {
             businessUnit: r.business_unit || raw.businessUnit,
             department: r.department || raw.department,
             action: r.action || raw.action || 'Pending'
-          };
-        });
+          });
+        }
+        return results;
       }
     } catch (err: any) {
       console.warn(`[AccessCertDb] DB read error for worksheet ${cleanCertId} (falling back to disk cache):`, err.message);

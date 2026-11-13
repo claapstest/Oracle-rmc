@@ -232,9 +232,9 @@ async function run() {
     assert(classificationSource.includes('jsonb_typeof(raw_incidents)'), 'Catalog documents control incidents jsonb_typeof dependency');
     assert(classificationSource.includes('jsonb_array_elements'), 'Catalog documents incident rows normalization dependency');
 
-    // Verify active queries in userRoleRawDbService match documented operators
-    assert(userRoleDbSrc.includes("raw_user->>'businessUnit'"), 'userRoleRawDbService contains raw_user->>businessUnit');
-    assert(userRoleDbSrc.includes("jsonb_array_length(COALESCE(raw_user->'assignedRoles'"), 'userRoleRawDbService contains jsonb_array_length assignedRoles');
+    // The documented raw_user JSONB filters were replaced by queryable metadata columns (VYR-035 follow-up)
+    assert(!userRoleDbSrc.includes("raw_user->>'businessUnit'") && userRoleDbSrc.includes('business_unit ILIKE'), 'userRoleRawDbService filters businessUnit via business_unit column');
+    assert(!userRoleDbSrc.includes("jsonb_array_length(COALESCE(raw_user->'assignedRoles'") && userRoleDbSrc.includes('assigned_roles_count'), 'userRoleRawDbService counts roles via assigned_roles_count column');
 
     // Verify active queries in controlRawDbService match documented operators
     assert(controlDbSrc.includes("jsonb_typeof(raw_incidents) = 'array'"), 'controlRawDbService contains jsonb_typeof(raw_incidents)');

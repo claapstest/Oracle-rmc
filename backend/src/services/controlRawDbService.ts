@@ -2,6 +2,14 @@ import { query } from '../db.js';
 import { config } from '../config.js';
 import { OracleFusionClient } from '../oracle/client.js';
 import { encryptRawField, decryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
+import { decryptRawRows, decryptSingleRawField } from '../security/decryptedRecordReader.js';
+
+/**
+ * Largest page the cross-control incident reader will serve in one round trip.
+ * Interactive tables ask for 25-100; bulk exports ask for this value and page
+ * through the result set until the filtered total is reached.
+ */
+export const MAX_BULK_INCIDENT_PAGE_SIZE = 5000;
 
 export interface ProductSyncPolicyRecord {
   product_code: string;
@@ -244,14 +252,15 @@ export class ControlRawDbService {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
 
-    const res = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_raw_controls 
+    const res = await query<{ raw_payload: any; is_encrypted: boolean; control_id: string }>(
+      `SELECT raw_payload, is_encrypted, control_id FROM oracle_raw_controls
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
-    return res.rows[0]?.raw_payload || null;
+    if (!res.rows[0]) return null;
+    return decryptSingleRawField('oracle_raw_controls', 'raw_payload', res.rows[0], host);
   }
 
   /**
@@ -260,14 +269,15 @@ export class ControlRawDbService {
   public async getAllRawControls(): Promise<any[]> {
     const host = this.getHost();
 
-    const res = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_raw_controls 
+    const res = await query<{ raw_payload: any; is_encrypted: boolean; control_id: string }>(
+      `SELECT raw_payload, is_encrypted, control_id FROM oracle_raw_controls
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), name ASC`,
       [host]
     );
 
-    return res.rows.map((r) => r.raw_payload);
+    const decrypted = await decryptRawRows('oracle_raw_controls', 'raw_payload', res.rows, host);
+    return decrypted.map((r) => r.raw_payload);
   }
 
   /**
@@ -1317,7 +1327,10 @@ export class ControlRawDbService {
     const host = this.getHost();
     const ids = (options.controlIds || []).map((s) => String(s).trim()).filter(Boolean);
     if (ids.length === 0) return { filteredTotal: 0, rows: [] };
-    const limit = Math.min(100, Math.max(1, options.limit || 25));
+    // UI pages request <= 100 rows; bulk exports request large chunks and are
+    // capped at MAX_BULK_INCIDENT_PAGE_SIZE so a 60K+ export needs ~13 round trips
+    // instead of ~620 at the old hard cap of 100.
+    const limit = Math.min(MAX_BULK_INCIDENT_PAGE_SIZE, Math.max(1, options.limit || 25));
     const offset = Math.max(0, options.offset || 0);
 
     try {
@@ -1457,14 +1470,16 @@ export class ControlRawDbService {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
 
-    const res = await query<{ raw_incidents: any }>(
-      `SELECT raw_incidents FROM oracle_control_incidents 
+    const res = await query<{ raw_incidents: any; is_encrypted: boolean; control_id: string }>(
+      `SELECT raw_incidents, is_encrypted, control_id FROM oracle_control_incidents
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
-    return Array.isArray(res.rows[0]?.raw_incidents) ? res.rows[0].raw_incidents : [];
+    if (!res.rows[0]) return [];
+    const decrypted = await decryptSingleRawField('oracle_control_incidents', 'raw_incidents', res.rows[0], host);
+    return Array.isArray(decrypted) ? decrypted : [];
   }
 
   /**

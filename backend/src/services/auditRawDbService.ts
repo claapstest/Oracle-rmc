@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { query } from '../db.js';
 import { config } from '../config.js';
 import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
+import { decryptRawRows } from '../security/decryptedRecordReader.js';
 
 export interface RawAuditRecord {
   id: number;
@@ -326,18 +327,19 @@ export class AuditRawDbService {
     );
     const totalCount = parseInt(countRes.rows[0]?.count || '0', 10);
 
-    // 2. Fetch paginated raw_payload
+    // 2. Fetch paginated raw_payload (VYR-035: include is_encrypted for decryption)
     const querySql = `
-      SELECT raw_payload 
-      FROM oracle_raw_audit_records 
+      SELECT raw_payload, is_encrypted, record_unique_hash
+      FROM oracle_raw_audit_records
       WHERE ${whereClause}
       ORDER BY event_timestamp DESC NULLS LAST, id DESC
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
     `;
     values.push(pageSize, offset);
 
-    const dataRes = await query<{ raw_payload: any }>(querySql, values);
-    const rawItems = dataRes.rows.map(r => r.raw_payload);
+    const dataRes = await query<{ raw_payload: any; is_encrypted: boolean; record_unique_hash: string }>(querySql, values);
+    const decryptedRows = await decryptRawRows('oracle_raw_audit_records', 'raw_payload', dataRes.rows, host);
+    const rawItems = decryptedRows.map(r => r.raw_payload);
 
     return {
       rawItems,

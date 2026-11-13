@@ -11,6 +11,16 @@
 
 export const ENCRYPTION_ALGORITHM_AES_256_GCM = 'AES-256-GCM';
 export const CURRENT_ENCRYPTION_FORMAT_VERSION = 1;
+
+/**
+ * Format versions this build can decrypt (VYR-036). A new format is added here
+ * before any writer emits it, and removed only after no stored record uses it.
+ */
+export const SUPPORTED_ENCRYPTION_FORMAT_VERSIONS: readonly number[] = [1];
+
+export function isSupportedFormatVersion(version: number): boolean {
+  return SUPPORTED_ENCRYPTION_FORMAT_VERSIONS.includes(version);
+}
 export const DEFAULT_SCHEMA_VERSION = 'v1';
 
 // Cryptographic parameters for AES-256-GCM
