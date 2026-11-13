@@ -19,6 +19,7 @@
 import {
   buildTableRecordAad,
   CURRENT_ENCRYPTION_FORMAT_VERSION,
+  isEncryptedPayload,
 } from './encryptionContract.js';
 import { encryptionService } from './encryptionService.js';
 
@@ -79,7 +80,27 @@ export async function encryptRawField(
     buildTableRecordAad(tableName, record, environmentHost)
   );
 
+  // Boundary check: the encryption service must return a genuine container.
+  // A degraded KMS/provider returning plaintext is rejected before any SQL.
+  if (!isEncryptedPayload(payload)) {
+    throw new Error(`[EncryptedRecordWriter] Encryption service returned a non-encrypted payload for ${tableName}; refusing to persist`);
+  }
+
   return { rawValue: payload, isEncrypted: true, encryptionKey: payload.keyId };
+}
+
+/**
+ * Repository-boundary guard (VYR-034). Call before any SQL that persists a
+ * raw payload column. While encryption is enforced, only genuine encrypted
+ * writes may pass; a plaintext write is rejected instead of persisted.
+ */
+export function assertEncryptedRawWrite(tableName: string, write: RawFieldWrite): void {
+  if (!isRawEncryptionEnabled()) return; // dual-mode rollout: legacy writes allowed while disabled
+  if (!write || write.isEncrypted !== true || !isEncryptedPayload(write.rawValue)) {
+    throw new Error(
+      `[EncryptedRecordWriter] Plaintext write rejected for ${tableName} raw payload while encryption is enabled. Route the write through encryptRawField().`
+    );
+  }
 }
 
 /**
