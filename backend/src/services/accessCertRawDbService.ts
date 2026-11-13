@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { query } from '../db.js';
 import { config } from '../config.js';
+import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +96,8 @@ export class AccessCertRawDbService {
         const managerName = item.managerName || null;
         const certifierName = item.certifierName || item.certifiedManager || managerName || null;
 
+        const write = await encryptRawField('oracle_raw_access_certifications', { certification_id: certId }, item, host);
+
         const sql = `
           INSERT INTO oracle_raw_access_certifications (
             environment_host,
@@ -109,9 +112,13 @@ export class AccessCertRawDbService {
             manager_name,
             certifier_name,
             raw_data,
+            is_encrypted,
+            encryption_format_version,
+            encryption_key_id,
+            encrypted_at,
             last_synced_at,
             updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
           ON CONFLICT (environment_host, certification_id) DO UPDATE SET
             certification_name = EXCLUDED.certification_name,
             type = EXCLUDED.type,
@@ -123,6 +130,10 @@ export class AccessCertRawDbService {
             manager_name = EXCLUDED.manager_name,
             certifier_name = EXCLUDED.certifier_name,
             raw_data = EXCLUDED.raw_data,
+            is_encrypted = EXCLUDED.is_encrypted,
+            encryption_format_version = EXCLUDED.encryption_format_version,
+            encryption_key_id = EXCLUDED.encryption_key_id,
+            encrypted_at = EXCLUDED.encrypted_at,
             last_synced_at = NOW(),
             updated_at = NOW();
         `;
@@ -139,7 +150,8 @@ export class AccessCertRawDbService {
           ownerName,
           managerName,
           certifierName,
-          JSON.stringify(item)
+          write.rawValue,
+          ...trackingColumns(write)
         ]);
       }
       console.log(`[AccessCertDb] Successfully persisted ${certifications.length} certifications to PostgreSQL for ${host}`);
@@ -237,8 +249,24 @@ export class AccessCertRawDbService {
           const dept = r.department || null;
           const action = r.action || 'Pending';
 
+          // Reserve the row id up front so the encrypted payload's AAD binds to
+          // the same id the read side will see on the stored row.
+          const idRes = await query<{ id: string }>(
+            `SELECT nextval(pg_get_serial_sequence('oracle_raw_certifier_worksheets', 'id')) AS id`
+          );
+          const rowId = idRes.rows[0]?.id;
+          if (!rowId) throw new Error('Could not reserve an id from oracle_raw_certifier_worksheets_id_seq');
+
+          const write = await encryptRawField(
+            'oracle_raw_certifier_worksheets',
+            { certification_id: cleanCertId, id: rowId },
+            r,
+            host
+          );
+
           const sql = `
             INSERT INTO oracle_raw_certifier_worksheets (
+              id,
               environment_host,
               certification_id,
               certification_name,
@@ -252,13 +280,18 @@ export class AccessCertRawDbService {
               department,
               action,
               raw_data,
+              is_encrypted,
+              encryption_format_version,
+              encryption_key_id,
+              encrypted_at,
               last_synced_at,
               created_at,
               updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW(), NOW())
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
           `;
 
           await query(sql, [
+            rowId,
             host,
             cleanCertId,
             r.certificationName || certName,
@@ -271,7 +304,8 @@ export class AccessCertRawDbService {
             bu,
             dept,
             action,
-            JSON.stringify(r)
+            write.rawValue,
+            ...trackingColumns(write)
           ]);
         }
       }
