@@ -308,6 +308,9 @@ export default function Reports({
   // Server-side paging state for the ALL-controls incidents view (60K+ rows
   // stay in Postgres; the UI only ever holds one page).
   const [incidentsServerTotal, setIncidentsServerTotal] = useState<number>(0);
+  // Unfiltered domain total, kept separate from the filtered total so the export
+  // dialog can show a truthful "All Results" count instead of the loaded page size.
+  const [incidentsServerGrandTotal, setIncidentsServerGrandTotal] = useState<number>(0);
   const incidentsPageReloadGuard = useRef(false);
   const incidentsPagingMountedRef = useRef(false);
   const prevIncidentsSearchRef = useRef(incidentsSearch);
@@ -573,6 +576,9 @@ export default function Reports({
         if (serverMode && typeof (res.filteredCount ?? res.totalCount) === 'number') {
           setIncidentsServerTotal(res.filteredCount ?? res.totalCount);
         }
+        if (serverMode && typeof res.totalCount === 'number') {
+          setIncidentsServerGrandTotal(res.totalCount);
+        }
         if (Array.isArray(res.availableControls)) {
           setAvailableIncidentControls(res.availableControls);
         }
@@ -660,6 +666,59 @@ export default function Reports({
     } finally {
       setIncidentsLoading(false);
     }
+  };
+
+  // Bulk export reader for the ALL-controls incidents view.
+  // The table only ever holds one server page, so an export of the filtered or
+  // full result set has to page the backend until every row is collected.
+  const EXPORT_CHUNK_SIZE = 5000;
+  const EXPORT_MAX_ROWS = 250000; // hard stop so a runaway count cannot hang the tab
+
+  const fetchAllIncidentsForExport = async (scope: 'FILTERED' | 'ALL'): Promise<any[]> => {
+    const applyFilters = scope === 'FILTERED';
+    const expected = applyFilters ? incidentsServerTotal : incidentsServerGrandTotal;
+    const collected: any[] = [];
+    const seenIds = new Set<string>();
+    let page = 1;
+
+    while (collected.length < EXPORT_MAX_ROWS) {
+      const res = await api.getRiskIncidents({
+        controlId: 'ALL',
+        page,
+        limit: EXPORT_CHUNK_SIZE,
+        search: applyFilters ? incidentsSearch : undefined,
+        status: applyFilters ? incidentsStatusFilter : 'ALL',
+        state: 'ALL',
+        domain: incidentsDomain
+      });
+
+      if (!res || res.success === false) {
+        throw new Error(res?.message || res?.error || 'Unable to read incidents for export.');
+      }
+
+      const batch: any[] = Array.isArray(res.items) ? res.items : [];
+      if (batch.length === 0) break;
+
+      for (const row of batch) {
+        // Guard against a duplicated page if the dataset shifts mid-export.
+        const key = `${row?.controlId ?? ''}::${row?.id ?? ''}`;
+        if (row?.id !== undefined && seenIds.has(key)) continue;
+        if (row?.id !== undefined) seenIds.add(key);
+        collected.push(row);
+      }
+
+      const reportedTotal = typeof res.filteredCount === 'number' ? res.filteredCount : expected;
+      if (batch.length < EXPORT_CHUNK_SIZE) break;
+      if (reportedTotal > 0 && collected.length >= reportedTotal) break;
+      page += 1;
+    }
+
+    if (expected > 0 && collected.length < expected) {
+      console.warn(
+        `[Reports] Incident export collected ${collected.length} of ${expected} expected rows.`
+      );
+    }
+    return collected;
   };
 
   // Loader 3: User Role Mappings
@@ -1906,7 +1965,7 @@ export default function Reports({
                 buttonText="Export Excel"
                 currentPageData={paginatedSlice}
                 filteredCount={isIncidentsServerPaging ? incidentsServerTotal : filteredIncidents.length}
-                totalCount={incidentsData.length}
+                totalCount={isIncidentsServerPaging ? Math.max(incidentsServerGrandTotal, incidentsServerTotal) : incidentsData.length}
                 appliedFilters={incidentsActiveFilters}
                 availableColumns={currentIncidentColumns.map(col => ({
                   key: col.key,
@@ -1924,6 +1983,11 @@ export default function Reports({
                 }))}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
+                  // ALL-controls mode pages server-side: the component only holds
+                  // the visible page, so pull the full set from the backend.
+                  if (isIncidentsServerPaging) {
+                    return fetchAllIncidentsForExport(scope === 'FILTERED' ? 'FILTERED' : 'ALL');
+                  }
                   if (scope === 'FILTERED') return filteredIncidents;
                   return incidentsData;
                 }}
