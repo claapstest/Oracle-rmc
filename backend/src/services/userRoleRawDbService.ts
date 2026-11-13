@@ -3,6 +3,7 @@ import path from 'path';
 import { query } from '../db.js';
 import { config } from '../config.js';
 import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
+import { decryptRawRows, decryptSingleRawField } from '../security/decryptedRecordReader.js';
 
 export interface RawRoleRecord {
   environment_host: string;
@@ -203,7 +204,7 @@ export class UserRoleRawDbService {
     );
     const totalCount = parseInt(countRes.rows[0]?.count || '0', 10);
 
-    let querySql = `SELECT raw_role, member_count FROM oracle_raw_roles WHERE ${whereClause} ORDER BY role_name ASC`;
+    let querySql = `SELECT raw_role, member_count, is_encrypted, role_code FROM oracle_raw_roles WHERE ${whereClause} ORDER BY role_name ASC`;
     if (options.limit) {
       params.push(options.limit);
       querySql += ` LIMIT $${params.length}`;
@@ -213,8 +214,10 @@ export class UserRoleRawDbService {
       querySql += ` OFFSET $${params.length}`;
     }
 
-    const dataRes = await query<{ raw_role: any; member_count: number }>(querySql, params);
-    const roles = dataRes.rows.map(r => {
+    const dataRes = await query<{ raw_role: any; member_count: number; is_encrypted: boolean; role_code: string }>(querySql, params);
+    const host = this.getHost();
+    const decryptedRows = await decryptRawRows('oracle_raw_roles', 'raw_role', dataRes.rows, host);
+    const roles = decryptedRows.map(r => {
       const raw = r.raw_role || {};
       const count = Array.isArray(raw.members) ? raw.members.length : (typeof r.member_count === 'number' ? r.member_count : 0);
       return {
@@ -422,30 +425,45 @@ export class UserRoleRawDbService {
       conditions.push(`(username ILIKE $${params.length} OR display_name ILIKE $${params.length} OR email ILIKE $${params.length})`);
     }
 
+    // VYR-035: JSONB operators break on encrypted payloads. Guard with is_encrypted = false.
+    let needsJsonbGuard = false;
+
     if (options.businessUnit) {
       const buClean = options.businessUnit.trim();
       params.push(`%${buClean}%`);
       conditions.push(`raw_user->>'businessUnit' ILIKE $${params.length}`);
+      needsJsonbGuard = true;
     }
 
     const ft = (options.filterType || '').toUpperCase();
     if (ft === 'MULTIPLE_ROLES' || ft === 'MULTIPLE_ROLE_USERS') {
       conditions.push(`jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) > 1`);
+      needsJsonbGuard = true;
     } else if (ft === 'NO_ROLES' || ft === 'USERS_WITHOUT_ROLES' || ft === 'WITHOUT_ROLES') {
       conditions.push(`jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 0`);
+      needsJsonbGuard = true;
     } else if (ft === 'SINGLE_ROLE' || ft === 'SINGLE_ROLE_USERS') {
       conditions.push(`jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 1`);
+      needsJsonbGuard = true;
     } else if (ft === 'ADMIN_ROLES' || ft === 'SECURITY_ADMINS' || ft === 'SECURITY_ADMINISTRATORS') {
       conditions.push(`(raw_user->>'assignedRoles' ILIKE '%security administrator%' OR raw_user->>'assignedRoles' ILIKE '%it security manager%' OR raw_user->>'assignedRoles' ILIKE '%ora_it_security_manager%' OR raw_user->>'assignedRoles' ILIKE '%ora_security_administrator%')`);
+      needsJsonbGuard = true;
     } else if (ft === 'HIGH_RISK' || ft === 'HIGH_RISK_USERS') {
       conditions.push(`(raw_user->>'assignedRoles' ILIKE '%security administrator%' OR raw_user->>'assignedRoles' ILIKE '%it security manager%' OR raw_user->>'assignedRoles' ILIKE '%ap manager%')`);
+      needsJsonbGuard = true;
     } else if (ft === 'PAYROLL_ACCESS') {
       conditions.push(`raw_user->>'assignedRoles' ILIKE '%payroll%'`);
+      needsJsonbGuard = true;
     }
 
     if (options.roleCategory && options.roleCategory.toUpperCase() !== 'ALL') {
       params.push(`%"category": "${options.roleCategory}"%`);
       conditions.push(`raw_user->>'assignedRoles' ILIKE $${params.length}`);
+      needsJsonbGuard = true;
+    }
+
+    if (needsJsonbGuard) {
+      conditions.push(`is_encrypted = false`);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -517,7 +535,7 @@ export class UserRoleRawDbService {
       orderBy = `jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) DESC, username ASC`;
     }
 
-    let querySql = `SELECT raw_user FROM oracle_raw_users WHERE ${whereClause} ORDER BY ${orderBy}`;
+    let querySql = `SELECT raw_user, is_encrypted, username FROM oracle_raw_users WHERE ${whereClause} ORDER BY ${orderBy}`;
     if (options.limit) {
       params.push(options.limit);
       querySql += ` LIMIT $${params.length}`;
@@ -527,8 +545,10 @@ export class UserRoleRawDbService {
       querySql += ` OFFSET $${params.length}`;
     }
 
-    const dataRes = await query<{ raw_user: any }>(querySql, params);
-    const users = dataRes.rows.map(r => r.raw_user);
+    const dataRes = await query<{ raw_user: any; is_encrypted: boolean; username: string }>(querySql, params);
+    const host = this.getHost();
+    const decryptedRows = await decryptRawRows('oracle_raw_users', 'raw_user', dataRes.rows, host);
+    const users = decryptedRows.map(r => r.raw_user);
 
     return { users, totalCount };
   }
@@ -592,14 +612,15 @@ export class UserRoleRawDbService {
     const host = this.getHost();
     const q = (userIdOrSearch || '').trim();
     if (!q) return null;
-    const res = await query<{ raw_user: any }>(
-      `SELECT raw_user FROM oracle_raw_users 
+    const res = await query<{ raw_user: any; is_encrypted: boolean; username: string }>(
+      `SELECT raw_user, is_encrypted, username FROM oracle_raw_users
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
          AND (username ILIKE $2 OR display_name ILIKE $2 OR email ILIKE $2)
        LIMIT 1`,
       [host, q]
     );
-    return res.rows[0]?.raw_user || null;
+    if (!res.rows[0]) return null;
+    return decryptSingleRawField('oracle_raw_users', 'raw_user', res.rows[0], host);
   }
 
   /**
@@ -609,14 +630,15 @@ export class UserRoleRawDbService {
     const host = this.getHost();
     const q = (roleCodeOrName || '').trim();
     if (!q) return null;
-    const res = await query<{ raw_role: any }>(
-      `SELECT raw_role FROM oracle_raw_roles 
+    const res = await query<{ raw_role: any; is_encrypted: boolean; role_code: string }>(
+      `SELECT raw_role, is_encrypted, role_code FROM oracle_raw_roles
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
          AND (role_code ILIKE $2 OR role_name ILIKE $2)
        LIMIT 1`,
       [host, q]
     );
-    return res.rows[0]?.raw_role || null;
+    if (!res.rows[0]) return null;
+    return decryptSingleRawField('oracle_raw_roles', 'raw_role', res.rows[0], host);
   }
 
   /**
@@ -626,14 +648,16 @@ export class UserRoleRawDbService {
     const host = this.getHost();
     const q = (roleName || '').trim();
     if (!q) return [];
-    const res = await query<{ raw_user: any }>(
-      `SELECT raw_user FROM oracle_raw_users 
+    const res = await query<{ raw_user: any; is_encrypted: boolean; username: string }>(
+      `SELECT raw_user, is_encrypted, username FROM oracle_raw_users
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
+         AND is_encrypted = false
          AND raw_user->>'assignedRoles' ILIKE $2
        LIMIT $3`,
       [host, `%${q}%`, limit]
     );
-    return res.rows.map(r => r.raw_user);
+    const decrypted = await decryptRawRows('oracle_raw_users', 'raw_user', res.rows, host);
+    return decrypted.map(r => r.raw_user);
   }
 
   /**
@@ -664,9 +688,9 @@ export class UserRoleRawDbService {
       }>(`
         SELECT
           COUNT(1) AS total_users,
-          COUNT(1) FILTER (WHERE jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) > 1) AS multiple_role_users,
-          COUNT(1) FILTER (WHERE jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 0) AS users_without_roles,
-          COUNT(1) FILTER (WHERE jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 1) AS single_role_users
+          COUNT(1) FILTER (WHERE is_encrypted = false AND jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) > 1) AS multiple_role_users,
+          COUNT(1) FILTER (WHERE is_encrypted = false AND jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 0) AS users_without_roles,
+          COUNT(1) FILTER (WHERE is_encrypted = false AND jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 1) AS single_role_users
         FROM oracle_raw_users
         WHERE ${hostFilter}
       `, [host]),

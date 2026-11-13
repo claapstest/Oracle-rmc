@@ -112,8 +112,9 @@ export class EntitlementService {
           JOIN all_parent_roles apr
             ON apr.r_name = LOWER(r->>'roleName')
             OR (apr.r_code <> '' AND apr.r_code = LOWER(COALESCE(r->>'roleCode', '')))
+          WHERE u.is_encrypted = false
         )
-        SELECT 
+        SELECT
           username,
           display_name,
           email,
@@ -159,8 +160,9 @@ export class EntitlementService {
           JOIN all_target_roles atr
             ON atr.r_name = LOWER(r->>'roleName')
             OR (atr.r_code <> '' AND atr.r_code = LOWER(COALESCE(r->>'roleCode', '')))
+          WHERE u.is_encrypted = false
         )
-        SELECT 
+        SELECT
           username,
           display_name,
           email,
@@ -257,13 +259,14 @@ export class EntitlementService {
     // 3. Unpack privileges from only matching hierarchy nodes
     const sql = `
       WITH user_info AS (
-        SELECT 
+        SELECT
           u.username,
           u.display_name,
           COALESCE(u.raw_user->'assignedRoles', '[]'::jsonb) as assigned_roles
         FROM oracle_raw_users u
-        WHERE LOWER(u.username) = LOWER($1)
-           OR LOWER(u.email) = LOWER($1)
+        WHERE (LOWER(u.username) = LOWER($1)
+           OR LOWER(u.email) = LOWER($1))
+           AND u.is_encrypted = false
         LIMIT 1
       ),
       user_direct_roles AS (

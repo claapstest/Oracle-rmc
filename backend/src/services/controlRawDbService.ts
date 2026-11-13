@@ -2,6 +2,7 @@ import { query } from '../db.js';
 import { config } from '../config.js';
 import { OracleFusionClient } from '../oracle/client.js';
 import { encryptRawField, decryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
+import { decryptRawRows, decryptSingleRawField } from '../security/decryptedRecordReader.js';
 
 export interface ProductSyncPolicyRecord {
   product_code: string;
@@ -244,14 +245,15 @@ export class ControlRawDbService {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
 
-    const res = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_raw_controls 
+    const res = await query<{ raw_payload: any; is_encrypted: boolean; control_id: string }>(
+      `SELECT raw_payload, is_encrypted, control_id FROM oracle_raw_controls
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
-    return res.rows[0]?.raw_payload || null;
+    if (!res.rows[0]) return null;
+    return decryptSingleRawField('oracle_raw_controls', 'raw_payload', res.rows[0], host);
   }
 
   /**
@@ -260,14 +262,15 @@ export class ControlRawDbService {
   public async getAllRawControls(): Promise<any[]> {
     const host = this.getHost();
 
-    const res = await query<{ raw_payload: any }>(
-      `SELECT raw_payload FROM oracle_raw_controls 
+    const res = await query<{ raw_payload: any; is_encrypted: boolean; control_id: string }>(
+      `SELECT raw_payload, is_encrypted, control_id FROM oracle_raw_controls
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END), name ASC`,
       [host]
     );
 
-    return res.rows.map((r) => r.raw_payload);
+    const decrypted = await decryptRawRows('oracle_raw_controls', 'raw_payload', res.rows, host);
+    return decrypted.map((r) => r.raw_payload);
   }
 
   /**
@@ -1457,14 +1460,16 @@ export class ControlRawDbService {
     const host = this.getHost();
     const cleanId = String(controlId).trim();
 
-    const res = await query<{ raw_incidents: any }>(
-      `SELECT raw_incidents FROM oracle_control_incidents 
+    const res = await query<{ raw_incidents: any; is_encrypted: boolean; control_id: string }>(
+      `SELECT raw_incidents, is_encrypted, control_id FROM oracle_control_incidents
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END) LIMIT 1`,
       [host, cleanId]
     );
 
-    return Array.isArray(res.rows[0]?.raw_incidents) ? res.rows[0].raw_incidents : [];
+    if (!res.rows[0]) return [];
+    const decrypted = await decryptSingleRawField('oracle_control_incidents', 'raw_incidents', res.rows[0], host);
+    return Array.isArray(decrypted) ? decrypted : [];
   }
 
   /**
