@@ -4,6 +4,13 @@ import { OracleFusionClient } from '../oracle/client.js';
 import { encryptRawField, decryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 import { decryptRawRows, decryptSingleRawField } from '../security/decryptedRecordReader.js';
 
+/**
+ * Largest page the cross-control incident reader will serve in one round trip.
+ * Interactive tables ask for 25-100; bulk exports ask for this value and page
+ * through the result set until the filtered total is reached.
+ */
+export const MAX_BULK_INCIDENT_PAGE_SIZE = 5000;
+
 export interface ProductSyncPolicyRecord {
   product_code: string;
   display_name: string;
@@ -1320,7 +1327,10 @@ export class ControlRawDbService {
     const host = this.getHost();
     const ids = (options.controlIds || []).map((s) => String(s).trim()).filter(Boolean);
     if (ids.length === 0) return { filteredTotal: 0, rows: [] };
-    const limit = Math.min(100, Math.max(1, options.limit || 25));
+    // UI pages request <= 100 rows; bulk exports request large chunks and are
+    // capped at MAX_BULK_INCIDENT_PAGE_SIZE so a 60K+ export needs ~13 round trips
+    // instead of ~620 at the old hard cap of 100.
+    const limit = Math.min(MAX_BULK_INCIDENT_PAGE_SIZE, Math.max(1, options.limit || 25));
     const offset = Math.max(0, options.offset || 0);
 
     try {
