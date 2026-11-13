@@ -224,7 +224,6 @@ export class UserRoleRawDbService {
     }
 
     const dataRes = await query<{ raw_role: any; member_count: number; is_encrypted: boolean; role_code: string }>(querySql, params);
-    const host = this.getHost();
     const decryptedRows = await decryptRawRows('oracle_raw_roles', 'raw_role', dataRes.rows, host);
     const roles = decryptedRows.map(r => {
       const raw = r.raw_role || {};
@@ -552,7 +551,6 @@ export class UserRoleRawDbService {
     }
 
     const dataRes = await query<{ raw_user: any; is_encrypted: boolean; username: string }>(querySql, params);
-    const host = this.getHost();
     const decryptedRows = await decryptRawRows('oracle_raw_users', 'raw_user', dataRes.rows, host);
     const users = decryptedRows.map(r => r.raw_user);
 

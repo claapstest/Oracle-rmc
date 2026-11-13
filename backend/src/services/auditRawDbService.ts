@@ -338,7 +338,6 @@ export class AuditRawDbService {
     values.push(pageSize, offset);
 
     const dataRes = await query<{ raw_payload: any; is_encrypted: boolean; record_unique_hash: string }>(querySql, values);
-    const host = this.getHost();
     const decryptedRows = await decryptRawRows('oracle_raw_audit_records', 'raw_payload', dataRes.rows, host);
     const rawItems = decryptedRows.map(r => r.raw_payload);
 
