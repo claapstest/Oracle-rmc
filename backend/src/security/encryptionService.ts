@@ -23,6 +23,7 @@ import {
   buildTableRecordAad,
   validateEncryptedPayload,
   isEncryptedPayload,
+  isSupportedFormatVersion,
 } from './encryptionContract.js';
 
 export type EncryptionErrorCode =
@@ -33,7 +34,10 @@ export type EncryptionErrorCode =
   | 'UNSUPPORTED_ALGORITHM'
   | 'ENCRYPTION_FAILED'
   | 'INVALID_INPUT'
-  | 'AAD_MISMATCH';
+  | 'AAD_MISMATCH'
+  | 'KEY_NOT_APPROVED'
+  | 'KEY_IN_USE'
+  | 'UNSUPPORTED_FORMAT_VERSION';
 
 export class EncryptionError extends Error {
   public readonly code: EncryptionErrorCode;
@@ -281,6 +285,13 @@ export class EncryptionService {
 
     validateEncryptedPayload(container);
 
+    if (!isSupportedFormatVersion(container.formatVersion)) {
+      throw new EncryptionError(
+        'UNSUPPORTED_FORMAT_VERSION',
+        `Encrypted payload format version ${container.formatVersion} is not supported by this build`
+      );
+    }
+
     if (container.algorithm !== ENCRYPTION_ALGORITHM_AES_256_GCM) {
       throw new EncryptionError(
         'UNSUPPORTED_ALGORITHM',
@@ -391,8 +402,252 @@ export class EncryptionService {
       keyId: newKeyId || this.keyProvider.getActiveKeyId(),
     });
   }
+
+  /**
+   * KEK rotation (VYR-036): unwraps the record's DEK with its current KEK and
+   * re-wraps it with the target KEK. Ciphertext, nonce, authTag, AAD and
+   * createdAt are left byte-identical, so the record's data is never re-encrypted.
+   */
+  public async rewrapPayloadDek(
+    payload: EncryptedPayload,
+    newKeyId?: string
+  ): Promise<EncryptedPayload> {
+    validateEncryptedPayload(payload);
+    if (!isSupportedFormatVersion(payload.formatVersion)) {
+      throw new EncryptionError(
+        'UNSUPPORTED_FORMAT_VERSION',
+        `Encrypted payload format version ${payload.formatVersion} is not supported by this build`
+      );
+    }
+
+    const targetKeyId = newKeyId || this.keyProvider.getActiveKeyId();
+    if (payload.keyId === targetKeyId) return payload;
+
+    const dek = await this.keyProvider.unwrapDek(payload.encryptedDek, payload.keyId);
+    try {
+      const encryptedDek = await this.keyProvider.wrapDek(dek, targetKeyId);
+      return { ...payload, keyId: targetKeyId, encryptedDek };
+    } finally {
+      dek.fill(0);
+    }
+  }
 }
 
-// Export singleton instance for app-wide reuse
-export const encryptionService = new EncryptionService();
+/**
+ * Key lifecycle (VYR-036).
+ *   PENDING     registered, not yet used for anything
+ *   ACTIVE      the single key that wraps new DEKs (and unwraps)
+ *   RETIRING    approved for unwrap only, during the rotation transition
+ *   COMPROMISED unwrap only, so the rewrap job can move data off it; never wraps
+ *   RETIRED     no longer usable; allowed only once no record depends on it
+ */
+export type KeyStatus = 'PENDING' | 'ACTIVE' | 'RETIRING' | 'RETIRED' | 'COMPROMISED';
+
+const KEY_STATUSES: readonly KeyStatus[] = ['PENDING', 'ACTIVE', 'RETIRING', 'RETIRED', 'COMPROMISED'];
+const UNWRAP_ALLOWED: readonly KeyStatus[] = ['ACTIVE', 'RETIRING', 'COMPROMISED'];
+
+export interface KeyRingEntry {
+  keyId: string;
+  status: KeyStatus;
+  statusChangedAt: string;
+}
+
+export interface KeyLifecycleEvent {
+  at: string;
+  action: 'ADDED' | 'CONFIGURED' | 'ACTIVATED' | 'RETIRING' | 'RETIRED' | 'COMPROMISED';
+  keyId: string;
+  detail?: string;
+}
+
+export interface KeyRingConfigEntry {
+  keyId: string;
+  /** Name of the environment variable holding the key secret; secrets are never inlined. */
+  secretEnv?: string;
+  status: KeyStatus;
+}
+
+type RegistrableKeyProvider = KeyProvider & {
+  registerKey?(keyId: string, secret: string | Buffer): void;
+};
+
+/**
+ * KeyProvider decorator that enforces the key lifecycle on every wrap/unwrap.
+ * Keys it does not track are refused (fail closed).
+ */
+export class KeyLifecycleRegistry implements KeyProvider {
+  private readonly entries = new Map<string, KeyRingEntry>();
+  private readonly events: KeyLifecycleEvent[] = [];
+  private activeKeyId: string;
+
+  constructor(private readonly inner: RegistrableKeyProvider) {
+    this.activeKeyId = inner.getActiveKeyId();
+    this.setStatus(this.activeKeyId, 'ACTIVE', 'ADDED', 'provider default key');
+  }
+
+  /**
+   * Builds the registry from VEYRA_KEY_RING, a JSON array of
+   * { keyId, secretEnv, status }. Exactly one entry must be ACTIVE. The
+   * provider's bootstrap key is kept as RETIRING if the ring does not list it,
+   * so records written under it stay readable until they are rewrapped.
+   */
+  public static fromEnv(
+    inner: RegistrableKeyProvider,
+    rawConfig: string | undefined = process.env.VEYRA_KEY_RING
+  ): KeyLifecycleRegistry {
+    const registry = new KeyLifecycleRegistry(inner);
+    if (!rawConfig || !rawConfig.trim()) return registry;
+
+    let config: KeyRingConfigEntry[];
+    try {
+      config = JSON.parse(rawConfig);
+    } catch {
+      throw new EncryptionError('INVALID_INPUT', 'VEYRA_KEY_RING is not valid JSON');
+    }
+    if (!Array.isArray(config) || config.length === 0) {
+      throw new EncryptionError('INVALID_INPUT', 'VEYRA_KEY_RING must be a non-empty JSON array');
+    }
+
+    const active = config.filter(e => e && e.status === 'ACTIVE');
+    if (active.length !== 1) {
+      throw new EncryptionError('INVALID_KEY', `VEYRA_KEY_RING must contain exactly one ACTIVE key (found ${active.length})`);
+    }
+
+    for (const entry of config) {
+      if (!entry || typeof entry.keyId !== 'string' || !entry.keyId.trim() || !KEY_STATUSES.includes(entry.status)) {
+        throw new EncryptionError('INVALID_INPUT', 'Each VEYRA_KEY_RING entry needs a keyId and a valid status');
+      }
+      if (entry.status !== 'RETIRED') {
+        const secret = entry.secretEnv ? process.env[entry.secretEnv] : undefined;
+        if (!secret) {
+          throw new EncryptionError('KEY_NOT_FOUND', `Secret for key "${entry.keyId}" is missing (env ${entry.secretEnv || '<unset>'})`);
+        }
+        registry.registerSecret(entry.keyId, secret);
+      }
+      registry.setStatus(entry.keyId, entry.status === 'ACTIVE' ? 'PENDING' : entry.status, 'CONFIGURED');
+    }
+
+    registry.activate(active[0].keyId);
+    return registry;
+  }
+
+  public getActiveKeyId(): string {
+    return this.activeKeyId;
+  }
+
+  public getStatus(keyId: string): KeyStatus | null {
+    return this.entries.get(keyId)?.status ?? null;
+  }
+
+  public listKeys(): KeyRingEntry[] {
+    return Array.from(this.entries.values(), e => ({ ...e }));
+  }
+
+  public getEvents(): KeyLifecycleEvent[] {
+    return this.events.map(e => ({ ...e }));
+  }
+
+  /** Registers a new KEK as PENDING. It wraps nothing until activate(). */
+  public addKey(keyId: string, secret: string | Buffer): void {
+    if (this.entries.has(keyId)) {
+      throw new EncryptionError('INVALID_INPUT', `Key "${keyId}" is already in the key ring`);
+    }
+    this.registerSecret(keyId, secret);
+    this.setStatus(keyId, 'PENDING', 'ADDED');
+  }
+
+  /**
+   * Makes keyId the wrapping key; the previous active key becomes RETIRING.
+   * Re-activating a RETIRING key is the rollback path.
+   */
+  public activate(keyId: string): void {
+    const status = this.getStatus(keyId);
+    if (status === 'ACTIVE') return;
+    if (status !== 'PENDING' && status !== 'RETIRING') {
+      throw new EncryptionError('KEY_NOT_APPROVED', `Key "${keyId}" cannot be activated from status ${status ?? 'UNKNOWN'}`);
+    }
+    const previous = this.activeKeyId;
+    this.activeKeyId = keyId;
+    this.setStatus(keyId, 'ACTIVE', 'ACTIVATED', previous ? `replaces ${previous}` : undefined);
+    if (previous && previous !== keyId && this.getStatus(previous) === 'ACTIVE') {
+      this.setStatus(previous, 'RETIRING', 'RETIRING', `superseded by ${keyId}`);
+    }
+  }
+
+  /**
+   * Retires a key. dependentRecords must come from a live count of stored
+   * records still wrapped by this key (see keyRotationService.retireKey).
+   */
+  public retire(keyId: string, dependentRecords: number): void {
+    if (keyId === this.activeKeyId) {
+      throw new EncryptionError('KEY_IN_USE', `Key "${keyId}" is the active key and cannot be retired`);
+    }
+    if (!Number.isFinite(dependentRecords) || dependentRecords > 0) {
+      throw new EncryptionError('KEY_IN_USE', `Key "${keyId}" still protects ${dependentRecords} record(s); rewrap them before retiring`);
+    }
+    if (!this.entries.has(keyId)) {
+      throw new EncryptionError('KEY_NOT_FOUND', `Key "${keyId}" is not in the key ring`);
+    }
+    this.setStatus(keyId, 'RETIRED', 'RETIRED');
+  }
+
+  /**
+   * Emergency path: the key stops wrapping immediately. If it was active, the
+   * replacement (already added) is activated first.
+   */
+  public markCompromised(keyId: string, replacementKeyId?: string): void {
+    if (!this.entries.has(keyId)) {
+      throw new EncryptionError('KEY_NOT_FOUND', `Key "${keyId}" is not in the key ring`);
+    }
+    if (keyId === this.activeKeyId) {
+      if (!replacementKeyId || replacementKeyId === keyId) {
+        throw new EncryptionError('INVALID_INPUT', `Compromised key "${keyId}" is active; a replacement key is required`);
+      }
+      this.activate(replacementKeyId);
+    }
+    this.setStatus(keyId, 'COMPROMISED', 'COMPROMISED');
+  }
+
+  public async getMasterKey(keyId: string): Promise<Buffer | null> {
+    this.assertUnwrapAllowed(keyId);
+    return this.inner.getMasterKey(keyId);
+  }
+
+  public async wrapDek(dek: Buffer, keyId: string): Promise<string> {
+    const status = this.getStatus(keyId);
+    if (status !== 'ACTIVE') {
+      throw new EncryptionError('KEY_NOT_APPROVED', `Key "${keyId}" (${status ?? 'UNKNOWN'}) is not approved for wrapping new data`);
+    }
+    return this.inner.wrapDek(dek, keyId);
+  }
+
+  public async unwrapDek(wrappedDekB64: string, keyId: string): Promise<Buffer> {
+    this.assertUnwrapAllowed(keyId);
+    return this.inner.unwrapDek(wrappedDekB64, keyId);
+  }
+
+  private assertUnwrapAllowed(keyId: string): void {
+    const status = this.getStatus(keyId);
+    if (!status || !UNWRAP_ALLOWED.includes(status)) {
+      throw new EncryptionError('KEY_NOT_APPROVED', `Key "${keyId}" (${status ?? 'UNKNOWN'}) is not approved for decryption`);
+    }
+  }
+
+  private registerSecret(keyId: string, secret: string | Buffer): void {
+    if (typeof this.inner.registerKey !== 'function') {
+      throw new EncryptionError('INVALID_INPUT', 'Underlying key provider does not support registering keys');
+    }
+    this.inner.registerKey(keyId, secret);
+  }
+
+  private setStatus(keyId: string, status: KeyStatus, action: KeyLifecycleEvent['action'], detail?: string): void {
+    const at = new Date().toISOString();
+    this.entries.set(keyId, { keyId, status, statusChangedAt: at });
+    this.events.push({ at, action, keyId, ...(detail ? { detail } : {}) });
+    if (this.events.length > 500) this.events.shift();
+  }
+}
+
+// App-wide key ring and encryption service. Raw-table writes and reads go through these.
+export const keyRegistry = KeyLifecycleRegistry.fromEnv(new LocalKeyProvider());
+export const encryptionService = new EncryptionService(keyRegistry);
 

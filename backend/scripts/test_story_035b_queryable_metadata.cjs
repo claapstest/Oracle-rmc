@@ -126,7 +126,7 @@ async function run() {
   const client = await pool.connect();
 
   try {
-    console.log('\n=== VYR-036: Queryable Metadata for Encrypted-era Filtering ===\n');
+    console.log('\n=== VYR-035b (follow-up to VYR-035): Queryable Metadata for Encrypted-era Filtering ===\n');
     await ensureTables(client);
     await cleanup(client);
 
