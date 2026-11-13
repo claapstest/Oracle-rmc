@@ -173,11 +173,11 @@ const ACCESS_INCIDENT_COLUMNS: IncidentColumnDef[] = [
 
 // Transaction Controls Incidents columns (Oracle Type 174)
 // Ordered per Transaction Control Incident specification:
-// Control Name >> Control Type >> Result ID >> Status >> Grouping Value >> Creation Date >> Closed Date >> Last Run Date >> State >> Created by >> Last Updated Date >> Incident Information >> Last Updated by >> Data Source >> Investigator >> Group >> Attachments >> Comments >> Number of Occurrences
+// Result ID >> Control Name >> Control Type >> Status >> Grouping Value >> Creation Date >> Closed Date >> Last Run Date >> State >> Created by >> Last Updated Date >> Incident Information >> Last Updated by >> Data Source >> Investigator >> Group >> Attachments >> Comments >> Number of Occurrences
 const TRANSACTION_INCIDENT_COLUMNS: IncidentColumnDef[] = [
+  { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px', stickyLeft: true },
   { key: 'controlName', label: 'Control Name', defaultVisible: true, minWidth: '300px' },
   { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
-  { key: 'resultId', label: 'Result ID', defaultVisible: true, minWidth: '130px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '125px' },
   { key: 'groupingValue', label: 'Grouping Value', defaultVisible: true, minWidth: '320px' },
   { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '140px' },
