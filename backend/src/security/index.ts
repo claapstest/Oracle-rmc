@@ -11,3 +11,4 @@ export * from './kmsProvider.js';
 export * from './encryptionMigrationService.js';
 export * from './encryptedRecordWriter.js';
 export * from './keyRotationService.js';
+export * from './plaintextMigrationService.js';
