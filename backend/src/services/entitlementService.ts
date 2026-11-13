@@ -101,18 +101,16 @@ export class EntitlementService {
         ),
         matched_users AS (
           SELECT DISTINCT
-            u.username,
-            u.display_name,
-            u.email,
-            u.is_active,
-            r->>'roleName' as granted_role_name,
-            r->>'roleCode' as granted_role_code
-          FROM oracle_raw_users u,
-               jsonb_array_elements(COALESCE(u.raw_user->'assignedRoles', '[]'::jsonb)) as r
+            ua.username,
+            ua.display_name,
+            ua.email,
+            ua.active AS is_active,
+            ua.role_name as granted_role_name,
+            ua.role_code as granted_role_code
+          FROM oracle_raw_user_access ua
           JOIN all_parent_roles apr
-            ON apr.r_name = LOWER(r->>'roleName')
-            OR (apr.r_code <> '' AND apr.r_code = LOWER(COALESCE(r->>'roleCode', '')))
-          WHERE u.is_encrypted = false
+            ON apr.r_name = LOWER(ua.role_name)
+            OR (apr.r_code <> '' AND apr.r_code = LOWER(COALESCE(ua.role_code, '')))
         )
         SELECT
           username,
@@ -149,18 +147,16 @@ export class EntitlementService {
         ),
         matched_users AS (
           SELECT DISTINCT
-            u.username,
-            u.display_name,
-            u.email,
-            u.is_active,
-            r->>'roleName' as granted_role_name,
-            r->>'roleCode' as granted_role_code
-          FROM oracle_raw_users u,
-               jsonb_array_elements(COALESCE(u.raw_user->'assignedRoles', '[]'::jsonb)) as r
+            ua.username,
+            ua.display_name,
+            ua.email,
+            ua.active AS is_active,
+            ua.role_name as granted_role_name,
+            ua.role_code as granted_role_code
+          FROM oracle_raw_user_access ua
           JOIN all_target_roles atr
-            ON atr.r_name = LOWER(r->>'roleName')
-            OR (atr.r_code <> '' AND atr.r_code = LOWER(COALESCE(r->>'roleCode', '')))
-          WHERE u.is_encrypted = false
+            ON atr.r_name = LOWER(ua.role_name)
+            OR (atr.r_code <> '' AND atr.r_code = LOWER(COALESCE(ua.role_code, '')))
         )
         SELECT
           username,
@@ -261,20 +257,19 @@ export class EntitlementService {
       WITH user_info AS (
         SELECT
           u.username,
-          u.display_name,
-          COALESCE(u.raw_user->'assignedRoles', '[]'::jsonb) as assigned_roles
+          u.display_name
         FROM oracle_raw_users u
         WHERE (LOWER(u.username) = LOWER($1)
            OR LOWER(u.email) = LOWER($1))
-           AND u.is_encrypted = false
         LIMIT 1
       ),
       user_direct_roles AS (
-        SELECT DISTINCT 
-          LOWER(r->>'roleName') as r_name, 
-          LOWER(COALESCE(r->>'roleCode', '')) as r_code
-        FROM user_info ui,
-             jsonb_array_elements(ui.assigned_roles) as r
+        SELECT DISTINCT
+          LOWER(ua.role_name) as r_name,
+          LOWER(COALESCE(ua.role_code, '')) as r_code
+        FROM oracle_raw_user_access ua
+        WHERE LOWER(ua.username) = LOWER($1)
+           OR LOWER(ua.email) = LOWER($1)
       ),
       all_related_roles AS (
         SELECT r_name, r_code FROM user_direct_roles
