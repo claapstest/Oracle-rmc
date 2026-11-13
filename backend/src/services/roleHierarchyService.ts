@@ -7,6 +7,7 @@ import { query } from '../db.js';
 import { config } from '../config.js';
 import { BipClient } from '../oracle/bipClient.js';
 import { rolePrivilegeCatalogService } from './rolePrivilegeCatalogService.js';
+import { encryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -377,28 +378,41 @@ export class RoleHierarchyService {
       const batch = items.slice(i, i + BATCH_SIZE);
       const values: any[] = [];
       const valueClauses: string[] = [];
+      const pending: Array<() => Promise<void>> = [];
 
       batch.forEach((item, bIdx) => {
         const offset = bIdx * 9;
-        valueClauses.push(
-          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}::jsonb)`
-        );
-        values.push(
-          host,
-          item.parentRole,
-          item.parentRoleType,
-          item.childRole,
-          item.childRoleType,
-          item.roleCode,
-          item.category,
-          item.relationshipType,
-          JSON.stringify(item)
-        );
+        // Encrypted sync writes are awaited sequentially below (forEach body stays sync).
+        pending.push(async () => {
+          const write = await encryptRawField(
+            'oracle_raw_role_hierarchy',
+            { parent_role_name: item.parentRole, child_role_name: item.childRole },
+            item,
+            host
+          );
+          valueClauses.push(
+            `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}::jsonb, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13})`
+          );
+          values.push(
+            host,
+            item.parentRole,
+            item.parentRoleType,
+            item.childRole,
+            item.childRoleType,
+            item.roleCode,
+            item.category,
+            item.relationshipType,
+            write.rawValue,
+            ...trackingColumns(write)
+          );
+        });
       });
+
+      for (const task of pending) await task();
 
       const sql = `
         INSERT INTO oracle_raw_role_hierarchy 
-          (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type, raw_record)
+          (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, relationship_type, raw_record, is_encrypted, encryption_format_version, encryption_key_id, encrypted_at)
         VALUES ${valueClauses.join(', ')}
         ON CONFLICT (environment_host, parent_role_name, child_role_name) DO UPDATE SET
           parent_role_type = EXCLUDED.parent_role_type,
@@ -407,6 +421,10 @@ export class RoleHierarchyService {
           category = EXCLUDED.category,
           relationship_type = EXCLUDED.relationship_type,
           raw_record = EXCLUDED.raw_record,
+          is_encrypted = EXCLUDED.is_encrypted,
+          encryption_format_version = EXCLUDED.encryption_format_version,
+          encryption_key_id = EXCLUDED.encryption_key_id,
+          encrypted_at = EXCLUDED.encrypted_at,
           last_synced_at = NOW();
       `;
       await query(sql, values);
@@ -891,8 +909,14 @@ export class RoleHierarchyService {
         let pIndex = 1;
 
         for (const item of batch) {
+          const write = await encryptRawField(
+            'oracle_raw_role_hierarchy',
+            { parent_role_name: item.parentRole, child_role_name: item.childRole },
+            item,
+            host
+          );
           valueClauses.push(
-            `($${pIndex}, $${pIndex + 1}, $${pIndex + 2}, $${pIndex + 3}, $${pIndex + 4}, $${pIndex + 5}, $${pIndex + 6}, $${pIndex + 7})`
+            `($${pIndex}, $${pIndex + 1}, $${pIndex + 2}, $${pIndex + 3}, $${pIndex + 4}, $${pIndex + 5}, $${pIndex + 6}, $${pIndex + 7}::jsonb, $${pIndex + 8}, $${pIndex + 9}, $${pIndex + 10}, $${pIndex + 11})`
           );
           values.push(
             host,
@@ -902,14 +926,15 @@ export class RoleHierarchyService {
             item.childRoleType,
             item.roleCode,
             item.category,
-            JSON.stringify(item)
+            write.rawValue,
+            ...trackingColumns(write)
           );
-          pIndex += 8;
+          pIndex += 12;
         }
 
         const sql = `
           INSERT INTO oracle_raw_role_hierarchy 
-            (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, raw_record)
+            (environment_host, parent_role_name, parent_role_type, child_role_name, child_role_type, role_code, category, raw_record, is_encrypted, encryption_format_version, encryption_key_id, encrypted_at)
           VALUES ${valueClauses.join(', ')}
           ON CONFLICT (environment_host, parent_role_name, child_role_name) DO NOTHING;
         `;
