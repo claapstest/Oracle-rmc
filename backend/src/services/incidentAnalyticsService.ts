@@ -62,7 +62,7 @@ export async function topIncidentUsers(limitRaw?: unknown, controlsRaw?: unknown
             ) AS user,
             COUNT(*)::int AS incidents
      FROM oracle_control_incidents, jsonb_array_elements(raw_incidents) AS el
-     WHERE environment_host = $1 ${scope}
+     WHERE environment_host = $1 AND is_encrypted = false ${scope}
      GROUP BY 1
      ORDER BY 2 DESC, 1 ASC
      LIMIT $2`,
@@ -96,7 +96,7 @@ export async function topIncidentRoles(limitRaw?: unknown, controlsRaw?: unknown
             ) AS role,
             COUNT(*)::int AS incidents
      FROM oracle_control_incidents t, jsonb_array_elements(t.raw_incidents) AS el
-     WHERE t.environment_host = $1 ${scope}
+     WHERE t.environment_host = $1 AND t.is_encrypted = false ${scope}
      GROUP BY 1
      ORDER BY 2 DESC, 1 ASC
      LIMIT $2`,
