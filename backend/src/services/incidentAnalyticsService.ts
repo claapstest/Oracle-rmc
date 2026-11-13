@@ -54,15 +54,12 @@ export async function topIncidentUsers(limitRaw?: unknown, controlsRaw?: unknown
   const params: any[] = ids.length > 0 ? [activeHost(), limit, ids] : [activeHost(), limit];
   const res = await dbQuery(
     `SELECT COALESCE(
-              NULLIF(TRIM(el->>'GlobalUserName'), ''),
-              NULLIF(TRIM(REGEXP_REPLACE(el->>'IncidentInformation', '^Person\\.Full Name:\\s*', '', 'i')), ''),
-              NULLIF(TRIM(el->>'UserFirstName'), ''),
-              NULLIF(TRIM(el->>'CreatedBy'), ''),
+              NULLIF(TRIM(global_user), ''),
               'Unknown'
             ) AS user,
             COUNT(*)::int AS incidents
-     FROM oracle_control_incidents, jsonb_array_elements(raw_incidents) AS el
-     WHERE environment_host = $1 AND is_encrypted = false ${scope}
+     FROM oracle_incident_rows
+     WHERE environment_host = $1 ${scope}
      GROUP BY 1
      ORDER BY 2 DESC, 1 ASC
      LIMIT $2`,
@@ -84,19 +81,17 @@ export async function topIncidentRoles(limitRaw?: unknown, controlsRaw?: unknown
     return cached.data;
   }
 
-  const scope = ids.length > 0 ? 'AND t.control_id = ANY($3)' : '';
+  const scope = ids.length > 0 ? 'AND control_id = ANY($3)' : '';
   const params: any[] = ids.length > 0 ? [activeHost(), limit, ids] : [activeHost(), limit];
   const res = await dbQuery(
     `SELECT COALESCE(
-              NULLIF(TRIM(el->>'Role'), ''),
-              NULLIF(TRIM(t.control_name), ''),
-              NULLIF(TRIM(el->>'ControlName'), ''),
-              NULLIF(TRIM(el->>'ResultGroup'), ''),
+              NULLIF(TRIM(role_name), ''),
+              NULLIF(TRIM(control_name), ''),
               'Unknown'
             ) AS role,
             COUNT(*)::int AS incidents
-     FROM oracle_control_incidents t, jsonb_array_elements(t.raw_incidents) AS el
-     WHERE t.environment_host = $1 AND t.is_encrypted = false ${scope}
+     FROM oracle_incident_rows
+     WHERE environment_host = $1 ${scope}
      GROUP BY 1
      ORDER BY 2 DESC, 1 ASC
      LIMIT $2`,

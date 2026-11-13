@@ -32,6 +32,15 @@ export interface RawUserRecord {
 }
 
 export class UserRoleRawDbService {
+  private metadataColumnsEnsured = false;
+
+  private async ensureMetadataColumns(): Promise<void> {
+    if (this.metadataColumnsEnsured) return;
+    await query(`ALTER TABLE oracle_raw_users ADD COLUMN IF NOT EXISTS assigned_roles_count INT DEFAULT 0`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_users ADD COLUMN IF NOT EXISTS role_names_text TEXT DEFAULT ''`, []).catch(() => {});
+    this.metadataColumnsEnsured = true;
+  }
+
   /**
    * Normalizes the host string for environment isolation (e.g. eiiv-dev14.fa.us6.oraclecloud.com)
    */
@@ -320,6 +329,7 @@ export class UserRoleRawDbService {
    */
   public async saveRawUsersBatch(users: any[]): Promise<number> {
     if (!Array.isArray(users) || users.length === 0) return 0;
+    await this.ensureMetadataColumns();
     const host = this.getHost();
     const chunkSize = 100;
     let savedCount = 0;
@@ -352,14 +362,18 @@ export class UserRoleRawDbService {
         const isActive = typeof normalizedUser.active === 'boolean' ? normalizedUser.active : true;
         const userCategory = normalizedUser.userCategory || null;
 
-        // Encrypted sync writes are awaited sequentially below (forEach body stays sync).
+        const roles = Array.isArray(normalizedUser.assignedRoles) ? normalizedUser.assignedRoles : [];
+        const assignedRolesCount = roles.length;
+        const roleNamesText = roles.map((r: any) => r.roleName || r.roleCode || '').join('|');
+        const businessUnit = normalizedUser.businessUnit || null;
+
         pending.push(async () => {
           const write = await encryptRawField('oracle_raw_users', { username }, normalizedUser, host);
           const baseIndex = values.length + 1;
           valueClauses.push(
-            `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, NOW(), NOW())`
+            `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, $${baseIndex + 11}, $${baseIndex + 12}, $${baseIndex + 13}, NOW(), NOW())`
           );
-          values.push(host, username, displayName, email, isActive, userCategory, write.rawValue, ...trackingColumns(write));
+          values.push(host, username, displayName, email, isActive, userCategory, write.rawValue, ...trackingColumns(write), assignedRolesCount, roleNamesText, businessUnit);
         });
       });
 
@@ -380,6 +394,9 @@ export class UserRoleRawDbService {
           encryption_format_version,
           encryption_key_id,
           encrypted_at,
+          assigned_roles_count,
+          role_names_text,
+          business_unit,
           last_synced_at,
           updated_at
         ) VALUES ${valueClauses.join(', ')}
@@ -393,6 +410,9 @@ export class UserRoleRawDbService {
           encryption_format_version = EXCLUDED.encryption_format_version,
           encryption_key_id = EXCLUDED.encryption_key_id,
           encrypted_at = EXCLUDED.encrypted_at,
+          assigned_roles_count = EXCLUDED.assigned_roles_count,
+          role_names_text = EXCLUDED.role_names_text,
+          business_unit = EXCLUDED.business_unit,
           last_synced_at = NOW(),
           updated_at = NOW();
       `;
@@ -425,45 +445,31 @@ export class UserRoleRawDbService {
       conditions.push(`(username ILIKE $${params.length} OR display_name ILIKE $${params.length} OR email ILIKE $${params.length})`);
     }
 
-    // VYR-035: JSONB operators break on encrypted payloads. Guard with is_encrypted = false.
-    let needsJsonbGuard = false;
-
+    // VYR-036: Use indexed metadata columns instead of JSONB operators.
     if (options.businessUnit) {
       const buClean = options.businessUnit.trim();
       params.push(`%${buClean}%`);
-      conditions.push(`raw_user->>'businessUnit' ILIKE $${params.length}`);
-      needsJsonbGuard = true;
+      conditions.push(`business_unit ILIKE $${params.length}`);
     }
 
     const ft = (options.filterType || '').toUpperCase();
     if (ft === 'MULTIPLE_ROLES' || ft === 'MULTIPLE_ROLE_USERS') {
-      conditions.push(`jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) > 1`);
-      needsJsonbGuard = true;
+      conditions.push(`assigned_roles_count > 1`);
     } else if (ft === 'NO_ROLES' || ft === 'USERS_WITHOUT_ROLES' || ft === 'WITHOUT_ROLES') {
-      conditions.push(`jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 0`);
-      needsJsonbGuard = true;
+      conditions.push(`assigned_roles_count = 0`);
     } else if (ft === 'SINGLE_ROLE' || ft === 'SINGLE_ROLE_USERS') {
-      conditions.push(`jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 1`);
-      needsJsonbGuard = true;
+      conditions.push(`assigned_roles_count = 1`);
     } else if (ft === 'ADMIN_ROLES' || ft === 'SECURITY_ADMINS' || ft === 'SECURITY_ADMINISTRATORS') {
-      conditions.push(`(raw_user->>'assignedRoles' ILIKE '%security administrator%' OR raw_user->>'assignedRoles' ILIKE '%it security manager%' OR raw_user->>'assignedRoles' ILIKE '%ora_it_security_manager%' OR raw_user->>'assignedRoles' ILIKE '%ora_security_administrator%')`);
-      needsJsonbGuard = true;
+      conditions.push(`(role_names_text ILIKE '%security administrator%' OR role_names_text ILIKE '%it security manager%' OR role_names_text ILIKE '%ora_it_security_manager%' OR role_names_text ILIKE '%ora_security_administrator%')`);
     } else if (ft === 'HIGH_RISK' || ft === 'HIGH_RISK_USERS') {
-      conditions.push(`(raw_user->>'assignedRoles' ILIKE '%security administrator%' OR raw_user->>'assignedRoles' ILIKE '%it security manager%' OR raw_user->>'assignedRoles' ILIKE '%ap manager%')`);
-      needsJsonbGuard = true;
+      conditions.push(`(role_names_text ILIKE '%security administrator%' OR role_names_text ILIKE '%it security manager%' OR role_names_text ILIKE '%ap manager%')`);
     } else if (ft === 'PAYROLL_ACCESS') {
-      conditions.push(`raw_user->>'assignedRoles' ILIKE '%payroll%'`);
-      needsJsonbGuard = true;
+      conditions.push(`role_names_text ILIKE '%payroll%'`);
     }
 
     if (options.roleCategory && options.roleCategory.toUpperCase() !== 'ALL') {
-      params.push(`%"category": "${options.roleCategory}"%`);
-      conditions.push(`raw_user->>'assignedRoles' ILIKE $${params.length}`);
-      needsJsonbGuard = true;
-    }
-
-    if (needsJsonbGuard) {
-      conditions.push(`is_encrypted = false`);
+      params.push(`%${options.roleCategory}%`);
+      conditions.push(`role_names_text ILIKE $${params.length}`);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -532,7 +538,7 @@ export class UserRoleRawDbService {
 
     let orderBy = 'username ASC';
     if (ft.includes('MULTIPLE')) {
-      orderBy = `jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) DESC, username ASC`;
+      orderBy = `assigned_roles_count DESC, username ASC`;
     }
 
     let querySql = `SELECT raw_user, is_encrypted, username FROM oracle_raw_users WHERE ${whereClause} ORDER BY ${orderBy}`;
@@ -651,8 +657,7 @@ export class UserRoleRawDbService {
     const res = await query<{ raw_user: any; is_encrypted: boolean; username: string }>(
       `SELECT raw_user, is_encrypted, username FROM oracle_raw_users
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
-         AND is_encrypted = false
-         AND raw_user->>'assignedRoles' ILIKE $2
+         AND role_names_text ILIKE $2
        LIMIT $3`,
       [host, `%${q}%`, limit]
     );
@@ -688,9 +693,9 @@ export class UserRoleRawDbService {
       }>(`
         SELECT
           COUNT(1) AS total_users,
-          COUNT(1) FILTER (WHERE is_encrypted = false AND jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) > 1) AS multiple_role_users,
-          COUNT(1) FILTER (WHERE is_encrypted = false AND jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 0) AS users_without_roles,
-          COUNT(1) FILTER (WHERE is_encrypted = false AND jsonb_array_length(COALESCE(raw_user->'assignedRoles', '[]'::jsonb)) = 1) AS single_role_users
+          COUNT(1) FILTER (WHERE assigned_roles_count > 1) AS multiple_role_users,
+          COUNT(1) FILTER (WHERE assigned_roles_count = 0) AS users_without_roles,
+          COUNT(1) FILTER (WHERE assigned_roles_count = 1) AS single_role_users
         FROM oracle_raw_users
         WHERE ${hostFilter}
       `, [host]),
