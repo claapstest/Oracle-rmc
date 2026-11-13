@@ -1,6 +1,7 @@
 import { query } from '../db.js';
 import { config } from '../config.js';
 import { OracleFusionClient } from '../oracle/client.js';
+import { encryptRawField, decryptRawField, trackingColumns } from '../security/encryptedRecordWriter.js';
 
 export interface ProductSyncPolicyRecord {
   product_code: string;
@@ -200,7 +201,7 @@ export class ControlRawDbService {
     delete rawControl.ScheduledBy;
     delete rawControl.LatestJobId;
 
-    const rawJson = JSON.stringify(rawControl);
+    const write = await encryptRawField('oracle_raw_controls', { control_id: cleanId }, rawControl, host);
 
     const sql = `
       INSERT INTO oracle_raw_controls (
@@ -211,9 +212,13 @@ export class ControlRawDbService {
         status,
         oracle_last_run_date,
         oracle_last_update_date,
-        raw_payload
+        raw_payload,
+        is_encrypted,
+        encryption_format_version,
+        encryption_key_id,
+        encrypted_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12)
       ON CONFLICT (environment_host, control_id)
       DO UPDATE SET
         name = COALESCE(EXCLUDED.name, oracle_raw_controls.name),
@@ -222,10 +227,14 @@ export class ControlRawDbService {
         oracle_last_run_date = COALESCE(EXCLUDED.oracle_last_run_date, oracle_raw_controls.oracle_last_run_date),
         oracle_last_update_date = COALESCE(EXCLUDED.oracle_last_update_date, oracle_raw_controls.oracle_last_update_date),
         raw_payload = EXCLUDED.raw_payload,
+        is_encrypted = EXCLUDED.is_encrypted,
+        encryption_format_version = EXCLUDED.encryption_format_version,
+        encryption_key_id = EXCLUDED.encryption_key_id,
+        encrypted_at = EXCLUDED.encrypted_at,
         updated_at = NOW()
     `;
 
-    await query(sql, [host, cleanId, name, state, status, lastRunDate, lastUpdateDate, rawJson]);
+    await query(sql, [host, cleanId, name, state, status, lastRunDate, lastUpdateDate, write.rawValue, ...trackingColumns(write)]);
   }
 
   /**
@@ -365,7 +374,8 @@ export class ControlRawDbService {
     }
 
     const breakdown = this.calculateIncidentBreakdown(rawIncidents);
-    const rawJson = JSON.stringify(rawIncidents);
+
+    const write = await encryptRawField('oracle_control_incidents', { control_id: cleanId }, rawIncidents, host);
 
     const sql = `
       INSERT INTO oracle_control_incidents (
@@ -381,9 +391,13 @@ export class ControlRawDbService {
         accepted_incidents,
         remediate_incidents,
         resolved_incidents,
+        is_encrypted,
+        encryption_format_version,
+        encryption_key_id,
+        encrypted_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, NOW(), 'READY', $6::jsonb, $7, $8, $9, $10, NOW())
+      VALUES ($1, $2, $3, $4, $5, NOW(), 'READY', $6::jsonb, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
       ON CONFLICT (environment_host, control_id)
       DO UPDATE SET
         control_name = COALESCE(EXCLUDED.control_name, oracle_control_incidents.control_name),
@@ -396,6 +410,10 @@ export class ControlRawDbService {
         accepted_incidents = EXCLUDED.accepted_incidents,
         remediate_incidents = EXCLUDED.remediate_incidents,
         resolved_incidents = EXCLUDED.resolved_incidents,
+        is_encrypted = EXCLUDED.is_encrypted,
+        encryption_format_version = EXCLUDED.encryption_format_version,
+        encryption_key_id = EXCLUDED.encryption_key_id,
+        encrypted_at = EXCLUDED.encrypted_at,
         updated_at = NOW()
     `;
 
@@ -405,11 +423,12 @@ export class ControlRawDbService {
       controlName || null,
       total,
       maxDate,
-      rawJson,
+      write.rawValue,
       breakdown.assigned,
       breakdown.accepted,
       breakdown.remediate,
       breakdown.resolved,
+      ...trackingColumns(write)
     ]);
 
     // Update fast incident count cache immediately with exact 4-status distribution
@@ -483,7 +502,8 @@ export class ControlRawDbService {
           FROM oracle_control_incidents c
           LEFT JOIN oracle_incident_rows_sync s
             ON s.environment_host = c.environment_host AND s.control_id = c.control_id
-          WHERE jsonb_typeof(c.raw_incidents) = 'array'
+          WHERE (jsonb_typeof(c.raw_incidents) = 'array'
+             OR (jsonb_typeof(c.raw_incidents) = 'object' AND COALESCE(c.is_encrypted, false) = true))
             AND (s.control_id IS NULL OR (c.last_synced_at IS NOT NULL AND s.last_synced_at < c.last_synced_at))
           ORDER BY c.control_id
         `);
@@ -520,58 +540,107 @@ export class ControlRawDbService {
       [cleanHost, cleanId]
     );
 
-    const ins = await query<{ cnt: number }>(`
-      WITH inserted AS (
-        INSERT INTO oracle_incident_rows (
-          environment_host, control_id, control_name, ord,
-          result_id, status, state, lifecycle, priority,
-          global_user, role_name, access_entitlement, access_point_name, access_point_type,
-          grouping_value, group_name, data_source, incident_information,
-          created_by, investigator, last_updated_by, raw
-        )
-        SELECT
-          t.environment_host,
-          t.control_id,
-          t.control_name,
-          elem.ord::int,
-          COALESCE(elem.el->>'Id', elem.el->>'id', elem.el->>'IncidentId', elem.el->>'ResultId', ''),
-          COALESCE(elem.el->>'Status', elem.el->>'status', ''),
-          COALESCE(elem.el->>'State', elem.el->>'StateCode', elem.el->>'state', ''),
-          CASE
-            WHEN (UPPER(COALESCE(elem.el->>'Status','')) LIKE '%ACCEPT%' OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%ACCEPT%') THEN 'ACCEPTED'
-            WHEN (UPPER(COALESCE(elem.el->>'Status','')) LIKE '%REMEDIAT%' OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%REMEDIAT%') THEN 'REMEDIATE'
-            WHEN (
-              UPPER(COALESCE(elem.el->>'Status','')) LIKE '%RESOLV%'
-              OR UPPER(COALESCE(elem.el->>'Status','')) LIKE '%CLOSE%'
-              OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%RESOLV%'
-              OR UPPER(COALESCE(elem.el->>'State',elem.el->>'StateCode','')) LIKE '%CLOSE%'
-              OR NULLIF(TRIM(COALESCE(elem.el->>'ClosedDate',elem.el->>'closedDate','')),'') IS NOT NULL
-            ) THEN 'RESOLVED'
-            ELSE 'ASSIGNED'
-          END,
-          COALESCE(elem.el->>'Priority', elem.el->>'priority', ''),
-          COALESCE(elem.el->>'GlobalUserName', elem.el->>'globalUserName', ''),
-          COALESCE(elem.el->>'Role', elem.el->>'role', ''),
-          COALESCE(elem.el->>'AccessEntitlement', elem.el->>'accessEntitlement', elem.el->>'Entitlement', elem.el->>'entitlement', ''),
-          COALESCE(elem.el->>'AccessPointName', elem.el->>'accessPointName', elem.el->>'AccessPoint', elem.el->>'accessPoint', ''),
-          COALESCE(elem.el->>'AccessPointType', elem.el->>'accessPointType', ''),
-          COALESCE(elem.el->>'GroupingValue', elem.el->>'groupingValue', ''),
-          COALESCE(elem.el->>'ResultGroup', elem.el->>'resultGroup', elem.el->>'Group', elem.el->>'group', elem.el->>'GroupName', ''),
-          COALESCE(elem.el->>'DataSource', elem.el->>'TransactionDataSource', elem.el->>'dataSource', ''),
-          COALESCE(elem.el->>'IncidentInformation', elem.el->>'incidentInformation', elem.el->>'Description', elem.el->>'description', ''),
-          COALESCE(elem.el->>'CreatedBy', elem.el->>'createdBy', ''),
-          COALESCE(elem.el->>'ResultInvestigator', elem.el->>'Investigator', elem.el->>'resultInvestigator', elem.el->>'investigator', ''),
-          COALESCE(elem.el->>'LastUpdatedBy', elem.el->>'lastUpdatedBy', ''),
-          elem.el
-        FROM oracle_control_incidents t
-        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(t.raw_incidents, '[]'::jsonb)) WITH ORDINALITY AS elem(el, ord)
-        WHERE t.environment_host = $1 AND t.control_id = $2
-        RETURNING 1
-      )
-      SELECT COUNT(*)::int AS cnt FROM inserted
+    // VYR-032: raw_incidents may be an encrypted container, so the element
+    // mapping previously done in a SQL CTE now happens here in Node.js.
+    const srcRes = await query<{ environment_host: string; control_id: string; control_name: string | null; raw_incidents: any }>(`
+      SELECT environment_host, control_id, control_name, raw_incidents
+      FROM oracle_control_incidents
+      WHERE environment_host = $1 AND control_id = $2
+      LIMIT 1
     `, [cleanHost, cleanId]);
+    const src = srcRes.rows[0];
 
-    const rowCount = Number(ins.rows[0]?.cnt || 0);
+    let incidents: any[] = [];
+    if (src && src.raw_incidents !== null && src.raw_incidents !== undefined) {
+      const decoded = await decryptRawField<any[]>(
+        'oracle_control_incidents',
+        { control_id: src.control_id },
+        src.raw_incidents,
+        src.environment_host
+      );
+      incidents = Array.isArray(decoded) ? decoded : [];
+    }
+
+    const pick = (el: any, keys: string[]): string => {
+      for (const k of keys) {
+        const v = el?.[k];
+        if (v !== undefined && v !== null) return String(v);
+      }
+      return '';
+    };
+    const lifecycleOf = (el: any): string => {
+      const status = pick(el, ['Status', 'status']).toUpperCase();
+      const state = pick(el, ['State', 'StateCode', 'state']).toUpperCase();
+      const closedDate = pick(el, ['ClosedDate', 'closedDate']).trim();
+      if (status.includes('ACCEPT') || state.includes('ACCEPT')) return 'ACCEPTED';
+      if (status.includes('REMEDIAT') || state.includes('REMEDIAT')) return 'REMEDIATE';
+      if (status.includes('RESOLV') || status.includes('CLOSE') || state.includes('RESOLV') || state.includes('CLOSE') || closedDate !== '') return 'RESOLVED';
+      return 'ASSIGNED';
+    };
+
+    const values: any[] = [];
+    const clauses: string[] = [];
+    for (let i = 0; i < incidents.length; i++) {
+      const el = incidents[i];
+      if (!el || typeof el !== 'object') continue;
+      const ord = i + 1; // matches the SQL ordinality the CTE previously used
+      const write = await encryptRawField(
+        'oracle_incident_rows',
+        { control_id: cleanId, ord },
+        el,
+        src?.environment_host || cleanHost
+      );
+      const base = values.length + 1;
+      clauses.push(
+        `($${base}, $${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}, $${base + 18}, $${base + 19}, $${base + 20}, $${base + 21}::jsonb, $${base + 22}, $${base + 23}, $${base + 24}, $${base + 25})`
+      );
+      values.push(
+        src?.environment_host || cleanHost,
+        src?.control_id || cleanId,
+        src?.control_name || null,
+        ord,
+        pick(el, ['Id', 'id', 'IncidentId', 'ResultId']),
+        pick(el, ['Status', 'status']),
+        pick(el, ['State', 'StateCode', 'state']),
+        lifecycleOf(el),
+        pick(el, ['Priority', 'priority']),
+        pick(el, ['GlobalUserName', 'globalUserName']),
+        pick(el, ['Role', 'role']),
+        pick(el, ['AccessEntitlement', 'accessEntitlement', 'Entitlement', 'entitlement']),
+        pick(el, ['AccessPointName', 'accessPointName', 'AccessPoint', 'accessPoint']),
+        pick(el, ['AccessPointType', 'accessPointType']),
+        pick(el, ['GroupingValue', 'groupingValue']),
+        pick(el, ['ResultGroup', 'resultGroup', 'Group', 'group', 'GroupName']),
+        pick(el, ['DataSource', 'TransactionDataSource', 'dataSource']),
+        pick(el, ['IncidentInformation', 'incidentInformation', 'Description', 'description']),
+        pick(el, ['CreatedBy', 'createdBy']),
+        pick(el, ['ResultInvestigator', 'Investigator', 'resultInvestigator', 'investigator']),
+        pick(el, ['LastUpdatedBy', 'lastUpdatedBy']),
+        write.rawValue,
+        ...trackingColumns(write)
+      );
+    }
+
+    let rowCount = 0;
+    if (clauses.length > 0) {
+      const ins = await query<{ cnt: number }>(`
+        WITH inserted AS (
+          INSERT INTO oracle_incident_rows (
+            environment_host, control_id, control_name, ord,
+            result_id, status, state, lifecycle, priority,
+            global_user, role_name, access_entitlement, access_point_name, access_point_type,
+            grouping_value, group_name, data_source, incident_information,
+            created_by, investigator, last_updated_by, raw,
+            is_encrypted, encryption_format_version, encryption_key_id, encrypted_at
+          )
+          VALUES ${clauses.join(', ')}
+          ON CONFLICT (environment_host, control_id, ord) DO NOTHING
+          RETURNING 1
+        )
+        SELECT COUNT(*)::int AS cnt FROM inserted
+      `, values);
+      rowCount = Number(ins.rows[0]?.cnt || 0);
+    }
     await query(`
       INSERT INTO oracle_incident_rows_sync (environment_host, control_id, control_name, row_count, last_synced_at)
       SELECT environment_host, control_id, control_name, $3, COALESCE(last_synced_at, NOW())
