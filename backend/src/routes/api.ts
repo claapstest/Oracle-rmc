@@ -28,6 +28,7 @@ import { ingestionPipeline } from '../services/ingestionPipelineService.js';
 import { serviceIdentityRegistry } from '../oracle/serviceIdentity.js';
 import { bipClient } from '../oracle/bipClient.js';
 import { distributedLockService } from '../services/distributedLockService.js';
+import { syncCheckpointService } from '../services/syncCheckpointService.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
 import fs from 'fs';
@@ -3304,5 +3305,60 @@ apiRouter.post('/admin/locks/recover-stale', requireAdmin, async (_req: Request,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: `Failed to recover stale locks: ${err.message}` });
+  }
+});
+
+// =========================================================
+// Sync Checkpoints, Watermarks & Quarantine Endpoints (Admin Only, VYR-044)
+// =========================================================
+
+// GET /api/admin/sync/checkpoints - Retrieve all synchronization checkpoints and watermarks
+apiRouter.get('/admin/sync/checkpoints', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const checkpoints = await syncCheckpointService.listCheckpoints();
+    res.json({
+      success: true,
+      count: checkpoints.length,
+      checkpoints,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve sync checkpoints: ${err.message}` });
+  }
+});
+
+// GET /api/admin/sync/quarantine - Retrieve quarantined/dead-letter records for inspection
+apiRouter.get('/admin/sync/quarantine', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const domain = req.query.domain as string | undefined;
+    const status = req.query.status as string | undefined;
+    const records = await syncCheckpointService.getQuarantinedRecords({ domain, status });
+    const summary = await syncCheckpointService.getQuarantineSummary(domain);
+    res.json({
+      success: true,
+      count: records.length,
+      summary,
+      quarantine: records,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve quarantined records: ${err.message}` });
+  }
+});
+
+// POST /api/admin/sync/quarantine/:id/resolve - Mark a quarantined record as resolved/reprocessed
+apiRouter.post('/admin/sync/quarantine/:id/resolve', requireAdmin, async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const { id } = req.params;
+  try {
+    const resolved = await syncCheckpointService.resolveQuarantinedRecord(id);
+    if (!resolved) {
+      return res.status(404).json({ success: false, message: `Quarantined record "${id}" not found or already resolved.` });
+    }
+    logAudit(adminUser, 'QUARANTINE_RECORD_RESOLVED', `Resolved quarantined record: ${id}`);
+    res.json({
+      success: true,
+      message: `Quarantined record "${id}" marked as resolved.`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to resolve quarantined record: ${err.message}` });
   }
 });
