@@ -234,8 +234,6 @@ async function run() {
     ["validateBody('POST /auth/logout')", 'Logout route has body validation'],
     ["validateBody('POST /users')", 'Create user route has body validation'],
     ["validateBody('PUT /users/:id')", 'Update user route has body validation'],
-    ["validateBody('POST /chat')", 'Chat route has body validation'],
-    ["validateBody('POST /ai/universal-query')", 'AI query route has body validation'],
     ["validateBody('POST /reports')", 'Reports route has body validation'],
     ["validateBody('POST /admin/users/toggle-status')", 'Toggle status route has body validation'],
     ["validateBody('POST /admin/users/delete')", 'Delete user route has body validation'],
@@ -258,13 +256,22 @@ async function run() {
   // Size limits wired on high-risk routes
   const sizeWirings = [
     ["enforceBodySizeLimit('POST /auth/login')", 'Login has per-route size limit'],
-    ["enforceBodySizeLimit('POST /chat')", 'Chat has per-route size limit'],
     ["enforceBodySizeLimit('POST /command-center/request')", 'Command center has per-route size limit'],
     ["enforceBodySizeLimit('POST /reports')", 'Reports has per-route size limit'],
   ];
 
   for (const [code, label] of sizeWirings) {
     assert(apiCode.includes(code), label);
+  }
+
+  // Branch-aware: Chat/AI routes only exist in the AI branch
+  const hasAiRoutes = apiCode.includes("'/chat'");
+  if (hasAiRoutes) {
+    assert(apiCode.includes("validateBody('POST /chat')"), 'Chat route has body validation (AI branch)');
+    assert(apiCode.includes("validateBody('POST /ai/universal-query')"), 'AI query route has body validation (AI branch)');
+    assert(apiCode.includes("enforceBodySizeLimit('POST /chat')"), 'Chat has per-route size limit (AI branch)');
+  } else {
+    assert(true, 'Chat/AI routes not present in this branch (AI-free) — skipped');
   }
 
   // ====================================================================
