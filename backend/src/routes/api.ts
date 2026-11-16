@@ -26,6 +26,7 @@ import * as incidentAnalyticsService from '../services/incidentAnalyticsService.
 import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
+import { ingestionPipeline } from '../services/ingestionPipelineService.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { schemaDiscoveryService } from '../services/schemaDiscoveryService.js';
 import { metadataCatalogService } from '../services/metadataCatalogService.js';
@@ -657,6 +658,11 @@ apiRouter.post('/admin/sessions/cleanup', requireAdmin, async (req: Request, res
 apiRouter.get('/security/crypto-health', requireAdmin, (_req: Request, res: Response) => {
   const health = cryptoAuditService.getHealth();
   res.status(health.status === 'CRITICAL' ? 503 : 200).json({ success: true, ...health });
+});
+
+// GET /security/ingestion-status - Pipeline sync status (VYR-040)
+apiRouter.get('/security/ingestion-status', requireAdmin, (_req: Request, res: Response) => {
+  res.json({ success: true, ...ingestionPipeline.getStatus() });
 });
 
 // POST /auth/reset-password - Perform Password Reset
@@ -2438,7 +2444,7 @@ apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_R
 });
 
 apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
-  if (oracleSyncService.isCurrentlySyncing()) {
+  if (ingestionPipeline.isRunning()) {
     return res.status(409).json({
       success: false,
       code: 'SYNC_IN_PROGRESS',
@@ -2446,7 +2452,8 @@ apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REP
     });
   }
   try {
-    const result = await roleHierarchyService.syncFromBip();
+    const currentUser = res.locals.email || 'SYSTEM';
+    const result = await ingestionPipeline.runDomain('roleHierarchy', oracleService, currentUser);
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
@@ -2584,9 +2591,9 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
   }
 });
 
-// POST /api/audit/sync - On-demand synchronization of audit trail records from Oracle Fusion
+// POST /api/audit/sync - On-demand synchronization of audit trail records via pipeline (VYR-040)
 apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
-  if (oracleSyncService.isCurrentlySyncing()) {
+  if (ingestionPipeline.isRunning()) {
     return res.status(409).json({
       success: false,
       code: 'SYNC_IN_PROGRESS',
@@ -2605,26 +2612,24 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
     logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered audit trail sync for product: ${product || 'All Active Products'}, BO: ${businessObjectType || 'All'}`);
 
     if (!product || product === '__ALL__') {
-      // Run comprehensive multi-product incremental sync across all cataloged products
-      const syncResult = await auditRawDbService.runDailyIncrementalSync(
-        (oracleService as any).client,
-        auditProductCatalogService,
-        { fromDate, toDate }
+      const domainResult = await ingestionPipeline.runDomain(
+        'audit', oracleService, currentUser, { fromDate, toDate }
       );
 
       return res.json({
         ...oracleService.getModeInfo(),
-        success: true,
-        message: `Audit Trail upgrade sync complete across ${syncResult.targetsProcessed} product targets. Retrieved ${syncResult.totalSynced} records (${syncResult.totalSaved} newly persisted to database).`,
-        syncedCount: syncResult.totalSynced,
-        savedCount: syncResult.totalSaved,
-        totalRecords: syncResult.totalSynced,
-        lastSynced: syncResult.lastSyncedAt,
+        success: domainResult.success,
+        message: domainResult.success
+          ? 'Audit Trail sync completed via ingestion pipeline.'
+          : `Audit sync failed: ${domainResult.error}`,
+        detail: domainResult.detail,
+        durationMs: domainResult.durationMs,
         dataSource: 'Live Oracle Fusion API'
       });
     }
 
-    // Product-level sync
+    // Product-level sync — still calls auditRawDbService.syncProduct directly
+    // because the pipeline's audit runner is the multi-product incremental sync
     const syncResult = await auditRawDbService.syncProduct(
       product,
       (oracleService as any).client,
@@ -3375,11 +3380,11 @@ apiRouter.get('/admin/sync/status', requireAuth, (_req: Request, res: Response) 
   });
 });
 
-// POST /api/admin/sync/full - Run full baseline data sync (Admin Only)
+// POST /api/admin/sync/full - Run full baseline data sync via shared pipeline (Admin Only, VYR-040)
 apiRouter.post('/admin/sync/full', requireAdmin, async (_req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   logAudit(adminUser, 'ADMIN_MANUAL_SYNC', 'Initiated manual full Oracle baseline synchronization');
-  const result = await oracleSyncService.runFullSync(oracleService, adminUser);
+  const result = await ingestionPipeline.run({ triggeredBy: adminUser, oracleService });
   if (!result.success && result.message.includes('already in progress')) {
     return res.status(409).json(result);
   }
