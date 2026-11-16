@@ -26,6 +26,8 @@ import { runAsCryptoService, getCryptoAuditContext } from '../security/cryptoAud
 import { serviceIdentityRegistry, type ServiceExecutionContext } from '../oracle/serviceIdentity.js';
 import { bipClient } from '../oracle/bipClient.js';
 import { distributedLockService, type LockAcquisitionResult } from './distributedLockService.js';
+import { executeWithRetry, throttleBetweenPages, deduplicateBatch, computeRecordHash, type RetryConfig } from '../oracle/resilienceService.js';
+import { syncCheckpointService, type SyncCheckpoint, type QuarantinedRecord } from './syncCheckpointService.js';
 import {
   encryptionPreflight,
   safePipelineError,
@@ -69,6 +71,14 @@ export interface DomainResult {
   durationMs: number;
   detail?: Record<string, unknown>;
   error?: string;
+  /** VYR-044: Checkpoint committed for this domain */
+  checkpoint?: SyncCheckpoint | null;
+  /** VYR-044: Quarantined malformed records count */
+  quarantinedCount?: number;
+  /** VYR-044: Duplicates filtered for idempotency */
+  duplicatesFiltered?: number;
+  /** VYR-044: Retries attempted across operations */
+  retriesAttempted?: number;
 }
 
 export interface PipelineResult {
@@ -93,6 +103,13 @@ export interface PipelineResult {
   code?: string;
   /** VYR-043: Distributed lock outcome */
   distributedLock?: LockAcquisitionResult;
+  /** VYR-044: Resilience & recovery metrics */
+  resilience?: {
+    checkpointsCommitted: number;
+    quarantinedTotal: number;
+    duplicatesFilteredTotal: number;
+    retriesTotal: number;
+  };
 }
 
 export interface PipelineOptions {
@@ -113,13 +130,32 @@ export interface PipelineOptions {
 // ---------------------------------------------------------------------------
 
 async function syncControls(oracleService: any): Promise<Omit<DomainResult, 'durationMs'>> {
-  await controlRawDbService.runAutoSyncCycle(oracleService);
-  return { success: true, domain: 'controls', label: DOMAIN_LABELS.controls };
+  const { attempts } = await executeWithRetry(
+    () => controlRawDbService.runAutoSyncCycle(oracleService),
+    {},
+    'Controls Sync'
+  );
+  return {
+    success: true,
+    domain: 'controls',
+    label: DOMAIN_LABELS.controls,
+    retriesAttempted: Math.max(0, attempts - 1),
+  };
 }
 
 async function syncRoleHierarchy(): Promise<Omit<DomainResult, 'durationMs'>> {
-  const res = await roleHierarchyService.syncFromBip();
-  return { success: true, domain: 'roleHierarchy', label: DOMAIN_LABELS.roleHierarchy, detail: res as any };
+  const { result: res, attempts } = await executeWithRetry(
+    () => roleHierarchyService.syncFromBip(),
+    {},
+    'Role Hierarchy Sync'
+  );
+  return {
+    success: true,
+    domain: 'roleHierarchy',
+    label: DOMAIN_LABELS.roleHierarchy,
+    detail: res as any,
+    retriesAttempted: Math.max(0, attempts - 1),
+  };
 }
 
 async function syncAudit(
@@ -127,38 +163,98 @@ async function syncAudit(
   filter?: PipelineOptions['auditFilter']
 ): Promise<Omit<DomainResult, 'durationMs'>> {
   const client = oracleService?.client ?? oracleService;
-  const res = await auditRawDbService.runDailyIncrementalSync(client, auditProductCatalogService, filter);
-  return { success: true, domain: 'audit', label: DOMAIN_LABELS.audit, detail: res as any };
+  const { result: res, attempts } = await executeWithRetry(
+    () => auditRawDbService.runDailyIncrementalSync(client, auditProductCatalogService, filter),
+    {},
+    'Audit Sync'
+  );
+  return {
+    success: true,
+    domain: 'audit',
+    label: DOMAIN_LABELS.audit,
+    detail: res as any,
+    retriesAttempted: Math.max(0, attempts - 1),
+  };
 }
 
 async function syncUsersRoles(oracleService: any): Promise<Omit<DomainResult, 'durationMs'>> {
   const client = oracleService?.client ?? oracleService;
   let syncedRolesCount = 0;
   let syncedUsersCount = 0;
+  let duplicatesFiltered = 0;
+  let totalRetries = 0;
 
   if (client) {
     let roleStart = 1;
     let roleTotal: number | null = null;
+    let roleBatchNum = 0;
+
     while (roleTotal === null || roleStart <= roleTotal) {
-      const rolesRes = await client.getRoles({ count: 500, startIndex: roleStart });
-      const batch = rolesRes?.Resources || rolesRes?.items || [];
-      if (!Array.isArray(batch) || batch.length === 0) break;
+      roleBatchNum++;
+      const { result: rolesRes, attempts } = await executeWithRetry<any>(
+        () => client.getRoles({ count: 500, startIndex: roleStart }),
+        {},
+        'UsersRoles (getRoles)'
+      );
+      totalRetries += Math.max(0, attempts - 1);
+      const rawBatch = rolesRes?.Resources || rolesRes?.items || [];
+      if (!Array.isArray(rawBatch) || rawBatch.length === 0) break;
       if (typeof rolesRes?.totalResults === 'number') roleTotal = rolesRes.totalResults;
-      syncedRolesCount += await userRoleRawDbService.saveRawRolesBatch(batch);
-      roleStart += batch.length;
-      if (batch.length < 500) break;
+
+      // VYR-044 Idempotency: deduplicate records in batch
+      const { uniqueRecords: batch, duplicatesCount } = deduplicateBatch('roles', rawBatch);
+      duplicatesFiltered += duplicatesCount;
+
+      const persisted = await userRoleRawDbService.saveRawRolesBatch(batch);
+      syncedRolesCount += persisted;
+
+      // VYR-044 Checkpoint: advance only after successful persistence
+      await syncCheckpointService.commitCheckpoint({
+        domain: 'usersRoles',
+        batchNumber: roleBatchNum,
+        cursor: `roles:${roleStart}`,
+        persistedInBatch: persisted,
+      });
+
+      roleStart += rawBatch.length;
+      if (rawBatch.length < 500) break;
+      await throttleBetweenPages(50);
     }
 
     let userStart = 1;
     let userTotal: number | null = null;
+    let userBatchNum = 0;
+
     while (userTotal === null || userStart <= userTotal) {
-      const usersRes = await client.getUsers({ count: 500, startIndex: userStart });
-      const batch = usersRes?.Resources || usersRes?.items || [];
-      if (!Array.isArray(batch) || batch.length === 0) break;
+      userBatchNum++;
+      const { result: usersRes, attempts } = await executeWithRetry<any>(
+        () => client.getUsers({ count: 500, startIndex: userStart }),
+        {},
+        'UsersRoles (getUsers)'
+      );
+      totalRetries += Math.max(0, attempts - 1);
+      const rawBatch = usersRes?.Resources || usersRes?.items || [];
+      if (!Array.isArray(rawBatch) || rawBatch.length === 0) break;
       if (typeof usersRes?.totalResults === 'number') userTotal = usersRes.totalResults;
-      syncedUsersCount += await userRoleRawDbService.saveRawUsersBatch(batch);
-      userStart += batch.length;
-      if (batch.length < 500) break;
+
+      // VYR-044 Idempotency: deduplicate records in batch
+      const { uniqueRecords: batch, duplicatesCount } = deduplicateBatch('users', rawBatch);
+      duplicatesFiltered += duplicatesCount;
+
+      const persisted = await userRoleRawDbService.saveRawUsersBatch(batch);
+      syncedUsersCount += persisted;
+
+      // VYR-044 Checkpoint: advance only after successful persistence
+      await syncCheckpointService.commitCheckpoint({
+        domain: 'usersRoles',
+        batchNumber: roleBatchNum + userBatchNum,
+        cursor: `users:${userStart}`,
+        persistedInBatch: persisted,
+      });
+
+      userStart += rawBatch.length;
+      if (rawBatch.length < 500) break;
+      await throttleBetweenPages(50);
     }
   }
 
@@ -167,16 +263,23 @@ async function syncUsersRoles(oracleService: any): Promise<Omit<DomainResult, 'd
     domain: 'usersRoles',
     label: DOMAIN_LABELS.usersRoles,
     detail: { roles: syncedRolesCount, users: syncedUsersCount },
+    duplicatesFiltered,
+    retriesAttempted: totalRetries,
   };
 }
 
 async function syncUserAccess(): Promise<Omit<DomainResult, 'durationMs'>> {
-  const res = await userAccessReportService.getUserAccessReport({ syncFromOracle: true });
+  const { result: res, attempts } = await executeWithRetry(
+    () => userAccessReportService.getUserAccessReport({ syncFromOracle: true }),
+    {},
+    'User Access Sync'
+  );
   return {
     success: true,
     domain: 'userAccess',
     label: DOMAIN_LABELS.userAccess,
     detail: { success: res.success, rows: res.data?.length || 0 },
+    retriesAttempted: Math.max(0, attempts - 1),
   };
 }
 
@@ -317,6 +420,9 @@ export class IngestionPipelineService {
               `Step ${stepNum}/${domains.length}: Synchronizing ${DOMAIN_LABELS[domain]}...`
             );
 
+            // VYR-044: Initialize checkpoint tracking for domain
+            await syncCheckpointService.startCheckpoint(domain, tenantId);
+
             try {
               console.log(`[IngestionPipeline] Step ${stepNum}/${domains.length}: ${DOMAIN_LABELS[domain]}...`);
               const runner = DOMAIN_RUNNERS[domain];
@@ -328,18 +434,41 @@ export class IngestionPipelineService {
                 policy
               );
               const partial = await guarded();
-              results.push({ ...partial, durationMs: Date.now() - stepStart });
+
+              // VYR-044: Advance & complete checkpoint only after successful persistence
+              const committedCp = await syncCheckpointService.commitCheckpoint({
+                domain,
+                tenantId,
+                batchNumber: 1,
+                persistedInBatch: 0,
+                isComplete: true,
+              });
+              const qSummary = await syncCheckpointService.getQuarantineSummary(domain, tenantId);
+
+              results.push({
+                ...partial,
+                durationMs: Date.now() - stepStart,
+                checkpoint: committedCp,
+                quarantinedCount: qSummary.quarantined,
+              });
             } catch (err: any) {
               // VYR-041: sanitise error messages before logging to prevent
               // Oracle response data or key material from leaking into logs.
               const safeMsg = safePipelineError(err);
               console.warn(`[IngestionPipeline] ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
+
+              // VYR-044: Record failure in checkpoint preserving last safe watermark
+              const failedCp = await syncCheckpointService.failCheckpoint(domain, safeMsg, tenantId);
+              const qSummary = await syncCheckpointService.getQuarantineSummary(domain, tenantId);
+
               results.push({
                 success: false,
                 domain,
                 label: DOMAIN_LABELS[domain],
                 durationMs: Date.now() - stepStart,
                 error: safeMsg,
+                checkpoint: failedCp,
+                quarantinedCount: qSummary.quarantined,
               });
             }
           }
@@ -352,6 +481,11 @@ export class IngestionPipelineService {
       await distributedLockService.releaseLock(distLock);
 
       console.log(`[IngestionPipeline] ${taskName} completed (${allOk ? 'all succeeded' : 'some domains failed'}).`);
+
+      const checkpointsCommitted = results.filter((r) => r.checkpoint?.status === 'SUCCESS').length;
+      const quarantinedTotal = results.reduce((acc, r) => acc + (r.quarantinedCount || 0), 0);
+      const duplicatesFilteredTotal = results.reduce((acc, r) => acc + (r.duplicatesFiltered || 0), 0);
+      const retriesTotal = results.reduce((acc, r) => acc + (r.retriesAttempted || 0), 0);
 
       return {
         success: true,
@@ -367,6 +501,12 @@ export class IngestionPipelineService {
         domains: results,
         encryptionPreflight: preflight,
         encryptionPolicy: policy,
+        resilience: {
+          checkpointsCommitted,
+          quarantinedTotal,
+          duplicatesFilteredTotal,
+          retriesTotal,
+        },
       };
     } catch (err: any) {
       // VYR-041: sanitise fatal error logging
@@ -450,6 +590,9 @@ export class IngestionPipelineService {
             console.warn(`[IngestionPipeline] Credential refresh warning: ${credErr.message}`);
           }
 
+          // VYR-044: Initialize checkpoint for on-demand domain run
+          await syncCheckpointService.startCheckpoint(domain, '__GLOBAL__');
+
           try {
             console.log(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} triggered by: ${triggeredBy}`);
             const runner = DOMAIN_RUNNERS[domain];
@@ -460,17 +603,39 @@ export class IngestionPipelineService {
               getEncryptionPolicy()
             );
             const partial = await guarded();
-            return { ...partial, durationMs: Date.now() - stepStart };
+
+            // VYR-044: Advance and commit checkpoint on success
+            const committedCp = await syncCheckpointService.commitCheckpoint({
+              domain,
+              batchNumber: 1,
+              persistedInBatch: 0,
+              isComplete: true,
+            });
+            const qSummary = await syncCheckpointService.getQuarantineSummary(domain);
+
+            return {
+              ...partial,
+              durationMs: Date.now() - stepStart,
+              checkpoint: committedCp,
+              quarantinedCount: qSummary.quarantined,
+            };
           } catch (err: any) {
             // VYR-041: sanitise error messages
             const safeMsg = safePipelineError(err);
             console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
+
+            // VYR-044: Record failure preserving last safe watermark
+            const failedCp = await syncCheckpointService.failCheckpoint(domain, safeMsg);
+            const qSummary = await syncCheckpointService.getQuarantineSummary(domain);
+
             return {
               success: false,
               domain,
               label: DOMAIN_LABELS[domain],
               durationMs: Date.now() - stepStart,
               error: safeMsg,
+              checkpoint: failedCp,
+              quarantinedCount: qSummary.quarantined,
             };
           }
         });
