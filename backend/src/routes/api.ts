@@ -27,6 +27,7 @@ import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
 import { ingestionPipeline } from '../services/ingestionPipelineService.js';
+import { syncMonitorService } from '../services/syncMonitorService.js';
 import { serviceIdentityRegistry } from '../oracle/serviceIdentity.js';
 import { bipClient } from '../oracle/bipClient.js';
 import { distributedLockService } from '../services/distributedLockService.js';
@@ -667,6 +668,41 @@ apiRouter.get('/security/crypto-health', requireAdmin, (_req: Request, res: Resp
 // GET /security/ingestion-status - Pipeline sync status (VYR-040)
 apiRouter.get('/security/ingestion-status', requireAdmin, (_req: Request, res: Response) => {
   res.json({ success: true, ...ingestionPipeline.getStatus() });
+});
+
+// GET /security/sync-monitor - Sync operational health and active alerts (VYR-045)
+apiRouter.get('/security/sync-monitor', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const health = await syncMonitorService.getHealth();
+    const statusCode = health.status === 'CRITICAL' ? 503 : 200;
+    res.status(statusCode).json({ success: true, ...health });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Sync monitor health check failed: ${err.message}` });
+  }
+});
+
+// GET /security/sync-history - Paginated sync audit history (VYR-045)
+apiRouter.get('/security/sync-history', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 25, 100);
+    const outcome = req.query.outcome as string | undefined;
+    const tenantId = req.query.tenantId as string | undefined;
+    const history = await syncMonitorService.getSyncHistory({ limit, outcome, tenantId });
+    res.json({ success: true, count: history.length, history });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve sync history: ${err.message}` });
+  }
+});
+
+// GET /security/sync-alerts - Active and recent sync alerts (VYR-045)
+apiRouter.get('/security/sync-alerts', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const active = await syncMonitorService.getActiveAlerts();
+    const recent = await syncMonitorService.getRecentAlerts(20);
+    res.json({ success: true, activeAlerts: active, recentAlerts: recent });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve sync alerts: ${err.message}` });
+  }
 });
 
 // POST /auth/reset-password - Perform Password Reset
