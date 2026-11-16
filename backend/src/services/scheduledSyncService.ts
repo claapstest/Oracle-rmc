@@ -41,6 +41,8 @@ export class ScheduledSyncService {
     this.timer = setTimeout(async () => {
       console.log(`[ScheduledSyncService] Off-peak window reached (${targetHour}:00). Initiating background synchronization...`);
       try {
+        // VYR-042: Non-interactive execution under dedicated 'veyra-sync-worker' service identity.
+        // Never passes or requires a human user's browser JWT. Credentials retrieved dynamically at runtime.
         await oracleSyncService.runFullSync(oracleService, 'SCHEDULED_OFFPEAK_CRON');
       } catch (err: any) {
         console.error('[ScheduledSyncService] Nightly synchronization encountered error:', err.message);

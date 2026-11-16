@@ -688,6 +688,16 @@ class OracleService {
     this.triggerBackgroundCounting(false);
   }
 
+  /**
+   * Recreates the Oracle client using runtime credentials from OracleCredentialProvider (VYR-042).
+   */
+  async recreateClientFromProvider(): Promise<void> {
+    await this.client.recreateClientFromProvider();
+    this.riskService = new RiskService(this.client);
+    this.controlCatalogService.recreateClient(this.client);
+    this.controlSummaryService.recreateClient(this.client);
+  }
+
   isDemoMode(): boolean {
     // Live-instance-only: never serve sample/fallback data.
     return false;
