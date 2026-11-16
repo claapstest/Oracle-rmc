@@ -32,6 +32,14 @@ import { distributedLockService } from '../services/distributedLockService.js';
 import { syncCheckpointService } from '../services/syncCheckpointService.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
+import {
+  rateLimitService,
+  authRateLimiter,
+  sensitiveAdminRateLimiter,
+  apiRateLimiter,
+  tenantRateLimiter,
+  getClientIp,
+} from '../security/rateLimitService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -41,6 +49,10 @@ const __dirname = path.dirname(__filename);
 const AUDIT_LOG_PATH = path.join(__dirname, '../../oracle_audit.log');
 
 export const apiRouter = Router();
+
+// VYR-048: Apply multi-tenant and general API rate limiting across API routes
+apiRouter.use(tenantRateLimiter);
+apiRouter.use(apiRateLimiter);
 
 // Write Audit Logs securely without exposing secrets
 function logAudit(username: string, action: string, details: string) {
@@ -373,7 +385,7 @@ apiRouter.get('/auth/entra/start', (_req: Request, res: Response) => {
 });
 
 // POST /auth/entra/callback - Validate state, exchange code, and issue a VEYRA session
-apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
+apiRouter.post('/auth/entra/callback', authRateLimiter, async (req: Request, res: Response) => {
   if (!isEntraEnabled()) {
     return res.status(404).json({
       success: false,
@@ -460,8 +472,8 @@ apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
   }
 });
 
-// POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled)
-apiRouter.post('/auth/login', async (req: Request, res: Response) => {
+// POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled, VYR-048 Rate Limited & Lockout)
+apiRouter.post('/auth/login', authRateLimiter, async (req: Request, res: Response) => {
   // Provider choice is strictly bound to server configuration, never user-controlled request parameters
   const provider = getAuthenticationProvider();
 
@@ -488,8 +500,26 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+    // VYR-048: Safe client IP extraction respecting trusted proxy settings (Step 3)
+    const rawIp = getClientIp(req);
     const userAgent = req.get('user-agent') || 'Unknown Client';
+
+    // VYR-048: Check account lockout status (GAP-002 / ASVS V2.2)
+    if (rawEmail) {
+      const lockout = rateLimitService.getLockoutManager().isLocked(rawEmail);
+      if (lockout.isLocked) {
+        res.setHeader('Retry-After', String(lockout.remainingSeconds));
+        logAudit(rawEmail, 'LOGIN_BLOCKED_LOCKOUT',
+          `Account is locked out (${lockout.remainingSeconds}s remaining). Rejected attempt from ${rawIp}`
+        );
+        return res.status(429).json({
+          success: false,
+          code: 'ACCOUNT_LOCKED',
+          message: `Account is temporarily locked due to multiple consecutive failed login attempts. Please try again in ${lockout.remainingSeconds} seconds or contact an administrator.`,
+          retryAfterSeconds: lockout.remainingSeconds,
+        });
+      }
+    }
 
     // Controller consumes the AuthenticationProvider abstraction via authService
     const result = await authService.authenticateWithProvider(provider, {
@@ -512,8 +542,24 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
         logAudit(rawEmail, 'LOGIN_REJECTED', `Account is not active: ${result.status} (403 Forbidden)`);
         return res.status(403).json({ success: false, code: 'USER_DISABLED', message: result.message });
       }
+
+      // VYR-048: Record failed login attempt for account lockout tracking (GAP-002)
+      if (rawEmail) {
+        const lockout = rateLimitService.getLockoutManager().recordFailedAttempt(rawEmail, rawIp);
+        if (lockout.isLocked) {
+          logAudit(rawEmail, 'ACCOUNT_LOCKED',
+            `Account locked out for ${lockout.remainingSeconds}s after ${lockout.failedAttempts} consecutive failed attempts.`
+          );
+        }
+      }
+
       logAudit(rawEmail, 'LOGIN_REJECTED', 'Invalid credentials (401 Unauthorized)');
       return res.status(401).json({ success: false, message: result.message });
+    }
+
+    // VYR-048: Reset failed attempt counters on successful login
+    if (rawEmail) {
+      rateLimitService.getLockoutManager().recordSuccessfulLogin(rawEmail);
     }
 
     logAudit(result.normalizedEmail || rawEmail, 'USER_LOGIN', `Successful login (${result.role || 'User'}, isAdmin: ${result.isAdmin}) [Provider: ${provider.metadata.type}]`);
@@ -558,8 +604,8 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
   });
 });
 
-// POST /auth/refresh - Refresh Active Session Inactivity Timer & Issue Fresh JWT (AC3, AC4, VYR-024)
-apiRouter.post('/auth/refresh', requireAuth, async (req: Request, res: Response) => {
+// POST /auth/refresh - Refresh Active Session Inactivity Timer & Issue Fresh JWT (AC3, AC4, VYR-024, VYR-048 Rate Limited)
+apiRouter.post('/auth/refresh', authRateLimiter, requireAuth, async (req: Request, res: Response) => {
   const token = res.locals.token;
   const result = await authService.refreshSessionActivity(token);
 
@@ -673,8 +719,8 @@ apiRouter.get('/security/sync-alerts', requireAdmin, async (_req: Request, res: 
   }
 });
 
-// POST /auth/reset-password - Perform Password Reset
-apiRouter.post('/auth/reset-password', async (req: Request, res: Response) => {
+// POST /auth/reset-password - Perform Password Reset (VYR-048 Rate Limited)
+apiRouter.post('/auth/reset-password', authRateLimiter, async (req: Request, res: Response) => {
   const { email: rawEmail, resetCode, newPassword } = req.body;
   if (!rawEmail || !resetCode || !newPassword) {
     return res.status(400).json({ success: false, message: 'Please fill in all reset fields.' });
@@ -3260,8 +3306,8 @@ apiRouter.get('/admin/sync/status', requireAuth, (_req: Request, res: Response) 
   });
 });
 
-// POST /api/admin/sync/full - Run full baseline data sync via shared pipeline (Admin Only, VYR-040)
-apiRouter.post('/admin/sync/full', requireAdmin, async (_req: Request, res: Response) => {
+// POST /api/admin/sync/full - Run full baseline data sync via shared pipeline (Admin Only, VYR-040, VYR-048 Rate Limited)
+apiRouter.post('/admin/sync/full', requireAdmin, sensitiveAdminRateLimiter, async (_req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   logAudit(adminUser, 'ADMIN_MANUAL_SYNC', 'Initiated manual full Oracle baseline synchronization');
   const result = await ingestionPipeline.run({ triggeredBy: adminUser, oracleService });
@@ -3283,8 +3329,8 @@ apiRouter.get('/admin/credentials/health', requireAdmin, (_req: Request, res: Re
   });
 });
 
-// POST /api/admin/credentials/rotate - Trigger rotation of Oracle credentials from secret store
-apiRouter.post('/admin/credentials/rotate', requireAdmin, async (_req: Request, res: Response) => {
+// POST /api/admin/credentials/rotate - Trigger rotation of Oracle credentials from secret store (VYR-048 Rate Limited)
+apiRouter.post('/admin/credentials/rotate', requireAdmin, sensitiveAdminRateLimiter, async (_req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   try {
     await serviceIdentityRegistry.rotateCredentials();
@@ -3328,8 +3374,8 @@ apiRouter.get('/admin/locks', requireAdmin, async (_req: Request, res: Response)
   }
 });
 
-// POST /api/admin/locks/recover-stale - Trigger cleanup of expired / stale distributed locks
-apiRouter.post('/admin/locks/recover-stale', requireAdmin, async (_req: Request, res: Response) => {
+// POST /api/admin/locks/recover-stale - Trigger cleanup of expired / stale distributed locks (VYR-048 Rate Limited)
+apiRouter.post('/admin/locks/recover-stale', requireAdmin, sensitiveAdminRateLimiter, async (_req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   try {
     const cleaned = await distributedLockService.recoverStaleLocks();
@@ -3397,4 +3443,42 @@ apiRouter.post('/admin/sync/quarantine/:id/resolve', requireAdmin, async (req: R
   } catch (err: any) {
     res.status(500).json({ success: false, message: `Failed to resolve quarantined record: ${err.message}` });
   }
+});
+
+// =========================================================
+// Rate Limiting, Brute-Force & Abuse Management Endpoints (Admin Only, VYR-048)
+// =========================================================
+
+// GET /api/admin/security/rate-limits - Inspect rate limiting status, tiers, and locked accounts
+apiRouter.get('/admin/security/rate-limits', requireAdmin, (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    ...rateLimitService.getStatus(),
+  });
+});
+
+// POST /api/admin/users/:email/unlock - Administratively unlock an account locked by brute-force protection
+apiRouter.post('/admin/users/:email/unlock', requireAdmin, (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const { email } = req.params;
+  const unlocked = rateLimitService.getLockoutManager().unlockAccount(email, adminUser);
+  logAudit(adminUser, 'USER_ACCOUNT_UNLOCKED', `Admin unlocked account: ${email} (result: ${unlocked})`);
+  res.json({
+    success: true,
+    message: unlocked
+      ? `Account "${email}" has been successfully unlocked.`
+      : `Account "${email}" was not in a locked state (counter reset).`,
+    unlocked,
+  });
+});
+
+// POST /api/admin/security/rate-limits/reset - Reset rate limit sliding windows and lockout stores
+apiRouter.post('/admin/security/rate-limits/reset', requireAdmin, (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  rateLimitService.resetAll();
+  logAudit(adminUser, 'RATE_LIMITS_RESET', 'Admin manually reset all rate limit sliding windows and lockout records');
+  res.json({
+    success: true,
+    message: 'All rate limit tracking windows and account lockouts have been reset.',
+  });
 });

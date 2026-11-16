@@ -22,6 +22,16 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// VYR-048: Configure trusted proxy support carefully to prevent IP spoofing
+const trustProxySetting = (process.env.TRUST_PROXY || '').trim().toLowerCase();
+if (trustProxySetting === 'true' || trustProxySetting === '1') {
+  app.set('trust proxy', true);
+} else if (trustProxySetting && trustProxySetting !== 'false' && trustProxySetting !== '0') {
+  app.set('trust proxy', trustProxySetting);
+} else {
+  app.set('trust proxy', false);
+}
+
 // Middlewares
 app.use(cors({
   origin: true,
