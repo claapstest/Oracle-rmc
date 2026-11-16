@@ -36,6 +36,7 @@ import {
   type PreflightResult,
   type EncryptionPolicy,
 } from './ingestionEncryptionGuard.js';
+import { syncMonitorService } from './syncMonitorService.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -307,6 +308,20 @@ export class IngestionPipelineService {
    * operations during sync are attributed to the pipeline trigger.
    */
   public async run(options: PipelineOptions): Promise<PipelineResult> {
+    const result = await this._runInternal(options);
+
+    // VYR-045: Record operational audit event for every pipeline execution
+    try {
+      const auditEvent = syncMonitorService.buildEventFromPipelineResult(result);
+      await syncMonitorService.recordSyncEvent(auditEvent);
+    } catch (monitorErr: any) {
+      console.warn(`[IngestionPipeline] Monitor recording failed (non-fatal): ${monitorErr.message}`);
+    }
+
+    return result;
+  }
+
+  private async _runInternal(options: PipelineOptions): Promise<PipelineResult> {
     const { triggeredBy, oracleService, auditFilter } = options;
     const domains = options.domains ?? [...ALL_SYNC_DOMAINS];
     const taskName = domains.length === ALL_SYNC_DOMAINS.length
@@ -543,6 +558,7 @@ export class IngestionPipelineService {
     triggeredBy: string,
     auditFilter?: PipelineOptions['auditFilter']
   ): Promise<DomainResult> {
+    const domainStart = new Date();
     const stepStart = Date.now();
     const taskName = `On-demand ${DOMAIN_LABELS[domain]}`;
 
@@ -557,15 +573,25 @@ export class IngestionPipelineService {
       console.warn(
         `[IngestionPipeline] Domain "${domain}" rejected: distributed lock active (holder: ${distLock.existingHolder?.holderId || 'another replica'}).`
       );
-      return {
+      const lockedResult: DomainResult = {
         success: false,
         domain,
         label: DOMAIN_LABELS[domain],
         durationMs: Date.now() - stepStart,
         error: `Synchronization for ${DOMAIN_LABELS[domain]} is already in progress on another worker replica.`,
       };
+
+      // VYR-045: Record lock contention event
+      try {
+        const wrapResult = { success: false, code: 'SYNC_IN_PROGRESS', triggeredBy, startedAt: domainStart.toISOString(), completedAt: new Date().toISOString(), durationMs: lockedResult.durationMs, domains: [lockedResult] };
+        const ev = syncMonitorService.buildEventFromPipelineResult(wrapResult);
+        await syncMonitorService.recordSyncEvent(ev);
+      } catch {}
+
+      return lockedResult;
     }
 
+    let domainResult: DomainResult;
     try {
       const principalName = triggeredBy === 'SCHEDULED_OFFPEAK_CRON'
         ? 'veyra-sync-worker'
@@ -576,7 +602,7 @@ export class IngestionPipelineService {
         : 'veyra-pipeline';
       const servicePurpose = `ingestion-pipeline:${domain}:${triggeredBy}`;
 
-      return await runAsCryptoService('ingestion-pipeline', servicePurpose, async () => {
+      domainResult = await runAsCryptoService('ingestion-pipeline', servicePurpose, async () => {
         return serviceIdentityRegistry.runAsService(principalName, servicePurpose, triggeredBy, async () => {
           // VYR-042: refresh credentials before on-demand run
           try {
@@ -618,7 +644,7 @@ export class IngestionPipelineService {
               durationMs: Date.now() - stepStart,
               checkpoint: committedCp,
               quarantinedCount: qSummary.quarantined,
-            };
+            } as DomainResult;
           } catch (err: any) {
             // VYR-041: sanitise error messages
             const safeMsg = safePipelineError(err);
@@ -636,13 +662,31 @@ export class IngestionPipelineService {
               error: safeMsg,
               checkpoint: failedCp,
               quarantinedCount: qSummary.quarantined,
-            };
+            } as DomainResult;
           }
         });
       });
     } finally {
       await distributedLockService.releaseLock(distLock);
     }
+
+    // VYR-045: Record domain-level operational audit event
+    try {
+      const wrapResult = {
+        success: domainResult.success,
+        triggeredBy,
+        startedAt: domainStart.toISOString(),
+        completedAt: new Date().toISOString(),
+        durationMs: domainResult.durationMs,
+        domains: [domainResult],
+      };
+      const ev = syncMonitorService.buildEventFromPipelineResult(wrapResult);
+      await syncMonitorService.recordSyncEvent(ev);
+    } catch (monitorErr: any) {
+      console.warn(`[IngestionPipeline] Monitor recording failed (non-fatal): ${monitorErr.message}`);
+    }
+
+    return domainResult;
   }
 
   /** Exposes sync status from the underlying mutex. */
