@@ -23,6 +23,8 @@ import { auditProductCatalogService } from './auditProductCatalogService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { userAccessReportService } from './userAccessReportService.js';
 import { runAsCryptoService, getCryptoAuditContext } from '../security/cryptoAuditContext.js';
+import { serviceIdentityRegistry, type ServiceExecutionContext } from '../oracle/serviceIdentity.js';
+import { bipClient } from '../oracle/bipClient.js';
 import {
   encryptionPreflight,
   safePipelineError,
@@ -72,6 +74,12 @@ export interface PipelineResult {
   success: boolean;
   message: string;
   triggeredBy: string;
+  /** VYR-042: Workload/service identity under which this sync executed. */
+  serviceIdentity?: {
+    principalName: string;
+    identityRef: string;
+    isHumanTriggered: boolean;
+  };
   startedAt: string;
   completedAt: string;
   durationMs: number;
@@ -238,45 +246,69 @@ export class IngestionPipelineService {
     // ?????? end VYR-041 preflight ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
     const results: DomainResult[] = [];
+    let capturedIdentity: { principalName: string; identityRef: string; isHumanTriggered: boolean } | undefined;
 
     try {
+      const principalName = triggeredBy === 'SCHEDULED_OFFPEAK_CRON'
+        ? 'veyra-sync-worker'
+        : 'veyra-pipeline';
       const servicePurpose = `ingestion-pipeline:${triggeredBy}`;
 
       await runAsCryptoService('ingestion-pipeline', servicePurpose, async () => {
-        for (const domain of domains) {
-          const stepStart = Date.now();
-          const stepNum = domains.indexOf(domain) + 1;
+        await serviceIdentityRegistry.runAsService(principalName, servicePurpose, triggeredBy, async (svcCtx) => {
+          capturedIdentity = {
+            principalName: svcCtx.identity.principalName,
+            identityRef: svcCtx.identity.identityRef,
+            isHumanTriggered: svcCtx.isHumanTriggered,
+          };
 
-          oracleSyncService.setCurrentTask(
-            `Step ${stepNum}/${domains.length}: Synchronizing ${DOMAIN_LABELS[domain]}...`
-          );
-
+          // VYR-042: refresh Oracle credentials from provider at runtime
           try {
-            console.log(`[IngestionPipeline] Step ${stepNum}/${domains.length}: ${DOMAIN_LABELS[domain]}...`);
-            const runner = DOMAIN_RUNNERS[domain];
-            // VYR-041: wrap the domain step so encryption failures are
-            // quarantined (FAIL_DOMAIN) or escalated (FAIL_PIPELINE).
-            const guarded = withEncryptionGuard(
-              DOMAIN_LABELS[domain],
-              () => runner(oracleService, auditFilter),
-              policy
-            );
-            const partial = await guarded();
-            results.push({ ...partial, durationMs: Date.now() - stepStart });
-          } catch (err: any) {
-            // VYR-041: sanitise error messages before logging to prevent
-            // Oracle response data or key material from leaking into logs.
-            const safeMsg = safePipelineError(err);
-            console.warn(`[IngestionPipeline] ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
-            results.push({
-              success: false,
-              domain,
-              label: DOMAIN_LABELS[domain],
-              durationMs: Date.now() - stepStart,
-              error: safeMsg,
-            });
+            if (typeof oracleService?.recreateClientFromProvider === 'function') {
+              await oracleService.recreateClientFromProvider();
+            }
+            if (typeof bipClient?.refreshCredentialsFromProvider === 'function') {
+              await bipClient.refreshCredentialsFromProvider();
+            }
+          } catch (credErr: any) {
+            console.warn(`[IngestionPipeline] Credential refresh warning: ${credErr.message}`);
           }
-        }
+
+          for (const domain of domains) {
+            const stepStart = Date.now();
+            const stepNum = domains.indexOf(domain) + 1;
+
+            oracleSyncService.setCurrentTask(
+              `Step ${stepNum}/${domains.length}: Synchronizing ${DOMAIN_LABELS[domain]}...`
+            );
+
+            try {
+              console.log(`[IngestionPipeline] Step ${stepNum}/${domains.length}: ${DOMAIN_LABELS[domain]}...`);
+              const runner = DOMAIN_RUNNERS[domain];
+              // VYR-041: wrap the domain step so encryption failures are
+              // quarantined (FAIL_DOMAIN) or escalated (FAIL_PIPELINE).
+              const guarded = withEncryptionGuard(
+                DOMAIN_LABELS[domain],
+                () => runner(oracleService, auditFilter),
+                policy
+              );
+              const partial = await guarded();
+              results.push({ ...partial, durationMs: Date.now() - stepStart });
+            } catch (err: any) {
+              // VYR-041: sanitise error messages before logging to prevent
+              // Oracle response data or key material from leaking into logs.
+              const safeMsg = safePipelineError(err);
+              console.warn(`[IngestionPipeline] ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
+              results.push({
+                success: false,
+                domain,
+                label: DOMAIN_LABELS[domain],
+                durationMs: Date.now() - stepStart,
+                error: safeMsg,
+              });
+            }
+          }
+        });
       });
 
       const completedAt = new Date();
@@ -291,6 +323,7 @@ export class IngestionPipelineService {
           ? 'Oracle data synchronization completed successfully.'
           : 'Oracle synchronization completed with partial failures (see domains).',
         triggeredBy,
+        serviceIdentity: capturedIdentity,
         startedAt: startedAt.toISOString(),
         completedAt: completedAt.toISOString(),
         durationMs: completedAt.getTime() - startedAt.getTime(),
@@ -308,6 +341,7 @@ export class IngestionPipelineService {
         success: false,
         message: `Synchronization failed: ${safeMsg}`,
         triggeredBy,
+        serviceIdentity: capturedIdentity,
         startedAt: startedAt.toISOString(),
         completedAt: new Date().toISOString(),
         durationMs: Date.now() - startedAt.getTime(),
@@ -331,32 +365,53 @@ export class IngestionPipelineService {
     auditFilter?: PipelineOptions['auditFilter']
   ): Promise<DomainResult> {
     const stepStart = Date.now();
+    const principalName = triggeredBy === 'SCHEDULED_OFFPEAK_CRON'
+      ? 'veyra-sync-worker'
+      : domain === 'audit'
+      ? 'veyra-audit-sync'
+      : domain === 'roleHierarchy'
+      ? 'veyra-role-sync'
+      : 'veyra-pipeline';
     const servicePurpose = `ingestion-pipeline:${domain}:${triggeredBy}`;
 
     return runAsCryptoService('ingestion-pipeline', servicePurpose, async () => {
-      try {
-        console.log(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} triggered by: ${triggeredBy}`);
-        const runner = DOMAIN_RUNNERS[domain];
-        // VYR-041: guard on-demand runs the same as full-pipeline domains
-        const guarded = withEncryptionGuard(
-          DOMAIN_LABELS[domain],
-          () => runner(oracleService, auditFilter),
-          getEncryptionPolicy()
-        );
-        const partial = await guarded();
-        return { ...partial, durationMs: Date.now() - stepStart };
-      } catch (err: any) {
-        // VYR-041: sanitise error messages
-        const safeMsg = safePipelineError(err);
-        console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
-        return {
-          success: false,
-          domain,
-          label: DOMAIN_LABELS[domain],
-          durationMs: Date.now() - stepStart,
-          error: safeMsg,
-        };
-      }
+      return serviceIdentityRegistry.runAsService(principalName, servicePurpose, triggeredBy, async () => {
+        // VYR-042: refresh credentials before on-demand run
+        try {
+          if (typeof oracleService?.recreateClientFromProvider === 'function') {
+            await oracleService.recreateClientFromProvider();
+          }
+          if (typeof bipClient?.refreshCredentialsFromProvider === 'function') {
+            await bipClient.refreshCredentialsFromProvider();
+          }
+        } catch (credErr: any) {
+          console.warn(`[IngestionPipeline] Credential refresh warning: ${credErr.message}`);
+        }
+
+        try {
+          console.log(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} triggered by: ${triggeredBy}`);
+          const runner = DOMAIN_RUNNERS[domain];
+          // VYR-041: guard on-demand runs the same as full-pipeline domains
+          const guarded = withEncryptionGuard(
+            DOMAIN_LABELS[domain],
+            () => runner(oracleService, auditFilter),
+            getEncryptionPolicy()
+          );
+          const partial = await guarded();
+          return { ...partial, durationMs: Date.now() - stepStart };
+        } catch (err: any) {
+          // VYR-041: sanitise error messages
+          const safeMsg = safePipelineError(err);
+          console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
+          return {
+            success: false,
+            domain,
+            label: DOMAIN_LABELS[domain],
+            durationMs: Date.now() - stepStart,
+            error: safeMsg,
+          };
+        }
+      });
     });
   }
 

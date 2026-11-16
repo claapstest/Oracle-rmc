@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '../config.js';
+import { oracleCredentialProvider } from './credentialProvider.js';
 
 export interface RawOtbiPrivilegeRoleRow {
   privilegeName: string;
@@ -118,10 +119,20 @@ export class OtbiClient {
    * Authenticates with OTBI and securely returns the sessionID.
    */
   public async logon(): Promise<string> {
-    const baseUrl = this.getBaseUrl();
+    let baseUrl = this.getBaseUrl();
+    let username = config.oracle.username || 'sep1.sep1';
+    let password = config.oracle.password;
+
+    try {
+      const creds = await oracleCredentialProvider.getCredentials();
+      if (creds.baseUrl) baseUrl = creds.baseUrl.replace(/\/+$/, '');
+      if (creds.username) username = creds.username;
+      if (creds.password) password = creds.password;
+    } catch {
+      // Fallback to config values if provider retrieval is not configured
+    }
+
     const endpoint = `${baseUrl}/analytics-ws/saw.dll?SoapImpl=nQSessionService`;
-    const username = config.oracle.username || 'sep1.sep1';
-    const password = config.oracle.password;
 
     if (!username || !password) {
       throw new Error('[OTBI Client] Missing Oracle credentials for OTBI authentication.');

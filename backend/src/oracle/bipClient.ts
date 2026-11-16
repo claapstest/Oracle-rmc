@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import * as xml2js from 'xml2js';
 import * as xlsx from 'xlsx';
 import { config } from '../config.js';
+import { oracleCredentialProvider } from './credentialProvider.js';
 
 export interface AccessCertificationResult {
   success: boolean;
@@ -182,12 +183,37 @@ export class BipClient {
     });
   }
 
+  private dynamicCredentials: { baseUrl: string; username: string; password: string } | null = null;
+
+  public setCredentials(creds: { baseUrl: string; username: string; password: string }): void {
+    this.dynamicCredentials = creds;
+  }
+
+  /**
+   * Refreshes credentials from the secure OracleCredentialProvider (VYR-042).
+   */
+  public async refreshCredentialsFromProvider(): Promise<void> {
+    try {
+      const creds = await oracleCredentialProvider.getCredentials();
+      this.dynamicCredentials = {
+        baseUrl: creds.baseUrl ? creds.baseUrl.replace(/\/+$/, '') : '',
+        username: creds.username || '',
+        password: creds.password || '',
+      };
+    } catch (err: any) {
+      console.warn('[BIP Client] Could not refresh credentials from provider:', err.message);
+    }
+  }
+
   /**
    * Retrieves Oracle Fusion credentials from backend configuration.
-   * Checks FUSION_* environment variables first, then existing config.oracle.
+   * Checks runtime provider credentials first, then FUSION_* environment variables, then config.oracle.
    * Never exposes credentials outside backend.
    */
   public getCredentials(): { baseUrl: string; username: string; password: string } {
+    if (this.dynamicCredentials && this.dynamicCredentials.baseUrl && this.dynamicCredentials.username) {
+      return this.dynamicCredentials;
+    }
     const baseUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || '').replace(/\/+$/, '');
     const username = process.env.FUSION_USERNAME || config.oracle.username || '';
     const password = process.env.FUSION_PASSWORD || config.oracle.password || '';

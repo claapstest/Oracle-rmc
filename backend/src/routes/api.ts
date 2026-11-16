@@ -25,6 +25,8 @@ import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
 import { ingestionPipeline } from '../services/ingestionPipelineService.js';
+import { serviceIdentityRegistry } from '../oracle/serviceIdentity.js';
+import { bipClient } from '../oracle/bipClient.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
 import fs from 'fs';
@@ -3214,4 +3216,42 @@ apiRouter.post('/admin/sync/full', requireAdmin, async (_req: Request, res: Resp
     return res.status(409).json(result);
   }
   res.json(result);
+});
+
+// =========================================================
+// Service Identity & Credential Management Endpoints (Admin Only, VYR-042)
+// =========================================================
+
+// GET /api/admin/credentials/health - Health of credential provider and service identities
+apiRouter.get('/admin/credentials/health', requireAdmin, (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    ...serviceIdentityRegistry.getHealth(),
+  });
+});
+
+// POST /api/admin/credentials/rotate - Trigger rotation of Oracle credentials from secret store
+apiRouter.post('/admin/credentials/rotate', requireAdmin, async (_req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  try {
+    await serviceIdentityRegistry.rotateCredentials();
+    if (typeof oracleService.recreateClientFromProvider === 'function') {
+      await oracleService.recreateClientFromProvider();
+    }
+    if (typeof bipClient.refreshCredentialsFromProvider === 'function') {
+      await bipClient.refreshCredentialsFromProvider();
+    }
+    logAudit(adminUser, 'CREDENTIAL_ROTATION', 'Rotated Oracle credentials from provider');
+    res.json({
+      success: true,
+      message: 'Oracle credentials successfully rotated from secret provider.',
+      health: serviceIdentityRegistry.getHealth(),
+    });
+  } catch (err: any) {
+    console.error('[Admin API] Credential rotation failed:', err.message);
+    res.status(500).json({
+      success: false,
+      message: `Credential rotation failed: ${err.message}`,
+    });
+  }
 });
