@@ -23,6 +23,14 @@ import { auditProductCatalogService } from './auditProductCatalogService.js';
 import { userRoleRawDbService } from './userRoleRawDbService.js';
 import { userAccessReportService } from './userAccessReportService.js';
 import { runAsCryptoService, getCryptoAuditContext } from '../security/cryptoAuditContext.js';
+import {
+  encryptionPreflight,
+  safePipelineError,
+  withEncryptionGuard,
+  getEncryptionPolicy,
+  type PreflightResult,
+  type EncryptionPolicy,
+} from './ingestionEncryptionGuard.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,6 +76,10 @@ export interface PipelineResult {
   completedAt: string;
   durationMs: number;
   domains: DomainResult[];
+  /** VYR-041: encryption preflight outcome (present when encryption is enabled). */
+  encryptionPreflight?: PreflightResult;
+  /** VYR-041: the encryption policy that governed this run. */
+  encryptionPolicy?: EncryptionPolicy;
 }
 
 export interface PipelineOptions {
@@ -198,6 +210,33 @@ export class IngestionPipelineService {
     const startedAt = new Date();
     console.log(`[IngestionPipeline] Starting ${taskName} triggered by: ${triggeredBy}`);
 
+    // ── VYR-041: encryption preflight ──────────────────────────────
+    const preflight = await encryptionPreflight();
+    const policy = getEncryptionPolicy();
+
+    if (!preflight.passed) {
+      console.error(
+        `[IngestionPipeline] Encryption preflight FAILED — aborting pipeline. ${preflight.reason}`
+      );
+      oracleSyncService.releaseLock(false, preflight.reason);
+      return {
+        success: false,
+        message: `Synchronization aborted: encryption subsystem is not operational. ${preflight.reason}`,
+        triggeredBy,
+        startedAt: startedAt.toISOString(),
+        completedAt: new Date().toISOString(),
+        durationMs: Date.now() - startedAt.getTime(),
+        domains: [],
+        encryptionPreflight: preflight,
+        encryptionPolicy: policy,
+      };
+    }
+
+    if (preflight.encryptionEnabled) {
+      console.log(`[IngestionPipeline] Encryption preflight passed. Policy: ${policy}`);
+    }
+    // ── end VYR-041 preflight ──────────────────────────────────────
+
     const results: DomainResult[] = [];
 
     try {
@@ -215,16 +254,26 @@ export class IngestionPipelineService {
           try {
             console.log(`[IngestionPipeline] Step ${stepNum}/${domains.length}: ${DOMAIN_LABELS[domain]}...`);
             const runner = DOMAIN_RUNNERS[domain];
-            const partial = await runner(oracleService, auditFilter);
+            // VYR-041: wrap the domain step so encryption failures are
+            // quarantined (FAIL_DOMAIN) or escalated (FAIL_PIPELINE).
+            const guarded = withEncryptionGuard(
+              DOMAIN_LABELS[domain],
+              () => runner(oracleService, auditFilter),
+              policy
+            );
+            const partial = await guarded();
             results.push({ ...partial, durationMs: Date.now() - stepStart });
           } catch (err: any) {
-            console.warn(`[IngestionPipeline] ${DOMAIN_LABELS[domain]} failed:`, err.message);
+            // VYR-041: sanitise error messages before logging to prevent
+            // Oracle response data or key material from leaking into logs.
+            const safeMsg = safePipelineError(err);
+            console.warn(`[IngestionPipeline] ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
             results.push({
               success: false,
               domain,
               label: DOMAIN_LABELS[domain],
               durationMs: Date.now() - stepStart,
-              error: err.message,
+              error: safeMsg,
             });
           }
         }
@@ -246,19 +295,25 @@ export class IngestionPipelineService {
         completedAt: completedAt.toISOString(),
         durationMs: completedAt.getTime() - startedAt.getTime(),
         domains: results,
+        encryptionPreflight: preflight,
+        encryptionPolicy: policy,
       };
     } catch (err: any) {
-      console.error(`[IngestionPipeline] ${taskName} fatal error:`, err.message);
-      oracleSyncService.releaseLock(false, err.message);
+      // VYR-041: sanitise fatal error logging
+      const safeMsg = safePipelineError(err);
+      console.error(`[IngestionPipeline] ${taskName} fatal error: ${safeMsg}`);
+      oracleSyncService.releaseLock(false, safeMsg);
 
       return {
         success: false,
-        message: `Synchronization failed: ${err.message}`,
+        message: `Synchronization failed: ${safeMsg}`,
         triggeredBy,
         startedAt: startedAt.toISOString(),
         completedAt: new Date().toISOString(),
         durationMs: Date.now() - startedAt.getTime(),
         domains: results,
+        encryptionPreflight: preflight,
+        encryptionPolicy: policy,
       };
     }
   }
@@ -282,16 +337,24 @@ export class IngestionPipelineService {
       try {
         console.log(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} triggered by: ${triggeredBy}`);
         const runner = DOMAIN_RUNNERS[domain];
-        const partial = await runner(oracleService, auditFilter);
+        // VYR-041: guard on-demand runs the same as full-pipeline domains
+        const guarded = withEncryptionGuard(
+          DOMAIN_LABELS[domain],
+          () => runner(oracleService, auditFilter),
+          getEncryptionPolicy()
+        );
+        const partial = await guarded();
         return { ...partial, durationMs: Date.now() - stepStart };
       } catch (err: any) {
-        console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed:`, err.message);
+        // VYR-041: sanitise error messages
+        const safeMsg = safePipelineError(err);
+        console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
         return {
           success: false,
           domain,
           label: DOMAIN_LABELS[domain],
           durationMs: Date.now() - stepStart,
-          error: err.message,
+          error: safeMsg,
         };
       }
     });
