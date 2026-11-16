@@ -69,8 +69,9 @@ app.use((req, res, next) => {
   };
   next();
 });
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// VYR-049: Reduced global body size limit from 50mb to 2mb (per-route limits in requestValidationService)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Logger middleware
 app.use((req, res, next) => {

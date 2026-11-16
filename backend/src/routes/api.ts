@@ -40,6 +40,12 @@ import {
   tenantRateLimiter,
   getClientIp,
 } from '../security/rateLimitService.js';
+import {
+  validateBody,
+  enforceContentType,
+  enforceBodySizeLimit,
+  type SchemaKey,
+} from '../security/requestValidationService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -53,6 +59,9 @@ export const apiRouter = Router();
 // VYR-048: Apply multi-tenant and general API rate limiting across API routes
 apiRouter.use(tenantRateLimiter);
 apiRouter.use(apiRateLimiter);
+
+// VYR-049: Enforce content-type allowlist for mutation requests
+apiRouter.use(enforceContentType);
 
 // Write Audit Logs securely without exposing secrets
 function logAudit(username: string, action: string, details: string) {
@@ -385,7 +394,7 @@ apiRouter.get('/auth/entra/start', (_req: Request, res: Response) => {
 });
 
 // POST /auth/entra/callback - Validate state, exchange code, and issue a VEYRA session
-apiRouter.post('/auth/entra/callback', authRateLimiter, async (req: Request, res: Response) => {
+apiRouter.post('/auth/entra/callback', authRateLimiter, validateBody('POST /auth/entra/callback'), async (req: Request, res: Response) => {
   if (!isEntraEnabled()) {
     return res.status(404).json({
       success: false,
@@ -473,7 +482,7 @@ apiRouter.post('/auth/entra/callback', authRateLimiter, async (req: Request, res
 });
 
 // POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled, VYR-048 Rate Limited & Lockout)
-apiRouter.post('/auth/login', authRateLimiter, async (req: Request, res: Response) => {
+apiRouter.post('/auth/login', authRateLimiter, enforceBodySizeLimit('POST /auth/login'), validateBody('POST /auth/login'), async (req: Request, res: Response) => {
   // Provider choice is strictly bound to server configuration, never user-controlled request parameters
   const provider = getAuthenticationProvider();
 
@@ -631,7 +640,7 @@ apiRouter.post('/auth/refresh', authRateLimiter, requireAuth, async (req: Reques
 });
 
 // POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9, Story 17, VYR-024)
-apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
+apiRouter.post('/auth/logout', enforceBodySizeLimit('POST /auth/logout'), validateBody('POST /auth/logout'), async (req: Request, res: Response) => {
   const authHeader = req.header('Authorization');
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : (req.body?.token || req.body?.sessionId);
   if (!token) {
@@ -720,7 +729,7 @@ apiRouter.get('/security/sync-alerts', requireAdmin, async (_req: Request, res: 
 });
 
 // POST /auth/reset-password - Perform Password Reset (VYR-048 Rate Limited)
-apiRouter.post('/auth/reset-password', authRateLimiter, async (req: Request, res: Response) => {
+apiRouter.post('/auth/reset-password', authRateLimiter, enforceBodySizeLimit('POST /auth/reset-password'), validateBody('POST /auth/reset-password'), async (req: Request, res: Response) => {
   const { email: rawEmail, resetCode, newPassword } = req.body;
   if (!rawEmail || !resetCode || !newPassword) {
     return res.status(400).json({ success: false, message: 'Please fill in all reset fields.' });
@@ -762,7 +771,7 @@ function purgeExpiredSnapshots() {
 }
 
 // POST /investigations - Save temporary investigation snapshot
-apiRouter.post('/investigations', requireAuth, (req: Request, res: Response) => {
+apiRouter.post('/investigations', requireAuth, enforceBodySizeLimit('POST /investigations'), validateBody('POST /investigations'), (req: Request, res: Response) => {
   const { id, payload } = req.body;
   if (!id || !payload) {
     return res.status(400).json({ success: false, message: 'Investigation id and payload are required.' });
@@ -813,7 +822,7 @@ apiRouter.get('/admin/users', requirePrivilege('USER_MANAGEMENT'), (req: Request
 });
 
 // POST /admin/users/toggle-status - Activate/Deactivate Account
-apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/toggle-status'), async (req: Request, res: Response) => {
   const { email: rawEmail, active } = req.body;
   if (rawEmail === undefined || active === undefined) {
     return res.status(400).json({ success: false, message: 'Target email and active status are required.' });
@@ -834,7 +843,7 @@ apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT')
 });
 
 // POST /admin/users/delete - Permanently delete user account
-apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/delete'), async (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -855,7 +864,7 @@ apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), async
 });
 
 // POST /admin/users/generate-reset-code - Create one-time reset code
-apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
+apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/generate-reset-code'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -872,7 +881,7 @@ apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGE
 });
 
 // POST /admin/users/revoke-reset-code - Revoke/Invalidate active reset code
-apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
+apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/revoke-reset-code'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -946,7 +955,7 @@ apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request
   });
 });
 
-apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION'), async (req: Request, res: Response) => {
+apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION'), validateBody('POST /settings/test-connection'), async (req: Request, res: Response) => {
   const adminUser = res.locals.email || res.locals.username;
   try {
     const { baseUrl, authType, username, password, token } = req.body;
@@ -988,7 +997,7 @@ apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION
   }
 });
 
-apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
+apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), enforceBodySizeLimit('POST /settings/toggle-mode'), validateBody('POST /settings/toggle-mode'), (req: Request, res: Response) => {
   const adminUser = res.locals.username;
   const { mode, baseUrl, username, password, token, authType } = req.body;
 
@@ -1540,7 +1549,7 @@ apiRouter.get('/reports', requireReportsDashboard, async (req: Request, res: Res
 });
 
 // POST /api/reports - Generate a new Report (AC1, AC2, AC3, AC8, AC10, AC11)
-apiRouter.post('/reports', requireReportsDashboard, async (req: Request, res: Response) => {
+apiRouter.post('/reports', requireReportsDashboard, enforceBodySizeLimit('POST /reports'), validateBody('POST /reports'), async (req: Request, res: Response) => {
   try {
     const userContext = {
       userId: res.locals.userId,
@@ -1866,7 +1875,7 @@ apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Res
 });
 
 // POST /api/admin/oracle/integration - Update Oracle configuration (AC3, AC6)
-apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/oracle/integration', requireAdmin, enforceBodySizeLimit('POST /admin/oracle/integration'), validateBody('POST /admin/oracle/integration'), (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
   const { baseUrl, username, password, token, authType } = req.body;
 
@@ -1913,7 +1922,7 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Re
 });
 
 // POST /api/admin/oracle/test-connection - Health probe (AC3, AC6)
-apiRouter.post('/admin/oracle/test-connection', requireAdmin, async (req: Request, res: Response) => {
+apiRouter.post('/admin/oracle/test-connection', requireAdmin, validateBody('POST /admin/oracle/test-connection'), async (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
   try {
     const { baseUrl, authType, username, password, token } = req.body;
@@ -2143,7 +2152,7 @@ apiRouter.get('/users/:id/scopes', requireUsersListAccess, async (req: Request, 
 });
 
 // POST /api/users - Create new user (USER_MANAGEMENT privilege required)
-apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /users'), async (req: Request, res: Response) => {
   try {
     const { email, displayName, name, role, password, status, applicationAccess, access, sendInvitation, permissions } = req.body || {};
 
@@ -2182,7 +2191,7 @@ apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), async (req: Reques
 });
 
 // PUT /api/users/:id - Update user / role assignment (USER_MANAGEMENT privilege required)
-apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), validateBody('PUT /users/:id'), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const { displayName, role, status, password, permissions } = req.body;
@@ -2466,7 +2475,7 @@ apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (
   }
 });
 
-apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/query'), async (req: Request, res: Response) => {
   try {
     const {
       product,
@@ -2510,7 +2519,7 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
 });
 
 // POST /api/audit/sync - On-demand synchronization of audit trail records via pipeline (VYR-040)
-apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/sync'), async (req: Request, res: Response) => {
   if (ingestionPipeline.isRunning()) {
     return res.status(409).json({
       success: false,
@@ -2584,7 +2593,7 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
 });
 
 // POST /api/audit/sync/product - Product-level audit synchronization on-demand
-apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/sync/product'), async (req: Request, res: Response) => {
   try {
     const { product, businessObject, fromDate, toDate } = req.body || {};
     if (!product) {
@@ -2792,7 +2801,7 @@ apiRouter.get('/sync/policies', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN'
 });
 
 // PUT /sync/policies/:productCode - Update sync cadence or interval for a product
-apiRouter.put('/sync/policies/:productCode', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN']), async (req: Request, res: Response) => {
+apiRouter.put('/sync/policies/:productCode', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN']), validateBody('PUT /sync/policies/:productCode'), async (req: Request, res: Response) => {
   try {
     const { productCode } = req.params;
     const { syncCadence, syncIntervalHours, autoSyncEnabled } = req.body;
@@ -3165,7 +3174,7 @@ apiRouter.get('/catalog/privileges-by-user', requireAuth, async (req: Request, r
 // =========================================================
 
 // POST /command-center/request - Execute an API request against Oracle Fusion safely
-apiRouter.post('/command-center/request', requirePrivilege('ORACLE_API_CONSOLE'), async (req: Request, res: Response) => {
+apiRouter.post('/command-center/request', requirePrivilege('ORACLE_API_CONSOLE'), enforceBodySizeLimit('POST /command-center/request'), validateBody('POST /command-center/request'), async (req: Request, res: Response) => {
   try {
     const { method, url, params, headers, body, authMode, timeoutMs } = req.body;
     if (!url) {
@@ -3261,7 +3270,7 @@ apiRouter.get('/command-center/saved-requests', requirePrivilege('ORACLE_API_CON
 });
 
 // POST /command-center/saved-requests - Save a request template
-apiRouter.post('/command-center/saved-requests', requirePrivilege('ORACLE_API_CONSOLE'), (req: Request, res: Response) => {
+apiRouter.post('/command-center/saved-requests', requirePrivilege('ORACLE_API_CONSOLE'), validateBody('POST /command-center/saved-requests'), (req: Request, res: Response) => {
   try {
     const { name, category, description, method, url, params, headers, body, id } = req.body;
     if (!name || !url) {
@@ -3427,7 +3436,7 @@ apiRouter.get('/admin/sync/quarantine', requireAdmin, async (req: Request, res: 
 });
 
 // POST /api/admin/sync/quarantine/:id/resolve - Mark a quarantined record as resolved/reprocessed
-apiRouter.post('/admin/sync/quarantine/:id/resolve', requireAdmin, async (req: Request, res: Response) => {
+apiRouter.post('/admin/sync/quarantine/:id/resolve', requireAdmin, validateBody('POST /admin/sync/quarantine/:id/resolve'), async (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   const { id } = req.params;
   try {
@@ -3458,7 +3467,7 @@ apiRouter.get('/admin/security/rate-limits', requireAdmin, (_req: Request, res: 
 });
 
 // POST /api/admin/users/:email/unlock - Administratively unlock an account locked by brute-force protection
-apiRouter.post('/admin/users/:email/unlock', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/users/:email/unlock', requireAdmin, validateBody('POST /admin/users/:email/unlock'), (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   const { email } = req.params;
   const unlocked = rateLimitService.getLockoutManager().unlockAccount(email, adminUser);
@@ -3473,7 +3482,7 @@ apiRouter.post('/admin/users/:email/unlock', requireAdmin, (req: Request, res: R
 });
 
 // POST /api/admin/security/rate-limits/reset - Reset rate limit sliding windows and lockout stores
-apiRouter.post('/admin/security/rate-limits/reset', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/security/rate-limits/reset', requireAdmin, validateBody('POST /admin/security/rate-limits/reset'), (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   rateLimitService.resetAll();
   logAudit(adminUser, 'RATE_LIMITS_RESET', 'Admin manually reset all rate limit sliding windows and lockout records');
