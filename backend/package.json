@@ -41,6 +41,7 @@
     "test:vyr33": "node scripts/test_story_033_audit_sync_encryption.cjs",
     "test:vyr34": "node scripts/test_story_034_write_boundary.cjs",
     "test:vyr39": "node scripts/test_story_039_scheduler_inspection.cjs",
+    "test:vyr41": "node scripts/test_story_041_ingestion_encryption_guard.cjs",
     "test:vyr35": "node scripts/test_story_035_authorized_decryption.cjs",
     "test:vyr35b": "node scripts/test_story_035b_queryable_metadata.cjs",
     "test:vyr36": "node scripts/test_story_036_key_rotation.cjs",
