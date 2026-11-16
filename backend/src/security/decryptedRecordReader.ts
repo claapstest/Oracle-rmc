@@ -15,10 +15,22 @@
  *   - Encryption keys/DEKs are never exposed in returned objects.
  *   - Tampered ciphertext fails closed (throws, no silent fallback).
  *   - Decrypted plaintext is never logged.
+ *   - Every decrypt is audited and failures surface only as ProtectedDataError (VYR-038).
  */
 
 import { isEncryptedPayload } from './encryptionContract.js';
 import { decryptRawField } from './encryptedRecordWriter.js';
+
+/**
+ * AAD tenant for a stored row. Queries may return rows from a fallback
+ * environment host, so the row's own environment_host is authoritative.
+ * A payload copied into another tenant's row still fails AAD verification,
+ * because that row's host differs from the one bound at encryption time.
+ */
+function rowTenant(row: Record<string, any>, requestedHost: string): string {
+  const own = row?.environment_host;
+  return typeof own === 'string' && own.trim() ? own : requestedHost;
+}
 
 /**
  * Decrypts the named raw column in every row of a DB result set, in place.
@@ -46,12 +58,14 @@ export async function decryptRawRows<R extends Record<string, any>>(
       continue;
     }
 
-    if (!isEncryptedPayload(rawValue)) {
+    // Legacy plaintext passes through, unless the row claims to be encrypted:
+    // decryptRawField then fails closed as CORRUPTED_PAYLOAD (VYR-038).
+    if (!isEncryptedPayload(rawValue) && row.is_encrypted !== true) {
       results.push(row);
       continue;
     }
 
-    const decrypted = await decryptRawField(tableName, row, rawValue, environmentHost);
+    const decrypted = await decryptRawField(tableName, row, rawValue, rowTenant(row, environmentHost));
     results.push({ ...row, [rawColumn]: decrypted });
   }
 
@@ -76,5 +90,5 @@ export async function decryptSingleRawField<T = any>(
 ): Promise<T> {
   const rawValue = row[rawColumn];
   if (rawValue === null || rawValue === undefined) return rawValue as T;
-  return decryptRawField<T>(tableName, row, rawValue, environmentHost);
+  return decryptRawField<T>(tableName, row, rawValue, rowTenant(row, environmentHost));
 }

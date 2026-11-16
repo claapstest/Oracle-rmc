@@ -69,6 +69,7 @@ function logAudit(username: string, action: string, details: string) {
 
 // Authentication and RBAC middleware integrating JWT verification (VYR-021 & VYR-023)
 import { verifyJwtAndSession } from '../middleware/jwtAuthMiddleware.js';
+import { cryptoAuditService } from '../security/cryptoAuditService.js';
 export const requireAuth = verifyJwtAndSession;
 
 // Middleware to enforce backend admin authorization (Site Admin only - AC6, VYR-023)
@@ -648,6 +649,14 @@ apiRouter.post('/admin/sessions/cleanup', requireAdmin, async (req: Request, res
   await authService.cleanupExpiredSessions();
   logAudit(res.locals.email, 'SESSION_CLEANUP', 'Admin triggered expired session cleanup');
   res.json({ success: true, message: 'Expired sessions cleaned up successfully.' });
+});
+
+// GET /security/crypto-health - Encryption/decryption failure monitoring (VYR-038)
+// Returns failure counts by category, active systemic alerts and audit-sink state.
+// Contains no payloads, key material or record contents.
+apiRouter.get('/security/crypto-health', requireAdmin, (_req: Request, res: Response) => {
+  const health = cryptoAuditService.getHealth();
+  res.status(health.status === 'CRITICAL' ? 503 : 200).json({ success: true, ...health });
 });
 
 // POST /auth/reset-password - Perform Password Reset
