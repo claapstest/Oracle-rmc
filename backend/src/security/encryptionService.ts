@@ -37,7 +37,8 @@ export type EncryptionErrorCode =
   | 'AAD_MISMATCH'
   | 'KEY_NOT_APPROVED'
   | 'KEY_IN_USE'
-  | 'UNSUPPORTED_FORMAT_VERSION';
+  | 'UNSUPPORTED_FORMAT_VERSION'
+  | 'KMS_UNAVAILABLE';
 
 export class EncryptionError extends Error {
   public readonly code: EncryptionErrorCode;

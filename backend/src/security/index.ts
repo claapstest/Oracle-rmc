@@ -12,3 +12,6 @@ export * from './encryptionMigrationService.js';
 export * from './encryptedRecordWriter.js';
 export * from './keyRotationService.js';
 export * from './plaintextMigrationService.js';
+export * from './cryptoFailure.js';
+export * from './cryptoAuditContext.js';
+export * from './cryptoAuditService.js';
