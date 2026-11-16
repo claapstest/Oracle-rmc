@@ -27,6 +27,7 @@ import { oracleSyncService } from '../services/oracleSyncService.js';
 import { ingestionPipeline } from '../services/ingestionPipelineService.js';
 import { serviceIdentityRegistry } from '../oracle/serviceIdentity.js';
 import { bipClient } from '../oracle/bipClient.js';
+import { distributedLockService } from '../services/distributedLockService.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
 import fs from 'fs';
@@ -2281,6 +2282,13 @@ apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REP
   try {
     const currentUser = res.locals.email || 'SYSTEM';
     const result = await ingestionPipeline.runDomain('roleHierarchy', oracleService, currentUser);
+    if (!result.success && result.error?.includes('already in progress')) {
+      return res.status(409).json({
+        success: false,
+        code: 'SYNC_IN_PROGRESS',
+        message: result.error
+      });
+    }
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
@@ -2442,6 +2450,14 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
       const domainResult = await ingestionPipeline.runDomain(
         'audit', oracleService, currentUser, { fromDate, toDate }
       );
+
+      if (!domainResult.success && domainResult.error?.includes('already in progress')) {
+        return res.status(409).json({
+          success: false,
+          code: 'SYNC_IN_PROGRESS',
+          message: domainResult.error,
+        });
+      }
 
       return res.json({
         ...oracleService.getModeInfo(),
@@ -3212,7 +3228,7 @@ apiRouter.post('/admin/sync/full', requireAdmin, async (_req: Request, res: Resp
   const adminUser = res.locals.email || 'SITE_ADMIN';
   logAudit(adminUser, 'ADMIN_MANUAL_SYNC', 'Initiated manual full Oracle baseline synchronization');
   const result = await ingestionPipeline.run({ triggeredBy: adminUser, oracleService });
-  if (!result.success && result.message.includes('already in progress')) {
+  if (!result.success && (result.message.includes('already in progress') || result.code === 'SYNC_IN_PROGRESS')) {
     return res.status(409).json(result);
   }
   res.json(result);
@@ -3253,5 +3269,40 @@ apiRouter.post('/admin/credentials/rotate', requireAdmin, async (_req: Request, 
       success: false,
       message: `Credential rotation failed: ${err.message}`,
     });
+  }
+});
+
+// =========================================================
+// Distributed Locking & Concurrency Endpoints (Admin Only, VYR-043)
+// =========================================================
+
+// GET /api/admin/locks - List all currently held distributed locks
+apiRouter.get('/admin/locks', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const activeLocks = await distributedLockService.getActiveLocks();
+    res.json({
+      success: true,
+      count: activeLocks.length,
+      locks: activeLocks,
+      isCurrentlySyncing: ingestionPipeline.isRunning(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve active locks: ${err.message}` });
+  }
+});
+
+// POST /api/admin/locks/recover-stale - Trigger cleanup of expired / stale distributed locks
+apiRouter.post('/admin/locks/recover-stale', requireAdmin, async (_req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  try {
+    const cleaned = await distributedLockService.recoverStaleLocks();
+    logAudit(adminUser, 'STALE_LOCKS_RECOVERED', `Manually triggered stale lock recovery, cleaned: ${cleaned}`);
+    res.json({
+      success: true,
+      message: `Successfully recovered and cleaned ${cleaned} stale lock(s).`,
+      cleanedCount: cleaned,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to recover stale locks: ${err.message}` });
   }
 });

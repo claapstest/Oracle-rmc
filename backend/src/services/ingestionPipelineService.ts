@@ -25,6 +25,7 @@ import { userAccessReportService } from './userAccessReportService.js';
 import { runAsCryptoService, getCryptoAuditContext } from '../security/cryptoAuditContext.js';
 import { serviceIdentityRegistry, type ServiceExecutionContext } from '../oracle/serviceIdentity.js';
 import { bipClient } from '../oracle/bipClient.js';
+import { distributedLockService, type LockAcquisitionResult } from './distributedLockService.js';
 import {
   encryptionPreflight,
   safePipelineError,
@@ -88,6 +89,10 @@ export interface PipelineResult {
   encryptionPreflight?: PreflightResult;
   /** VYR-041: the encryption policy that governed this run. */
   encryptionPolicy?: EncryptionPolicy;
+  /** VYR-043: Error or status code (e.g. 'SYNC_IN_PROGRESS') */
+  code?: string;
+  /** VYR-043: Distributed lock outcome */
+  distributedLock?: LockAcquisitionResult;
 }
 
 export interface PipelineOptions {
@@ -95,6 +100,8 @@ export interface PipelineOptions {
   triggeredBy: string;
   /** Which domains to sync. Defaults to all five. */
   domains?: SyncDomain[];
+  /** Optional tenant identifier for multi-tenant lock isolation (VYR-043). */
+  tenantId?: string;
   /** The oracleService instance (carries the Oracle Fusion HTTP client). */
   oracleService: any;
   /** Optional: filter params for audit domain. */
@@ -207,11 +214,38 @@ export class IngestionPipelineService {
       return {
         success: false,
         message: 'A synchronization operation is already in progress. Please wait for it to complete.',
+        code: 'SYNC_IN_PROGRESS',
         triggeredBy,
         startedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
         durationMs: 0,
         domains: [],
+      };
+    }
+
+    // ── VYR-043: Distributed lock acquisition across replicas ──────
+    const tenantId = options.tenantId || '__GLOBAL__';
+    const distLock = await distributedLockService.acquireLock(
+      taskName,
+      triggeredBy,
+      { domain: 'full', tenantId }
+    );
+
+    if (!distLock.acquired) {
+      oracleSyncService.releaseLock(false, 'Distributed lock contention');
+      console.warn(
+        `[IngestionPipeline] Synchronization rejected by distributed lock (scope: ${distLock.lockKey}, holder: ${distLock.existingHolder?.holderId || 'another replica'}).`
+      );
+      return {
+        success: false,
+        message: 'A synchronization operation is already in progress on another worker replica. Please wait for it to complete.',
+        code: 'SYNC_IN_PROGRESS',
+        triggeredBy,
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        durationMs: 0,
+        domains: [],
+        distributedLock: distLock,
       };
     }
 
@@ -227,6 +261,7 @@ export class IngestionPipelineService {
         `[IngestionPipeline] Encryption preflight FAILED ??? aborting pipeline. ${preflight.reason}`
       );
       oracleSyncService.releaseLock(false, preflight.reason);
+      await distributedLockService.releaseLock(distLock);
       return {
         success: false,
         message: `Synchronization aborted: encryption subsystem is not operational. ${preflight.reason}`,
@@ -314,6 +349,7 @@ export class IngestionPipelineService {
       const completedAt = new Date();
       const allOk = results.every((r) => r.success);
       oracleSyncService.releaseLock(allOk);
+      await distributedLockService.releaseLock(distLock);
 
       console.log(`[IngestionPipeline] ${taskName} completed (${allOk ? 'all succeeded' : 'some domains failed'}).`);
 
@@ -324,6 +360,7 @@ export class IngestionPipelineService {
           : 'Oracle synchronization completed with partial failures (see domains).',
         triggeredBy,
         serviceIdentity: capturedIdentity,
+        distributedLock: distLock,
         startedAt: startedAt.toISOString(),
         completedAt: completedAt.toISOString(),
         durationMs: completedAt.getTime() - startedAt.getTime(),
@@ -336,12 +373,14 @@ export class IngestionPipelineService {
       const safeMsg = safePipelineError(err);
       console.error(`[IngestionPipeline] ${taskName} fatal error: ${safeMsg}`);
       oracleSyncService.releaseLock(false, safeMsg);
+      await distributedLockService.releaseLock(distLock);
 
       return {
         success: false,
         message: `Synchronization failed: ${safeMsg}`,
         triggeredBy,
         serviceIdentity: capturedIdentity,
+        distributedLock: distLock,
         startedAt: startedAt.toISOString(),
         completedAt: new Date().toISOString(),
         durationMs: Date.now() - startedAt.getTime(),
@@ -365,54 +404,80 @@ export class IngestionPipelineService {
     auditFilter?: PipelineOptions['auditFilter']
   ): Promise<DomainResult> {
     const stepStart = Date.now();
-    const principalName = triggeredBy === 'SCHEDULED_OFFPEAK_CRON'
-      ? 'veyra-sync-worker'
-      : domain === 'audit'
-      ? 'veyra-audit-sync'
-      : domain === 'roleHierarchy'
-      ? 'veyra-role-sync'
-      : 'veyra-pipeline';
-    const servicePurpose = `ingestion-pipeline:${domain}:${triggeredBy}`;
+    const taskName = `On-demand ${DOMAIN_LABELS[domain]}`;
 
-    return runAsCryptoService('ingestion-pipeline', servicePurpose, async () => {
-      return serviceIdentityRegistry.runAsService(principalName, servicePurpose, triggeredBy, async () => {
-        // VYR-042: refresh credentials before on-demand run
-        try {
-          if (typeof oracleService?.recreateClientFromProvider === 'function') {
-            await oracleService.recreateClientFromProvider();
-          }
-          if (typeof bipClient?.refreshCredentialsFromProvider === 'function') {
-            await bipClient.refreshCredentialsFromProvider();
-          }
-        } catch (credErr: any) {
-          console.warn(`[IngestionPipeline] Credential refresh warning: ${credErr.message}`);
-        }
+    // VYR-043: Acquire domain-scoped distributed lock
+    const distLock = await distributedLockService.acquireLock(
+      taskName,
+      triggeredBy,
+      { domain, tenantId: '__GLOBAL__' }
+    );
 
-        try {
-          console.log(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} triggered by: ${triggeredBy}`);
-          const runner = DOMAIN_RUNNERS[domain];
-          // VYR-041: guard on-demand runs the same as full-pipeline domains
-          const guarded = withEncryptionGuard(
-            DOMAIN_LABELS[domain],
-            () => runner(oracleService, auditFilter),
-            getEncryptionPolicy()
-          );
-          const partial = await guarded();
-          return { ...partial, durationMs: Date.now() - stepStart };
-        } catch (err: any) {
-          // VYR-041: sanitise error messages
-          const safeMsg = safePipelineError(err);
-          console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
-          return {
-            success: false,
-            domain,
-            label: DOMAIN_LABELS[domain],
-            durationMs: Date.now() - stepStart,
-            error: safeMsg,
-          };
-        }
+    if (!distLock.acquired) {
+      console.warn(
+        `[IngestionPipeline] Domain "${domain}" rejected: distributed lock active (holder: ${distLock.existingHolder?.holderId || 'another replica'}).`
+      );
+      return {
+        success: false,
+        domain,
+        label: DOMAIN_LABELS[domain],
+        durationMs: Date.now() - stepStart,
+        error: `Synchronization for ${DOMAIN_LABELS[domain]} is already in progress on another worker replica.`,
+      };
+    }
+
+    try {
+      const principalName = triggeredBy === 'SCHEDULED_OFFPEAK_CRON'
+        ? 'veyra-sync-worker'
+        : domain === 'audit'
+        ? 'veyra-audit-sync'
+        : domain === 'roleHierarchy'
+        ? 'veyra-role-sync'
+        : 'veyra-pipeline';
+      const servicePurpose = `ingestion-pipeline:${domain}:${triggeredBy}`;
+
+      return await runAsCryptoService('ingestion-pipeline', servicePurpose, async () => {
+        return serviceIdentityRegistry.runAsService(principalName, servicePurpose, triggeredBy, async () => {
+          // VYR-042: refresh credentials before on-demand run
+          try {
+            if (typeof oracleService?.recreateClientFromProvider === 'function') {
+              await oracleService.recreateClientFromProvider();
+            }
+            if (typeof bipClient?.refreshCredentialsFromProvider === 'function') {
+              await bipClient.refreshCredentialsFromProvider();
+            }
+          } catch (credErr: any) {
+            console.warn(`[IngestionPipeline] Credential refresh warning: ${credErr.message}`);
+          }
+
+          try {
+            console.log(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} triggered by: ${triggeredBy}`);
+            const runner = DOMAIN_RUNNERS[domain];
+            // VYR-041: guard on-demand runs the same as full-pipeline domains
+            const guarded = withEncryptionGuard(
+              DOMAIN_LABELS[domain],
+              () => runner(oracleService, auditFilter),
+              getEncryptionPolicy()
+            );
+            const partial = await guarded();
+            return { ...partial, durationMs: Date.now() - stepStart };
+          } catch (err: any) {
+            // VYR-041: sanitise error messages
+            const safeMsg = safePipelineError(err);
+            console.warn(`[IngestionPipeline] On-demand ${DOMAIN_LABELS[domain]} failed: ${safeMsg}`);
+            return {
+              success: false,
+              domain,
+              label: DOMAIN_LABELS[domain],
+              durationMs: Date.now() - stepStart,
+              error: safeMsg,
+            };
+          }
+        });
       });
-    });
+    } finally {
+      await distributedLockService.releaseLock(distLock);
+    }
   }
 
   /** Exposes sync status from the underlying mutex. */
