@@ -86,7 +86,7 @@ export interface ControlIncidentFacets {
 }
 
 export class ControlRawDbService {
-  private schedulerTimer: NodeJS.Timeout | null = null;
+  // schedulerTimer removed — VYR-040: dead code, sync runs via ingestion pipeline
   private isSchedulerRunning = false;
   private incidentCountCacheService: any = null;
   private summaryHealedOnce = false;
@@ -1814,29 +1814,8 @@ export class ControlRawDbService {
   // Automatic Background Sync Scheduler
   // =============================================================
 
-  /**
-   * Starts the automatic background synchronization scheduler.
-   * Periodically checks controls for updates in Oracle Fusion Cloud and updates the database automatically.
-   */
-  public startAutoSyncScheduler(oracleServiceOrClient: any, intervalMinutes = 360): void {
-    if (this.schedulerTimer) return;
-
-    console.log(`[AutoSyncScheduler] Initialized. Background sync interval: ${intervalMinutes} minutes.`);
-
-    // Delay initial sync by 5 minutes after server startup to allow clean boot and steady-state memory
-    setTimeout(() => {
-      this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
-        console.error('[AutoSyncScheduler] Initial run error:', err.message);
-      });
-    }, 5 * 60 * 1000);
-
-    // Run recurring periodic checks (every 6 hours)
-    this.schedulerTimer = setInterval(() => {
-      this.runAutoSyncCycle(oracleServiceOrClient).catch((err) => {
-        console.error('[AutoSyncScheduler] Cycle error:', err.message);
-      });
-    }, intervalMinutes * 60 * 1000);
-  }
+  // startAutoSyncScheduler removed — VYR-040: dead code, never had a caller.
+  // Controls sync now runs through the shared ingestion pipeline.
 
   /**
    * Runs an automated update cycle across all controls from Oracle Fusion.

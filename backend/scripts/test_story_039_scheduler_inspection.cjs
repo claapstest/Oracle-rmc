@@ -94,16 +94,21 @@ async function run() {
   // ------------------------------------------------------------------
   console.log('\n--- Section 3: Dormant Schedulers ---');
 
-  assert(/public startDailyScheduler/.test(audit), 'auditRawDbService.startDailyScheduler exists');
-  assert(/public startAutoSyncScheduler/.test(control), 'controlRawDbService.startAutoSyncScheduler exists');
-  assert(!/startDailyScheduler\(/.test(idx), 'startDailyScheduler is never called from boot (dormant)');
-  assert(!/startAutoSyncScheduler\(/.test(idx), 'startAutoSyncScheduler is never called from boot (dormant)');
+  // VYR-040 removed the dead schedulers; verify they are gone and documented
+  assert(/startDailyScheduler removed/.test(audit), 'auditRawDbService.startDailyScheduler removed (VYR-040)');
+  assert(/startAutoSyncScheduler removed/.test(control), 'controlRawDbService.startAutoSyncScheduler removed (VYR-040)');
+  assert(!/startDailyScheduler\(/.test(idx), 'startDailyScheduler is never called from boot');
+  assert(!/startAutoSyncScheduler\(/.test(idx), 'startAutoSyncScheduler is never called from boot');
 
   // ------------------------------------------------------------------
   // Section 4: Full sync pipeline shape
   // ------------------------------------------------------------------
   console.log('\n--- Section 4: Full Sync Pipeline (5 domains) ---');
 
+  // VYR-040: pipeline order now lives in ingestionPipelineService
+  const pipelinePath = path.join(src, 'services/ingestionPipelineService.ts');
+  assert(fs.existsSync(pipelinePath), 'ingestionPipelineService.ts exists (VYR-040)');
+  const pipelineSrc = read(pipelinePath);
   const stepOrder = [
     'runAutoSyncCycle',
     'syncFromBip',
@@ -114,7 +119,7 @@ async function run() {
   let lastIdx = -1;
   let ordered = true;
   for (const marker of stepOrder) {
-    const i = syncSvc.indexOf(marker);
+    const i = pipelineSrc.indexOf(marker);
     if (i < 0 || i < lastIdx) ordered = false;
     lastIdx = i > 0 ? i : lastIdx;
   }
@@ -137,7 +142,7 @@ async function run() {
   assert(/oracle_audit_sync_state/.test(audit), 'Audit incremental sync uses oracle_audit_sync_state watermark table');
   assert(/'__GLOBAL__'/.test(audit), 'Audit watermark has a __GLOBAL__ fallback key');
   assert(/pageNumber: 1, pageSize: 500/.test(audit), 'Audit sync fetches page 1 only (documented truncation gap)');
-  assert(/\{ count: 500, startIndex: roleStart \}/.test(syncSvc), 'SCIM users/roles sync paginates 500 per page');
+  assert(/\{ count: 500, startIndex: roleStart \}/.test(pipelineSrc), 'SCIM users/roles sync paginates 500 per page (in pipeline)');
 
   // ------------------------------------------------------------------
   // Section 6: Document coverage (AC1)
