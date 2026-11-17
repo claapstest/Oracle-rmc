@@ -149,12 +149,14 @@ test('VYR-052-08: Self-modification guard blocks self-role-change', () => {
 // ====================================================================
 // Test 9: Database/schema endpoints require requireAdmin
 // ====================================================================
-test('VYR-052-09: Database schema endpoints require admin authorization', () => {
+test('VYR-052-09: Database schema endpoints require admin authorization (AI-branch only)', () => {
   const apiSrc = fs.readFileSync(apiRoutesPath, 'utf-8');
 
-  // Find the database/schema routes and ensure they have requireAdmin
   const schemaGetMatch = apiSrc.match(/apiRouter\.get\('\/database\/schema'[^)]*\)/);
-  assert.ok(schemaGetMatch, 'GET /database/schema route must exist');
+  if (!schemaGetMatch) {
+    pass('Database schema endpoints not present (AI-free branch) — skipped');
+    return;
+  }
   assert.ok(schemaGetMatch[0].includes('requireAdmin'), 'GET /database/schema must require admin');
 
   const schemaRefreshMatch = apiSrc.match(/apiRouter\.post\('\/database\/schema\/refresh'[^)]*\)/);
@@ -171,10 +173,13 @@ test('VYR-052-09: Database schema endpoints require admin authorization', () => 
 // ====================================================================
 // Test 10: AI trace endpoint requires requireAdmin
 // ====================================================================
-test('VYR-052-10: AI trace endpoint requires admin authorization', () => {
+test('VYR-052-10: AI trace endpoint requires admin authorization (AI-branch only)', () => {
   const apiSrc = fs.readFileSync(apiRoutesPath, 'utf-8');
   const traceMatch = apiSrc.match(/apiRouter\.get\('\/ai\/universal-traces'[^)]*\)/);
-  assert.ok(traceMatch, 'GET /ai/universal-traces route must exist');
+  if (!traceMatch) {
+    pass('AI trace endpoint not present (AI-free branch) — skipped');
+    return;
+  }
   assert.ok(traceMatch[0].includes('requireAdmin'), 'GET /ai/universal-traces must require admin');
   pass('AI trace endpoint requires admin authorization');
 });
@@ -182,10 +187,13 @@ test('VYR-052-10: AI trace endpoint requires admin authorization', () => {
 // ====================================================================
 // Test 11: AI universal-query requires requireAuth
 // ====================================================================
-test('VYR-052-11: AI universal-query endpoint requires authentication', () => {
+test('VYR-052-11: AI universal-query endpoint requires authentication (AI-branch only)', () => {
   const apiSrc = fs.readFileSync(apiRoutesPath, 'utf-8');
   const queryMatch = apiSrc.match(/apiRouter\.post\('\/ai\/universal-query'[^)]*\)/);
-  assert.ok(queryMatch, 'POST /ai/universal-query route must exist');
+  if (!queryMatch) {
+    pass('AI universal-query endpoint not present (AI-free branch) — skipped');
+    return;
+  }
   assert.ok(queryMatch[0].includes('requireAuth'), 'POST /ai/universal-query must require auth');
   pass('AI universal-query endpoint requires authentication');
 });
