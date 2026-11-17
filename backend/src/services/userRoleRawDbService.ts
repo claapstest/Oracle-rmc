@@ -38,6 +38,13 @@ export class UserRoleRawDbService {
     if (this.metadataColumnsEnsured) return;
     await query(`ALTER TABLE oracle_raw_users ADD COLUMN IF NOT EXISTS assigned_roles_count INT DEFAULT 0`, []).catch(() => {});
     await query(`ALTER TABLE oracle_raw_users ADD COLUMN IF NOT EXISTS role_names_text TEXT DEFAULT ''`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS module VARCHAR(100)`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS description TEXT`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS is_encrypted BOOLEAN NOT NULL DEFAULT FALSE`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS encryption_format_version INTEGER DEFAULT NULL`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS encryption_key_id VARCHAR(128) DEFAULT NULL`, []).catch(() => {});
+    await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS encrypted_at TIMESTAMPTZ DEFAULT NULL`, []).catch(() => {});
+    await query(`CREATE INDEX IF NOT EXISTS ix_oracle_raw_roles_module ON oracle_raw_roles (module)`, []).catch(() => {});
     this.metadataColumnsEnsured = true;
   }
 
@@ -62,12 +69,15 @@ export class UserRoleRawDbService {
    * Saves a single raw role JSON into oracle_raw_roles
    */
   public async saveRawRole(role: any): Promise<void> {
+    await this.ensureMetadataColumns();
     const host = this.getHost();
     const roleCode = String(role.roleCode || role.code || role.id || '').trim();
     if (!roleCode) return;
 
     const roleName = role.displayName || role.roleName || role.name || roleCode;
     const category = role.category || null;
+    const module = role.module || null;
+    const description = role.description || null;
     const isCustom = Boolean(role.isCustom || roleCode.startsWith('CUSTOM_') || roleCode.startsWith('CLAAPS_'));
     const memberCount = typeof role.memberCount === 'number' ? role.memberCount : (Array.isArray(role.members) ? role.members.length : 0);
 
@@ -79,6 +89,8 @@ export class UserRoleRawDbService {
         role_code,
         role_name,
         category,
+        module,
+        description,
         is_custom,
         member_count,
         raw_role,
@@ -88,10 +100,12 @@ export class UserRoleRawDbService {
         encrypted_at,
         last_synced_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
       ON CONFLICT (environment_host, role_code) DO UPDATE SET
         role_name = EXCLUDED.role_name,
         category = EXCLUDED.category,
+        module = EXCLUDED.module,
+        description = EXCLUDED.description,
         is_custom = EXCLUDED.is_custom,
         member_count = EXCLUDED.member_count,
         raw_role = EXCLUDED.raw_role,
@@ -103,7 +117,7 @@ export class UserRoleRawDbService {
         updated_at = NOW();
     `;
 
-    await query(sql, [host, roleCode, roleName, category, isCustom, memberCount, write.rawValue, ...trackingColumns(write)]);
+    await query(sql, [host, roleCode, roleName, category, module, description, isCustom, memberCount, write.rawValue, ...trackingColumns(write)]);
   }
 
   /**
@@ -111,6 +125,7 @@ export class UserRoleRawDbService {
    */
   public async saveRawRolesBatch(roles: any[]): Promise<number> {
     if (!Array.isArray(roles) || roles.length === 0) return 0;
+    await this.ensureMetadataColumns();
     const host = this.getHost();
     const chunkSize = 200;
     let savedCount = 0;
@@ -127,6 +142,8 @@ export class UserRoleRawDbService {
 
         const roleName = role.displayName || role.roleName || role.name || roleCode;
         const category = role.category || null;
+        const module = role.module || null;
+        const description = role.description || null;
         const isCustom = Boolean(role.isCustom || roleCode.startsWith('CUSTOM_') || roleCode.startsWith('CLAAPS_'));
         const memberCount = typeof role.memberCount === 'number' ? role.memberCount : (Array.isArray(role.members) ? role.members.length : 0);
 
@@ -135,9 +152,9 @@ export class UserRoleRawDbService {
           const write = await encryptRawField('oracle_raw_roles', { role_code: roleCode }, role, host);
           const baseIndex = values.length + 1;
           valueClauses.push(
-            `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, NOW(), NOW())`
+            `($${baseIndex}, $${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, $${baseIndex + 11}, $${baseIndex + 12}, NOW(), NOW())`
           );
-          values.push(host, roleCode, roleName, category, isCustom, memberCount, write.rawValue, ...trackingColumns(write));
+          values.push(host, roleCode, roleName, category, module, description, isCustom, memberCount, write.rawValue, ...trackingColumns(write));
         });
       });
 
@@ -151,6 +168,8 @@ export class UserRoleRawDbService {
           role_code,
           role_name,
           category,
+          module,
+          description,
           is_custom,
           member_count,
           raw_role,
@@ -164,6 +183,8 @@ export class UserRoleRawDbService {
         ON CONFLICT (environment_host, role_code) DO UPDATE SET
           role_name = EXCLUDED.role_name,
           category = EXCLUDED.category,
+          module = EXCLUDED.module,
+          description = EXCLUDED.description,
           is_custom = EXCLUDED.is_custom,
           member_count = EXCLUDED.member_count,
           raw_role = EXCLUDED.raw_role,
@@ -183,26 +204,43 @@ export class UserRoleRawDbService {
   }
 
   /**
-   * Retrieves raw roles from oracle_raw_roles with optional category and search filters
+   * Retrieves raw roles from oracle_raw_roles with optional category, module, and search filters
    */
   public async getRawRoles(options: {
     category?: string;
+    module?: string;
     filterText?: string;
     limit?: number;
     offset?: number;
   } = {}): Promise<{ roles: any[]; totalCount: number }> {
+    await this.ensureMetadataColumns();
     const host = this.getHost();
     const conditions: string[] = ['(environment_host = $1 OR environment_host = \'eiiv-dev14.fa.us6.oraclecloud.com\')'];
     const params: any[] = [host];
 
     if (options.category && options.category.toUpperCase() !== 'ALL') {
-      params.push(options.category);
-      conditions.push(`category = $${params.length}`);
+      const catNorm = options.category.trim().toUpperCase().replace(/[\s-]+/g, '_');
+      if (
+        catNorm === 'UNASSIGNED' ||
+        catNorm.includes('WITHOUT_USERS') ||
+        catNorm.includes('NO_USERS') ||
+        catNorm.includes('ZERO_USERS')
+      ) {
+        conditions.push(`(member_count = 0 OR member_count IS NULL)`);
+      } else {
+        params.push(options.category);
+        conditions.push(`category = $${params.length}`);
+      }
+    }
+
+    if (options.module && options.module.toUpperCase() !== 'ALL') {
+      params.push(options.module);
+      conditions.push(`(module = $${params.length} OR raw_role->>'module' = $${params.length})`);
     }
 
     if (options.filterText) {
       params.push(`%${options.filterText}%`);
-      conditions.push(`(role_code ILIKE $${params.length} OR role_name ILIKE $${params.length})`);
+      conditions.push(`(role_code ILIKE $${params.length} OR role_name ILIKE $${params.length} OR module ILIKE $${params.length} OR description ILIKE $${params.length} OR raw_role->>'description' ILIKE $${params.length})`);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -213,7 +251,7 @@ export class UserRoleRawDbService {
     );
     const totalCount = parseInt(countRes.rows[0]?.count || '0', 10);
 
-    let querySql = `SELECT raw_role, member_count, is_encrypted, role_code FROM oracle_raw_roles WHERE ${whereClause} ORDER BY role_name ASC`;
+    let querySql = `SELECT raw_role, member_count, is_encrypted, role_code, module, description FROM oracle_raw_roles WHERE ${whereClause} ORDER BY role_name ASC`;
     if (options.limit) {
       params.push(options.limit);
       querySql += ` LIMIT $${params.length}`;
@@ -223,13 +261,15 @@ export class UserRoleRawDbService {
       querySql += ` OFFSET $${params.length}`;
     }
 
-    const dataRes = await query<{ raw_role: any; member_count: number; is_encrypted: boolean; role_code: string }>(querySql, params);
+    const dataRes = await query<{ raw_role: any; member_count: number; is_encrypted: boolean; role_code: string; module?: string; description?: string }>(querySql, params);
     const decryptedRows = await decryptRawRows('oracle_raw_roles', 'raw_role', dataRes.rows, host);
     const roles = decryptedRows.map(r => {
       const raw = r.raw_role || {};
       const count = Array.isArray(raw.members) ? raw.members.length : (typeof r.member_count === 'number' ? r.member_count : 0);
       return {
         ...raw,
+        module: raw.module || r.module || 'Common',
+        description: raw.description || r.description || '',
         assignedMembers: count,
         userCount: count,
         memberCount: count,
@@ -240,10 +280,30 @@ export class UserRoleRawDbService {
   }
 
   /**
+   * Deletes synthetic hierarchy-derived duty roles from oracle_raw_roles
+   */
+  public async deleteHierarchyDutyRoles(): Promise<number> {
+    await this.ensureMetadataColumns();
+    const host = this.getHost();
+    const res = await query(
+      `DELETE FROM oracle_raw_roles
+       WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')
+         AND (raw_role->>'id' LIKE 'DUTY_%' OR description LIKE '%through role hierarchy%')`,
+      [host]
+    );
+    const deleted = res.rowCount || 0;
+    if (deleted > 0) {
+      console.log(`[UserRoleRawDbService] Pruned ${deleted} synthetic hierarchy duty roles from PostgreSQL oracle_raw_roles.`);
+    }
+    return deleted;
+  }
+
+  /**
    * Loads and seeds authoritative roles from oracle_roles_cache.json into oracle_raw_roles if table is empty
    */
   public async seedRolesFromCacheIfEmpty(): Promise<number> {
     try {
+      await this.deleteHierarchyDutyRoles();
       const host = this.getHost();
       const existing = await query<{ count: string }>(
         `SELECT count(*) as count FROM oracle_raw_roles WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com')`,
@@ -259,8 +319,11 @@ export class UserRoleRawDbService {
         const raw = fs.readFileSync(cacheFile, 'utf-8');
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed?.roles) && parsed.roles.length > 0) {
-          console.log(`[UserRoleRawDbService] Seeding ${parsed.roles.length} roles from cache into oracle_raw_roles...`);
-          const saved = await this.saveRawRolesBatch(parsed.roles);
+          const cleanRoles = parsed.roles.filter(
+            (r: any) => !r.id?.startsWith('DUTY_') && !(r.description && r.description.includes('through role hierarchy'))
+          );
+          console.log(`[UserRoleRawDbService] Seeding ${cleanRoles.length} roles from cache into oracle_raw_roles...`);
+          const saved = await this.saveRawRolesBatch(cleanRoles);
           console.log(`[UserRoleRawDbService] Successfully seeded ${saved} raw roles in PostgreSQL.`);
           return saved;
         }

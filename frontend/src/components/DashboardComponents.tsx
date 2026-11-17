@@ -41,13 +41,10 @@ interface RoleLandscapeProps {
 
 export function RoleLandscape({ stats, onNavigatePage }: RoleLandscapeProps) {
   const roleCategories: Array<{ id: string; label: string; count: number; desc: string; icon: any; color: string; bg: string; isHighlight?: boolean }> = [
-    { id: 'JOB', label: 'Job Roles', count: stats.jobRolesCount || 513, desc: 'Business responsibilities', icon: Award, color: '#2563EB', bg: '#EFF6FF' },
-    { id: 'DUTY', label: 'Duty Roles', count: stats.dutyRolesCount || 4004, desc: 'Tasks & granular permissions', icon: Key, color: '#EC4899', bg: '#FDF2F8' },
-    { id: 'DATA', label: 'Data Roles', count: stats.dataRolesCount || 48, desc: 'Data security & visibility', icon: FileText, color: '#F59E0B', bg: '#FFFBEB' },
-    { id: 'ABSTRACT', label: 'Abstract Roles', count: stats.abstractRolesCount || 109, desc: 'Standard employee identities', icon: Layers, color: '#8B5CF6', bg: '#F5F3FF' },
-    { id: 'GRC', label: 'GRC / Access Rules', count: stats.grcRolesCount || 12, desc: 'Governance & SoD definitions', icon: Lock, color: '#10B981', bg: '#ECFDF5' },
-    { id: 'OTHER', label: 'Other Roles', count: stats.otherRolesCount !== undefined ? stats.otherRolesCount : 27, desc: 'Unclassified & custom roles', icon: Award, color: '#64748B', bg: '#F1F5F9' },
-    { id: 'UNASSIGNED', label: 'Roles Without Users', count: stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 4231, desc: 'Roles with 0 assigned members', icon: Users, color: '#7C3AED', bg: '#F5F3FF' }
+    { id: 'JOB', label: 'Job Roles', count: stats.jobRolesCount ?? 0, desc: 'Business responsibilities', icon: Award, color: '#2563EB', bg: '#EFF6FF' },
+    { id: 'DUTY', label: 'Duty Roles', count: stats.dutyRolesCount ?? 0, desc: 'Tasks & granular permissions', icon: Key, color: '#EC4899', bg: '#FDF2F8' },
+    { id: 'DATA', label: 'Data Roles', count: stats.dataRolesCount ?? 0, desc: 'Data security & visibility', icon: FileText, color: '#F59E0B', bg: '#FFFBEB' },
+    { id: 'ABSTRACT', label: 'Abstract Roles', count: stats.abstractRolesCount ?? 0, desc: 'Standard employee identities', icon: Layers, color: '#8B5CF6', bg: '#F5F3FF' }
   ];
 
   return (
@@ -62,8 +59,8 @@ export function RoleLandscape({ stats, onNavigatePage }: RoleLandscapeProps) {
         </p>
       </div>
 
-      {/* Clean 3x2 Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.85rem' }}>
+      {/* Clean Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
         {roleCategories.map(item => {
           const Icon = item.icon;
           return (
@@ -169,8 +166,8 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
     ? stats.singleRoleUsersCount 
     : (stats.userAccountHealth?.singleRoleUsers !== undefined ? stats.userAccountHealth.singleRoleUsers : 94);
   const securityAdmins = stats.securityAdminsCount !== undefined ? stats.securityAdminsCount : 446;
-  const highRiskRoles = stats.highRiskRolesCount || stats.grcRolesCount || 12;
-  const rolesWithoutUsers = stats.rolesWithoutUsersCount !== undefined ? stats.rolesWithoutUsersCount : 249;
+  const highRiskRoles = stats.highRiskRolesCount ?? stats.grcRolesCount ?? 0;
+  const rolesWithoutUsers = stats.rolesWithoutUsersCount ?? 0;
 
   // Mutually-exclusive user access breakdown for donut (Single + Multiple + Without Roles = Total)
   const accessSegments = [
@@ -238,16 +235,6 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
       color: '#F59E0B',
       bg: '#FFFBEB',
       icon: Lock
-    },
-    {
-      label: 'Roles Without Users',
-      count: rolesWithoutUsers,
-      desc: 'Not assigned to any user',
-      filter: 'UNASSIGNED',
-      page: 'roles',
-      color: '#7C3AED',
-      bg: '#F5F3FF',
-      icon: Users
     }
   ];
 
@@ -567,16 +554,14 @@ export function RoleDistributionDonut({ stats, onNavigatePage }: RoleDistributio
   const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
 
   const segments = [
-    { label: 'Job Roles', count: stats.jobRolesCount || 513, color: '#2563EB', category: 'JOB' },
-    { label: 'Duty Roles', count: stats.dutyRolesCount || 4004, color: '#EC4899', category: 'DUTY' },
-    { label: 'Data Roles', count: stats.dataRolesCount || 48, color: '#F59E0B', category: 'DATA' },
-    { label: 'Abstract Roles', count: stats.abstractRolesCount || 109, color: '#8B5CF6', category: 'ABSTRACT' },
-    { label: 'GRC / Access Rules', count: stats.grcRolesCount || 12, color: '#10B981', category: 'GRC' },
-    { label: 'Other Roles', count: stats.otherRolesCount !== undefined ? stats.otherRolesCount : 27, color: '#64748B', category: 'OTHER' }
+    { label: 'Job Roles', count: stats.jobRolesCount ?? 0, color: '#2563EB', category: 'JOB' },
+    { label: 'Duty Roles', count: stats.dutyRolesCount ?? 0, color: '#EC4899', category: 'DUTY' },
+    { label: 'Data Roles', count: stats.dataRolesCount ?? 0, color: '#F59E0B', category: 'DATA' },
+    { label: 'Abstract Roles', count: stats.abstractRolesCount ?? 0, color: '#8B5CF6', category: 'ABSTRACT' }
   ];
 
   const segmentSum = segments.reduce((acc, s) => acc + (s.count || 0), 0);
-  const total = segmentSum > 0 ? (stats.totalRoles && stats.totalRoles >= segmentSum ? stats.totalRoles : segmentSum) : (stats.totalRoles || 4713);
+  const total = stats.totalRoles || segmentSum;
 
   // Calculate SVG donut stroke arcs on a large prominent radius
   const radius = 76;

@@ -24,6 +24,7 @@ export interface Role {
   roleCode: string;
   category: 'Job' | 'Duty' | 'Data' | 'Abstract' | 'GRC' | 'Other';
   description: string;
+  module?: string;
   members: { value: string; display: string }[];
   assignedMembers?: number;
   userCount?: number;
