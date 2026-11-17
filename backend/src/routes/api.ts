@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { oracleService } from '../services/oracleService.js';
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
+import { validateAndNormalizeUrl } from '../security/urlPolicy.js';
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
@@ -904,41 +905,7 @@ apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEME
   }
 });
 
-function validateAndNormalizeUrl(url: string): string {
-  let trimmed = url.trim();
-  if (!trimmed) {
-    throw new Error('Base URL is required.');
-  }
-
-  // Reject query parameters and fragments
-  if (trimmed.includes('?') || trimmed.includes('#')) {
-    throw new Error('Base URL must not contain query parameters (?) or fragments (#).');
-  }
-
-  // Require HTTPS
-  if (!trimmed.startsWith('https://')) {
-    if (trimmed.startsWith('http://')) {
-      throw new Error('Secure connection (https://) is required.');
-    } else {
-      trimmed = 'https://' + trimmed;
-    }
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch (err) {
-    throw new Error('Invalid URL format. Please enter a valid URL.');
-  }
-
-  // Reject pathname prefixes
-  if (parsed.pathname && parsed.pathname !== '/' && parsed.pathname.toLowerCase() !== '') {
-    throw new Error("Please enter only the Base URL (e.g., https://example.oraclecloud.com) without any path (e.g., /hcmRestApi/...)");
-  }
-
-  // Normalize URL (strips trailing slash automatically)
-  return `${parsed.protocol}//${parsed.host}`;
-}
+// VYR-051: URL policy lives in security/urlPolicy.ts (SSRF protection, testable).
 
 // 1. Connection & Settings API
 apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
