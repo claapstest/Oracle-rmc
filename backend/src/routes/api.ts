@@ -70,6 +70,9 @@ apiRouter.use(apiRateLimiter);
 // VYR-049: Enforce content-type allowlist for mutation requests
 apiRouter.use(enforceContentType);
 
+// VYR-052: Reject cross-tenant parameter substitution on all API routes
+apiRouter.use(enforceTenantIsolation);
+
 // Write Audit Logs securely without exposing secrets
 function logAudit(username: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
@@ -98,6 +101,11 @@ function logAudit(username: string, action: string, details: string) {
 // Authentication and RBAC middleware integrating JWT verification (VYR-021 & VYR-023)
 import { verifyJwtAndSession } from '../middleware/jwtAuthMiddleware.js';
 import { cryptoAuditService } from '../security/cryptoAuditService.js';
+import {
+  enforceTenantIsolation,
+  preventPrivilegeEscalation,
+  preventSelfModification,
+} from '../security/tenantIsolationService.js';
 export const requireAuth = verifyJwtAndSession;
 
 // Middleware to enforce backend admin authorization (Site Admin only - AC6, VYR-023)
@@ -2101,7 +2109,8 @@ apiRouter.post('/chat', requireAskVeyra, enforceBodySizeLimit('POST /chat'), val
 });
 
 // Universal Schema-Aware Database Chatbot Endpoints
-apiRouter.get('/database/schema', async (req: Request, res: Response) => {
+// VYR-052: Protected — schema discovery exposes internal table structure
+apiRouter.get('/database/schema', requireAdmin, async (req: Request, res: Response) => {
   try {
     const force = req.query.refresh === 'true';
     const schema = await schemaDiscoveryService.discoverSchema(force);
@@ -2111,7 +2120,7 @@ apiRouter.get('/database/schema', async (req: Request, res: Response) => {
   }
 });
 
-apiRouter.post('/database/schema/refresh', async (req: Request, res: Response) => {
+apiRouter.post('/database/schema/refresh', requireAdmin, async (req: Request, res: Response) => {
   try {
     const schema = await schemaDiscoveryService.refreshSchema();
     res.json({ success: true, tableCount: Object.keys(schema.tables).length, refreshedAt: schema.discoveredAt });
@@ -2120,7 +2129,7 @@ apiRouter.post('/database/schema/refresh', async (req: Request, res: Response) =
   }
 });
 
-apiRouter.get('/database/relationships', async (req: Request, res: Response) => {
+apiRouter.get('/database/relationships', requireAdmin, async (req: Request, res: Response) => {
   try {
     const relationships = await metadataCatalogService.getAllRelationships();
     res.json({ success: true, count: relationships.length, relationships });
@@ -2129,7 +2138,8 @@ apiRouter.get('/database/relationships', async (req: Request, res: Response) => 
   }
 });
 
-apiRouter.get('/ai/universal-traces', async (req: Request, res: Response) => {
+// VYR-052: Protected — AI traces contain query history and internal state
+apiRouter.get('/ai/universal-traces', requireAdmin, async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string || '25', 10);
     const traces = observabilityTraceService.getRecentTraces(limit);
@@ -2139,7 +2149,7 @@ apiRouter.get('/ai/universal-traces', async (req: Request, res: Response) => {
   }
 });
 
-apiRouter.post('/ai/universal-query', enforceBodySizeLimit('POST /ai/universal-query'), validateBody('POST /ai/universal-query'), async (req: Request, res: Response) => {
+apiRouter.post('/ai/universal-query', requireAuth, enforceBodySizeLimit('POST /ai/universal-query'), validateBody('POST /ai/universal-query'), async (req: Request, res: Response) => {
   try {
     const { query, context } = req.body;
     if (!query) {
@@ -2304,7 +2314,8 @@ apiRouter.get('/users/:id/scopes', requireUsersListAccess, async (req: Request, 
 });
 
 // POST /api/users - Create new user (USER_MANAGEMENT privilege required)
-apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /users'), async (req: Request, res: Response) => {
+// VYR-052: Prevent privilege escalation on user creation
+apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), preventPrivilegeEscalation, validateBody('POST /users'), async (req: Request, res: Response) => {
   try {
     const { email, displayName, name, role, password, status, applicationAccess, access, sendInvitation, permissions } = req.body || {};
 
@@ -2343,7 +2354,8 @@ apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), validateBody('POST
 });
 
 // PUT /api/users/:id - Update user / role assignment (USER_MANAGEMENT privilege required)
-apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), validateBody('PUT /users/:id'), async (req: Request, res: Response) => {
+// VYR-052: Prevent privilege escalation and self-role-modification
+apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), preventPrivilegeEscalation, preventSelfModification, validateBody('PUT /users/:id'), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const { displayName, role, status, password, permissions } = req.body;
@@ -2372,7 +2384,8 @@ apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), validateBody('P
 });
 
 // DELETE /api/users/:id - Delete user (USER_MANAGEMENT privilege required)
-apiRouter.delete('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+// VYR-052: Prevent self-deletion through admin API
+apiRouter.delete('/users/:id', requirePrivilege('USER_MANAGEMENT'), preventSelfModification, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const result = await authService.deleteUser(id, res.locals.email);
