@@ -3,6 +3,7 @@ import { oracleService } from '../services/oracleService.js';
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
 import { processUserMessage } from '../ai/orchestrator.js';
+import { validateAndNormalizeUrl } from '../security/urlPolicy.js';
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
@@ -937,41 +938,7 @@ apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEME
   }
 });
 
-function validateAndNormalizeUrl(url: string): string {
-  let trimmed = url.trim();
-  if (!trimmed) {
-    throw new Error('Base URL is required.');
-  }
-
-  // Reject query parameters and fragments
-  if (trimmed.includes('?') || trimmed.includes('#')) {
-    throw new Error('Base URL must not contain query parameters (?) or fragments (#).');
-  }
-
-  // Require HTTPS
-  if (!trimmed.startsWith('https://')) {
-    if (trimmed.startsWith('http://')) {
-      throw new Error('Secure connection (https://) is required.');
-    } else {
-      trimmed = 'https://' + trimmed;
-    }
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch (err) {
-    throw new Error('Invalid URL format. Please enter a valid URL.');
-  }
-
-  // Reject pathname prefixes
-  if (parsed.pathname && parsed.pathname !== '/' && parsed.pathname.toLowerCase() !== '') {
-    throw new Error("Please enter only the Base URL (e.g., https://example.oraclecloud.com) without any path (e.g., /hcmRestApi/...)");
-  }
-
-  // Normalize URL (strips trailing slash automatically)
-  return `${parsed.protocol}//${parsed.host}`;
-}
+// VYR-051: URL policy moved to security/urlPolicy.ts (SSRF protection, testable).
 
 // 1. Connection & Settings API
 apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
@@ -2072,6 +2039,12 @@ apiRouter.post('/chat', requireAskVeyra, enforceBodySizeLimit('POST /chat'), val
     console.log(`🎯 Detected Intent:  ${aiResponse.intent}`);
     console.log(`⚙️  Parameters:       ${JSON.stringify(aiResponse.parameters || {})}`);
 
+    // VYR-051: these strings are terminal-log display only (never executed);
+    // AI-extracted parameters are sanitised so control characters, quotes and
+    // semicolons cannot forge log lines or imply executable SQL.
+    const sqlDisplay = (v: unknown): string =>
+      String(v ?? '').replace(/[\r\n\t;'"`\\]/g, '').slice(0, 120);
+
     let generatedQuery = '';
     if (aiResponse.parameters?.generatedSql) {
       generatedQuery = aiResponse.parameters.generatedSql;
@@ -2097,11 +2070,11 @@ apiRouter.post('/chat', requireAskVeyra, enforceBodySizeLimit('POST /chat'), val
         generatedQuery = `SELECT * FROM oracle_control_incidents_summary;`;
       }
     } else if (aiResponse.intent === 'CERTIFICATION_DETAILS') {
-      generatedQuery = `SELECT certification_id, certification_name, owner_name, manager_name, status, percent_complete, due_date FROM oracle_raw_access_certifications WHERE CAST(certification_id AS TEXT) = '${aiResponse.parameters?.certificationId || '1'}';`;
+      generatedQuery = `SELECT certification_id, certification_name, owner_name, manager_name, status, percent_complete, due_date FROM oracle_raw_access_certifications WHERE CAST(certification_id AS TEXT) = '${sqlDisplay(aiResponse.parameters?.certificationId) || '1'}';`;
     } else if (aiResponse.intent === 'CONTROL_DETAILS') {
-      generatedQuery = `SELECT control_id, name, status, state FROM oracle_raw_controls WHERE control_id = '${aiResponse.parameters?.controlId || ''}' OR name ILIKE '%${aiResponse.parameters?.controlName || ''}%';`;
+      generatedQuery = `SELECT control_id, name, status, state FROM oracle_raw_controls WHERE control_id = '${sqlDisplay(aiResponse.parameters?.controlId)}' OR name ILIKE '%${sqlDisplay(aiResponse.parameters?.controlName)}%';`;
     } else if (aiResponse.intent === 'CONTROLS_LIST') {
-      generatedQuery = `SELECT control_id, name, status, state FROM oracle_raw_controls LIMIT ${aiResponse.parameters?.limit || 25};`;
+      generatedQuery = `SELECT control_id, name, status, state FROM oracle_raw_controls LIMIT ${Number(aiResponse.parameters?.limit) || 25};`;
     } else if (aiResponse.intent === 'LIST_USERS' || aiResponse.intent === 'GET_USER') {
       generatedQuery = `SELECT username, display_name, email, is_active FROM oracle_raw_users LIMIT 50;`;
     } else if (aiResponse.intent === 'LIST_ROLES' || aiResponse.intent === 'ROLE_SEARCH') {
