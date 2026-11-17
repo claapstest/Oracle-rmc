@@ -4,6 +4,8 @@ import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogSer
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
 import { processUserMessage } from '../ai/orchestrator.js';
 import { validateAndNormalizeUrl } from '../security/urlPolicy.js';
+import { maskSensitive } from '../security/cryptoFailure.js';
+import { securityEventLogger } from '../security/securityEventLogger.js';
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
@@ -77,7 +79,11 @@ apiRouter.use(enforceTenantIsolation);
 function logAudit(username: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
   const safeUsername = username || 'SYSTEM';
-  const logMessage = `[${timestamp}] User: ${safeUsername} | Action: ${action} | Details: ${details}\n`;
+  // VYR-053: free-form detail strings are interpolated from many sources
+  // (error messages, URLs, emails). Mask credentials/tokens/ciphertext before
+  // they reach the file log or the in-memory trail.
+  const safeDetails = maskSensitive(details, 2000);
+  const logMessage = `[${timestamp}] User: ${safeUsername} | Action: ${action} | Details: ${safeDetails}\n`;
   console.log(`[AUDIT] ${logMessage.trim()}`);
   try {
     fs.appendFileSync(AUDIT_LOG_PATH, logMessage, { encoding: 'utf8', mode: 0o600 });
@@ -89,9 +95,9 @@ function logAudit(username: string, action: string, details: string) {
       id: `aud_adm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       timestamp,
       username: safeUsername,
-      businessObject: action.includes('USER') || action.includes('ACCOUNT') ? `User: ${details.split(' ').pop() || safeUsername}` : 'Security Administration',
+      businessObject: action.includes('USER') || action.includes('ACCOUNT') ? `User: ${safeDetails.split(' ').pop() || safeUsername}` : 'Security Administration',
       action: action.includes('DELETE') ? 'DELETE' : action.includes('REVOKE') ? 'ROLE_REVOKE' : action.includes('ASSIGN') ? 'ROLE_ASSIGN' : 'UPDATE',
-      details
+      details: safeDetails
     });
   } catch (err) {
     console.error('[Audit Error] Failed to update in-memory audit trail:', err);
@@ -1051,6 +1057,22 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
 
     logAudit(adminUser, 'CONFIGURATION_SAVED', `Updated configuration. Mode: ${oldMode} -> ${config.environmentMode}, URL: ${oldUrl} -> ${config.oracle.baseUrl}, Auth: ${oldAuth} -> ${config.oracle.authType}`);
 
+    // VYR-053: configuration changes recorded as structured, attributable
+    // security events — no credential material, only what changed.
+    securityEventLogger.record({
+      eventType: 'CONFIG_CHANGED',
+      userId: res.locals.userId || null,
+      targetType: 'environment_config',
+      targetId: config.oracle.baseUrl,
+      result: 'SUCCESS',
+      details: {
+        mode: config.environmentMode,
+        modeChanged: oldMode !== config.environmentMode,
+        urlChanged: oldUrl !== config.oracle.baseUrl,
+        authChanged: oldAuth !== config.oracle.authType
+      }
+    });
+
     res.json({
       success: true,
       message: `Environment configuration updated. Running in ${config.environmentMode} mode.`,
@@ -1446,6 +1468,16 @@ apiRouter.get('/dashboard/audit-supervisor/db/audit-events', requireAuditSupervi
       offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0
     });
 
+    // VYR-053: access to the audit trail itself is a recorded security event
+    // (log access is restricted to Audit Supervisors and is attributable).
+    securityEventLogger.record({
+      eventType: 'AUDIT_LOG_ACCESS',
+      userId: res.locals.userId || null,
+      targetType: 'audit_event',
+      result: 'SUCCESS',
+      details: { returned: Array.isArray(events) ? events.length : null }
+    });
+
     return res.status(200).json({ success: true, count: events.length, data: events });
   } catch (err) {
     console.error('[Audit Supervisor DB Audit Events Error]:', err);
@@ -1764,6 +1796,17 @@ apiRouter.get('/reports/:id/download', requireReportsDashboard, async (req: Requ
       `Downloaded report ${download.report.reportId} (${download.format})`
     );
 
+    // VYR-053: privileged data access (report content) recorded as a
+    // standardized, attributable security event with a correlation ID.
+    securityEventLogger.record({
+      eventType: 'PRIVILEGED_DATA_ACCESS',
+      userId: res.locals.userId || null,
+      targetType: 'report',
+      targetId: download.report.reportId,
+      result: 'SUCCESS',
+      details: { format: download.format, sizeBytes: download.sizeBytes, name: download.report.reportName }
+    });
+
     if (asJson) {
       return res.status(200).json({
         success: true,
@@ -1926,6 +1969,22 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, enforceBodySizeLimit('
     oracleService.recreateClient();
 
     logAudit(adminUser, 'CONFIGURATION_SAVED', `Updated Oracle integration configuration. URL: ${oldUrl} -> ${config.oracle.baseUrl}, Auth: ${oldAuth} -> ${config.oracle.authType}`);
+
+    // VYR-053: Oracle integration changes recorded as structured security
+    // events — credential presence as booleans, never the values themselves.
+    securityEventLogger.record({
+      eventType: 'CONFIG_CHANGED',
+      userId: res.locals.userId || null,
+      targetType: 'oracle_integration',
+      targetId: config.oracle.baseUrl,
+      result: 'SUCCESS',
+      details: {
+        authType: config.oracle.authType,
+        urlChanged: oldUrl !== config.oracle.baseUrl,
+        authChanged: oldAuth !== config.oracle.authType,
+        credentialsUpdated: !!(req.body?.password || req.body?.token)
+      }
+    });
 
     res.json({
       success: true,
