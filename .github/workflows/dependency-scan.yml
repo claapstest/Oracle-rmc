@@ -1,0 +1,82 @@
+name: Dependency & Vulnerability Scan
+
+on:
+  push:
+    branches:
+      - veyra-application-dev
+      - standard-veyra-application-dev
+      - main
+  pull_request:
+    branches:
+      - veyra-application-dev
+      - standard-veyra-application-dev
+      - main
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  backend-audit:
+    name: Backend dependency audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: npm audit (high + critical)
+        run: npm audit --audit-level=high --omit=dev || true
+      - name: npm audit full report
+        run: npm audit --json > ../audit-backend.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-audit-report
+          path: audit-backend.json
+          retention-days: 30
+
+  frontend-audit:
+    name: Frontend dependency audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: npm audit (high + critical)
+        run: npm audit --audit-level=high --omit=dev || true
+      - name: npm audit full report
+        run: npm audit --json > ../audit-frontend.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-audit-report
+          path: audit-frontend.json
+          retention-days: 30
+
+  codeql-analysis:
+    name: CodeQL static analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'
