@@ -45,6 +45,9 @@ export class UserRoleRawDbService {
     await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS encryption_key_id VARCHAR(128) DEFAULT NULL`, []).catch(() => {});
     await query(`ALTER TABLE oracle_raw_roles ADD COLUMN IF NOT EXISTS encrypted_at TIMESTAMPTZ DEFAULT NULL`, []).catch(() => {});
     await query(`CREATE INDEX IF NOT EXISTS ix_oracle_raw_roles_module ON oracle_raw_roles (module)`, []).catch(() => {});
+    // VYR-036 gap: the queryable-metadata INSERT references business_unit but
+    // no migration or ensure ever created the column ??? added here.
+    await query(`ALTER TABLE oracle_raw_users ADD COLUMN IF NOT EXISTS business_unit TEXT DEFAULT ''`, []).catch(() => {});
     this.metadataColumnsEnsured = true;
   }
 
