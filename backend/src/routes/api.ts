@@ -55,6 +55,14 @@ import {
   enforceBodySizeLimit,
   type SchemaKey,
 } from '../security/requestValidationService.js';
+import {
+  secretsManager,
+  sanitizeSettingsResponse,
+  resolveWorkloadIdentity,
+  createSecretFingerprint,
+} from '../security/secretsManager.js';
+import { validateStartupConfig } from '../security/configValidator.js';
+import { kmsProvider } from '../security/kmsProvider.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -959,7 +967,7 @@ apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request
   const adminUser = res.locals.email || res.locals.username;
   logAudit(adminUser, 'READ_SETTINGS', 'Retrieved settings metadata');
   
-  res.json({
+  res.json(sanitizeSettingsResponse({
     mode: config.environmentMode,
     baseUrl: config.oracle.baseUrl,
     authType: config.oracle.authType,
@@ -971,7 +979,7 @@ apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request
     isConfigured: oracleService.isConfigured(),
     status: oracleService.getConnectionStatus(),
     lastTestedAt: oracleService.getLastTestedAt(),
-  });
+  }));
 });
 
 apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION'), validateBody('POST /settings/test-connection'), async (req: Request, res: Response) => {
@@ -1073,7 +1081,7 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
       }
     });
 
-    res.json({
+    res.json(sanitizeSettingsResponse({
       success: true,
       message: `Environment configuration updated. Running in ${config.environmentMode} mode.`,
       settings: {
@@ -1086,7 +1094,7 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
         hasGeminiKey: !!(config.togetherApiKey || config.groqApiKey),
         groqModel: config.groqModel || config.togetherModel,
       }
-    });
+    }));
   } catch (err) {
     logAudit(adminUser, 'CONFIGURATION_SAVE_FAILED', `Error: ${(err as Error).message}`);
     res.status(400).json({ success: false, message: (err as Error).message });
@@ -1924,7 +1932,7 @@ apiRouter.get('/admin/summary', requireAdmin, handleAdminDashboard);
 apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
   logAudit(adminUser, 'READ_SETTINGS', 'Retrieved Oracle integration metadata');
-  res.json({
+  res.json(sanitizeSettingsResponse({
     success: true,
     mode: config.environmentMode,
     baseUrl: config.oracle.baseUrl,
@@ -1935,7 +1943,7 @@ apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Res
     hasGeminiKey: !!(config.togetherApiKey || config.groqApiKey),
     groqModel: config.groqModel || config.togetherModel,
     status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
-  });
+  }));
 });
 
 // POST /api/admin/oracle/integration - Update Oracle configuration (AC3, AC6)
@@ -1986,7 +1994,7 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, enforceBodySizeLimit('
       }
     });
 
-    res.json({
+    res.json(sanitizeSettingsResponse({
       success: true,
       message: `Oracle integration configuration updated. Running in ${config.environmentMode} mode.`,
       settings: {
@@ -2000,7 +2008,7 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, enforceBodySizeLimit('
         groqModel: config.groqModel || config.togetherModel,
         status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
       }
-    });
+    }));
   } catch (err) {
     logAudit(adminUser, 'CONFIGURATION_SAVE_FAILED', `Error: ${(err as Error).message}`);
     res.status(400).json({ success: false, message: (err as Error).message });
@@ -3715,4 +3723,127 @@ apiRouter.post('/admin/security/rate-limits/reset', requireAdmin, validateBody('
     success: true,
     message: 'All rate limit tracking windows and account lockouts have been reset.',
   });
+});
+
+// =========================================================
+// Secrets Management & Environment Security (Admin Only, VYR-055)
+// =========================================================
+
+// GET /api/admin/security/secrets-status - Safe secrets health, workload identity and verification status (no secrets disclosed)
+apiRouter.get('/admin/security/secrets-status', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const health = await secretsManager.getHealth();
+    const validation = validateStartupConfig({ strict: false, throwOnError: false });
+    const isEntra = isEntraEnabled();
+
+    res.json({
+      success: true,
+      environment: config.nodeEnv,
+      secretsBackend: secretsManager.getBackendName(),
+      workloadIdentity: resolveWorkloadIdentity(),
+      configuredSecrets: {
+        database: {
+          configured: Boolean(process.env.DATABASE_URL || process.env.POSTGRES_HOST),
+          fingerprint: createSecretFingerprint(process.env.DATABASE_URL || process.env.POSTGRES_PASSWORD),
+        },
+        oracle: {
+          configured: Boolean(config.oracle.baseUrl),
+          authType: config.oracle.authType,
+          hasPassword: Boolean(config.oracle.password),
+          hasToken: Boolean(config.oracle.token),
+          fingerprint: createSecretFingerprint(config.oracle.password || config.oracle.token),
+        },
+        jwt: {
+          configured: true,
+          keyId: config.jwt.keyId,
+          algorithm: 'RS256',
+          hasExplicitPrivateKey: Boolean(config.jwt.privateKey || config.jwt.privateKeyPath),
+          fingerprint: createSecretFingerprint(config.jwt.privateKey),
+        },
+        kms: {
+          provider: kmsProvider.providerType,
+          activeKeyId: kmsProvider.getActiveKeyId(),
+          fingerprint: createSecretFingerprint(process.env.ORACLE_ENCRYPTION_KEY),
+        },
+        entra: {
+          enabled: isEntra,
+          tenantConfigured: Boolean(config.entra.tenantId),
+          clientConfigured: Boolean(config.entra.clientId),
+          hasSecret: Boolean(config.entra.clientSecret),
+        },
+      },
+      validationReport: {
+        valid: validation.valid,
+        errorsCount: validation.errors.length,
+        warningsCount: validation.warnings.length,
+        checks: validation.checks,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// POST /api/admin/security/rotate-secret - Administrative secret rotation trigger (VYR-055)
+apiRouter.post('/admin/security/rotate-secret', requireAdmin, sensitiveAdminRateLimiter, validateBody('POST /admin/security/rotate-secret'), async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const { target, payload } = req.body;
+
+  try {
+    let result: any = null;
+
+    if (target === 'oracle') {
+      const newPassword = payload?.password || payload?.token;
+      if (newPassword) {
+        const secretKey = payload?.password ? 'ORACLE_PASSWORD' : 'ORACLE_TOKEN';
+        result = await secretsManager.rotateSecret(secretKey, newPassword, 'admin');
+        if (payload?.password) config.oracle.password = newPassword;
+        if (payload?.token) config.oracle.token = newPassword;
+        savePersistedConfig();
+        oracleService.recreateClient();
+      } else {
+        await serviceIdentityRegistry.rotateCredentials();
+        oracleService.recreateClient();
+        result = { rotated: true, target: 'oracle' };
+      }
+    } else if (target === 'jwt') {
+      const newPrivateKey = payload?.privateKey;
+      if (newPrivateKey) {
+        result = await secretsManager.rotateSecret('JWT_PRIVATE_KEY', newPrivateKey, 'admin');
+        config.jwt.privateKey = newPrivateKey;
+        keyManager.reset();
+      } else {
+        keyManager.reset();
+        result = { rotated: true, target: 'jwt', message: 'KeyManager cache reset; new key generated/reloaded' };
+      }
+    } else if (target === 'kms') {
+      const newKey = payload?.encryptionKey;
+      if (newKey) {
+        result = await secretsManager.rotateSecret('ORACLE_ENCRYPTION_KEY', newKey, 'admin');
+      } else {
+        result = { rotated: true, target: 'kms' };
+      }
+    } else if (target === 'database') {
+      const newDbPass = payload?.password;
+      if (newDbPass) {
+        result = await secretsManager.rotateSecret('POSTGRES_PASSWORD', newDbPass, 'admin');
+      } else {
+        result = { rotated: true, target: 'database' };
+      }
+    }
+
+    logAudit(adminUser, 'SECRET_ROTATED', `Admin rotated secret for target: ${target}`);
+    res.json({
+      success: true,
+      target,
+      message: `Secret rotation completed successfully for ${target}.`,
+      result,
+    });
+  } catch (err: any) {
+    console.error(`[Admin API] Secret rotation failed for target ${target}:`, err.message);
+    res.status(400).json({
+      success: false,
+      message: `Secret rotation failed: ${err.message}`,
+    });
+  }
 });

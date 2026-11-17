@@ -244,6 +244,11 @@ export const schemas = {
     email: safeEmail().optional(),
     ip: safeString(45).optional(),
   }).strip(),
+
+  'POST /admin/security/rotate-secret': z.object({
+    target: z.enum(['oracle', 'jwt', 'kms', 'database']),
+    payload: z.record(z.string(), z.any()).optional(),
+  }).strip(),
 } as const;
 
 export type SchemaKey = keyof typeof schemas;
