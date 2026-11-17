@@ -9,8 +9,21 @@ backend/dist/
 
 # Configuration and Secrets
 .env
+.env.*
+!.env.example
 backend/oracle_config.json
 backend/oracle_config.json.tmp
+
+# VYR-054: Private keys and credential files
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*secret*.json
+!package.json
+!package-lock.json
+.claude/settings.local.json
 backend/cache/
 backend/oracle_user_access_report_cache.json
 backend/oracle_role_hierarchy_cache.json
