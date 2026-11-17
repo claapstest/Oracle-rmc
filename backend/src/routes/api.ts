@@ -2252,9 +2252,10 @@ apiRouter.get('/roles', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MA
     // Live-instance-only: ignore source=local, always serve from configured Oracle instance link.
     const filter = req.query.filter as string | undefined;
     const category = req.query.category as string | undefined;
+    const module = req.query.module as string | undefined;
     const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
     const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-    const result = await oracleService.getRoles({ filterText: filter, category, startIndex, count });
+    const result = await oracleService.getRoles({ filterText: filter, category, module, startIndex, count });
     return res.json({ ...result, ...oracleService.getModeInfo() });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });

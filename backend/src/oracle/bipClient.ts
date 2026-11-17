@@ -123,6 +123,23 @@ export interface UserRoleAutoProvisionRow {
   autoProvisioned: 'Yes' | 'No' | null;
 }
 
+export interface BipRoleRow {
+  module: string;
+  roleName: string;
+  roleCode: string;
+  description: string;
+  category: string;
+}
+
+export interface BipRolesReportResult {
+  success: boolean;
+  data: BipRoleRow[];
+  count: number;
+  reportPath?: string;
+  message?: string;
+  error?: string;
+}
+
 export class BipClient {
   private axiosInstance: AxiosInstance;
   public reportPath = '/Custom/Claaps Access Certification Review Report.xdo';
@@ -172,6 +189,19 @@ export class BipClient {
   private autoProvResolvedPath: string | null = null;
   private autoProvResolvedAt = 0;
   private autoProvGuidanceLogged = false;
+
+  /**
+   * Priority candidates for the authoritative all-module roles report.
+   */
+  public readonly allModuleRolesReportPaths = [
+    process.env.BIP_ROLES_REPORT_PATH,
+    '/Custom/Claaps_All_Module_Roles.xdo',
+    '/shared/Custom/Claaps_All_Module_Roles.xdo',
+    '/Custom/Claaps_All_Module_Roles',
+    '/shared/Custom/Claaps_All_Module_Roles'
+  ].filter(Boolean) as string[];
+  private allModuleRolesResolvedPath: string | null = null;
+  private allModuleRolesResolvedAt = 0;
   private readonly defaultTimeoutMs = 60000; // 60 seconds for BI Publisher report generation
 
   constructor() {
@@ -1525,6 +1555,180 @@ export class BipClient {
       return `${year}-${month}-${day} ${hours}:${minutes}`;
     } catch (_) {
       return date.toISOString();
+    }
+  }
+
+  /**
+   * Resolves the runnable All Module Roles report path.
+   */
+  public async findAllModuleRolesReportPath(): Promise<string | null> {
+    const now = Date.now();
+    if (this.allModuleRolesResolvedPath && now - this.allModuleRolesResolvedAt < 60 * 60 * 1000) {
+      return this.allModuleRolesResolvedPath;
+    }
+
+    for (const candidate of this.allModuleRolesReportPaths) {
+      try {
+        if (await this.isReportExist(candidate)) {
+          this.allModuleRolesResolvedPath = candidate;
+          this.allModuleRolesResolvedAt = now;
+          console.log(`[BIP Client] Resolved All Module Roles report path: "${candidate}"`);
+          return candidate;
+        }
+      } catch (_) {}
+    }
+
+    // Default fallback to expected standard path
+    return '/Custom/Claaps_All_Module_Roles.xdo';
+  }
+
+  /**
+   * Runs the authoritative All Module Roles report on Oracle Fusion BI Publisher via SOAP 1.2
+   * and returns parsed rows with MODULE, ROLE_NAME, ROLE_CODE, ROLE_DESCRIPTION, and ROLE_CATEGORY.
+   */
+  public async runAllModuleRolesReport(reportPathOverride?: string): Promise<BipRolesReportResult> {
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        data: [],
+        count: 0,
+        message: 'Oracle Fusion instance link not configured.'
+      };
+    }
+
+    const reportPath = reportPathOverride || (await this.findAllModuleRolesReportPath()) || '/Custom/Claaps_All_Module_Roles.xdo';
+    const { baseUrl } = this.getCredentials();
+    const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
+
+    console.log(`[BIP Client] Executing on-demand All Module Roles BIP report: "${reportPath}" via ${endpoint}`);
+
+    try {
+      const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
+      const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
+        headers: {
+          'Content-Type': 'application/soap+xml; charset=UTF-8',
+          Action: 'runReport'
+        },
+        responseType: 'text',
+        timeout: 60000
+      });
+
+      const parsedXml: any = await xml2js.parseStringPromise(response.data, {
+        explicitArray: false,
+        ignoreAttrs: true,
+        tagNameProcessors: [xml2js.processors.stripPrefix]
+      });
+
+      const soapFault = this.extractSoapFaultFromParsed(parsedXml);
+      if (soapFault) {
+        console.error('[BIP Client] All Module Roles SOAP fault:', soapFault);
+        return {
+          success: false,
+          data: [],
+          count: 0,
+          reportPath,
+          error: soapFault
+        };
+      }
+
+      const rawReportBytes = this.findFieldRecursively(parsedXml, 'reportBytes');
+      if (!rawReportBytes || typeof rawReportBytes !== 'string') {
+        console.error('[BIP Client] Missing reportBytes in runReport response for All Module Roles.');
+        return {
+          success: false,
+          data: [],
+          count: 0,
+          reportPath,
+          message: 'BIP response did not contain reportBytes.'
+        };
+      }
+
+      const rows = this.parseAllModuleRolesXlsxBase64(rawReportBytes);
+      console.log(`[BIP Client] All Module Roles report "${reportPath}" returned ${rows.length} rows.`);
+
+      return {
+        success: true,
+        data: rows,
+        count: rows.length,
+        reportPath
+      };
+    } catch (err: any) {
+      console.error(`[BIP Client] All Module Roles report "${reportPath}" execution failed:`, err.message);
+      return {
+        success: false,
+        data: [],
+        count: 0,
+        reportPath,
+        error: err.message
+      };
+    }
+  }
+
+  /**
+   * Parses the base64-encoded XLSX bytes from the All Module Roles report.
+   */
+  public parseAllModuleRolesXlsxBase64(base64Data: string): BipRoleRow[] {
+    try {
+      const buffer = Buffer.from(base64Data.replace(/\s+/g, ''), 'base64');
+      if (buffer.length === 0) return [];
+
+      const workbook = xlsx.read(buffer, { type: 'buffer' });
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) return [];
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!sheet) return [];
+
+      const rawRows = xlsx.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '', blankrows: false });
+      if (!rawRows || rawRows.length === 0) return [];
+
+      // Detect header row containing ROLE_CODE, ROLE_NAME, MODULE
+      let headerIdx = 0;
+      for (let r = 0; r < Math.min(15, rawRows.length); r++) {
+        const row = (rawRows[r] as any[]).map(c => String(c || '').trim().toUpperCase());
+        if (row.includes('ROLE_CODE') || (row.includes('ROLE_NAME') && row.includes('MODULE'))) {
+          headerIdx = r;
+          break;
+        }
+      }
+
+      const headers = (rawRows[headerIdx] as any[]).map(h => String(h || '').trim().toUpperCase());
+      const idxModule = headers.findIndex(h => h === 'MODULE' || h.includes('MODULE'));
+      const idxRoleName = headers.findIndex(h => h === 'ROLE_NAME' || (h.includes('ROLE') && h.includes('NAME')));
+      const idxRoleCode = headers.findIndex(h => h === 'ROLE_CODE' || (h.includes('ROLE') && h.includes('CODE')));
+      const idxDesc = headers.findIndex(h => h === 'ROLE_DESCRIPTION' || h.includes('DESC'));
+      const idxCategory = headers.findIndex(h => h === 'ROLE_CATEGORY' || h.includes('CATEGORY'));
+
+      const out: BipRoleRow[] = [];
+      const seenCodes = new Set<string>();
+
+      for (let r = headerIdx + 1; r < rawRows.length; r++) {
+        const row = rawRows[r] as any[];
+        if (!row || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
+
+        const roleCode = idxRoleCode >= 0 ? String(row[idxRoleCode] || '').trim() : '';
+        if (!roleCode) continue;
+
+        if (seenCodes.has(roleCode)) continue;
+        seenCodes.add(roleCode);
+
+        const moduleVal = idxModule >= 0 ? String(row[idxModule] || '').trim() : 'Common';
+        const roleName = idxRoleName >= 0 ? String(row[idxRoleName] || '').trim() : roleCode;
+        const description = idxDesc >= 0 ? String(row[idxDesc] || '').trim() : '';
+        const categoryVal = idxCategory >= 0 ? String(row[idxCategory] || '').trim() : '';
+
+        out.push({
+          module: moduleVal || 'Common',
+          roleName: roleName || roleCode,
+          roleCode,
+          description,
+          category: categoryVal
+        });
+      }
+
+      return out;
+    } catch (err: any) {
+      console.error('[BIP Client] Error parsing All Module Roles XLSX:', err.message);
+      return [];
     }
   }
 
