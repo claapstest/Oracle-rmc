@@ -360,13 +360,16 @@ function readCookie(req: Request, name: string): string | null {
   return null;
 }
 
+// VYR-050: Hardened cookie attributes — Secure in production, SameSite=Lax, HttpOnly always
 function entraStateCookieOptions() {
+  const isProduction = config.nodeEnv === 'production';
   return {
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: config.nodeEnv === 'production',
+    secure: isProduction,
     maxAge: 10 * 60 * 1000,
     path: '/api/auth/entra',
+    ...(isProduction ? { domain: undefined } : {}),
   };
 }
 

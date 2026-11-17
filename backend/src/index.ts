@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import zlib from 'zlib';
 import path from 'path';
 import fs from 'fs';
@@ -16,6 +15,7 @@ import { roleHierarchyService } from './services/roleHierarchyService.js';
 import { userAccessReportService } from './services/userAccessReportService.js';
 import { apiRouter } from './routes/api.js';
 import { initializeAuthProvider, keyManager } from './auth/index.js';
+import { corsMiddleware, securityHeadersMiddleware } from './security/securityHeadersService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,11 +32,9 @@ if (trustProxySetting === 'true' || trustProxySetting === '1') {
   app.set('trust proxy', false);
 }
 
-// Middlewares
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// VYR-050: Security headers and strict CORS
+app.use(securityHeadersMiddleware);
+app.use(corsMiddleware);
 // Compress large JSON payloads (>= 2KB) with gzip when client supports it
 app.use((req, res, next) => {
   const acceptEncoding = String(req.headers['accept-encoding'] || '');
@@ -115,6 +113,15 @@ app.get(['/.well-known/jwks.json', '/api/.well-known/jwks.json'], async (_req, r
     console.error('[JWKS Error]:', err);
     res.status(500).json({ error: 'Failed to retrieve JWKS' });
   }
+});
+
+// VYR-050: Prevent browser caching of API responses containing sensitive data
+app.use('/api', (req, res, next) => {
+  if (!res.getHeader('Cache-Control')) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
 });
 
 // API Routes
