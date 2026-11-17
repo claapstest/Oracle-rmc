@@ -1,5 +1,9 @@
+import crypto from 'crypto';
 import { query as dbQuery } from '../db.js';
 
+// VYR-053: extended event schema — configuration changes, privileged data
+// access (reports), decryption access and audit-log access are now first-class
+// security events alongside the original identity/session events.
 export type VeyraAuditEventType =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
@@ -11,7 +15,11 @@ export type VeyraAuditEventType =
   | 'USER_DELETED'
   | 'ROLE_ASSIGNED'
   | 'ROLE_REMOVED'
-  | 'PRIVILEGE_CHANGED';
+  | 'PRIVILEGE_CHANGED'
+  | 'CONFIG_CHANGED'
+  | 'PRIVILEGED_DATA_ACCESS'
+  | 'DECRYPTION_ACCESS'
+  | 'AUDIT_LOG_ACCESS';
 
 export const ALLOWED_AUDIT_EVENT_TYPES: readonly VeyraAuditEventType[] = [
   'LOGIN_SUCCESS',
@@ -24,7 +32,11 @@ export const ALLOWED_AUDIT_EVENT_TYPES: readonly VeyraAuditEventType[] = [
   'USER_DELETED',
   'ROLE_ASSIGNED',
   'ROLE_REMOVED',
-  'PRIVILEGE_CHANGED'
+  'PRIVILEGE_CHANGED',
+  'CONFIG_CHANGED',
+  'PRIVILEGED_DATA_ACCESS',
+  'DECRYPTION_ACCESS',
+  'AUDIT_LOG_ACCESS'
 ] as const;
 
 export interface AuditEventInput {
@@ -35,6 +47,14 @@ export interface AuditEventInput {
   targetType?: string | null;
   targetId?: string | null;
   details?: Record<string, any> | null;
+  /** VYR-053: correlation ID tying related events together (defaults to a fresh UUID). */
+  correlationId?: string | null;
+  /** VYR-053: who performed the action — service name or identified user. */
+  serviceIdentity?: string | null;
+  /** VYR-053: tenant scope the action applies to (multi-tenant deployments). */
+  tenant?: string | null;
+  /** VYR-053: outcome of the action. */
+  result?: 'SUCCESS' | 'FAILURE' | 'DENIED' | null;
 }
 
 export interface AuditEventRecord {
@@ -47,6 +67,10 @@ export interface AuditEventRecord {
   targetType: string | null;
   targetId: string | null;
   details: Record<string, any> | null;
+  correlationId: string | null;
+  serviceIdentity: string | null;
+  tenant: string | null;
+  result: string | null;
 }
 
 // Sensitive key patterns that must NEVER be persisted in audit records
@@ -161,6 +185,130 @@ function isValidUuid(id?: string | null): boolean {
 }
 
 export class AuditService {
+  // VYR-053: schema extension (new columns + widened CHECK) applied lazily once.
+  private schemaReady: Promise<void> | null = null;
+
+  private ensureAuditSchema(): Promise<void> {
+    if (!this.schemaReady) {
+      this.schemaReady = (async () => {
+        await dbQuery(`
+          ALTER TABLE veyra_audit_event ADD COLUMN IF NOT EXISTS correlation_id VARCHAR(64);
+          ALTER TABLE veyra_audit_event ADD COLUMN IF NOT EXISTS service_identity VARCHAR(100);
+          ALTER TABLE veyra_audit_event ADD COLUMN IF NOT EXISTS tenant VARCHAR(100);
+          ALTER TABLE veyra_audit_event ADD COLUMN IF NOT EXISTS result VARCHAR(20);
+          ALTER TABLE veyra_audit_event ADD COLUMN IF NOT EXISTS event_hash VARCHAR(64);
+          ALTER TABLE veyra_audit_event DROP CONSTRAINT IF EXISTS ck_veyra_audit_event_type;
+          ALTER TABLE veyra_audit_event ADD CONSTRAINT ck_veyra_audit_event_type
+            CHECK (event_type IN ('LOGIN_SUCCESS','LOGIN_FAILED','LOGIN_REJECTED_ACTIVE_SESSION','LOGOUT','SESSION_EXPIRED','USER_CREATED','USER_UPDATED','USER_DELETED','ROLE_ASSIGNED','ROLE_REMOVED','PRIVILEGE_CHANGED','CONFIG_CHANGED','PRIVILEGED_DATA_ACCESS','DECRYPTION_ACCESS','AUDIT_LOG_ACCESS'));
+        `);
+      })().catch((err) => {
+        // Allow retry on the next call; original columns/constraint still work
+        // for the identity events the table was created for.
+        this.schemaReady = null;
+        throw err;
+      });
+    }
+    return this.schemaReady;
+  }
+
+  /**
+   * VYR-053 tamper evidence: each event is hash-chained to its predecessor.
+   * canonical = sha256(prevHash | eventTime | eventType | userId | serviceIdentity |
+   *                    tenant | result | targetType | targetId | detailsJson)
+   * `row` is a veyra_audit_event row (snake_case columns).
+   */
+  private computeEventHash(prevHash: string | null, row: {
+    event_time: string | Date; event_type: string; user_id: string | null;
+    service_identity: string | null; tenant: string | null; result: string | null;
+    target_type: string | null; target_id: string | null; details: Record<string, any> | null;
+  }): string {
+    const parts = [
+      prevHash || '',
+      typeof row.event_time === 'string' ? row.event_time : new Date(row.event_time).toISOString(),
+      row.event_type,
+      row.user_id || '',
+      row.service_identity || '',
+      row.tenant || '',
+      row.result || '',
+      row.target_type || '',
+      row.target_id || '',
+      row.details ? JSON.stringify(row.details) : ''
+    ];
+    return crypto.createHash('sha256').update(parts.join('|')).digest('hex');
+  }
+
+  /**
+   * VYR-053: verify the tamper-evidence chain of the audit event table.
+   * Rows written before VYR-053 (event_hash IS NULL) are tolerated at the
+   * start of the log; a NULL hash after a hashed row is a tamper signal.
+   * Returns the first broken link, if any.
+   */
+  public async verifyAuditChain(limit = 1000): Promise<{
+    valid: boolean;
+    eventsChecked: number;
+    legacyEvents: number;
+    brokenEventId?: string;
+    reason?: string;
+  }> {
+    const res = await dbQuery(
+      `SELECT event_id, event_time, event_type, user_id, service_identity, tenant,
+              result, target_type, target_id, details, event_hash
+         FROM veyra_audit_event
+        ORDER BY event_time ASC, event_id ASC
+        LIMIT $1`,
+      [limit]
+    );
+
+    let prevHash: string | null = null;
+    let seenHashed = false;
+    let legacy = 0;
+
+    for (const row of res.rows) {
+      if (!row.event_hash) {
+        if (seenHashed) {
+          return { valid: false, eventsChecked: res.rows.length, legacyEvents: legacy, brokenEventId: row.event_id, reason: 'event_hash missing on a hashed-row successor (hash was stripped)' };
+        }
+        legacy++;
+        continue;
+      }
+      const expected = this.computeEventHash(seenHashed ? prevHash : null, row);
+      if (expected !== row.event_hash) {
+        return { valid: false, eventsChecked: res.rows.length, legacyEvents: legacy, brokenEventId: row.event_id, reason: 'event_hash mismatch (event content was modified after write)' };
+      }
+      prevHash = row.event_hash;
+      seenHashed = true;
+    }
+    return { valid: true, eventsChecked: res.rows.length, legacyEvents: legacy };
+  }
+
+  /**
+   * VYR-053: backfill event_hash for rows recorded before VYR-053 or after an
+   * authorized, documented data correction. Recomputes every link from the
+   * stored content in log order. Returns the number of rows repaired.
+   */
+  public async repairAuditChain(limit = 1000): Promise<{ repaired: number }> {
+    const res = await dbQuery(
+      `SELECT event_id, event_time, event_type, user_id, service_identity, tenant,
+              result, target_type, target_id, details, event_hash
+         FROM veyra_audit_event
+        ORDER BY event_time ASC, event_id ASC
+        LIMIT $1`,
+      [limit]
+    );
+
+    let prevHash: string | null = null;
+    let repaired = 0;
+    for (const row of res.rows) {
+      const expected = this.computeEventHash(prevHash, row);
+      if (row.event_hash !== expected) {
+        await dbQuery(`UPDATE veyra_audit_event SET event_hash = $1 WHERE event_id = $2`, [expected, row.event_id]);
+        repaired++;
+      }
+      prevHash = expected;
+    }
+    return { repaired };
+  }
+
   /**
    * Main audit recording function for VEYRA.
    * Validates event type, sanitizes metadata, and writes to veyra_audit_event.
@@ -172,6 +320,9 @@ export class AuditService {
     error?: string;
   }> {
     const { userId, eventType, ipAddress, userAgent, targetType, targetId, details } = input;
+
+    // 0. VYR-053: make sure the extended columns / widened CHECK exist.
+    await this.ensureAuditSchema();
 
     // 1. Validate event type
     if (!ALLOWED_AUDIT_EVENT_TYPES.includes(eventType)) {
@@ -192,12 +343,31 @@ export class AuditService {
     const validTargetType = targetType ? targetType.trim().substring(0, 100) : null;
     const validTargetId = targetId ? String(targetId).trim().substring(0, 255) : null;
 
+    // 5. VYR-053 standardized fields: correlation, service identity, tenant, result
+    const validCorrelationId = (input.correlationId
+      ? String(input.correlationId).replace(/[^A-Za-z0-9-]/g, '').substring(0, 64)
+      : crypto.randomUUID());
+    const validServiceIdentity = input.serviceIdentity ? String(input.serviceIdentity).trim().substring(0, 100) : null;
+    const validTenant = input.tenant ? String(input.tenant).trim().substring(0, 100) : null;
+    const validResult = input.result ? String(input.result).trim().substring(0, 20) : 'SUCCESS';
+
     try {
+      // 6. VYR-053 hash chain: link this event to its predecessor.
+      const prevRes = await dbQuery(
+        `SELECT event_hash FROM veyra_audit_event
+          WHERE event_hash IS NOT NULL
+          ORDER BY event_time DESC, event_id DESC LIMIT 1`
+      );
+      const prevHash: string | null = prevRes.rows[0]?.event_hash || null;
+
       const res = await dbQuery(
         `INSERT INTO veyra_audit_event (
-           user_id, event_type, ip_address, user_agent, target_type, target_id, details
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING event_id, user_id, event_type, event_time, ip_address, user_agent, target_type, target_id, details`,
+           user_id, event_type, ip_address, user_agent, target_type, target_id, details,
+           correlation_id, service_identity, tenant, result, event_hash
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING event_id, user_id, event_type, event_time, ip_address, user_agent,
+                   target_type, target_id, details, correlation_id, service_identity,
+                   tenant, result, event_hash`,
         [
           validUserId,
           eventType,
@@ -205,11 +375,21 @@ export class AuditService {
           validUserAgent,
           validTargetType,
           validTargetId,
-          sanitizedDetails ? JSON.stringify(sanitizedDetails) : null
+          sanitizedDetails ? JSON.stringify(sanitizedDetails) : null,
+          validCorrelationId,
+          validServiceIdentity,
+          validTenant,
+          validResult,
+          null // placeholder — hash computed below over the stored details
         ]
       );
 
+      // Hash is computed over the canonical stored form (details as persisted),
+      // then written back — keeps verifyAuditChain deterministic.
       const row = res.rows[0];
+      const eventHash = this.computeEventHash(prevHash, row);
+      await dbQuery(`UPDATE veyra_audit_event SET event_hash = $1 WHERE event_id = $2`, [eventHash, row.event_id]);
+
       const record: AuditEventRecord = {
         eventId: row.event_id,
         userId: row.user_id,
@@ -219,7 +399,11 @@ export class AuditService {
         userAgent: row.user_agent,
         targetType: row.target_type,
         targetId: row.target_id,
-        details: row.details
+        details: row.details,
+        correlationId: row.correlation_id,
+        serviceIdentity: row.service_identity,
+        tenant: row.tenant,
+        result: row.result
       };
 
       return {
@@ -276,7 +460,8 @@ export class AuditService {
     const offsetParamIdx = idx++;
 
     const res = await dbQuery(
-      `SELECT event_id, user_id, event_type, event_time, ip_address, user_agent, target_type, target_id, details
+      `SELECT event_id, user_id, event_type, event_time, ip_address, user_agent, target_type, target_id, details,
+              correlation_id, service_identity, tenant, result
        FROM veyra_audit_event
        ${whereClause}
        ORDER BY event_time DESC
@@ -293,7 +478,11 @@ export class AuditService {
       userAgent: row.user_agent,
       targetType: row.target_type,
       targetId: row.target_id,
-      details: row.details
+      details: row.details,
+      correlationId: row.correlation_id,
+      serviceIdentity: row.service_identity,
+      tenant: row.tenant,
+      result: row.result
     }));
   }
 }
