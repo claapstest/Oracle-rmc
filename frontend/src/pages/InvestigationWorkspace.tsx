@@ -1453,11 +1453,6 @@ export default function InvestigationWorkspace({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Inherited Role Hierarchy Tree</h3>
-                {hierarchyData?.dataSource && (
-                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', fontWeight: 600 }}>
-                    {hierarchyData.dataSource}
-                  </span>
-                )}
               </div>
 
               {hierarchyData?.integrationRequired ? (
@@ -1518,11 +1513,6 @@ export default function InvestigationWorkspace({
                         ? `Complete security permission catalog authorized for role ${entity.name}`
                         : `Permissions aggregated across active duty hierarchies for ${entity.name}`}
                     </p>
-                    {privilegeData?.dataSource && (
-                      <span className="badge badge-blue" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', fontWeight: 600 }}>
-                        {privilegeData.dataSource}
-                      </span>
-                    )}
                   </div>
                 </div>
 
