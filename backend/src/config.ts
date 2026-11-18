@@ -172,7 +172,6 @@ export function validateConfig() {
   // Delegate comprehensive environment & secrets audit to configValidator (VYR-055)
   validateStartupConfig({
     environment: config.nodeEnv,
-    throwOnError: config.nodeEnv === 'production',
   });
 
   // 1. Validate AUTH_PROVIDER deployment configuration (fails closed if invalid or missing required keys)
