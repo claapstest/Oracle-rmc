@@ -219,13 +219,20 @@ Below is the complete inventory of all 15 Oracle-related PostgreSQL tables evalu
 
 ---
 
-### 3.2 Structured Relational Directory Tables (Without Raw JSON Column)
+### 3.2 Hybrid Structured & Encrypted Directory Table
 
 #### 10. `oracle_raw_user_access`
 *Domain:* Denormalized Directory User Entitlements  
 *Description:* Structured table populated from SCIM users, SCIM role memberships, HCM worker attributes, and BI Publisher auto-provisioning rules.  
+*Raw JSON Column:* `raw_payload` (JSONB) — Added in Migration 21 for envelope encryption at rest.  
+*AAD Components (VYR-028):* `[environment_host, username]`
+
+> [!NOTE] Schema Evolution (Migration 19 to Migration 21)
+> Originally created in Migration 19 as a purely structured relational table, Migration 21 (`1711000000021_create_oracle_raw_encrypted_payloads_and_columns.cjs`) added the `raw_payload JSONB` column along with the four standard encryption-tracking columns (`is_encrypted`, `encryption_format_version`, `encryption_key_id`, `encrypted_at`) and composite index `ix_oracle_raw_user_access_enc_status`. This unifies all 10 raw Oracle persistence tables under Epic 4 envelope encryption at rest while preserving its structured relational columns for sub-millisecond query performance.
+
 *Classification:*
-- **Restricted PII columns (Encrypted or Protected by Role Access):** `first_name`, `last_name`, `display_name`, `email`, `person_id`, `person_number`, `manager`.
+- **Raw Payload (Mandatory Encryption):** `raw_payload` (stores full composite worker entitlement payload encrypted with AES-256-GCM).
+- **Restricted PII columns (Protected by RBAC):** `first_name`, `last_name`, `display_name`, `email`, `person_id`, `person_number`, `manager`.
 - **Queryable metadata:** `environment_host`, `username`, `user_category`, `active`, `role_name`, `role_code`, `auto_provisioned`, `department`, `job`, `business_unit`, `location`, `last_synced_at`.
 
 ---
