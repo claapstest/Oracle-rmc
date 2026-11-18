@@ -843,7 +843,12 @@ export class UserAccessReportService {
    * Groups PostgreSQL `oracle_raw_user_access` rows into directory user objects
    * and supports instant filtering, status/category KPI counts, and pagination.
    */
-  public async getDirectoryUsersFromDatabase(params: DirectoryUsersQuery = {}) {
+  /**
+   * Builds (and memoises) the one-row-per-user directory view that backs the Users
+   * list. Returns null when no report rows are available. Shared with the dashboard's
+   * User Account Health panel so the two views cannot disagree.
+   */
+  private async getDirectoryUsersCached(): Promise<any[] | null> {
     const reportRes = await this.getUserAccessReport();
     if (!reportRes?.data || reportRes.data.length === 0) {
       return null;
@@ -888,12 +893,94 @@ export class UserAccessReportService {
       this.cachedDirectorySourceRef = reportRes.data;
     }
 
+    return this.cachedDirectoryUsers;
+  }
+
+  /**
+   * Aggregates the dashboard's User Account Health buckets from the same directory
+   * population the Users list renders, so a user counted Inactive here is the same
+   * user shown Inactive there. Returns null when no report rows exist, in which case
+   * the caller keeps its previous (SCIM crawl) counts.
+   *
+   * The role predicates mirror the category filters in getDirectoryUsersFromDatabase,
+   * so clicking a dashboard segment lands on a Users list of the same size.
+   */
+  public async getAccountHealthCounts(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    usersWithoutRolesCount: number;
+    activeUsersWithoutRolesCount: number;
+    singleRoleUsersCount: number;
+    multipleRoleUsersCount: number;
+    securityAdminsCount: number;
+    highRiskUsersCount: number;
+  } | null> {
+    const users = await this.getDirectoryUsersCached();
+    if (!users || users.length === 0) {
+      return null;
+    }
+
+    let activeUsers = 0;
+    let inactiveUsers = 0;
+    let usersWithoutRolesCount = 0;
+    let activeUsersWithoutRolesCount = 0;
+    let singleRoleUsersCount = 0;
+    let multipleRoleUsersCount = 0;
+    let securityAdminsCount = 0;
+    let highRiskUsersCount = 0;
+
+    for (const u of users) {
+      const isActive = Boolean(u.active);
+      if (isActive) activeUsers++;
+      else inactiveUsers++;
+
+      const roleCount = Array.isArray(u.assignedRoles) ? u.assignedRoles.length : 0;
+      if (roleCount === 0) {
+        usersWithoutRolesCount++;
+        if (isActive) activeUsersWithoutRolesCount++;
+      } else if (roleCount === 1) {
+        singleRoleUsersCount++;
+      } else {
+        multipleRoleUsersCount++;
+      }
+
+      const values: string[] = (u.assignedRoles || []).map((r: any) => r.roleName || r.roleCode || '');
+      if (values.some((v) => v.includes('Security Administrator') || v.includes('IT Security Manager'))) {
+        securityAdminsCount++;
+      }
+      if (values.some((v) =>
+        v.includes('Security Administrator') || v.includes('IT Security Manager') || v.includes('AP Manager')
+      )) {
+        highRiskUsersCount++;
+      }
+    }
+
+    return {
+      totalUsers: users.length,
+      activeUsers,
+      inactiveUsers,
+      usersWithoutRolesCount,
+      activeUsersWithoutRolesCount,
+      singleRoleUsersCount,
+      multipleRoleUsersCount,
+      securityAdminsCount,
+      highRiskUsersCount
+    };
+  }
+
+  public async getDirectoryUsersFromDatabase(params: DirectoryUsersQuery = {}) {
+    const directoryUsers = await this.getDirectoryUsersCached();
+    if (!directoryUsers) {
+      return null;
+    }
+
     const normCat = (params.category || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
     const normStatus = (params.status || '').trim().toUpperCase();
     const startIndex = Math.max(1, params.startIndex || 1);
     const count = Math.max(1, params.count || 50);
 
-    let scopedUsers = this.cachedDirectoryUsers;
+    let scopedUsers = directoryUsers;
 
     if (normCat && normCat !== 'ALL') {
       if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
