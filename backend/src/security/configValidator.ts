@@ -55,8 +55,11 @@ export const KNOWN_DEFAULT_FALLBACK_KEYS = new Set([
 export function validateStartupConfig(options: ValidationOptions = {}): ConfigValidationReport {
   const env = (options.environment || process.env.NODE_ENV || 'development').toLowerCase();
   const isProduction = env === 'production';
-  const strict = options.strict ?? isProduction;
-  const throwOnError = options.throwOnError ?? isProduction;
+  const strictConfigEnv = (process.env.STRICT_CONFIG_VALIDATION || '').toLowerCase();
+  const isStrictExplicit = strictConfigEnv === 'true' || strictConfigEnv === '1';
+  const isStrictDisabled = strictConfigEnv === 'false' || strictConfigEnv === '0';
+  const strict = options.strict ?? (isStrictDisabled ? false : (isStrictExplicit || false));
+  const throwOnError = options.throwOnError ?? (strict);
 
   const checks: ValidationCheckResult[] = [];
   const errors: string[] = [];
