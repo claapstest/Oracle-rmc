@@ -157,7 +157,7 @@ export default function Audit({
   // Query Results & Status
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [totalRecords, setTotalRecords] = useState<number>(0);
-  const [dataSource, setDataSource] = useState<string>('Oracle Fusion');
+  const [dataSource, setDataSource] = useState<string>('');
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -441,7 +441,7 @@ export default function Audit({
         console.log(`[Audit UI DEBUG]\nAPI records: ${res.logs.length}\nNormalized records: ${res.logs.length}\nDisplayed records: ${Math.min(res.logs.length, pageSize)}`);
         setLogs(res.logs);
         setTotalRecords(res.totalRecords !== undefined ? res.totalRecords : res.logs.length);
-        setDataSource(res.dataSource || 'Oracle Fusion');
+        setDataSource(res.dataSource || '');
         setLastQuerySummary({
           productDisplayName: cleanProductName(res.productDisplayName || prod?.displayName || 'Oracle Fusion'),
           businessObjectDisplayName: res.businessObjectDisplayName || selectedBO?.displayName || (prod?.requiresBusinessObjectType ? 'Standard Object' : 'All Platform Events'),
@@ -510,7 +510,7 @@ export default function Audit({
           setHasSearched(true);
           setLogs(res.logs);
           setTotalRecords(res.totalRecords || res.logs.length);
-          setDataSource(res.dataSource || 'Live Oracle Fusion API');
+          setDataSource(res.dataSource || '');
           setLastQuerySummary({
             productDisplayName: cleanProductName(prod?.displayName || 'Oracle Fusion'),
             businessObjectDisplayName: selectedBO?.displayName || 'Standard Object',
