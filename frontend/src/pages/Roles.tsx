@@ -52,8 +52,6 @@ export default function Roles({
   const [moduleFilter, setModuleFilter] = useState('ALL');
   const [availableModules, setAvailableModules] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<any | null>(null);
-  const [roleMembers, setRoleMembers] = useState<any[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   
@@ -187,38 +185,6 @@ export default function Roles({
     setSelectedRole(null);
   }, [initialCategory]);
 
-  // Fetch details (hierarchy, privileges, and authoritative direct members) when role selection changes
-  useEffect(() => {
-    if (!selectedRole) return;
-    
-    async function loadRoleEntitlements() {
-      setDetailLoading(true);
-      setMembersLoading(true);
-      setRoleMembers([]);
-
-      try {
-        const [membersRes] = await Promise.allSettled([
-          api.getRoleMembers(selectedRole.roleCode || selectedRole.displayName)
-        ]);
-
-        if (membersRes.status === 'fulfilled' && (membersRes.value as any)?.members) {
-          setRoleMembers((membersRes.value as any).members);
-        } else if (Array.isArray(selectedRole.members)) {
-          setRoleMembers(selectedRole.members);
-        }
-      } catch (err) {
-        console.error('Error fetching role details:', err);
-        if (Array.isArray(selectedRole.members)) {
-          setRoleMembers(selectedRole.members);
-        }
-      } finally {
-        setDetailLoading(false);
-        setMembersLoading(false);
-      }
-    }
-
-    loadRoleEntitlements();
-  }, [selectedRole]);
 
 
   const categoryLabelMap: Record<string, string> = {
@@ -774,47 +740,6 @@ export default function Roles({
           ) : (
             <div style={{ fontSize: '0.85rem' }}>
               
-              {/* Members */}
-              {(
-                <div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Assigned Identities ({membersLoading ? 'Loading...' : (roleMembers.length > 0 ? roleMembers.length : (selectedRole.members?.length || 0))})
-                  </div>
-                  {membersLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem 0' }}>
-                      <div style={{ height: '32px', width: '100%' }} className="skeleton" />
-                      <div style={{ height: '32px', width: '100%' }} className="skeleton" />
-                    </div>
-                  ) : (roleMembers.length > 0 ? roleMembers : (selectedRole.members || [])).length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      {(roleMembers.length > 0 ? roleMembers : selectedRole.members).map((m: any, idx: number) => {
-                        const displayName = m.displayName || m.display || m.userName || m.value;
-                        const username = m.userName || m.value || m.name;
-                        return (
-                          <div key={idx} className="glass-panel" style={{ padding: '0.55rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayName}</span>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Username: <code style={{ color: 'var(--accent-blue)' }}>{username}</code>
-                                {m.email && m.email !== username && <span style={{ marginLeft: '0.4rem' }}>&bull; {m.email}</span>}
-                              </span>
-                            </div>
-                            {m.active !== undefined && (
-                              <span className={`badge ${m.active ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: '0.68rem' }}>
-                                {m.active ? 'Active' : 'Inactive'}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)' }}>
-                      No direct member assignments. (Inherited by parent roles or unassigned).
-                    </div>
-                  )}
-                </div>
-              )}
 
 
             </div>
