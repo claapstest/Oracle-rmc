@@ -5,6 +5,7 @@ import { reportDbService } from './reportDbService.js';
 import { authService } from './authService.js';
 import { commandCenterService } from './commandCenterService.js';
 import { auditRawDbService } from './auditRawDbService.js';
+import { userAccessReportService } from './userAccessReportService.js';
 
 export interface DashboardMetricRecord {
   metricId?: string;
@@ -70,6 +71,8 @@ export interface AuditDashboardMetrics {
     singleRoleUsers?: number;
     securityAdmins?: number;
     totalUsers: number;
+    /** Which population produced these counts (see getAccountHealthCounts). */
+    source?: 'user-access-report' | 'scim-crawl';
   };
   activityTrend: Array<{
     date: string;
@@ -316,9 +319,9 @@ class AuditDashboardService {
     const pendingReviews = 3;
 
     // Aggregate visual counters
-    const totalUsers = statsData.totalUsers || 3335;
-    const activeUsers = statsData.activeUsers || 3203;
-    const inactiveUsers = statsData.inactiveUsers || 132;
+    let totalUsers = statsData.totalUsers || 3335;
+    let activeUsers = statsData.activeUsers || 3203;
+    let inactiveUsers = statsData.inactiveUsers || 132;
     const jobRolesCount = statsData.jobRolesCount !== undefined ? statsData.jobRolesCount : 513;
     const dutyRolesCount = statsData.dutyRolesCount !== undefined ? statsData.dutyRolesCount : 4004;
     const dataRolesCount = statsData.dataRolesCount !== undefined ? statsData.dataRolesCount : 48;
@@ -331,12 +334,38 @@ class AuditDashboardService {
     const rolesWithUsersCount = statsData.rolesWithUsersCount !== undefined ? statsData.rolesWithUsersCount : 482;
     const highRiskRolesCount = statsData.highRiskRolesCount || 12;
     const auditEventsCount = statsData.auditEventsCount || 26203;
-    const highRiskUsersCount = (statsData.highRiskUsersCount && statsData.highRiskUsersCount > 0) ? statsData.highRiskUsersCount : 481;
-    const securityAdminsCount = (statsData.securityAdminsCount && statsData.securityAdminsCount > 0) ? statsData.securityAdminsCount : 481;
-    const usersWithoutRolesCount = (statsData.usersWithoutRolesCount && statsData.usersWithoutRolesCount > 0) ? statsData.usersWithoutRolesCount : 2238;
-    const multipleRoleUsersCount = (statsData.multipleRoleUsersCount && statsData.multipleRoleUsersCount > 0) ? statsData.multipleRoleUsersCount : 967;
-    const singleRoleUsersCount = (statsData.singleRoleUsersCount && statsData.singleRoleUsersCount > 0) ? statsData.singleRoleUsersCount : 130;
-    const activeUsersWithoutRolesCount = (statsData.activeUsersWithoutRolesCount && statsData.activeUsersWithoutRolesCount > 0) ? statsData.activeUsersWithoutRolesCount : 2106;
+    let highRiskUsersCount = (statsData.highRiskUsersCount && statsData.highRiskUsersCount > 0) ? statsData.highRiskUsersCount : 481;
+    let securityAdminsCount = (statsData.securityAdminsCount && statsData.securityAdminsCount > 0) ? statsData.securityAdminsCount : 481;
+    let usersWithoutRolesCount = (statsData.usersWithoutRolesCount && statsData.usersWithoutRolesCount > 0) ? statsData.usersWithoutRolesCount : 2238;
+    let multipleRoleUsersCount = (statsData.multipleRoleUsersCount && statsData.multipleRoleUsersCount > 0) ? statsData.multipleRoleUsersCount : 967;
+    let singleRoleUsersCount = (statsData.singleRoleUsersCount && statsData.singleRoleUsersCount > 0) ? statsData.singleRoleUsersCount : 130;
+    let activeUsersWithoutRolesCount = (statsData.activeUsersWithoutRolesCount && statsData.activeUsersWithoutRolesCount > 0) ? statsData.activeUsersWithoutRolesCount : 2106;
+
+    // User Account Health is derived from the same population the Users list renders
+    // (BIP User Status Report -> oracle_raw_user_access), so the panel and the list
+    // agree on who is Active and on every role bucket. The SCIM-crawl counts above
+    // remain the fallback for when no report rows are available: that crawl reads
+    // SCIM `active` and SCIM `roles`, which cover a different population.
+    let accountHealthSource: 'user-access-report' | 'scim-crawl' = 'scim-crawl';
+    try {
+      const health = await userAccessReportService.getAccountHealthCounts();
+      if (health) {
+        totalUsers = health.totalUsers;
+        activeUsers = health.activeUsers;
+        inactiveUsers = health.inactiveUsers;
+        usersWithoutRolesCount = health.usersWithoutRolesCount;
+        activeUsersWithoutRolesCount = health.activeUsersWithoutRolesCount;
+        singleRoleUsersCount = health.singleRoleUsersCount;
+        multipleRoleUsersCount = health.multipleRoleUsersCount;
+        securityAdminsCount = health.securityAdminsCount;
+        highRiskUsersCount = health.highRiskUsersCount;
+        accountHealthSource = 'user-access-report';
+      } else {
+        console.warn('[AuditDashboardService] No user access report rows; User Account Health falling back to SCIM crawl counts.');
+      }
+    } catch (e: any) {
+      console.warn('[AuditDashboardService] User Account Health aggregation failed, keeping SCIM crawl counts:', e.message);
+    }
 
     // Role Distribution Breakdown
     const roleDistribution = [
@@ -382,7 +411,8 @@ class AuditDashboardService {
       multipleRoleUsers: multipleRoleUsersCount,
       singleRoleUsers: singleRoleUsersCount,
       securityAdmins: securityAdminsCount,
-      totalUsers
+      totalUsers,
+      source: accountHealthSource
     };
 
     // Activity Trend from persistent PostgreSQL raw audit store
