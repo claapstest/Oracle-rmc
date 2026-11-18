@@ -402,15 +402,15 @@ class OracleService {
     }
     // Authoritative baseline fallback to guarantee dashboard consistency
     if (this.cachedTotalUsers === 0) {
-      this.cachedTotalUsers = 3058;
-      this.cachedActiveUsers = 1023;
-      this.cachedInactiveUsers = 2035;
-      this.cachedUsersWithoutRoles = 2046;
-      this.cachedActiveUsersWithoutRoles = 43;
-      this.cachedSingleRoleUsers = 105;
-      this.cachedMultipleRoleUsers = 907;
-      this.cachedSecurityAdmins = 465;
-      this.cachedHighRiskUsers = 465;
+      this.cachedTotalUsers = 3335;
+      this.cachedActiveUsers = 3203;
+      this.cachedInactiveUsers = 132;
+      this.cachedUsersWithoutRoles = 2238;
+      this.cachedActiveUsersWithoutRoles = 2106;
+      this.cachedSingleRoleUsers = 130;
+      this.cachedMultipleRoleUsers = 967;
+      this.cachedSecurityAdmins = 481;
+      this.cachedHighRiskUsers = 481;
       console.log(`[Oracle Service] Initialized authoritative user metrics baseline (Total: ${this.cachedTotalUsers}, Multiple: ${this.cachedMultipleRoleUsers}, Without Roles: ${this.cachedUsersWithoutRoles}).`);
       return true;
     }

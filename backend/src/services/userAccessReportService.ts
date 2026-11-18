@@ -485,6 +485,145 @@ export class UserAccessReportService {
     console.log('[User Access Report] Starting report generation from live Oracle Fusion APIs...');
     const startTime = Date.now();
 
+    // 1. First attempt to use authoritative User Details BIP report (/Custom/userdetails report.xdo)
+    // and merge with BIP Auto-Provisioning report (/Custom/CLAAPS_User_Role_AutoProvisioning.xdo)
+    let userDetailsRows: any[] = [];
+    try {
+      const { bipClient } = await import('../oracle/bipClient.js');
+      userDetailsRows = await bipClient.runUserDetailsReport();
+    } catch (e: any) {
+      console.warn('[User Access Report] Failed to fetch User Details report from BIP, falling back to SCIM:', e.message);
+    }
+
+    if (userDetailsRows.length > 0) {
+      console.log(`[User Access Report] Using BIP User Details as master population: ${userDetailsRows.length} unique users.`);
+      const bipRows = await this.getBipRowsCached();
+      console.log(`[User Access Report] Fetched ${bipRows.length} Auto-Provisioning role assignments.`);
+
+      // Index Auto-Provisioning roles by USERNAME.toUpperCase() -> Array of roles
+      const userRolesMap = new Map<string, Array<{ roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>>();
+      for (const r of bipRows) {
+        if (!r.username) continue;
+        const uKey = r.username.toUpperCase();
+        let arr = userRolesMap.get(uKey);
+        if (!arr) {
+          arr = [];
+          userRolesMap.set(uKey, arr);
+        }
+        arr.push({
+          roleName: r.roleName || '',
+          roleCode: r.roleCode || '',
+          autoProvisioned: r.autoProvisioned ?? null
+        });
+      }
+
+      const report: UserAccessReportRow[] = [];
+      let totalUsers = userDetailsRows.length;
+      let usersWithRoles = 0;
+      let usersWithoutRoles = 0;
+      let totalRoleAssignments = 0;
+      let activeUsers = 0;
+      let inactiveUsers = 0;
+
+      for (const u of userDetailsRows) {
+        const username = u.username;
+        const isActive = Boolean(u.active);
+        if (isActive) activeUsers++;
+        else inactiveUsers++;
+
+        const uRoles = userRolesMap.get(username.toUpperCase()) || [];
+        const personNumber = u.personNumber || null;
+        const firstName = u.firstName || null;
+        const lastName = u.lastName || null;
+        const displayName = u.fullName || `${firstName || ''} ${lastName || ''}`.trim() || username;
+        const email = u.email || null;
+        const department = u.department || null;
+        const job = u.job || null;
+        const businessUnit = u.businessUnit || null;
+        const location = u.location || null;
+        const manager = u.manager || null;
+
+        if (uRoles.length === 0) {
+          usersWithoutRoles++;
+          report.push({
+            username,
+            userCategory: 'DEFAULT',
+            firstName,
+            lastName,
+            displayName,
+            email,
+            active: isActive,
+            roleName: null,
+            roleCode: null,
+            autoProvisioned: null,
+            personId: null,
+            personNumber,
+            department,
+            job,
+            businessUnit,
+            location,
+            manager
+          });
+        } else {
+          usersWithRoles++;
+          totalRoleAssignments += uRoles.length;
+          for (const role of uRoles) {
+            report.push({
+              username,
+              userCategory: 'DEFAULT',
+              firstName,
+              lastName,
+              displayName,
+              email,
+              active: isActive,
+              roleName: role.roleName || null,
+              roleCode: role.roleCode || null,
+              autoProvisioned: role.autoProvisioned,
+              personId: null,
+              personNumber,
+              department,
+              job,
+              businessUnit,
+              location,
+              manager
+            });
+          }
+        }
+      }
+
+      const summary: UserAccessReportSummary = {
+        totalUsers,
+        usersWithRoles,
+        usersWithoutRoles,
+        totalRoleAssignments,
+        activeUsers,
+        inactiveUsers
+      };
+
+      const calculatedAt = new Date().toISOString();
+      const result: UserAccessReportResult = {
+        success: true,
+        summary,
+        data: report,
+        calculatedAt,
+        source: 'PostgreSQL Database'
+      };
+
+      // Persist to PostgreSQL and update caches
+      try {
+        await this.persistToDatabase({ summary, data: report, calculatedAt });
+      } catch (dbErr: any) {
+        console.warn('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
+      }
+      this.cachedReport = { summary, data: report, calculatedAt };
+      this.saveToDisk(this.cachedReport);
+
+      console.log(`[User Access Report] User Access Report (BIP Master) complete: ${totalUsers} users, ${report.length} report rows, ${Date.now() - startTime}ms`);
+      return result;
+    }
+
+    // --- FALLBACK TO SCIM + WORKERS IF USER DETAILS REPORT IS NOT AVAILABLE ---
+    console.log('[User Access Report] BIP User Details not available; executing SCIM + Public Workers fallback...');
     // Concurrently fetch SCIM Users (master), Public Workers (enrichment), BIP Auto-Provisioned (roles)
     const [scimUsers, workers, bipRows] = await Promise.all([
       this.getAllScimUsers(),

@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronRight,
   CheckCircle2,
-  UserX
+  UserX,
+  UserMinus
 } from 'lucide-react';
 
 /* ==========================================================
@@ -196,6 +197,16 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   const activeSegment = hoveredIdx !== null ? renderedSegments[hoveredIdx] : null;
 
   const accessInsights = [
+    {
+      label: 'Users Without Roles',
+      count: usersNoRoles,
+      desc: 'Identities holding no assigned security roles',
+      filter: 'NO_ROLES',
+      page: 'users',
+      color: '#DC2626',
+      bg: '#FEF2F2',
+      icon: UserMinus
+    },
     {
       label: 'Multiple Role Users',
       count: multipleRoles,
