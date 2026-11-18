@@ -400,20 +400,9 @@ class OracleService {
     } catch (err) {
       console.warn('[Oracle Service] Failed to load users metrics cache:', (err as Error).message);
     }
-    // Authoritative baseline fallback to guarantee dashboard consistency
-    if (this.cachedTotalUsers === 0) {
-      this.cachedTotalUsers = 3335;
-      this.cachedActiveUsers = 3203;
-      this.cachedInactiveUsers = 132;
-      this.cachedUsersWithoutRoles = 2238;
-      this.cachedActiveUsersWithoutRoles = 2106;
-      this.cachedSingleRoleUsers = 130;
-      this.cachedMultipleRoleUsers = 967;
-      this.cachedSecurityAdmins = 481;
-      this.cachedHighRiskUsers = 481;
-      console.log(`[Oracle Service] Initialized authoritative user metrics baseline (Total: ${this.cachedTotalUsers}, Multiple: ${this.cachedMultipleRoleUsers}, Without Roles: ${this.cachedUsersWithoutRoles}).`);
-      return true;
-    }
+    // No baseline seeding. This previously filled the user metrics with invented
+    // counts whenever the cache was empty, so the dashboard showed fabricated
+    // figures before the first successful sync. Zero is the honest starting state.
     return false;
   }
 

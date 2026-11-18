@@ -152,21 +152,17 @@ export function UserAccountHealth({ stats, onNavigatePage }: UserAccountHealthPr
   const [activeFilter, setActiveFilter] = React.useState<string | null>(null);
   const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
 
-  const total = stats.totalUsers || 2993;
-  const inactive = stats.inactiveUsers !== undefined 
-    ? stats.inactiveUsers 
-    : (stats.userAccountHealth?.inactiveUsers !== undefined ? stats.userAccountHealth.inactiveUsers : 2035);
-  const usersNoRoles = stats.usersWithoutRolesCount !== undefined ? stats.usersWithoutRolesCount : 2018;
-  const activeUsersWithoutRoles = stats.activeUsersWithoutRolesCount !== undefined 
-    ? stats.activeUsersWithoutRolesCount 
-    : (stats.userAccountHealth?.activeUsersWithoutRoles !== undefined ? stats.userAccountHealth.activeUsersWithoutRoles : 3);
-  const multipleRoles = stats.multipleRoleUsersCount !== undefined 
-    ? stats.multipleRoleUsersCount 
-    : (stats.userAccountHealth?.multipleRoleUsers !== undefined ? stats.userAccountHealth.multipleRoleUsers : 881);
-  const singleRole = stats.singleRoleUsersCount !== undefined 
-    ? stats.singleRoleUsersCount 
-    : (stats.userAccountHealth?.singleRoleUsers !== undefined ? stats.userAccountHealth.singleRoleUsers : 94);
-  const securityAdmins = stats.securityAdminsCount !== undefined ? stats.securityAdminsCount : 446;
+  // Every figure below is live or zero. No placeholder values: a fabricated count
+  // on a governance dashboard is worse than an empty one, because the person
+  // reading it cannot tell it apart from real data.
+  const total = stats.totalUsers ?? 0;
+  const inactive = stats.inactiveUsers ?? stats.userAccountHealth?.inactiveUsers ?? 0;
+  const usersNoRoles = stats.usersWithoutRolesCount ?? stats.userAccountHealth?.usersWithoutRoles ?? 0;
+  const activeUsersWithoutRoles =
+    stats.activeUsersWithoutRolesCount ?? stats.userAccountHealth?.activeUsersWithoutRoles ?? 0;
+  const multipleRoles = stats.multipleRoleUsersCount ?? stats.userAccountHealth?.multipleRoleUsers ?? 0;
+  const singleRole = stats.singleRoleUsersCount ?? stats.userAccountHealth?.singleRoleUsers ?? 0;
+  const securityAdmins = stats.securityAdminsCount ?? stats.userAccountHealth?.securityAdmins ?? 0;
   const highRiskRoles = stats.highRiskRolesCount ?? stats.grcRolesCount ?? 0;
   const rolesWithoutUsers = stats.rolesWithoutUsersCount ?? 0;
 
