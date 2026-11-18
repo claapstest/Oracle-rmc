@@ -413,7 +413,7 @@ export default function Users({
               Identity & Access Management
             </h1>
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <span>Verify user statuses and trace role entitlements inside the {dataSource || 'PostgreSQL Database'} catalog.</span>
+              <span>Verify user statuses and trace role entitlements across the identity catalog.</span>
               {activeCategoryFilter && activeCategoryFilter !== 'ALL' && (
                 <span style={{
                   display: 'inline-flex',

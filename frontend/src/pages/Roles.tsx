@@ -309,7 +309,7 @@ export default function Roles({
               Security Role Catalog
             </h1>
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
-              Browse Job, Duty, Data, and Abstract roles mapped in the {dataSource || 'Oracle Fusion'} registry.
+              Browse Job, Duty, Data, and Abstract roles mapped in the Oracle Fusion registry.
               {categoryFilter !== 'ALL' && (
                 <span 
                   onClick={() => {

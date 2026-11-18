@@ -345,7 +345,6 @@ export default function FullInvestigationView({
 
             <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               <div>Generated: {createdAt ? new Date(createdAt).toLocaleString() : timestamp || 'Active Session'}</div>
-              <div>Source: <span style={{ color: isLiveOracle ? 'var(--accent-blue)' : 'var(--accent-gold)', fontWeight: 600 }}>{actualSource}</span></div>
               {metadata?.matchingCount !== undefined && (
                 <div>Total Matches: <span style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{metadata.matchingCount} records</span></div>
               )}

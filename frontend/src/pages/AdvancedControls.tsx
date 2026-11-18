@@ -118,22 +118,6 @@ export default function AdvancedControls({
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div
-            style={{
-              padding: '0.4rem 0.95rem',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '9999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              color: '#ffffff'
-            }}
-            aria-label={`Data source: ${dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}`}
-          >
-            {dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}
-          </div>
-        </div>
       </div>
 
       {errorMessage && (

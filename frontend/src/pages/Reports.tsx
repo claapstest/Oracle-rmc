@@ -1601,24 +1601,6 @@ export default function Reports({
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{
-            padding: '0.45rem 1rem',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '9999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: '#ffffff',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem'
-          }}>
-            <Database size={13} />
-            <span>{environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Authoritative Sample'}</span>
-          </div>
-        </div>
       </div>
 
       {/* -------------------------------------------------------------
@@ -2010,12 +1992,6 @@ export default function Reports({
                 {/* Status Badge */}
                 <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem' }}>
                   <Check size={12} /> {controlsLoading ? 'LOADING' : 'READY'}
-                </span>
-
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>•</span>
-
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Source: <strong>{controlsSummaryReport?.dataSource || (environmentMode === 'ORACLE_FUSION' ? 'PostgreSQL Database' : 'Sample Controls Data')}</strong>
                 </span>
 
                 {controlsSummaryReport?.calculatedAt && (

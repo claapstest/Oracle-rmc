@@ -327,20 +327,6 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{
-            padding: '0.4rem 0.95rem',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '9999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: '#ffffff',
-            backdropFilter: 'blur(8px)'
-          }}>
-            {environmentMode === 'DEMO' ? 'Sample Data Mode (disabled — live only)' : 'Live Oracle Fusion API'}
-          </div>
-        </div>
       </div>
 
       <div>

@@ -2101,9 +2101,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}>
-                {dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}
-              </span>
               <button
                 id="btn-sync-catalog"
                 onClick={onRefreshControls}
@@ -2177,9 +2174,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
           </div>
           {hideSectionHeader && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}>
-                {dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}
-              </span>
               <button
                 id="btn-sync-catalog"
                 onClick={onRefreshControls}
@@ -2245,19 +2239,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-            <div style={{
-              padding: '0.4rem 0.95rem',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '9999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
-              border: '1px solid rgba(255, 255, 255, 0.35)',
-              color: '#ffffff',
-              backdropFilter: 'blur(8px)'
-            }}>
-              {dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}
-            </div>
-
             <button
               id="btn-sync-catalog"
               onClick={onRefreshControls}
