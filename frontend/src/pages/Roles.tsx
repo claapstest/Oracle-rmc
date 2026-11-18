@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Award, X, Users, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { Search, Award, X, Users, ArrowRight, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { TableLoadingState } from '../components/TableLoadingState';
@@ -51,24 +51,8 @@ export default function Roles({
   const [categoryFilter, setCategoryFilter] = useState(() => normalizeCategory(initialCategory));
   const [moduleFilter, setModuleFilter] = useState('ALL');
   const [availableModules, setAvailableModules] = useState<string[]>([]);
-  const [selectedRole, setSelectedRole] = useState<any | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  
-  // Synchronize internal selected role drawer with topbar Back button
-  useEffect(() => {
-    if (onRegisterBack) {
-      if (isActive && selectedRole) {
-        onRegisterBack({
-          canGoBack: true,
-          onBack: () => setSelectedRole(null),
-          label: 'Roles Catalog'
-        });
-      } else if (isActive) {
-        onRegisterBack(null);
-      }
-    }
-  }, [isActive, selectedRole, onRegisterBack]);
 
   useEffect(() => {
     return () => {
@@ -85,7 +69,6 @@ export default function Roles({
 
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState('');
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>('DEMO');
@@ -182,7 +165,6 @@ export default function Roles({
     setSearchTerm('');
     setModuleFilter('ALL');
     setCurrentPage(1);
-    setSelectedRole(null);
   }, [initialCategory]);
 
 
@@ -621,11 +603,7 @@ export default function Roles({
                 </tr>
               ) : (
                 roles.map(role => (
-                  <tr
-                    key={role.id || role.roleCode}
-                    onClick={() => setSelectedRole(role)}
-                    style={{ cursor: 'pointer', backgroundColor: selectedRole?.roleCode === role.roleCode ? 'rgba(255, 255, 255, 0.04)' : '' }}
-                  >
+                  <tr key={role.id || role.roleCode}>
                     <td style={{ fontWeight: 600 }}>{highlightMatch(role.displayName, searchTerm)}</td>
                     <td><code>{highlightMatch(role.roleCode, searchTerm)}</code></td>
                     <td>
@@ -636,14 +614,7 @@ export default function Roles({
                     <td><span className="badge badge-blue">{role.category}</span></td>
                     <td>
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onInvestigateRole) {
-                            onInvestigateRole(role.roleCode, role.displayName);
-                          } else {
-                            setSelectedRole(role);
-                          }
-                        }}
+                        onClick={() => onInvestigateRole?.(role.roleCode, role.displayName)}
                         className="btn btn-secondary" 
                         style={{ 
                           padding: '0.2rem 0.5rem', 
@@ -684,69 +655,6 @@ export default function Roles({
           </div>
         )}
       </div>
-
-      {/* Right Drawer Card */}
-      {selectedRole && (
-        <div className="glass-panel animate-fade-in users-roles-detail-panel" style={{
-          padding: '1.5rem'
-        }}>
-          
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-            <div>
-              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>{selectedRole.category} Role</span>
-                <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#2563EB', fontSize: '0.7rem', fontWeight: 600 }}>
-                  {selectedRole.module || 'Common'}
-                </span>
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0 }}>
-                {selectedRole.displayName}
-              </h3>
-              <code style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{selectedRole.roleCode}</code>
-            </div>
-            <button
-              onClick={() => setSelectedRole(null)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '1.25rem' }}>
-            {selectedRole.description}
-          </p>
-
-          {/* Deep Investigation Workspace Trigger */}
-          {onInvestigateRole && (
-            <button 
-              onClick={() => onInvestigateRole(selectedRole.roleCode, selectedRole.displayName)}
-              className="btn btn-primary"
-              style={{ width: '100%', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              <Sparkles size={14} />
-              <span>Launch Deep Workspace</span>
-            </button>
-          )}
-
-
-          {/* Tab Contents */}
-          {detailLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem' }}>
-              <div style={{ height: '20px', width: '100%' }} className="skeleton" />
-              <div style={{ height: '20px', width: '80%' }} className="skeleton" />
-              <div style={{ height: '20px', width: '90%' }} className="skeleton" />
-            </div>
-          ) : (
-            <div style={{ fontSize: '0.85rem' }}>
-              
-
-
-            </div>
-          )}
-
-        </div>
-      )}
 
       </div>
 
