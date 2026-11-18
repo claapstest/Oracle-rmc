@@ -643,7 +643,6 @@ export default function Roles({
                   return 0;
                 }
               },
-              { key: 'classification', label: 'Classification', defaultSelected: false, getValue: (r: any) => r.roleCode?.startsWith('CLAAPS_') || r.roleCode?.startsWith('CUSTOM_') ? 'Custom' : 'Standard Oracle' }
             ]}
             onFetchScopeData={async (scope) => {
               if (scope === 'PAGE') return roles;
