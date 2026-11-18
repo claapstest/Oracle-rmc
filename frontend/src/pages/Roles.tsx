@@ -625,7 +625,7 @@ export default function Roles({
             totalCount={totalResults}
             appliedFilters={activeFilters}
             availableColumns={[
-              { key: 'displayName', label: 'Display Name', defaultSelected: true },
+              { key: 'displayName', label: 'Role Name', defaultSelected: true },
               { key: 'roleCode', label: 'Role Code', defaultSelected: true },
               { key: 'module', label: 'Module', defaultSelected: true, getValue: (r: any) => r.module || 'Common' },
               { key: 'category', label: 'Category', defaultSelected: true },
@@ -682,7 +682,7 @@ export default function Roles({
           <table className="enterprise-table" style={{ opacity: loading ? 0.65 : 1, transition: 'opacity 0.2s ease' }}>
             <thead>
               <tr>
-                <th>Display Name</th>
+                <th>Role Name</th>
                 <th>Role Code</th>
                 <th>Module</th>
                 <th>Category</th>
