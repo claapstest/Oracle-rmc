@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config.js';
+import { query } from '../db.js';
 import { OracleFusionClient } from '../oracle/client.js';
 import { RiskService } from './riskService.js';
 import { ControlCatalogService } from './controlCatalogService.js';
@@ -115,9 +116,18 @@ function normalizeAssignedRoles(rolesList: any[] | undefined, isDemo: boolean): 
   return normalized;
 }
 
-export function normalizeCategoryFilter(cat?: string): string | null {  if (!cat || cat.toUpperCase() === 'ALL') return null;
-  const upper = cat.trim().toUpperCase();
-  if (upper.includes('UNASSIGNED') || upper.includes('WITHOUT_USERS') || upper.includes('NO_USERS')) return 'UNASSIGNED';
+export function normalizeCategoryFilter(cat?: string): string | null {
+  if (!cat || cat.toUpperCase() === 'ALL') return null;
+  const upper = cat.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (
+    upper.includes('UNASSIGNED') ||
+    upper.includes('WITHOUT_USERS') ||
+    upper.includes('NO_USERS') ||
+    upper.includes('ZERO_USERS') ||
+    upper.includes('ROLES_WITHOUT_USERS')
+  ) {
+    return 'UNASSIGNED';
+  }
   if (upper.includes('DUTY')) return 'Duty';
   if (upper.includes('GRC')) return 'GRC';
   if (upper.includes('DATA')) return 'Data';
@@ -162,15 +172,24 @@ const ENTERPRISE_ROLE_ALIASES: Record<string, string[]> = {
   grc: ['governance risk compliance']
 };
 
-export function searchAndRankRoles(roles: Role[], query?: string, category?: string): Role[] {
+export function searchAndRankRoles(roles: Role[], query?: string, category?: string, module?: string): Role[] {
   let filtered = roles;
 
   // 1. Category Filter
   const normalizedCat = normalizeCategoryFilter(category);
   if (normalizedCat === 'UNASSIGNED') {
-    filtered = filtered.filter(r => !r.members || r.members.length === 0);
+    filtered = filtered.filter(r => {
+      const count = (Array.isArray(r.members) ? r.members.length : 0) || r.memberCount || r.userCount || (typeof (r as any).assignedMembers === 'number' ? (r as any).assignedMembers : 0) || 0;
+      return count === 0;
+    });
   } else if (normalizedCat) {
     filtered = filtered.filter(r => (r.category || '').toLowerCase() === normalizedCat.toLowerCase());
+  }
+
+  // 2. Module Filter
+  if (module && module.trim().toUpperCase() !== 'ALL') {
+    const targetModule = module.trim().toUpperCase();
+    filtered = filtered.filter(r => (r.module || 'COMMON').toUpperCase() === targetModule);
   }
 
   if (!query || !query.trim()) {
@@ -202,6 +221,7 @@ export function searchAndRankRoles(roles: Role[], query?: string, category?: str
     const codeClean = codeLower.replace(/[_\W]+/g, ' ');
     const descLower = (role.description || '').toLowerCase();
     const descClean = descLower.replace(/[_\W]+/g, ' ');
+    const modLower = (role.module || '').toLowerCase();
     const idLower = (role.id || '').toLowerCase();
 
     let allTokensMatched = true;
@@ -239,10 +259,10 @@ export function searchAndRankRoles(roles: Role[], query?: string, category?: str
         }
       }
 
-      // Check description or ID
+      // Check description, module, or ID
       if (!matchedThisToken) {
         for (const expr of matcher.expansions) {
-          if (descClean.includes(expr) || idLower.includes(expr)) {
+          if (descClean.includes(expr) || modLower.includes(expr) || idLower.includes(expr)) {
             matchedThisToken = true;
             descTokenMatches++;
             break;
@@ -448,42 +468,27 @@ class OracleService {
         const parsed = JSON.parse(raw);
         if ((parsed?.roles && Array.isArray(parsed.roles)) || parsed?.counts) {
           if (parsed.roles && parsed.roles.length > 0) {
-            this.authoritativeRoles = parsed.roles.map((r: any) => ({
-              ...r,
-              parentRoles: r.parentRoles || [],
-              childRoles: r.childRoles || [],
-              privileges: r.privileges || []
-            }));
+            // Keep strictly authoritative BIP roles; filter out any synthetic hierarchy-derived duty roles
+            this.authoritativeRoles = parsed.roles
+              .filter((r: any) => !r.id?.startsWith('DUTY_') && !(r.description && r.description.includes('through role hierarchy')))
+              .map((r: any) => ({
+                ...r,
+                module: r.module || 'Common',
+                parentRoles: r.parentRoles || [],
+                childRoles: r.childRoles || [],
+                privileges: r.privileges || []
+              }));
           }
-          if (parsed.counts) {
-            this.cachedJobRoles = parsed.counts.Job || 0;
-            this.cachedDutyRoles = parsed.counts.Duty || 0;
-            this.cachedDataRoles = parsed.counts.Data || 0;
-            this.cachedAbstractRoles = parsed.counts.Abstract || 0;
-            this.cachedGrcRoles = parsed.counts.GRC || 0;
-            this.cachedOtherRoles = parsed.counts.Other || 0;
-          }
-          const catSum = this.cachedJobRoles + this.cachedDutyRoles + this.cachedDataRoles + this.cachedAbstractRoles + this.cachedGrcRoles + this.cachedOtherRoles;
-          this.cachedTotalRoles = Math.max(parsed.totalResults || 0, this.authoritativeRoles.length, catSum);
+          this.cachedJobRoles = this.authoritativeRoles.filter(r => r.category === 'Job').length;
+          this.cachedDutyRoles = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
+          this.cachedDataRoles = this.authoritativeRoles.filter(r => r.category === 'Data').length;
+          this.cachedAbstractRoles = this.authoritativeRoles.filter(r => r.category === 'Abstract').length;
+          this.cachedGrcRoles = this.authoritativeRoles.filter(r => r.category === 'GRC').length;
+          this.cachedOtherRoles = this.authoritativeRoles.filter(r => r.category === 'Other').length;
+          this.cachedTotalRoles = this.authoritativeRoles.length;
           this.lastRolesSyncTime = parsed.syncedAt || new Date().toISOString();
 
-          // Auto-enrich Duty roles from hierarchy if dataset contains only SCIM direct roles
-          const dutyCount = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
-          if (this.authoritativeRoles.length > 0 && dutyCount < 100) {
-            console.log(`[Oracle Service] Loaded ${this.authoritativeRoles.length} roles with only ${dutyCount} duty roles. Auto-enriching from hierarchy report dataset...`);
-            this.authoritativeRoles = this.enrichWithDutyRolesFromHierarchy(this.authoritativeRoles);
-            this.cachedJobRoles = this.authoritativeRoles.filter(r => r.category === 'Job').length;
-            this.cachedDutyRoles = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
-            this.cachedDataRoles = this.authoritativeRoles.filter(r => r.category === 'Data').length;
-            this.cachedAbstractRoles = this.authoritativeRoles.filter(r => r.category === 'Abstract').length;
-            this.cachedGrcRoles = this.authoritativeRoles.filter(r => r.category === 'GRC').length;
-            this.cachedOtherRoles = this.authoritativeRoles.filter(r => r.category === 'Other').length;
-            this.cachedTotalRoles = this.authoritativeRoles.length;
-            this.lastRolesSyncTime = new Date().toISOString();
-            this.saveAuthoritativeRolesToCache();
-          }
-
-          console.log(`[Oracle Service] Authoritative Role Dataset ready: ${this.cachedTotalRoles} records loaded (Duty: ${this.cachedDutyRoles}, Synced: ${this.lastRolesSyncTime}).`);
+          console.log(`[Oracle Service] Authoritative Role Dataset ready: ${this.cachedTotalRoles} records loaded (Duty: ${this.cachedDutyRoles}, Job: ${this.cachedJobRoles}, Abstract: ${this.cachedAbstractRoles}, Data: ${this.cachedDataRoles}, Synced: ${this.lastRolesSyncTime}).`);
           return true;
         }
       }
@@ -494,136 +499,24 @@ class OracleService {
   }
 
   public enrichWithDutyRolesFromHierarchy(roles: Role[]): Role[] {
-    try {
-      const hierItems = roleHierarchyService.getCachedItems();
-      if (!hierItems || hierItems.length === 0) return roles;
-
-      const roleMapByCode = new Map<string, Role>();
-      const roleMapByName = new Map<string, Role>();
-
-      roles.forEach(r => {
-        if (r.roleCode) roleMapByCode.set(r.roleCode.toUpperCase().trim(), r);
-        if (r.displayName) roleMapByName.set(r.displayName.toLowerCase().trim(), r);
-      });
-
-      const dutyRoles = new Map<string, {
-        displayName: string;
-        roleCode: string;
-        category: string;
-        description: string;
-        members: any[];
-        parentRoles: string[];
-        childRoles: string[];
-        privileges: any[];
-      }>();
-
-      for (const item of hierItems) {
-        if (item.parentRoleType === 'DUTY' && item.parentRole) {
-          const dName = item.parentRole.trim();
-          const dKey = dName.toLowerCase();
-          let dCode = 'ORA_' + dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-          if (dCode.length > 50) dCode = dCode.substring(0, 50);
-          const parentJob = item.roleName || item.childRole;
-
-          if (!dutyRoles.has(dKey)) {
-            dutyRoles.set(dKey, {
-              displayName: dName,
-              roleCode: dCode,
-              category: 'Duty',
-              description: 'Oracle Fusion Security Duty Role granting modular functional capabilities through role hierarchy.',
-              members: [],
-              parentRoles: parentJob ? [parentJob] : [],
-              childRoles: [],
-              privileges: item.privileges || []
-            });
-          } else {
-            const entry = dutyRoles.get(dKey)!;
-            if (parentJob && !entry.parentRoles.includes(parentJob)) {
-              entry.parentRoles.push(parentJob);
-            }
-            if ((!entry.privileges || entry.privileges.length === 0) && item.privileges && item.privileges.length > 0) {
-              entry.privileges = item.privileges;
-            }
-          }
-        }
-
-        if (item.childRoleType === 'DUTY' && item.childRole) {
-          const dName = item.childRole.trim();
-          const dKey = dName.toLowerCase();
-          let dCode = item.roleCode || ('ORA_' + dName.toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, ''));
-          if (dCode.length > 50) dCode = dCode.substring(0, 50);
-          const parentJob = item.parentRole;
-
-          if (!dutyRoles.has(dKey)) {
-            dutyRoles.set(dKey, {
-              displayName: dName,
-              roleCode: dCode,
-              category: 'Duty',
-              description: 'Oracle Fusion Security Duty Role granting modular functional capabilities through role hierarchy.',
-              members: [],
-              parentRoles: parentJob ? [parentJob] : [],
-              childRoles: [],
-              privileges: item.privileges || []
-            });
-          } else {
-            const entry = dutyRoles.get(dKey)!;
-            if (parentJob && !entry.parentRoles.includes(parentJob)) {
-              entry.parentRoles.push(parentJob);
-            }
-            if ((!entry.privileges || entry.privileges.length === 0) && item.privileges && item.privileges.length > 0) {
-              entry.privileges = item.privileges;
-            }
-          }
-        }
-      }
-
-      for (const [dKey, dRole] of dutyRoles.entries()) {
-        const existingByName = roleMapByName.get(dKey);
-        const existingByCode = roleMapByCode.get(dRole.roleCode.toUpperCase());
-        const existing = existingByName || existingByCode;
-
-        if (existing) {
-          if (!existing.parentRoles) existing.parentRoles = [];
-          dRole.parentRoles.forEach(p => {
-            if (!existing.parentRoles.includes(p)) existing.parentRoles.push(p);
-          });
-          if ((!existing.privileges || existing.privileges.length === 0) && dRole.privileges?.length > 0) {
-            existing.privileges = dRole.privileges;
-          }
-        } else {
-          const newEntry: Role = {
-            id: `DUTY_${dRole.roleCode}`,
-            displayName: dRole.displayName,
-            roleCode: dRole.roleCode,
-            category: 'Duty',
-            description: dRole.description,
-            members: [],
-            parentRoles: dRole.parentRoles,
-            childRoles: [],
-            privileges: dRole.privileges
-          };
-          roles.push(newEntry);
-          roleMapByName.set(dKey, newEntry);
-          roleMapByCode.set(dRole.roleCode.toUpperCase(), newEntry);
-        }
-      }
-    } catch (e: any) {
-      console.warn('[Oracle Service] Hierarchy duty role enrichment warning:', e.message);
-    }
+    // Deprecated: Roles are sourced directly and authoritatively from BI Publisher report (/Custom/Claaps_All_Module_Roles.xdo).
+    // Synthetic duty roles from role hierarchy are no longer injected.
     return roles;
   }
 
   public saveAuthoritativeRolesToCache(): void {
     try {
-      this.authoritativeRoles = this.enrichWithDutyRolesFromHierarchy(this.authoritativeRoles);
+      // Retain strictly authoritative BIP roles; exclude synthetic hierarchy duty roles
+      this.authoritativeRoles = this.authoritativeRoles.filter(
+        r => !r.id?.startsWith('DUTY_') && !(r.description && r.description.includes('through role hierarchy'))
+      );
       this.cachedJobRoles = this.authoritativeRoles.filter(r => r.category === 'Job').length;
       this.cachedDutyRoles = this.authoritativeRoles.filter(r => r.category === 'Duty').length;
       this.cachedDataRoles = this.authoritativeRoles.filter(r => r.category === 'Data').length;
       this.cachedAbstractRoles = this.authoritativeRoles.filter(r => r.category === 'Abstract').length;
       this.cachedGrcRoles = this.authoritativeRoles.filter(r => r.category === 'GRC').length;
       this.cachedOtherRoles = this.authoritativeRoles.filter(r => r.category === 'Other').length;
-      const catSum = this.cachedJobRoles + this.cachedDutyRoles + this.cachedDataRoles + this.cachedAbstractRoles + this.cachedGrcRoles + this.cachedOtherRoles;
-      this.cachedTotalRoles = Math.max(this.authoritativeRoles.length, catSum);
+      this.cachedTotalRoles = this.authoritativeRoles.length;
 
       const counts = {
         Job: this.cachedJobRoles,
@@ -688,6 +581,16 @@ class OracleService {
     this.triggerBackgroundCounting(false);
   }
 
+  /**
+   * Recreates the Oracle client using runtime credentials from OracleCredentialProvider (VYR-042).
+   */
+  async recreateClientFromProvider(): Promise<void> {
+    await this.client.recreateClientFromProvider();
+    this.riskService = new RiskService(this.client);
+    this.controlCatalogService.recreateClient(this.client);
+    this.controlSummaryService.recreateClient(this.client);
+  }
+
   isDemoMode(): boolean {
     // Live-instance-only: never serve sample/fallback data.
     return false;
@@ -715,7 +618,10 @@ class OracleService {
       const abstractRolesCount = this.authoritativeRoles.filter(r => r.category === 'Abstract').length;
       const grcRolesCount = this.authoritativeRoles.filter(r => r.category === 'GRC').length;
       const otherRolesCount = this.authoritativeRoles.filter(r => r.category === 'Other').length;
-      const rolesWithoutUsersCount = this.authoritativeRoles.filter(r => !r.members || r.members.length === 0).length;
+      const rolesWithoutUsersCount = this.authoritativeRoles.filter(r => {
+        const count = (Array.isArray(r.members) ? r.members.length : 0) || r.memberCount || r.userCount || (typeof (r as any).assignedMembers === 'number' ? (r as any).assignedMembers : 0) || 0;
+        return count === 0;
+      }).length;
       const rolesWithUsersCount = this.authoritativeRoles.length - rolesWithoutUsersCount;
       const categorySum = jobRolesCount + dutyRolesCount + dataRolesCount + abstractRolesCount + grcRolesCount + otherRolesCount;
       const totalRoles = Math.max(this.authoritativeRoles.length, categorySum, this.cachedTotalRoles);
@@ -887,7 +793,7 @@ class OracleService {
     };
   }
 
-  async syncAuthoritativeRoles(): Promise<{ success: boolean; totalRoles: number; counts: any; duration: string }> {
+  async syncAuthoritativeRoles(): Promise<{ success: boolean; totalRoles: number; counts: any; duration: string; source?: string }> {
     if (this.isCounting || this.isDemoMode()) {
       return { 
         success: true, 
@@ -898,9 +804,106 @@ class OracleService {
     }
     this.isCounting = true;
     const start = Date.now();
-    console.log('[Oracle Service] On-demand authoritative role synchronization started...');
+    console.log('[Oracle Service] Authoritative role synchronization starting via BI Publisher...');
 
     try {
+      // 1. Primary path: Authoritative BI Publisher report (/Custom/Claaps_All_Module_Roles.xdo)
+      if (config.environmentMode === 'ORACLE_FUSION') {
+        try {
+          const bipRes = await bipClient.runAllModuleRolesReport();
+          if (bipRes.success && bipRes.data && bipRes.data.length > 0) {
+            console.log(`[Oracle Service] Ingested ${bipRes.data.length} authoritative roles from BI Publisher (${bipRes.reportPath})`);
+
+            const existingMap = new Map<string, Role>();
+            for (const existing of this.authoritativeRoles) {
+              if (existing.roleCode) {
+                existingMap.set(existing.roleCode.toUpperCase().trim(), existing);
+              }
+            }
+
+            const allRoles: Role[] = [];
+            let jobRoles = 0;
+            let dutyRoles = 0;
+            let dataRoles = 0;
+            let abstractRoles = 0;
+            let grcRoles = 0;
+            let otherRoles = 0;
+
+            for (const r of bipRes.data) {
+              const catRaw = (r.category || '').toUpperCase();
+              let cat: 'Job' | 'Duty' | 'Data' | 'Abstract' | 'GRC' | 'Other' = 'Other';
+              if (catRaw.includes('DUTY')) cat = 'Duty';
+              else if (catRaw.includes('JOB')) cat = 'Job';
+              else if (catRaw.includes('DATA')) cat = 'Data';
+              else if (catRaw.includes('ABSTRACT')) cat = 'Abstract';
+              else if (catRaw.includes('GRC')) cat = 'GRC';
+              else cat = classifyRoleRecord({ name: r.roleCode, displayName: r.roleName, category: r.category });
+
+              if (cat === 'Job') jobRoles++;
+              else if (cat === 'Duty') dutyRoles++;
+              else if (cat === 'Data') dataRoles++;
+              else if (cat === 'Abstract') abstractRoles++;
+              else if (cat === 'GRC') grcRoles++;
+              else otherRoles++;
+
+              const existing = existingMap.get(r.roleCode.toUpperCase().trim());
+              const members = existing?.members || [];
+              const mCount = members.length || existing?.memberCount || 0;
+
+              allRoles.push({
+                id: r.roleCode,
+                displayName: r.roleName || r.roleCode,
+                roleCode: r.roleCode,
+                category: cat,
+                description: r.description || `Oracle Fusion Security ${cat} Role (${r.module || 'Common'})`,
+                module: r.module || 'Common',
+                members,
+                assignedMembers: mCount,
+                userCount: mCount,
+                memberCount: mCount,
+                parentRoles: existing?.parentRoles || [],
+                childRoles: existing?.childRoles || [],
+                privileges: existing?.privileges || []
+              });
+            }
+
+            this.authoritativeRoles = allRoles;
+            this.cachedTotalRoles = allRoles.length;
+            this.cachedJobRoles = jobRoles;
+            this.cachedDutyRoles = dutyRoles;
+            this.cachedDataRoles = dataRoles;
+            this.cachedAbstractRoles = abstractRoles;
+            this.cachedGrcRoles = grcRoles;
+            this.cachedOtherRoles = otherRoles;
+            this.lastRolesSyncTime = new Date().toISOString();
+            this.saveAuthoritativeRolesToCache();
+            try {
+              await userRoleRawDbService.saveRawRolesBatch(allRoles);
+              console.log(`[Oracle Service] Persisted ${allRoles.length} raw roles to PostgreSQL oracle_raw_roles.`);
+            } catch (dbErr: any) {
+              console.warn('[Oracle Service] Warning saving raw roles to PostgreSQL:', dbErr.message);
+            }
+            this.queryCache.clear();
+
+            const duration = `${((Date.now() - start) / 1000).toFixed(1)}s`;
+            console.log(`[Oracle Service] BIP Authoritative Role sync complete in ${duration}. Total: ${allRoles.length} (Duty: ${dutyRoles}, Job: ${jobRoles}, Abstract: ${abstractRoles}, Data: ${dataRoles}, GRC: ${grcRoles}, Other: ${otherRoles})`);
+
+            return {
+              success: true,
+              totalRoles: allRoles.length,
+              counts: this.getCachedCounts(),
+              duration,
+              source: 'Oracle Fusion BI Publisher'
+            };
+          } else {
+            console.warn('[Oracle Service] BIP report returned 0 roles or failed. Falling back to SCIM crawl...', bipRes.message || bipRes.error);
+          }
+        } catch (bipErr: any) {
+          console.warn('[Oracle Service] BIP report execution error, falling back to SCIM:', bipErr.message);
+        }
+      }
+
+      // 2. Secondary fallback path: SCIM Roles API crawl
       const allRoles: Role[] = [];
       let totalRoles = 0;
       let jobRoles = 0;
@@ -946,6 +949,7 @@ class OracleService {
             roleCode: r.name || r.roleCode || '',
             category: cat,
             description: r.description || `Oracle Fusion Security ${cat} Role`,
+            module: 'Common',
             members: r.members?.map((m: any) => ({ value: m.value, display: m.display || '' })) || [],
             assignedMembers: mCount,
             userCount: mCount,
@@ -978,7 +982,8 @@ class OracleService {
         success: true,
         totalRoles,
         counts: this.getCachedCounts(),
-        duration
+        duration,
+        source: 'Oracle Fusion SCIM'
       };
     } finally {
       this.isCounting = false;
@@ -1058,74 +1063,10 @@ class OracleService {
         console.error('[Oracle Service] Background user count failed:', (err as Error).message);
       }
 
-      // If roles not loaded yet or forced, run full role sync
+      // If roles not loaded yet or forced, run authoritative role sync (BIP report primary, SCIM fallback)
       if (this.authoritativeRoles.length === 0 || force) {
         try {
-          const allRoles: Role[] = [];
-          let totalRoles = 0;
-          let jobRoles = 0;
-          let dutyRoles = 0;
-          let dataRoles = 0;
-          let abstractRoles = 0;
-          let grcRoles = 0;
-          let otherRoles = 0;
-
-          let startIndex = 1;
-          const count = 100;
-          while (config.environmentMode === 'ORACLE_FUSION') {
-            let res: any = null;
-            let retries = 3;
-            while (retries > 0) {
-              try {
-                res = await this.client.getRoles({ count, startIndex });
-                break;
-              } catch (err: any) {
-                retries--;
-                if (retries === 0) throw err;
-                await new Promise(r => setTimeout(r, 2000));
-              }
-            }
-
-            const len = res?.Resources?.length || 0;
-            if (len === 0) break;
-            totalRoles += len;
-
-            res?.Resources?.forEach((r: any) => {
-              const cat = classifyRoleRecord(r);
-              if (cat === 'Job') jobRoles++;
-              else if (cat === 'Duty') dutyRoles++;
-              else if (cat === 'Data') dataRoles++;
-              else if (cat === 'Abstract') abstractRoles++;
-              else if (cat === 'GRC') grcRoles++;
-              else otherRoles++;
-
-              allRoles.push({
-                id: r.id,
-                displayName: r.displayName || '',
-                roleCode: r.name || r.roleCode || '',
-                category: cat,
-                description: r.description || `Oracle Fusion Security ${cat} Role`,
-                members: r.members?.map((m: any) => ({ value: m.value, display: m.display || '' })) || [],
-                parentRoles: [],
-                childRoles: [],
-                privileges: []
-              });
-            });
-
-            if (len < count) break;
-            startIndex += count;
-          }
-          this.authoritativeRoles = allRoles;
-          this.cachedTotalRoles = totalRoles;
-          this.cachedJobRoles = jobRoles;
-          this.cachedDutyRoles = dutyRoles;
-          this.cachedDataRoles = dataRoles;
-          this.cachedAbstractRoles = abstractRoles;
-          this.cachedGrcRoles = grcRoles;
-          this.cachedOtherRoles = otherRoles;
-          this.lastRolesSyncTime = new Date().toISOString();
-          this.saveAuthoritativeRolesToCache();
-          console.log(`[Oracle Service] Authoritative Role sync complete. Total: ${totalRoles} (Job: ${jobRoles}, Duty: ${dutyRoles}, Data: ${dataRoles}, Abstract: ${abstractRoles}, GRC: ${grcRoles}, Other: ${otherRoles})`);
+          await this.syncAuthoritativeRoles();
         } catch (err) {
           console.error('[Oracle Service] Background role sync failed:', (err as Error).message);
         }
@@ -1826,13 +1767,15 @@ class OracleService {
   }
 
   async getRoles(
-    params?: string | { filterText?: string; category?: string; startIndex?: number; count?: number },
+    params?: string | { filterText?: string; category?: string; module?: string; startIndex?: number; count?: number },
     categoryArg?: string,
     startIndexArg?: number,
-    countArg?: number
-  ): Promise<{ roles: Role[]; totalResults: number; startIndex: number; count: number }> {
+    countArg?: number,
+    moduleArg?: string
+  ): Promise<{ roles: Role[]; totalResults: number; startIndex: number; count: number; modules: string[] }> {
     let filterText: string | undefined;
     let category: string | undefined = categoryArg;
+    let module: string | undefined = moduleArg;
     let startIndex = startIndexArg || 1;
     let count = countArg || 50;
 
@@ -1841,36 +1784,47 @@ class OracleService {
     } else if (params && typeof params === 'object') {
       filterText = params.filterText;
       if (params.category) category = params.category;
+      if (params.module) module = params.module;
       if (params.startIndex) startIndex = params.startIndex;
       if (params.count) count = params.count;
     }
+
+    const modules = Array.from(
+      new Set(
+        this.authoritativeRoles
+          .map(r => r.module || 'Common')
+          .filter(Boolean)
+      )
+    ).sort();
 
     // Authoritative Dataset:
     // When authoritative dataset is available, serve directly from it to guarantee
     // 100% consistency between Overview Dashboard role counts and Roles Catalog records.
     if (this.authoritativeRoles.length > 0) {
-      const results = searchAndRankRoles(this.authoritativeRoles, filterText, category);
+      const results = searchAndRankRoles(this.authoritativeRoles, filterText, category, module);
       const totalResults = results.length;
       const sliced = results.slice(startIndex - 1, startIndex - 1 + count);
       return {
         roles: sliced,
         totalResults,
         startIndex,
-        count
+        count,
+        modules
       };
     }
 
     this.assertLiveInstance('Roles list');
 
     if (this.isDemoMode()) {
-      const results = searchAndRankRoles(mockRoles, filterText, category);
+      const results = searchAndRankRoles(mockRoles, filterText, category, module);
       const totalResults = results.length;
       const sliced = results.slice(startIndex - 1, startIndex - 1 + count);
       return {
         roles: sliced,
         totalResults,
         startIndex,
-        count
+        count,
+        modules
       };
     }
 
@@ -1886,13 +1840,13 @@ class OracleService {
       }
     }
     const normalizedCat = normalizeCategoryFilter(category);
-    if (normalizedCat) {
+    if (normalizedCat && normalizedCat !== 'UNASSIGNED') {
       const catFilter = `category eq "${normalizedCat.toUpperCase()}"`;
       scimFilter = scimFilter ? `(${scimFilter}) and ${catFilter}` : catFilter;
     }
 
-    const cacheKey = `roles:${scimFilter || 'all'}:${category || 'all'}:${startIndex}:${count}`;
-    const cached = this.getFromCache<{ roles: Role[]; totalResults: number; startIndex: number; count: number }>(cacheKey);
+    const cacheKey = `roles:${scimFilter || 'all'}:${category || 'all'}:${module || 'all'}:${startIndex}:${count}`;
+    const cached = this.getFromCache<{ roles: Role[]; totalResults: number; startIndex: number; count: number; modules: string[] }>(cacheKey);
     if (cached) {
       return cached;
     }
@@ -1910,7 +1864,8 @@ class OracleService {
         roles: [],
         totalResults: this.cachedTotalRoles || 6938,
         startIndex,
-        count
+        count,
+        modules
       };
     }
 
@@ -1925,6 +1880,7 @@ class OracleService {
         roleCode: res.name || res.roleCode || '',
         category: cat,
         description: res.description || `Oracle Fusion Security ${cat} Role`,
+        module: 'Common',
         members: res.members?.map((m: any) => ({ value: m.value, display: m.display || '' })) || [],
         assignedMembers: mCount,
         userCount: mCount,
@@ -1935,14 +1891,15 @@ class OracleService {
       };
     });
 
-    const roles = searchAndRankRoles(rawRoles, filterText, category);
+    const roles = searchAndRankRoles(rawRoles, filterText, category, module);
     const totalResults = scimResponse?.totalResults !== undefined ? scimResponse.totalResults : (this.cachedTotalRoles || roles.length);
 
     const result = {
       roles,
       totalResults,
       startIndex,
-      count
+      count,
+      modules
     };
 
     this.setInCache(cacheKey, result, 3 * 60 * 1000);
@@ -2054,6 +2011,55 @@ class OracleService {
       this.setInCache(`role_members:${canonicalName.toLowerCase()}`, members, 15 * 60 * 1000);
       this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, members, 15 * 60 * 1000);
       return members;
+    }
+
+    // 1. First check if knownRole in authoritativeRoles already has direct members with real usernames
+    if (knownRole && Array.isArray(knownRole.members) && knownRole.members.length > 0) {
+      const valid = knownRole.members
+        .filter((m: any) => m.value || m.display)
+        .map((m: any) => ({
+          id: m.value || m.id,
+          userName: m.value || m.userName || m.name,
+          displayName: m.display || m.displayName || m.value,
+          email: m.email || null,
+          active: m.active !== false
+        }));
+      if (valid.length > 0 && !valid[0].userName.startsWith('usr_')) {
+        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, valid, 15 * 60 * 1000);
+        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, valid, 15 * 60 * 1000);
+        return valid;
+      }
+    }
+
+    // 2. Query oracle_raw_user_access in PostgreSQL for authoritative direct user assignments
+    try {
+      const dbRes = await query<{
+        username: string;
+        display_name: string;
+        email: string;
+        active: boolean;
+      }>(
+        `SELECT DISTINCT username, display_name, email, active
+         FROM oracle_raw_user_access
+         WHERE (role_code ILIKE $1 OR role_name ILIKE $1 OR role_code ILIKE $2 OR role_name ILIKE $2)
+         ORDER BY display_name ASC NULLS LAST, username ASC
+         LIMIT 200`,
+        [canonicalCode, canonicalName]
+      );
+      if (dbRes.rows && dbRes.rows.length > 0) {
+        const members = dbRes.rows.map((r: any) => ({
+          id: r.username,
+          userName: r.username,
+          displayName: r.display_name || r.username,
+          email: r.email || null,
+          active: r.active !== false
+        }));
+        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, members, 15 * 60 * 1000);
+        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, members, 15 * 60 * 1000);
+        return members;
+      }
+    } catch (dbErr: any) {
+      console.warn(`[Oracle Service] PostgreSQL user access lookup for "${roleNameOrCode}":`, dbErr.message);
     }
 
     try {

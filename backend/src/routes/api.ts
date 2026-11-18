@@ -2,6 +2,9 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { oracleService } from '../services/oracleService.js';
 import { rolePrivilegeCatalogService } from '../services/rolePrivilegeCatalogService.js';
 import { privilegeRoleCatalogService } from '../services/privilegeRoleCatalogService.js';
+import { validateAndNormalizeUrl } from '../security/urlPolicy.js';
+import { maskSensitive } from '../security/cryptoFailure.js';
+import { securityEventLogger } from '../security/securityEventLogger.js';
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
 import { authService } from '../services/authService.js';
@@ -24,8 +27,36 @@ import * as incidentAnalyticsService from '../services/incidentAnalyticsService.
 import { roleHierarchyService } from '../services/roleHierarchyService.js';
 import { auditRawDbService } from '../services/auditRawDbService.js';
 import { oracleSyncService } from '../services/oracleSyncService.js';
+import { ingestionPipeline } from '../services/ingestionPipelineService.js';
+import { syncMonitorService } from '../services/syncMonitorService.js';
+import { serviceIdentityRegistry } from '../oracle/serviceIdentity.js';
+import { bipClient } from '../oracle/bipClient.js';
+import { distributedLockService } from '../services/distributedLockService.js';
+import { syncCheckpointService } from '../services/syncCheckpointService.js';
 import { entitlementService } from '../services/entitlementService.js';
 import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
+import {
+  rateLimitService,
+  authRateLimiter,
+  sensitiveAdminRateLimiter,
+  apiRateLimiter,
+  tenantRateLimiter,
+  getClientIp,
+} from '../security/rateLimitService.js';
+import {
+  validateBody,
+  enforceContentType,
+  enforceBodySizeLimit,
+  type SchemaKey,
+} from '../security/requestValidationService.js';
+import {
+  secretsManager,
+  sanitizeSettingsResponse,
+  resolveWorkloadIdentity,
+  createSecretFingerprint,
+} from '../security/secretsManager.js';
+import { validateStartupConfig } from '../security/configValidator.js';
+import { kmsProvider } from '../security/kmsProvider.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -36,11 +67,25 @@ const AUDIT_LOG_PATH = path.join(__dirname, '../../oracle_audit.log');
 
 export const apiRouter = Router();
 
+// VYR-048: Apply multi-tenant and general API rate limiting across API routes
+apiRouter.use(tenantRateLimiter);
+apiRouter.use(apiRateLimiter);
+
+// VYR-049: Enforce content-type allowlist for mutation requests
+apiRouter.use(enforceContentType);
+
+// VYR-052: Reject cross-tenant parameter substitution on all API routes
+apiRouter.use(enforceTenantIsolation);
+
 // Write Audit Logs securely without exposing secrets
 function logAudit(username: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
   const safeUsername = username || 'SYSTEM';
-  const logMessage = `[${timestamp}] User: ${safeUsername} | Action: ${action} | Details: ${details}\n`;
+  // VYR-053: free-form detail strings are interpolated from many sources
+  // (error messages, URLs, emails). Mask credentials/tokens/ciphertext before
+  // they reach the file log or the in-memory trail.
+  const safeDetails = maskSensitive(details, 2000);
+  const logMessage = `[${timestamp}] User: ${safeUsername} | Action: ${action} | Details: ${safeDetails}\n`;
   console.log(`[AUDIT] ${logMessage.trim()}`);
   try {
     fs.appendFileSync(AUDIT_LOG_PATH, logMessage, { encoding: 'utf8', mode: 0o600 });
@@ -52,9 +97,9 @@ function logAudit(username: string, action: string, details: string) {
       id: `aud_adm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       timestamp,
       username: safeUsername,
-      businessObject: action.includes('USER') || action.includes('ACCOUNT') ? `User: ${details.split(' ').pop() || safeUsername}` : 'Security Administration',
+      businessObject: action.includes('USER') || action.includes('ACCOUNT') ? `User: ${safeDetails.split(' ').pop() || safeUsername}` : 'Security Administration',
       action: action.includes('DELETE') ? 'DELETE' : action.includes('REVOKE') ? 'ROLE_REVOKE' : action.includes('ASSIGN') ? 'ROLE_ASSIGN' : 'UPDATE',
-      details
+      details: safeDetails
     });
   } catch (err) {
     console.error('[Audit Error] Failed to update in-memory audit trail:', err);
@@ -63,6 +108,12 @@ function logAudit(username: string, action: string, details: string) {
 
 // Authentication and RBAC middleware integrating JWT verification (VYR-021 & VYR-023)
 import { verifyJwtAndSession } from '../middleware/jwtAuthMiddleware.js';
+import { cryptoAuditService } from '../security/cryptoAuditService.js';
+import {
+  enforceTenantIsolation,
+  preventPrivilegeEscalation,
+  preventSelfModification,
+} from '../security/tenantIsolationService.js';
 export const requireAuth = verifyJwtAndSession;
 
 // Middleware to enforce backend admin authorization (Site Admin only - AC6, VYR-023)
@@ -299,13 +350,16 @@ function readCookie(req: Request, name: string): string | null {
   return null;
 }
 
+// VYR-050: Hardened cookie attributes — Secure in production, SameSite=Lax, HttpOnly always
 function entraStateCookieOptions() {
+  const isProduction = config.nodeEnv === 'production';
   return {
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: config.nodeEnv === 'production',
+    secure: isProduction,
     maxAge: 10 * 60 * 1000,
     path: '/api/auth/entra',
+    ...(isProduction ? { domain: undefined } : {}),
   };
 }
 
@@ -366,7 +420,7 @@ apiRouter.get('/auth/entra/start', (_req: Request, res: Response) => {
 });
 
 // POST /auth/entra/callback - Validate state, exchange code, and issue a VEYRA session
-apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
+apiRouter.post('/auth/entra/callback', authRateLimiter, validateBody('POST /auth/entra/callback'), async (req: Request, res: Response) => {
   if (!isEntraEnabled()) {
     return res.status(404).json({
       success: false,
@@ -453,8 +507,8 @@ apiRouter.post('/auth/entra/callback', async (req: Request, res: Response) => {
   }
 });
 
-// POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled)
-apiRouter.post('/auth/login', async (req: Request, res: Response) => {
+// POST /auth/login - VEYRA User Sign In (AC1-AC8, Provider Decoupled, VYR-048 Rate Limited & Lockout)
+apiRouter.post('/auth/login', authRateLimiter, enforceBodySizeLimit('POST /auth/login'), validateBody('POST /auth/login'), async (req: Request, res: Response) => {
   // Provider choice is strictly bound to server configuration, never user-controlled request parameters
   const provider = getAuthenticationProvider();
 
@@ -481,8 +535,26 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+    // VYR-048: Safe client IP extraction respecting trusted proxy settings (Step 3)
+    const rawIp = getClientIp(req);
     const userAgent = req.get('user-agent') || 'Unknown Client';
+
+    // VYR-048: Check account lockout status (GAP-002 / ASVS V2.2)
+    if (rawEmail) {
+      const lockout = rateLimitService.getLockoutManager().isLocked(rawEmail);
+      if (lockout.isLocked) {
+        res.setHeader('Retry-After', String(lockout.remainingSeconds));
+        logAudit(rawEmail, 'LOGIN_BLOCKED_LOCKOUT',
+          `Account is locked out (${lockout.remainingSeconds}s remaining). Rejected attempt from ${rawIp}`
+        );
+        return res.status(429).json({
+          success: false,
+          code: 'ACCOUNT_LOCKED',
+          message: `Account is temporarily locked due to multiple consecutive failed login attempts. Please try again in ${lockout.remainingSeconds} seconds or contact an administrator.`,
+          retryAfterSeconds: lockout.remainingSeconds,
+        });
+      }
+    }
 
     // Controller consumes the AuthenticationProvider abstraction via authService
     const result = await authService.authenticateWithProvider(provider, {
@@ -505,8 +577,24 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
         logAudit(rawEmail, 'LOGIN_REJECTED', `Account is not active: ${result.status} (403 Forbidden)`);
         return res.status(403).json({ success: false, code: 'USER_DISABLED', message: result.message });
       }
+
+      // VYR-048: Record failed login attempt for account lockout tracking (GAP-002)
+      if (rawEmail) {
+        const lockout = rateLimitService.getLockoutManager().recordFailedAttempt(rawEmail, rawIp);
+        if (lockout.isLocked) {
+          logAudit(rawEmail, 'ACCOUNT_LOCKED',
+            `Account locked out for ${lockout.remainingSeconds}s after ${lockout.failedAttempts} consecutive failed attempts.`
+          );
+        }
+      }
+
       logAudit(rawEmail, 'LOGIN_REJECTED', 'Invalid credentials (401 Unauthorized)');
       return res.status(401).json({ success: false, message: result.message });
+    }
+
+    // VYR-048: Reset failed attempt counters on successful login
+    if (rawEmail) {
+      rateLimitService.getLockoutManager().recordSuccessfulLogin(rawEmail);
     }
 
     logAudit(result.normalizedEmail || rawEmail, 'USER_LOGIN', `Successful login (${result.role || 'User'}, isAdmin: ${result.isAdmin}) [Provider: ${provider.metadata.type}]`);
@@ -551,8 +639,8 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
   });
 });
 
-// POST /auth/refresh - Refresh Active Session Inactivity Timer & Issue Fresh JWT (AC3, AC4, VYR-024)
-apiRouter.post('/auth/refresh', requireAuth, async (req: Request, res: Response) => {
+// POST /auth/refresh - Refresh Active Session Inactivity Timer & Issue Fresh JWT (AC3, AC4, VYR-024, VYR-048 Rate Limited)
+apiRouter.post('/auth/refresh', authRateLimiter, requireAuth, async (req: Request, res: Response) => {
   const token = res.locals.token;
   const result = await authService.refreshSessionActivity(token);
 
@@ -578,7 +666,7 @@ apiRouter.post('/auth/refresh', requireAuth, async (req: Request, res: Response)
 });
 
 // POST /auth/logout - Sign Out User & Invalidate Session (AC5, AC6, AC9, Story 17, VYR-024)
-apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
+apiRouter.post('/auth/logout', enforceBodySizeLimit('POST /auth/logout'), validateBody('POST /auth/logout'), async (req: Request, res: Response) => {
   const authHeader = req.header('Authorization');
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : (req.body?.token || req.body?.sessionId);
   if (!token) {
@@ -618,8 +706,56 @@ apiRouter.post('/admin/sessions/cleanup', requireAdmin, async (req: Request, res
   res.json({ success: true, message: 'Expired sessions cleaned up successfully.' });
 });
 
-// POST /auth/reset-password - Perform Password Reset
-apiRouter.post('/auth/reset-password', async (req: Request, res: Response) => {
+// GET /security/crypto-health - Encryption/decryption failure monitoring (VYR-038)
+// Returns failure counts by category, active systemic alerts and audit-sink state.
+// Contains no payloads, key material or record contents.
+apiRouter.get('/security/crypto-health', requireAdmin, (_req: Request, res: Response) => {
+  const health = cryptoAuditService.getHealth();
+  res.status(health.status === 'CRITICAL' ? 503 : 200).json({ success: true, ...health });
+});
+
+// GET /security/ingestion-status - Pipeline sync status (VYR-040)
+apiRouter.get('/security/ingestion-status', requireAdmin, (_req: Request, res: Response) => {
+  res.json({ success: true, ...ingestionPipeline.getStatus() });
+});
+
+// GET /security/sync-monitor - Sync operational health and active alerts (VYR-045)
+apiRouter.get('/security/sync-monitor', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const health = await syncMonitorService.getHealth();
+    const statusCode = health.status === 'CRITICAL' ? 503 : 200;
+    res.status(statusCode).json({ success: true, ...health });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Sync monitor health check failed: ${err.message}` });
+  }
+});
+
+// GET /security/sync-history - Paginated sync audit history (VYR-045)
+apiRouter.get('/security/sync-history', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 25, 100);
+    const outcome = req.query.outcome as string | undefined;
+    const tenantId = req.query.tenantId as string | undefined;
+    const history = await syncMonitorService.getSyncHistory({ limit, outcome, tenantId });
+    res.json({ success: true, count: history.length, history });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve sync history: ${err.message}` });
+  }
+});
+
+// GET /security/sync-alerts - Active and recent sync alerts (VYR-045)
+apiRouter.get('/security/sync-alerts', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const active = await syncMonitorService.getActiveAlerts();
+    const recent = await syncMonitorService.getRecentAlerts(20);
+    res.json({ success: true, activeAlerts: active, recentAlerts: recent });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve sync alerts: ${err.message}` });
+  }
+});
+
+// POST /auth/reset-password - Perform Password Reset (VYR-048 Rate Limited)
+apiRouter.post('/auth/reset-password', authRateLimiter, enforceBodySizeLimit('POST /auth/reset-password'), validateBody('POST /auth/reset-password'), async (req: Request, res: Response) => {
   const { email: rawEmail, resetCode, newPassword } = req.body;
   if (!rawEmail || !resetCode || !newPassword) {
     return res.status(400).json({ success: false, message: 'Please fill in all reset fields.' });
@@ -661,7 +797,7 @@ function purgeExpiredSnapshots() {
 }
 
 // POST /investigations - Save temporary investigation snapshot
-apiRouter.post('/investigations', requireAuth, (req: Request, res: Response) => {
+apiRouter.post('/investigations', requireAuth, enforceBodySizeLimit('POST /investigations'), validateBody('POST /investigations'), (req: Request, res: Response) => {
   const { id, payload } = req.body;
   if (!id || !payload) {
     return res.status(400).json({ success: false, message: 'Investigation id and payload are required.' });
@@ -712,7 +848,7 @@ apiRouter.get('/admin/users', requirePrivilege('USER_MANAGEMENT'), (req: Request
 });
 
 // POST /admin/users/toggle-status - Activate/Deactivate Account
-apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/toggle-status'), async (req: Request, res: Response) => {
   const { email: rawEmail, active } = req.body;
   if (rawEmail === undefined || active === undefined) {
     return res.status(400).json({ success: false, message: 'Target email and active status are required.' });
@@ -733,7 +869,7 @@ apiRouter.post('/admin/users/toggle-status', requirePrivilege('USER_MANAGEMENT')
 });
 
 // POST /admin/users/delete - Permanently delete user account
-apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/delete'), async (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -754,7 +890,7 @@ apiRouter.post('/admin/users/delete', requirePrivilege('USER_MANAGEMENT'), async
 });
 
 // POST /admin/users/generate-reset-code - Create one-time reset code
-apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
+apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/generate-reset-code'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -771,7 +907,7 @@ apiRouter.post('/admin/users/generate-reset-code', requirePrivilege('USER_MANAGE
 });
 
 // POST /admin/users/revoke-reset-code - Revoke/Invalidate active reset code
-apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEMENT'), (req: Request, res: Response) => {
+apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEMENT'), validateBody('POST /admin/users/revoke-reset-code'), (req: Request, res: Response) => {
   const { email: rawEmail } = req.body;
   if (!rawEmail) {
     return res.status(400).json({ success: false, message: 'Target user email is required.' });
@@ -791,48 +927,14 @@ apiRouter.post('/admin/users/revoke-reset-code', requirePrivilege('USER_MANAGEME
   }
 });
 
-function validateAndNormalizeUrl(url: string): string {
-  let trimmed = url.trim();
-  if (!trimmed) {
-    throw new Error('Base URL is required.');
-  }
-
-  // Reject query parameters and fragments
-  if (trimmed.includes('?') || trimmed.includes('#')) {
-    throw new Error('Base URL must not contain query parameters (?) or fragments (#).');
-  }
-
-  // Require HTTPS
-  if (!trimmed.startsWith('https://')) {
-    if (trimmed.startsWith('http://')) {
-      throw new Error('Secure connection (https://) is required.');
-    } else {
-      trimmed = 'https://' + trimmed;
-    }
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch (err) {
-    throw new Error('Invalid URL format. Please enter a valid URL.');
-  }
-
-  // Reject pathname prefixes
-  if (parsed.pathname && parsed.pathname !== '/' && parsed.pathname.toLowerCase() !== '') {
-    throw new Error("Please enter only the Base URL (e.g., https://example.oraclecloud.com) without any path (e.g., /hcmRestApi/...)");
-  }
-
-  // Normalize URL (strips trailing slash automatically)
-  return `${parsed.protocol}//${parsed.host}`;
-}
+// VYR-051: URL policy lives in security/urlPolicy.ts (SSRF protection, testable).
 
 // 1. Connection & Settings API
 apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
   const adminUser = res.locals.email || res.locals.username;
   logAudit(adminUser, 'READ_SETTINGS', 'Retrieved settings metadata');
 
-  res.json({
+  res.json(sanitizeSettingsResponse({
     mode: config.environmentMode,
     baseUrl: config.oracle.baseUrl,
     authType: config.oracle.authType,
@@ -842,10 +944,10 @@ apiRouter.get('/settings', requirePrivilege('ORACLE_INTEGRATION'), (req: Request
     isConfigured: oracleService.isConfigured(),
     status: oracleService.getConnectionStatus(),
     lastTestedAt: oracleService.getLastTestedAt(),
-  });
+  }));
 });
 
-apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION'), async (req: Request, res: Response) => {
+apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION'), validateBody('POST /settings/test-connection'), async (req: Request, res: Response) => {
   const adminUser = res.locals.email || res.locals.username;
   try {
     const { baseUrl, authType, username, password, token } = req.body;
@@ -887,7 +989,7 @@ apiRouter.post('/settings/test-connection', requirePrivilege('ORACLE_INTEGRATION
   }
 });
 
-apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), (req: Request, res: Response) => {
+apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), enforceBodySizeLimit('POST /settings/toggle-mode'), validateBody('POST /settings/toggle-mode'), (req: Request, res: Response) => {
   const adminUser = res.locals.username;
   const { mode, baseUrl, username, password, token, authType } = req.body;
 
@@ -924,7 +1026,23 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
 
     logAudit(adminUser, 'CONFIGURATION_SAVED', `Updated configuration. Mode: ${oldMode} -> ${config.environmentMode}, URL: ${oldUrl} -> ${config.oracle.baseUrl}, Auth: ${oldAuth} -> ${config.oracle.authType}`);
 
-    res.json({
+    // VYR-053: configuration changes recorded as structured, attributable
+    // security events — no credential material, only what changed.
+    securityEventLogger.record({
+      eventType: 'CONFIG_CHANGED',
+      userId: res.locals.userId || null,
+      targetType: 'environment_config',
+      targetId: config.oracle.baseUrl,
+      result: 'SUCCESS',
+      details: {
+        mode: config.environmentMode,
+        modeChanged: oldMode !== config.environmentMode,
+        urlChanged: oldUrl !== config.oracle.baseUrl,
+        authChanged: oldAuth !== config.oracle.authType
+      }
+    });
+
+    res.json(sanitizeSettingsResponse({
       success: true,
       message: `Environment configuration updated. Running in ${config.environmentMode} mode.`,
       settings: {
@@ -935,7 +1053,7 @@ apiRouter.post('/settings/toggle-mode', requirePrivilege('ORACLE_INTEGRATION'), 
         hasPassword: !!config.oracle.password,
         hasToken: !!config.oracle.token,
       }
-    });
+    }));
   } catch (err) {
     logAudit(adminUser, 'CONFIGURATION_SAVE_FAILED', `Error: ${(err as Error).message}`);
     res.status(400).json({ success: false, message: (err as Error).message });
@@ -1317,6 +1435,16 @@ apiRouter.get('/dashboard/audit-supervisor/db/audit-events', requireAuditSupervi
       offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0
     });
 
+    // VYR-053: access to the audit trail itself is a recorded security event
+    // (log access is restricted to Audit Supervisors and is attributable).
+    securityEventLogger.record({
+      eventType: 'AUDIT_LOG_ACCESS',
+      userId: res.locals.userId || null,
+      targetType: 'audit_event',
+      result: 'SUCCESS',
+      details: { returned: Array.isArray(events) ? events.length : null }
+    });
+
     return res.status(200).json({ success: true, count: events.length, data: events });
   } catch (err) {
     console.error('[Audit Supervisor DB Audit Events Error]:', err);
@@ -1439,7 +1567,7 @@ apiRouter.get('/reports', requireReportsDashboard, async (req: Request, res: Res
 });
 
 // POST /api/reports - Generate a new Report (AC1, AC2, AC3, AC8, AC10, AC11)
-apiRouter.post('/reports', requireReportsDashboard, async (req: Request, res: Response) => {
+apiRouter.post('/reports', requireReportsDashboard, enforceBodySizeLimit('POST /reports'), validateBody('POST /reports'), async (req: Request, res: Response) => {
   try {
     const userContext = {
       userId: res.locals.userId,
@@ -1635,6 +1763,17 @@ apiRouter.get('/reports/:id/download', requireReportsDashboard, async (req: Requ
       `Downloaded report ${download.report.reportId} (${download.format})`
     );
 
+    // VYR-053: privileged data access (report content) recorded as a
+    // standardized, attributable security event with a correlation ID.
+    securityEventLogger.record({
+      eventType: 'PRIVILEGED_DATA_ACCESS',
+      userId: res.locals.userId || null,
+      targetType: 'report',
+      targetId: download.report.reportId,
+      result: 'SUCCESS',
+      details: { format: download.format, sizeBytes: download.sizeBytes, name: download.report.reportName }
+    });
+
     if (asJson) {
       return res.status(200).json({
         success: true,
@@ -1752,7 +1891,7 @@ apiRouter.get('/admin/summary', requireAdmin, handleAdminDashboard);
 apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
   logAudit(adminUser, 'READ_SETTINGS', 'Retrieved Oracle integration metadata');
-  res.json({
+  res.json(sanitizeSettingsResponse({
     success: true,
     mode: config.environmentMode,
     baseUrl: config.oracle.baseUrl,
@@ -1761,11 +1900,11 @@ apiRouter.get('/admin/oracle/integration', requireAdmin, (req: Request, res: Res
     hasPassword: !!config.oracle.password,
     hasToken: !!config.oracle.token,
     status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
-  });
+  }));
 });
 
 // POST /api/admin/oracle/integration - Update Oracle configuration (AC3, AC6)
-apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Response) => {
+apiRouter.post('/admin/oracle/integration', requireAdmin, enforceBodySizeLimit('POST /admin/oracle/integration'), validateBody('POST /admin/oracle/integration'), (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
   const { baseUrl, username, password, token, authType } = req.body;
 
@@ -1792,7 +1931,23 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Re
 
     logAudit(adminUser, 'CONFIGURATION_SAVED', `Updated Oracle integration configuration. URL: ${oldUrl} -> ${config.oracle.baseUrl}, Auth: ${oldAuth} -> ${config.oracle.authType}`);
 
-    res.json({
+    // VYR-053: Oracle integration changes recorded as structured security
+    // events — credential presence as booleans, never the values themselves.
+    securityEventLogger.record({
+      eventType: 'CONFIG_CHANGED',
+      userId: res.locals.userId || null,
+      targetType: 'oracle_integration',
+      targetId: config.oracle.baseUrl,
+      result: 'SUCCESS',
+      details: {
+        authType: config.oracle.authType,
+        urlChanged: oldUrl !== config.oracle.baseUrl,
+        authChanged: oldAuth !== config.oracle.authType,
+        credentialsUpdated: !!(req.body?.password || req.body?.token)
+      }
+    });
+
+    res.json(sanitizeSettingsResponse({
       success: true,
       message: `Oracle integration configuration updated. Running in ${config.environmentMode} mode.`,
       settings: {
@@ -1804,7 +1959,7 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Re
         hasToken: !!config.oracle.token,
         status: config.oracle.baseUrl ? 'CONNECTED' : 'STANDBY'
       }
-    });
+    }));
   } catch (err) {
     logAudit(adminUser, 'CONFIGURATION_SAVE_FAILED', `Error: ${(err as Error).message}`);
     res.status(400).json({ success: false, message: (err as Error).message });
@@ -1812,7 +1967,7 @@ apiRouter.post('/admin/oracle/integration', requireAdmin, (req: Request, res: Re
 });
 
 // POST /api/admin/oracle/test-connection - Health probe (AC3, AC6)
-apiRouter.post('/admin/oracle/test-connection', requireAdmin, async (req: Request, res: Response) => {
+apiRouter.post('/admin/oracle/test-connection', requireAdmin, validateBody('POST /admin/oracle/test-connection'), async (req: Request, res: Response) => {
   const adminUser = res.locals.email || 'admin@admin.com';
   try {
     const { baseUrl, authType, username, password, token } = req.body;
@@ -2042,7 +2197,8 @@ apiRouter.get('/users/:id/scopes', requireUsersListAccess, async (req: Request, 
 });
 
 // POST /api/users - Create new user (USER_MANAGEMENT privilege required)
-apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+// VYR-052: Prevent privilege escalation on user creation
+apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), preventPrivilegeEscalation, validateBody('POST /users'), async (req: Request, res: Response) => {
   try {
     const { email, displayName, name, role, password, status, applicationAccess, access, sendInvitation, permissions } = req.body || {};
 
@@ -2081,7 +2237,8 @@ apiRouter.post('/users', requirePrivilege('USER_MANAGEMENT'), async (req: Reques
 });
 
 // PUT /api/users/:id - Update user / role assignment (USER_MANAGEMENT privilege required)
-apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+// VYR-052: Prevent privilege escalation and self-role-modification
+apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), preventPrivilegeEscalation, preventSelfModification, validateBody('PUT /users/:id'), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const { displayName, role, status, password, permissions } = req.body;
@@ -2110,7 +2267,8 @@ apiRouter.put('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Req
 });
 
 // DELETE /api/users/:id - Delete user (USER_MANAGEMENT privilege required)
-apiRouter.delete('/users/:id', requirePrivilege('USER_MANAGEMENT'), async (req: Request, res: Response) => {
+// VYR-052: Prevent self-deletion through admin API
+apiRouter.delete('/users/:id', requirePrivilege('USER_MANAGEMENT'), preventSelfModification, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const result = await authService.deleteUser(id, res.locals.email);
@@ -2142,9 +2300,10 @@ apiRouter.get('/roles', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'USER_MA
     // Live-instance-only: ignore source=local, always serve from configured Oracle instance link.
     const filter = req.query.filter as string | undefined;
     const category = req.query.category as string | undefined;
+    const module = req.query.module as string | undefined;
     const startIndex = req.query.startIndex ? parseInt(req.query.startIndex as string, 10) : (req.query.page && req.query.limit ? (parseInt(req.query.page as string, 10) - 1) * parseInt(req.query.limit as string, 10) + 1 : 1);
     const count = req.query.count ? parseInt(req.query.count as string, 10) : (req.query.limit ? parseInt(req.query.limit as string, 10) : 50);
-    const result = await oracleService.getRoles({ filterText: filter, category, startIndex, count });
+    const result = await oracleService.getRoles({ filterText: filter, category, module, startIndex, count });
     return res.json({ ...result, ...oracleService.getModeInfo() });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
@@ -2254,7 +2413,7 @@ apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_R
 });
 
 apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
-  if (oracleSyncService.isCurrentlySyncing()) {
+  if (ingestionPipeline.isRunning()) {
     return res.status(409).json({
       success: false,
       code: 'SYNC_IN_PROGRESS',
@@ -2262,7 +2421,15 @@ apiRouter.post('/reports/role-hierarchy/sync', requirePrivilege(['REPORTS', 'REP
     });
   }
   try {
-    const result = await roleHierarchyService.syncFromBip();
+    const currentUser = res.locals.email || 'SYSTEM';
+    const result = await ingestionPipeline.runDomain('roleHierarchy', oracleService, currentUser);
+    if (!result.success && result.error?.includes('already in progress')) {
+      return res.status(409).json({
+        success: false,
+        code: 'SYNC_IN_PROGRESS',
+        message: result.error
+      });
+    }
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
@@ -2357,7 +2524,7 @@ apiRouter.get('/audit', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (
   }
 });
 
-apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/query'), async (req: Request, res: Response) => {
   try {
     const {
       product,
@@ -2400,9 +2567,9 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
   }
 });
 
-// POST /api/audit/sync - On-demand synchronization of audit trail records from Oracle Fusion
-apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
-  if (oracleSyncService.isCurrentlySyncing()) {
+// POST /api/audit/sync - On-demand synchronization of audit trail records via pipeline (VYR-040)
+apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/sync'), async (req: Request, res: Response) => {
+  if (ingestionPipeline.isRunning()) {
     return res.status(409).json({
       success: false,
       code: 'SYNC_IN_PROGRESS',
@@ -2421,26 +2588,32 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
     logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered audit trail sync for product: ${product || 'All Active Products'}, BO: ${businessObjectType || 'All'}`);
 
     if (!product || product === '__ALL__') {
-      // Run comprehensive multi-product incremental sync across all cataloged products
-      const syncResult = await auditRawDbService.runDailyIncrementalSync(
-        (oracleService as any).client,
-        auditProductCatalogService,
-        { fromDate, toDate }
+      const domainResult = await ingestionPipeline.runDomain(
+        'audit', oracleService, currentUser, { fromDate, toDate }
       );
+
+      if (!domainResult.success && domainResult.error?.includes('already in progress')) {
+        return res.status(409).json({
+          success: false,
+          code: 'SYNC_IN_PROGRESS',
+          message: domainResult.error,
+        });
+      }
 
       return res.json({
         ...oracleService.getModeInfo(),
-        success: true,
-        message: `Audit Trail upgrade sync complete across ${syncResult.targetsProcessed} product targets. Retrieved ${syncResult.totalSynced} records (${syncResult.totalSaved} newly persisted to database).`,
-        syncedCount: syncResult.totalSynced,
-        savedCount: syncResult.totalSaved,
-        totalRecords: syncResult.totalSynced,
-        lastSynced: syncResult.lastSyncedAt,
+        success: domainResult.success,
+        message: domainResult.success
+          ? 'Audit Trail sync completed via ingestion pipeline.'
+          : `Audit sync failed: ${domainResult.error}`,
+        detail: domainResult.detail,
+        durationMs: domainResult.durationMs,
         dataSource: 'Live Oracle Fusion API'
       });
     }
 
-    // Product-level sync
+    // Product-level sync — still calls auditRawDbService.syncProduct directly
+    // because the pipeline's audit runner is the multi-product incremental sync
     const syncResult = await auditRawDbService.syncProduct(
       product,
       (oracleService as any).client,
@@ -2469,7 +2642,7 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), a
 });
 
 // POST /api/audit/sync/product - Product-level audit synchronization on-demand
-apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), async (req: Request, res: Response) => {
+apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/sync/product'), async (req: Request, res: Response) => {
   try {
     const { product, businessObject, fromDate, toDate } = req.body || {};
     if (!product) {
@@ -2677,7 +2850,7 @@ apiRouter.get('/sync/policies', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN'
 });
 
 // PUT /sync/policies/:productCode - Update sync cadence or interval for a product
-apiRouter.put('/sync/policies/:productCode', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN']), async (req: Request, res: Response) => {
+apiRouter.put('/sync/policies/:productCode', requirePrivilege(['SITE_ADMIN', 'SECURITY_ADMIN']), validateBody('PUT /sync/policies/:productCode'), async (req: Request, res: Response) => {
   try {
     const { productCode } = req.params;
     const { syncCadence, syncIntervalHours, autoSyncEnabled } = req.body;
@@ -3050,7 +3223,7 @@ apiRouter.get('/catalog/privileges-by-user', requireAuth, async (req: Request, r
 // =========================================================
 
 // POST /command-center/request - Execute an API request against Oracle Fusion safely
-apiRouter.post('/command-center/request', requirePrivilege('ORACLE_API_CONSOLE'), async (req: Request, res: Response) => {
+apiRouter.post('/command-center/request', requirePrivilege('ORACLE_API_CONSOLE'), enforceBodySizeLimit('POST /command-center/request'), validateBody('POST /command-center/request'), async (req: Request, res: Response) => {
   try {
     const { method, url, params, headers, body, authMode, timeoutMs } = req.body;
     if (!url) {
@@ -3146,7 +3319,7 @@ apiRouter.get('/command-center/saved-requests', requirePrivilege('ORACLE_API_CON
 });
 
 // POST /command-center/saved-requests - Save a request template
-apiRouter.post('/command-center/saved-requests', requirePrivilege('ORACLE_API_CONSOLE'), (req: Request, res: Response) => {
+apiRouter.post('/command-center/saved-requests', requirePrivilege('ORACLE_API_CONSOLE'), validateBody('POST /command-center/saved-requests'), (req: Request, res: Response) => {
   try {
     const { name, category, description, method, url, params, headers, body, id } = req.body;
     if (!name || !url) {
@@ -3191,13 +3364,302 @@ apiRouter.get('/admin/sync/status', requireAuth, (_req: Request, res: Response) 
   });
 });
 
-// POST /api/admin/sync/full - Run full baseline data sync (Admin Only)
-apiRouter.post('/admin/sync/full', requireAdmin, async (_req: Request, res: Response) => {
+// POST /api/admin/sync/full - Run full baseline data sync via shared pipeline (Admin Only, VYR-040, VYR-048 Rate Limited)
+apiRouter.post('/admin/sync/full', requireAdmin, sensitiveAdminRateLimiter, async (_req: Request, res: Response) => {
   const adminUser = res.locals.email || 'SITE_ADMIN';
   logAudit(adminUser, 'ADMIN_MANUAL_SYNC', 'Initiated manual full Oracle baseline synchronization');
-  const result = await oracleSyncService.runFullSync(oracleService, adminUser);
-  if (!result.success && result.message.includes('already in progress')) {
+  const result = await ingestionPipeline.run({ triggeredBy: adminUser, oracleService });
+  if (!result.success && (result.message.includes('already in progress') || result.code === 'SYNC_IN_PROGRESS')) {
     return res.status(409).json(result);
   }
   res.json(result);
+});
+
+// =========================================================
+// Service Identity & Credential Management Endpoints (Admin Only, VYR-042)
+// =========================================================
+
+// GET /api/admin/credentials/health - Health of credential provider and service identities
+apiRouter.get('/admin/credentials/health', requireAdmin, (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    ...serviceIdentityRegistry.getHealth(),
+  });
+});
+
+// POST /api/admin/credentials/rotate - Trigger rotation of Oracle credentials from secret store (VYR-048 Rate Limited)
+apiRouter.post('/admin/credentials/rotate', requireAdmin, sensitiveAdminRateLimiter, async (_req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  try {
+    await serviceIdentityRegistry.rotateCredentials();
+    if (typeof oracleService.recreateClientFromProvider === 'function') {
+      await oracleService.recreateClientFromProvider();
+    }
+    if (typeof bipClient.refreshCredentialsFromProvider === 'function') {
+      await bipClient.refreshCredentialsFromProvider();
+    }
+    logAudit(adminUser, 'CREDENTIAL_ROTATION', 'Rotated Oracle credentials from provider');
+    res.json({
+      success: true,
+      message: 'Oracle credentials successfully rotated from secret provider.',
+      health: serviceIdentityRegistry.getHealth(),
+    });
+  } catch (err: any) {
+    console.error('[Admin API] Credential rotation failed:', err.message);
+    res.status(500).json({
+      success: false,
+      message: `Credential rotation failed: ${err.message}`,
+    });
+  }
+});
+
+// =========================================================
+// Distributed Locking & Concurrency Endpoints (Admin Only, VYR-043)
+// =========================================================
+
+// GET /api/admin/locks - List all currently held distributed locks
+apiRouter.get('/admin/locks', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const activeLocks = await distributedLockService.getActiveLocks();
+    res.json({
+      success: true,
+      count: activeLocks.length,
+      locks: activeLocks,
+      isCurrentlySyncing: ingestionPipeline.isRunning(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve active locks: ${err.message}` });
+  }
+});
+
+// POST /api/admin/locks/recover-stale - Trigger cleanup of expired / stale distributed locks (VYR-048 Rate Limited)
+apiRouter.post('/admin/locks/recover-stale', requireAdmin, sensitiveAdminRateLimiter, async (_req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  try {
+    const cleaned = await distributedLockService.recoverStaleLocks();
+    logAudit(adminUser, 'STALE_LOCKS_RECOVERED', `Manually triggered stale lock recovery, cleaned: ${cleaned}`);
+    res.json({
+      success: true,
+      message: `Successfully recovered and cleaned ${cleaned} stale lock(s).`,
+      cleanedCount: cleaned,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to recover stale locks: ${err.message}` });
+  }
+});
+
+// =========================================================
+// Sync Checkpoints, Watermarks & Quarantine Endpoints (Admin Only, VYR-044)
+// =========================================================
+
+// GET /api/admin/sync/checkpoints - Retrieve all synchronization checkpoints and watermarks
+apiRouter.get('/admin/sync/checkpoints', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const checkpoints = await syncCheckpointService.listCheckpoints();
+    res.json({
+      success: true,
+      count: checkpoints.length,
+      checkpoints,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve sync checkpoints: ${err.message}` });
+  }
+});
+
+// GET /api/admin/sync/quarantine - Retrieve quarantined/dead-letter records for inspection
+apiRouter.get('/admin/sync/quarantine', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const domain = req.query.domain as string | undefined;
+    const status = req.query.status as string | undefined;
+    const records = await syncCheckpointService.getQuarantinedRecords({ domain, status });
+    const summary = await syncCheckpointService.getQuarantineSummary(domain);
+    res.json({
+      success: true,
+      count: records.length,
+      summary,
+      quarantine: records,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to retrieve quarantined records: ${err.message}` });
+  }
+});
+
+// POST /api/admin/sync/quarantine/:id/resolve - Mark a quarantined record as resolved/reprocessed
+apiRouter.post('/admin/sync/quarantine/:id/resolve', requireAdmin, validateBody('POST /admin/sync/quarantine/:id/resolve'), async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const { id } = req.params;
+  try {
+    const resolved = await syncCheckpointService.resolveQuarantinedRecord(id);
+    if (!resolved) {
+      return res.status(404).json({ success: false, message: `Quarantined record "${id}" not found or already resolved.` });
+    }
+    logAudit(adminUser, 'QUARANTINE_RECORD_RESOLVED', `Resolved quarantined record: ${id}`);
+    res.json({
+      success: true,
+      message: `Quarantined record "${id}" marked as resolved.`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to resolve quarantined record: ${err.message}` });
+  }
+});
+
+// =========================================================
+// Rate Limiting, Brute-Force & Abuse Management Endpoints (Admin Only, VYR-048)
+// =========================================================
+
+// GET /api/admin/security/rate-limits - Inspect rate limiting status, tiers, and locked accounts
+apiRouter.get('/admin/security/rate-limits', requireAdmin, (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    ...rateLimitService.getStatus(),
+  });
+});
+
+// POST /api/admin/users/:email/unlock - Administratively unlock an account locked by brute-force protection
+apiRouter.post('/admin/users/:email/unlock', requireAdmin, validateBody('POST /admin/users/:email/unlock'), (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const { email } = req.params;
+  const unlocked = rateLimitService.getLockoutManager().unlockAccount(email, adminUser);
+  logAudit(adminUser, 'USER_ACCOUNT_UNLOCKED', `Admin unlocked account: ${email} (result: ${unlocked})`);
+  res.json({
+    success: true,
+    message: unlocked
+      ? `Account "${email}" has been successfully unlocked.`
+      : `Account "${email}" was not in a locked state (counter reset).`,
+    unlocked,
+  });
+});
+
+// POST /api/admin/security/rate-limits/reset - Reset rate limit sliding windows and lockout stores
+apiRouter.post('/admin/security/rate-limits/reset', requireAdmin, validateBody('POST /admin/security/rate-limits/reset'), (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  rateLimitService.resetAll();
+  logAudit(adminUser, 'RATE_LIMITS_RESET', 'Admin manually reset all rate limit sliding windows and lockout records');
+  res.json({
+    success: true,
+    message: 'All rate limit tracking windows and account lockouts have been reset.',
+  });
+});
+
+// =========================================================
+// Secrets Management & Environment Security (Admin Only, VYR-055)
+// =========================================================
+
+// GET /api/admin/security/secrets-status - Safe secrets health, workload identity and verification status (no secrets disclosed)
+apiRouter.get('/admin/security/secrets-status', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const health = await secretsManager.getHealth();
+    const validation = validateStartupConfig({ strict: false, throwOnError: false });
+    const isEntra = isEntraEnabled();
+
+    res.json({
+      success: true,
+      environment: config.nodeEnv,
+      secretsBackend: secretsManager.getBackendName(),
+      workloadIdentity: resolveWorkloadIdentity(),
+      configuredSecrets: {
+        database: {
+          configured: Boolean(process.env.DATABASE_URL || process.env.POSTGRES_HOST),
+          fingerprint: createSecretFingerprint(process.env.DATABASE_URL || process.env.POSTGRES_PASSWORD),
+        },
+        oracle: {
+          configured: Boolean(config.oracle.baseUrl),
+          authType: config.oracle.authType,
+          hasPassword: Boolean(config.oracle.password),
+          hasToken: Boolean(config.oracle.token),
+          fingerprint: createSecretFingerprint(config.oracle.password || config.oracle.token),
+        },
+        jwt: {
+          configured: true,
+          keyId: config.jwt.keyId,
+          algorithm: 'RS256',
+          hasExplicitPrivateKey: Boolean(config.jwt.privateKey || config.jwt.privateKeyPath),
+          fingerprint: createSecretFingerprint(config.jwt.privateKey),
+        },
+        kms: {
+          provider: kmsProvider.providerType,
+          activeKeyId: kmsProvider.getActiveKeyId(),
+          fingerprint: createSecretFingerprint(process.env.ORACLE_ENCRYPTION_KEY),
+        },
+        entra: {
+          enabled: isEntra,
+          tenantConfigured: Boolean(config.entra.tenantId),
+          clientConfigured: Boolean(config.entra.clientId),
+          hasSecret: Boolean(config.entra.clientSecret),
+        },
+      },
+      validationReport: {
+        valid: validation.valid,
+        errorsCount: validation.errors.length,
+        warningsCount: validation.warnings.length,
+        checks: validation.checks,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: (err as Error).message });
+  }
+});
+
+// POST /api/admin/security/rotate-secret - Administrative secret rotation trigger (VYR-055)
+apiRouter.post('/admin/security/rotate-secret', requireAdmin, sensitiveAdminRateLimiter, validateBody('POST /admin/security/rotate-secret'), async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const { target, payload } = req.body;
+
+  try {
+    let result: any = null;
+
+    if (target === 'oracle') {
+      const newPassword = payload?.password || payload?.token;
+      if (newPassword) {
+        const secretKey = payload?.password ? 'ORACLE_PASSWORD' : 'ORACLE_TOKEN';
+        result = await secretsManager.rotateSecret(secretKey, newPassword, 'admin');
+        if (payload?.password) config.oracle.password = newPassword;
+        if (payload?.token) config.oracle.token = newPassword;
+        savePersistedConfig();
+        oracleService.recreateClient();
+      } else {
+        await serviceIdentityRegistry.rotateCredentials();
+        oracleService.recreateClient();
+        result = { rotated: true, target: 'oracle' };
+      }
+    } else if (target === 'jwt') {
+      const newPrivateKey = payload?.privateKey;
+      if (newPrivateKey) {
+        result = await secretsManager.rotateSecret('JWT_PRIVATE_KEY', newPrivateKey, 'admin');
+        config.jwt.privateKey = newPrivateKey;
+        keyManager.reset();
+      } else {
+        keyManager.reset();
+        result = { rotated: true, target: 'jwt', message: 'KeyManager cache reset; new key generated/reloaded' };
+      }
+    } else if (target === 'kms') {
+      const newKey = payload?.encryptionKey;
+      if (newKey) {
+        result = await secretsManager.rotateSecret('ORACLE_ENCRYPTION_KEY', newKey, 'admin');
+      } else {
+        result = { rotated: true, target: 'kms' };
+      }
+    } else if (target === 'database') {
+      const newDbPass = payload?.password;
+      if (newDbPass) {
+        result = await secretsManager.rotateSecret('POSTGRES_PASSWORD', newDbPass, 'admin');
+      } else {
+        result = { rotated: true, target: 'database' };
+      }
+    }
+
+    logAudit(adminUser, 'SECRET_ROTATED', `Admin rotated secret for target: ${target}`);
+    res.json({
+      success: true,
+      target,
+      message: `Secret rotation completed successfully for ${target}.`,
+      result,
+    });
+  } catch (err: any) {
+    console.error(`[Admin API] Secret rotation failed for target ${target}:`, err.message);
+    res.status(400).json({
+      success: false,
+      message: `Secret rotation failed: ${err.message}`,
+    });
+  }
 });

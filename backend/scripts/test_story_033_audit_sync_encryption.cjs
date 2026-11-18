@@ -145,8 +145,10 @@ async function run() {
   const dailyCallsSave = /public async runDailyIncrementalSync[\s\S]*?saveRawAuditRecords/.test(src);
   assert(dailyCallsSave, 'runDailyIncrementalSync persists through saveRawAuditRecords (POST /api/audit/sync __ALL__ path)');
 
-  assert(/apiRouter\.post\('\/audit\/sync'[\s\S]*?runDailyIncrementalSync[\s\S]*?syncProduct/.test(routes),
-    'POST /api/audit/sync delegates to runDailyIncrementalSync / syncProduct');
+  // VYR-040: __ALL__ path routes through the shared ingestion pipeline; the
+  // pipeline's audit runner delegates to runDailyIncrementalSync.
+  assert(/apiRouter\.post\('\/audit\/sync'[\s\S]*?runDomain[\s\S]{0,2500}?syncProduct/.test(routes),
+    'POST /api/audit/sync delegates to the ingestion pipeline audit domain / syncProduct');
   assert(/apiRouter\.post\('\/audit\/sync\/product'[\s\S]*?syncProduct/.test(routes),
     'POST /api/audit/sync/product delegates to syncProduct');
 

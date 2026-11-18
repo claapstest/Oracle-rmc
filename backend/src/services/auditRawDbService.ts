@@ -761,7 +761,7 @@ export class AuditRawDbService {
     };
   }
 
-  private schedulerTimer: NodeJS.Timeout | null = null;
+  // schedulerTimer removed — VYR-040: dead code, sync runs via ingestion pipeline
 
   /**
    * Synchronizes audit trail records for a specific product on-demand.
@@ -1036,24 +1036,8 @@ export class AuditRawDbService {
     };
   }
 
-  /**
-   * Starts recurring 24-hour background scheduler.
-   */
-  public startDailyScheduler(oracleClient: any, catalogService: any, intervalHours = 24): void {
-    if (this.schedulerTimer) return;
-    const intervalMs = intervalHours * 60 * 60 * 1000;
-    console.log(`[AuditRawDbService] Automated daily sync scheduler active (every ${intervalHours} hours). Next run scheduled.`);
-
-    this.schedulerTimer = setInterval(() => {
-      this.runDailyIncrementalSync(oracleClient, catalogService).catch(e => {
-        console.error('[Audit Daily Sync Error]:', e.message);
-      });
-    }, intervalMs);
-
-    if (this.schedulerTimer.unref) {
-      this.schedulerTimer.unref();
-    }
-  }
+  // startDailyScheduler removed — VYR-040: dead code, never had a caller.
+  // Audit sync now runs through the shared ingestion pipeline.
 }
 
 export const auditRawDbService = new AuditRawDbService();

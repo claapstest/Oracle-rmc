@@ -41,7 +41,12 @@ export class ScheduledSyncService {
     this.timer = setTimeout(async () => {
       console.log(`[ScheduledSyncService] Off-peak window reached (${targetHour}:00). Initiating background synchronization...`);
       try {
-        await oracleSyncService.runFullSync(oracleService, 'SCHEDULED_OFFPEAK_CRON');
+        // VYR-042 & VYR-043: Non-interactive execution under dedicated 'veyra-sync-worker' service identity.
+        // Protected by distributed locking across replicas. Never passes or requires a human user's browser JWT.
+        const syncResult = await oracleSyncService.runFullSync(oracleService, 'SCHEDULED_OFFPEAK_CRON');
+        if (!syncResult.success && syncResult.message?.includes('already in progress')) {
+          console.log('[ScheduledSyncService] Scheduled sync skipped: another worker replica currently holds the distributed lock.');
+        }
       } catch (err: any) {
         console.error('[ScheduledSyncService] Nightly synchronization encountered error:', err.message);
       } finally {

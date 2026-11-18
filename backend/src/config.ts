@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import crypto from 'crypto';
+import { validateStartupConfig } from './security/configValidator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,6 +169,11 @@ export function savePersistedConfig() {
 }
 
 export function validateConfig() {
+  // Delegate comprehensive environment & secrets audit to configValidator (VYR-055)
+  validateStartupConfig({
+    environment: config.nodeEnv,
+  });
+
   // 1. Validate AUTH_PROVIDER deployment configuration (fails closed if invalid or missing required keys)
   const providerType = config.authProvider;
   if (providerType !== 'LOCAL' && providerType !== 'ENTRA') {

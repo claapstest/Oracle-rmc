@@ -21,6 +21,7 @@ import {
 } from './encryptedRecordWriter.js';
 import { RAW_ORACLE_PERSISTENCE_TABLES, RawTableDescriptor } from './encryptionMigrationService.js';
 import { describeRawTable, RawTableShape } from './keyRotationService.js';
+import { runAsCryptoService } from './cryptoAuditContext.js';
 
 export type MigrationErrorCode =
   | 'INVALID_INPUT'
@@ -221,7 +222,12 @@ function emptyResult(tableName: string, dryRun: boolean, counts: TableCounts): M
  * only by that committed, verified write. Restartable from the ledger checkpoint
  * and idempotent: encrypted rows are never candidates again.
  */
-export async function migrateTable(pool: pg.Pool, tableName: string, opts: MigrateOptions = {}): Promise<MigrateTableResult> {
+// VYR-038: verification decrypts are audited under the migration service identity.
+export function migrateTable(pool: pg.Pool, tableName: string, opts: MigrateOptions = {}): Promise<MigrateTableResult> {
+  return runAsCryptoService('plaintext-migration', `migrate:${tableName}`, () => migrateTableImpl(pool, tableName, opts));
+}
+
+async function migrateTableImpl(pool: pg.Pool, tableName: string, opts: MigrateOptions): Promise<MigrateTableResult> {
   const descriptor = resolveTable(tableName, opts.environmentHost);
   const host = opts.environmentHost!.trim();
   const dryRun = Boolean(opts.dryRun);
@@ -336,7 +342,7 @@ export async function migrateTable(pool: pg.Pool, tableName: string, opts: Migra
           if (inTx) await db.query('ROLLBACK').catch(() => {});
           result.failed++;
           if (result.failures.length < MAX_REPORTED_FAILURES) {
-            result.failures.push({ recordKey, code: err?.code || 'ERROR', error: sanitizeError(err) });
+            result.failures.push({ recordKey, code: err?.category || err?.code || 'ERROR', error: sanitizeError(err) });
           }
         }
       }
@@ -423,11 +429,14 @@ export async function migrateAll(pool: pg.Pool, opts: MigrateOptions = {}): Prom
  * Rollback: decrypts one table's encrypted payloads for one tenant back to
  * plaintext. Allowed only with encryption disabled and explicit confirmation.
  */
-export async function rollbackTable(
-  pool: pg.Pool,
-  tableName: string,
-  opts: { environmentHost?: string; confirm?: string; batchSize?: number } = {}
-): Promise<{ tableName: string; restored: number; skipped: number; failed: number; failures: RecordFailure[] }> {
+type RollbackOptions = { environmentHost?: string; confirm?: string; batchSize?: number };
+type RollbackResult = { tableName: string; restored: number; skipped: number; failed: number; failures: RecordFailure[] };
+
+export function rollbackTable(pool: pg.Pool, tableName: string, opts: RollbackOptions = {}): Promise<RollbackResult> {
+  return runAsCryptoService('plaintext-migration', `rollback:${tableName}`, () => rollbackTableImpl(pool, tableName, opts));
+}
+
+async function rollbackTableImpl(pool: pg.Pool, tableName: string, opts: RollbackOptions): Promise<RollbackResult> {
   const descriptor = resolveTable(tableName, opts.environmentHost);
   const host = opts.environmentHost!.trim();
   if (isRawEncryptionEnabled()) {
@@ -477,7 +486,7 @@ export async function rollbackTable(
         } catch (err: any) {
           out.failed++;
           if (out.failures.length < MAX_REPORTED_FAILURES) {
-            out.failures.push({ recordKey: shape.keyColumns.map(c => row[c]).join('/'), code: err?.code || 'ERROR', error: sanitizeError(err) });
+            out.failures.push({ recordKey: shape.keyColumns.map(c => row[c]).join('/'), code: err?.category || err?.code || 'ERROR', error: sanitizeError(err) });
           }
         }
       }

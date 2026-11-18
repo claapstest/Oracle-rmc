@@ -1,27 +1,49 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { config } from '../config.js';
+import { oracleCredentialProvider, type OracleCredentials } from './credentialProvider.js';
 
 export class OracleFusionClient {
   private client!: AxiosInstance;
+  private currentBaseUrl = '';
 
   constructor() {
     this.recreateClient();
   }
 
   recreateClient() {
+    this.applyCredentials({
+      baseUrl: config.oracle.baseUrl,
+      authType: config.oracle.authType,
+      username: config.oracle.username,
+      password: config.oracle.password,
+      token: config.oracle.token,
+    });
+  }
+
+  /**
+   * Recreates the HTTP client using credentials from the credential provider (VYR-042).
+   * Called by the ingestion pipeline before sync operations.
+   */
+  async recreateClientFromProvider(): Promise<void> {
+    const creds = await oracleCredentialProvider.getCredentials();
+    this.applyCredentials(creds);
+  }
+
+  private applyCredentials(creds: OracleCredentials): void {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
 
-    if (config.oracle.authType === 'BEARER' && config.oracle.token) {
-      headers['Authorization'] = `Bearer ${config.oracle.token}`;
-    } else if (config.oracle.authType === 'BASIC' && config.oracle.username && config.oracle.password) {
-      const token = Buffer.from(`${config.oracle.username}:${config.oracle.password}`).toString('base64');
+    if (creds.authType === 'BEARER' && creds.token) {
+      headers['Authorization'] = `Bearer ${creds.token}`;
+    } else if (creds.authType === 'BASIC' && creds.username && creds.password) {
+      const token = Buffer.from(`${creds.username}:${creds.password}`).toString('base64');
       headers['Authorization'] = `Basic ${token}`;
     }
 
-    const activeBaseUrl = (config.oracle.baseUrl || '').trim();
+    const activeBaseUrl = (creds.baseUrl || '').trim();
+    this.currentBaseUrl = activeBaseUrl;
     if (!activeBaseUrl) {
       console.warn('[Oracle Config] No instance link configured. Set it in Oracle Integration (frontend) before requesting live data.');
     }
@@ -30,12 +52,13 @@ export class OracleFusionClient {
     this.client = axios.create({
       baseURL: activeBaseUrl || 'https://oracle-instance-not-configured.invalid',
       headers,
-      timeout: 30000, // 30 seconds
+      timeout: 30000,
     });
   }
 
   public requireInstanceConfigured(context = 'Oracle request'): void {
-    if (!config.oracle.baseUrl || !config.oracle.baseUrl.trim()) {
+    const activeUrl = this.currentBaseUrl || config.oracle.baseUrl || '';
+    if (!activeUrl.trim()) {
       throw new Error(`${context} failed: Oracle instance link is not configured. Please configure it in Oracle Integration (frontend) and try again.`);
     }
   }

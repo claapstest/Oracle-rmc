@@ -1,0 +1,21 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-level allowlist for known non-secret patterns"
+paths = [
+  '''node_modules/''',
+  '''\.lock$''',
+  '''package-lock\.json$''',
+  '''dist/''',
+  '''\.min\.js$''',
+  '''\.map$''',
+]
+
+# Placeholder / example values used in config templates and docs
+regexes = [
+  '''eiiv-dev14\.fa\.us6\.oraclecloud\.com''',
+  '''your-tenant-id-here''',
+  '''REPLACE_WITH_''',
+  '''placeholder''',
+]

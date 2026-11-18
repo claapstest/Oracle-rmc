@@ -30158,7 +30158,7 @@
       },
       "message": "Security role \"IT Security Manager\" with 69 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792827112228
+    "timestamp": 1794822246998
   },
   "role_privileges:ora_fnd_it_security_manager_job": {
     "data": {
@@ -30601,7 +30601,7 @@
       },
       "message": "Security role \"IT Security Manager\" with 69 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1792827112269
+    "timestamp": 1794822247042
   },
   "role_privileges:bi author role": {
     "data": {
@@ -68024,5 +68024,2695 @@
       "message": "Security role \"Accounts Receivable Manager\" with 49 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1792823371859
+  },
+  "role_privileges:del view secured custom helpjob": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "DEL View Secured Custom HelpJOB",
+      "roleCode": "DEL_PER_EMPLOYEE_AGENT_JOB",
+      "role": {
+        "name": "DEL View Secured Custom HelpJOB",
+        "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Communications",
+          "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
+          "description": "Allows to access the my communications area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+          "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
+          "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Request Deletion of Time Entries",
+          "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
+          "description": "Allows workers to request deletion of time entries.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Activity Summaries",
+          "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
+          "description": "Allows users to manage wellness activities through Activity REST service",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Employee Common Setup Data",
+          "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
+          "description": "Allows viewing of common setup data by an employee.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 89,
+        "directPrivileges": 89,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"DEL View Secured Custom HelpJOB\" (DEL_PER_EMPLOYEE_AGENT_JOB) with 89 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "2 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"DEL View Secured Custom HelpJOB\" with 89 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794814070033
+  },
+  "role_privileges:del_per_employee_agent_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "DEL View Secured Custom HelpJOB",
+      "roleCode": "DEL_PER_EMPLOYEE_AGENT_JOB",
+      "role": {
+        "name": "DEL View Secured Custom HelpJOB",
+        "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Communications",
+          "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
+          "description": "Allows to access the my communications area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+          "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
+          "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Request Deletion of Time Entries",
+          "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
+          "description": "Allows workers to request deletion of time entries.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Activity Summaries",
+          "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
+          "description": "Allows users to manage wellness activities through Activity REST service",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Employee Common Setup Data",
+          "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
+          "description": "Allows viewing of common setup data by an employee.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 89,
+        "directPrivileges": 89,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"DEL View Secured Custom HelpJOB\" (DEL_PER_EMPLOYEE_AGENT_JOB) with 89 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "2 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"DEL View Secured Custom HelpJOB\" with 89 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794814070055
+  },
+  "role_privileges:application implementation consultant": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Application Implementation Consultant",
+      "roleCode": "ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB",
+      "role": {
+        "name": "Application Implementation Consultant",
+        "code": "ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Feed View",
+          "code": "ORA_ZCA_ACCESS_VIEW_FEEDS_PRIV",
+          "description": "Allows access to view feeds.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Access View Feed Configurations",
+          "code": "ORA_ZCA_ACCESS_VIEW_FEED_CONFIGURATIONS_PRIV",
+          "description": "Allows access to view feed configurations.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Administer Sandbox",
+          "code": "FND_ADMINISTER_SANDBOX_PRIV",
+          "description": "Allows administration of all sandboxes.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Configure Setup UI",
+          "code": "ASM_CUSTOMIZE_SETUP_UI_PRIV",
+          "description": "Allows configuration of setup UI",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Copy Configurations",
+          "code": "ASM_COPY_CONFIGURATIONS_PRIV",
+          "description": "Allows copy existing configurations in order to create new configurations.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Export Workspace Data",
+          "code": "ZCA_WORKSPACE_EXPORT_PRIV",
+          "description": "Allows users to export data in Workspace",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Export and Import Sales Orchestration",
+          "code": "ZCA_EXPORT_IMPORT_SALES_ORCHESTRATION_PRIV",
+          "description": "Allows exporting or importing Sales Orchestrations and related metadata.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Application Metrics",
+          "code": "ORA_ZCA_MANAGE_APPLICATION_METRICS_PRIV",
+          "description": "Allow read, create and update of recent items information",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Comparison Processes",
+          "code": "ASM_MANAGE_COMPARISON_PROCESSES_PRIV",
+          "description": "Allows management of comparison processes",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Configuration Packages",
+          "code": "ASM_MANAGE_CONFIGURATION_PACKAGES_PRIV",
+          "description": "Allows management of configuration packages.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Dispatcher Rules",
+          "code": "ZCA_MANAGE_DISPATCHER_RULES_PRIV",
+          "description": "View, create and edit navigation dispatcher rules.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Feed Element Generations",
+          "code": "ORA_ZCA_GENERATE_FEED_ELEMENTS_PRIV",
+          "description": "Allows generation and publishing of feed elements.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Generative AI Features in Sales",
+          "code": "ZCA_MANAGE_GENAI_IN_SALES_PRIV",
+          "description": "Allows administrators to manage generative ai features in sales",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Routines",
+          "code": "ZCA_MANAGE_ROUTINES_PRIV",
+          "description": "View, create and edit routines.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Sales Administration",
+          "code": "FOD_MANAGE_SALES_ADMINISTRATION_PRIV",
+          "description": "Allows to access Sales Administration",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Sales Notifications",
+          "code": "ORA_ZCA_MANAGE_SALES_NOTIFICATIONS_PRIV",
+          "description": "Manage Sales Notifications",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Setup Data Export and Import Processes",
+          "code": "ASM_MONITOR_CONFIG_PKG_REQUEST_PRIV",
+          "description": "Allows management of the setup data export and import processes.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Signal Definitions",
+          "code": "ORA_ZCA_MANAGE_SIGNAL_DEFINITIONS_PRIV",
+          "description": "Allows creating and updating signal definitions",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Signal Subscriptions",
+          "code": "ZCA_MANAGE_SIGNAL_SUBSCRIPTIONS_PRIV",
+          "description": "Allows the user to manage signal subscriptions",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Smart Actions",
+          "code": "ZCA_MANAGE_SMART_ACTIONS_PRIV",
+          "description": "Allows access to Smart Actions Framework REST operations.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Text Analysis Intelligence",
+          "code": "ZCA_MANAGE_TEXT_ANALYSIS_INTELLIGENCE_PRIV",
+          "description": "Allows administrators to schedule ESS job that purges expired suggestions from text analysis",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Perform Quick Setup",
+          "code": "ASM_PERFORM_QUICK_SETUP_PRIV",
+          "description": "Allows performing quick setup to speed up application implementation",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Publish Adaptive Search and Workspace Configuration",
+          "code": "ZCA_ADAPTIVE_SEARCH_CONFIG_PUBLISH_PRIV",
+          "description": "Allows publishing configuration for Adaptive Search and Workspace",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Set up Workday Schedules",
+          "code": "ZMM_SETUP_WORKDAY_SCHEDULES_PRIV",
+          "description": "Allows set up of facility and project and work workday schedules.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Setup and Maintain Applications",
+          "code": "ASM_SETUP_AND_MAINTENANCE_PRIV",
+          "description": "Allows access to the Setup and Maintenance work area.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Submit Export Setup Data Process",
+          "code": "ASM_SUBMIT_EXPORT_SETUP_DATA_PROCESS_PRIV",
+          "description": "Secures the setup data export process.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Submit Import Setup Data Process",
+          "code": "ASM_SUBMIT_IMPORT_SETUP_DATA_PROCESS_PRIV",
+          "description": "Secures the setup data import process.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Use Generative AI Features in Sales",
+          "code": "ZCA_USE_GENAI_IN_SALES_PRIV",
+          "description": "Allows users to use generative ai features",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Administration Link",
+          "code": "FND_VIEW_ADMIN_LINK_PRIV",
+          "description": "Privilege to view administration link in UI shell",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Global Inventory Organizations List of Values by Web Service",
+          "code": "RCS_GLOBAL_VIEW_INV_ORG_LOV_WEB_SERVICE_PRIV",
+          "description": "Allow viewing the global set of inventory organizations list of values by web service.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Named Routes",
+          "code": "ORA_ZCA_GET_NAMED_ROUTES_PRIV",
+          "description": "Allows viewing and grouping all functional navigation flows across channels into a single name",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Navigator Menu",
+          "code": "ORA_ZCA_VIEW_NAVIGATOR_MENU_PRIV",
+          "description": "Allows viewing navigator metadata information",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Smart Actions",
+          "code": "ZCA_VIEW_SMART_ACTIONS_PRIV",
+          "description": "Allows read and view access to Smart Actions Framework data.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Text Analysis Intelligence",
+          "code": "ZCA_VIEW_INTERACTION_EVENT_TEXT_ANALYSIS_PRIV",
+          "description": "Allows user to view intelligence derived from text analysis",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Administer Adaptive Intelligence Applications",
+          "code": "HRC_ADMINISTER_AI_APPLICATIONS_PRIV",
+          "description": "Allows administration of Adaptive Intelligence Applications",
+          "inheritedFrom": "Application Implementation Consultant"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 35,
+        "directPrivileges": 35,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Application Implementation Consultant\" (ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB) with 35 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "41 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Application Implementation Consultant\" with 35 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794822131337
+  },
+  "role_privileges:ora_asm_application_implementation_consultant_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Application Implementation Consultant",
+      "roleCode": "ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB",
+      "role": {
+        "name": "Application Implementation Consultant",
+        "code": "ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Access Feed View",
+          "code": "ORA_ZCA_ACCESS_VIEW_FEEDS_PRIV",
+          "description": "Allows access to view feeds.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Access View Feed Configurations",
+          "code": "ORA_ZCA_ACCESS_VIEW_FEED_CONFIGURATIONS_PRIV",
+          "description": "Allows access to view feed configurations.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Administer Sandbox",
+          "code": "FND_ADMINISTER_SANDBOX_PRIV",
+          "description": "Allows administration of all sandboxes.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Configure Setup UI",
+          "code": "ASM_CUSTOMIZE_SETUP_UI_PRIV",
+          "description": "Allows configuration of setup UI",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Copy Configurations",
+          "code": "ASM_COPY_CONFIGURATIONS_PRIV",
+          "description": "Allows copy existing configurations in order to create new configurations.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Export Workspace Data",
+          "code": "ZCA_WORKSPACE_EXPORT_PRIV",
+          "description": "Allows users to export data in Workspace",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Export and Import Sales Orchestration",
+          "code": "ZCA_EXPORT_IMPORT_SALES_ORCHESTRATION_PRIV",
+          "description": "Allows exporting or importing Sales Orchestrations and related metadata.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Application Metrics",
+          "code": "ORA_ZCA_MANAGE_APPLICATION_METRICS_PRIV",
+          "description": "Allow read, create and update of recent items information",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Comparison Processes",
+          "code": "ASM_MANAGE_COMPARISON_PROCESSES_PRIV",
+          "description": "Allows management of comparison processes",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Configuration Packages",
+          "code": "ASM_MANAGE_CONFIGURATION_PACKAGES_PRIV",
+          "description": "Allows management of configuration packages.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Dispatcher Rules",
+          "code": "ZCA_MANAGE_DISPATCHER_RULES_PRIV",
+          "description": "View, create and edit navigation dispatcher rules.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Feed Element Generations",
+          "code": "ORA_ZCA_GENERATE_FEED_ELEMENTS_PRIV",
+          "description": "Allows generation and publishing of feed elements.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Generative AI Features in Sales",
+          "code": "ZCA_MANAGE_GENAI_IN_SALES_PRIV",
+          "description": "Allows administrators to manage generative ai features in sales",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Routines",
+          "code": "ZCA_MANAGE_ROUTINES_PRIV",
+          "description": "View, create and edit routines.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Sales Administration",
+          "code": "FOD_MANAGE_SALES_ADMINISTRATION_PRIV",
+          "description": "Allows to access Sales Administration",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Sales Notifications",
+          "code": "ORA_ZCA_MANAGE_SALES_NOTIFICATIONS_PRIV",
+          "description": "Manage Sales Notifications",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Setup Data Export and Import Processes",
+          "code": "ASM_MONITOR_CONFIG_PKG_REQUEST_PRIV",
+          "description": "Allows management of the setup data export and import processes.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Signal Definitions",
+          "code": "ORA_ZCA_MANAGE_SIGNAL_DEFINITIONS_PRIV",
+          "description": "Allows creating and updating signal definitions",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Signal Subscriptions",
+          "code": "ZCA_MANAGE_SIGNAL_SUBSCRIPTIONS_PRIV",
+          "description": "Allows the user to manage signal subscriptions",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Smart Actions",
+          "code": "ZCA_MANAGE_SMART_ACTIONS_PRIV",
+          "description": "Allows access to Smart Actions Framework REST operations.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Manage Text Analysis Intelligence",
+          "code": "ZCA_MANAGE_TEXT_ANALYSIS_INTELLIGENCE_PRIV",
+          "description": "Allows administrators to schedule ESS job that purges expired suggestions from text analysis",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Perform Quick Setup",
+          "code": "ASM_PERFORM_QUICK_SETUP_PRIV",
+          "description": "Allows performing quick setup to speed up application implementation",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Publish Adaptive Search and Workspace Configuration",
+          "code": "ZCA_ADAPTIVE_SEARCH_CONFIG_PUBLISH_PRIV",
+          "description": "Allows publishing configuration for Adaptive Search and Workspace",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Set up Workday Schedules",
+          "code": "ZMM_SETUP_WORKDAY_SCHEDULES_PRIV",
+          "description": "Allows set up of facility and project and work workday schedules.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Setup and Maintain Applications",
+          "code": "ASM_SETUP_AND_MAINTENANCE_PRIV",
+          "description": "Allows access to the Setup and Maintenance work area.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Submit Export Setup Data Process",
+          "code": "ASM_SUBMIT_EXPORT_SETUP_DATA_PROCESS_PRIV",
+          "description": "Secures the setup data export process.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Submit Import Setup Data Process",
+          "code": "ASM_SUBMIT_IMPORT_SETUP_DATA_PROCESS_PRIV",
+          "description": "Secures the setup data import process.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Use Generative AI Features in Sales",
+          "code": "ZCA_USE_GENAI_IN_SALES_PRIV",
+          "description": "Allows users to use generative ai features",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Administration Link",
+          "code": "FND_VIEW_ADMIN_LINK_PRIV",
+          "description": "Privilege to view administration link in UI shell",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Global Inventory Organizations List of Values by Web Service",
+          "code": "RCS_GLOBAL_VIEW_INV_ORG_LOV_WEB_SERVICE_PRIV",
+          "description": "Allow viewing the global set of inventory organizations list of values by web service.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Named Routes",
+          "code": "ORA_ZCA_GET_NAMED_ROUTES_PRIV",
+          "description": "Allows viewing and grouping all functional navigation flows across channels into a single name",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Navigator Menu",
+          "code": "ORA_ZCA_VIEW_NAVIGATOR_MENU_PRIV",
+          "description": "Allows viewing navigator metadata information",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Smart Actions",
+          "code": "ZCA_VIEW_SMART_ACTIONS_PRIV",
+          "description": "Allows read and view access to Smart Actions Framework data.",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "View Text Analysis Intelligence",
+          "code": "ZCA_VIEW_INTERACTION_EVENT_TEXT_ANALYSIS_PRIV",
+          "description": "Allows user to view intelligence derived from text analysis",
+          "inheritedFrom": "Application Implementation Consultant"
+        },
+        {
+          "name": "Administer Adaptive Intelligence Applications",
+          "code": "HRC_ADMINISTER_AI_APPLICATIONS_PRIV",
+          "description": "Allows administration of Adaptive Intelligence Applications",
+          "inheritedFrom": "Application Implementation Consultant"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 35,
+        "directPrivileges": 35,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Application Implementation Consultant\" (ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB) with 35 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "41 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Application Implementation Consultant\" with 35 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794822131382
+  },
+  "role_privileges:risk administrator": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Risk Administrator",
+      "roleCode": "ORA_GTG_RISK_ADMINISTRATOR_JOB",
+      "role": {
+        "name": "Risk Administrator",
+        "code": "ORA_GTG_RISK_ADMINISTRATOR_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Administer Risk Upgrade",
+          "code": "ORA_GTG_ADMINISTER_RISK_UPGRADE_PRIV",
+          "description": "Allows user to receive upgrade messages and initiate the upgrade job.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Risk Management Dashboard",
+          "code": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+          "description": "Allows viewing of the analytic information on the Risk Management dashboard.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Administer Student Group",
+          "code": "HEY_ADMINISTER_PROXY_GROUP_PRIV",
+          "description": "Allows administration of managed student groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Apply HCM Role Provisioning Rules",
+          "code": "PER_APPLY_HCM_ROLE_PROVISIONING_RULES_PRIV",
+          "description": "Allows application of HCM role-provisioning rules.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Assign Oracle Fusion General Ledger Data Access Set Definition",
+          "code": "GL_ASSIGN_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+          "description": "Allows assignment of data access sets.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Configure Interface",
+          "code": "HRC_CONFIGURE_HR_INTERFACE_PRIV",
+          "description": "Allows configuration of the interface for transaction and batch processing.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Configure Public Worker Access",
+          "code": "PER_CONFIGURE_PUBLIC_WORKER_ACCESS_PRIV",
+          "description": "Allows configuration of public worker access when using Oracle Search.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Define Oracle Fusion General Ledger Data Access Set",
+          "code": "GL_SET_UP_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+          "description": "Allows definition of data access sets.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Delete Access Group",
+          "code": "ZCA_DELETE_ACCESS_GROUP_PRIV",
+          "description": "Allows the user to delete an access group.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Delete Scheduled Process Tracker",
+          "code": "HEY_DELETE_SCHEDULED_PROCESS_TRACKER_PRIV",
+          "description": "Allows deletion of scheduled process tracking information.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Enable and Disable Access Groups",
+          "code": "ZCA_ENABLE_DISABLE_ACCESS_GROUPS_PRIV",
+          "description": "Allows the user to enable and disable all access groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Grant Search Framework Manager Permissions",
+          "code": "FND_SEARCH_FWK_MGR_PRIV",
+          "description": "Allows granting permission to a user to manage search framework index metadata, using REST Service.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Import Workers",
+          "code": "PER_IMPORT_WORKERS_PRIV",
+          "description": "Allows import of multiple worker records.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Load Batch Data",
+          "code": "HRC_LOAD_HR_BATCH_DATA_PRIV",
+          "description": "Allows batch loading of data.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Active Directory Integration",
+          "code": "ASE_MANAGE_ACTIVE_DIRECTORY_INTEGRATION_PRIV",
+          "description": "Allows users to use functions and services that manage the Active Directory integration",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Application Pages Security",
+          "code": "HEY_MANAGE_APPLICATION_PAGES_SECURITY_PRIV",
+          "description": "Allows management of application pages and page groups for controlling page access.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Candidate Security Profile",
+          "code": "IRC_MANAGE_CANDIDATE_SECURITY_PROFILE_PRIV",
+          "description": "Allows to manage candidate security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Country Security Profile",
+          "code": "PER_MANAGE_COUNTRY_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of country security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Data Access for Users",
+          "code": "FUN_MANAGE_DATA_ACCESS_FOR_USERS_PRIV",
+          "description": "Manage data access for user provisioned roles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Data Security Grants",
+          "code": "HEY_MANAGE_DATA_SECURITY_GRANTS_PRIV",
+          "description": "Allows the assigning of security profiles and security conditions to users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Data Security Profiles",
+          "code": "HEY_MANAGE_DATA_SECURITY_PROFILES_PRIV",
+          "description": "Allows the mapping of business objects and fields for data security access.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Document Type Security Profile",
+          "code": "PER_MANAGE_DOCUMENT_TYPE_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of document type security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Group Access",
+          "code": "ZCA_MANAGE_GROUP_ACCESS_PRIV",
+          "description": "Allows configuring Access Groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM Data Role",
+          "code": "PER_MANAGE_HCM_DATA_ROLE_PRIV",
+          "description": "Allows management of HCM data roles and assignment of security profiles to those roles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM Exclusion Rules",
+          "code": "PER_MANAGE_HCM_EXCLUSION_RULES_PRIV",
+          "description": "Allows management of the rules for excluding specified data instances from a person security profile data instance set.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM LDAP User Account Options",
+          "code": "PER_MANAGE_HCM_LDAP_USER_ACCOUNT_OPTIONS_PRIV",
+          "description": "Allows management of HCM LDAP user account options.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM Role Provisioning Rules",
+          "code": "PER_MANAGE_HCM_ROLE_PROVISIONING_RULES_PRIV",
+          "description": "Allows management of HCM role-provisioning rules and creation of auto provisioned role requests for all users based on current role-provisioning rules.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Job Requisition Security Profile",
+          "code": "IRC_MANAGE_JOB_REQUISITION_SECURITY_PROFILE_PRIV",
+          "description": "Allows to managet the job requisition security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Legislative Data Group Security Profile",
+          "code": "PER_MANAGE_LEGISLATIVE_DATA_GROUP_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of legislative data group security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Oracle Search ACL Exclusion Rules for HCM",
+          "code": "PER_MANAGE_HCM_SEARCH_ACL_EXCLUSION_RULES_PRIV",
+          "description": "Allows management of the rules for excluding specified roles and users from the Oracle Search access control lists that are maintained by the HCM access control list computation process.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Organization Security Profile",
+          "code": "PER_MANAGE_ORGANIZATION_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of organization security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Page Permissions Security",
+          "code": "HEY_MANAGE_PAGE_PERMISSIONS_SECURITY_PRIV",
+          "description": "Allows management of page permissions for functional security.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Payroll Element Security Profile",
+          "code": "PAY_MANAGE_PAYROLL_ELEMENT_SECURITY_PROFILE_PRIV",
+          "description": "Allows users to manage payroll element security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Payroll Flow Security Profile",
+          "code": "PAY_MANAGE_PAYROLL_FLOW_SECURITY_PROFILE_PRIV",
+          "description": "Manage Payroll Flow Security Profile",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Payroll Security Profile",
+          "code": "PAY_MANAGE_PAYROLL_SECURITY_PROFILE_PRIV",
+          "description": "Manage Payroll Security Profile",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Person Security Profile",
+          "code": "PER_MANAGE_PERSON_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of person security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Person and Assignment Security Profile",
+          "code": "PER_MANAGE_PERSON_AND_ASSIGNMENT_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of person and assignment security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Position Security Profile",
+          "code": "PER_MANAGE_POSITION_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of position security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Run Results",
+          "code": "HRC_MANAGE_HR_RUN_RESULTS_PRIV",
+          "description": "Allows management of run results.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Sales and Service Access",
+          "code": "ZCA_MANAGE_SALES_AND_SERVICE_ACCESS_PRIV",
+          "description": "Allows configuring access for Sales and Service objects.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Security Roles",
+          "code": "HEY_MANAGE_SECURITY_ROLES_PRIV",
+          "description": "Allows management of security roles and role groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Student Group Configurations",
+          "code": "HEY_MANAGE_PROXY_GROUP_CONFIGURATIONS_PRIV",
+          "description": "Allows management of common managed student group configurations.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Student Management Home Page Setups",
+          "code": "HEY_MANAGE_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+          "description": "Allows management of Student Management home page setups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Supplier User Roles",
+          "code": "POZ_MANAGE_SUPPLIER_USER_ROLES_PRIV",
+          "description": "Allows managing the set of authorized job roles for supplier user provisioning.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Talent Pool Security Profile",
+          "code": "HRM_MANAGE_TALENT_POOL_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of talent pool security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Transaction Security Profile",
+          "code": "PER_MANAGE_TRANSACTION_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of transaction security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Workforce Structures Work Area",
+          "code": "PER_MANAGE_WORKFORCE_STRUCTURES_WORK_AREA_PRIV",
+          "description": "Allows access to the Work Structures Management work area.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Monitor Batch Load Process",
+          "code": "HRC_MONITOR_HR_BATCH_LOAD_PROCESS_PRIV",
+          "description": "Allows monitoring of the batch load process.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Preview HCM Data Security",
+          "code": "PER_PREVIEW_HCM_DATA_SECURITY_PRIV",
+          "description": "Allows access to preview and analyze user access to secured HCM data.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Request Enterprise Role",
+          "code": "PER_REQ_ENTERPRISE_ROLE_PRIV",
+          "description": "Allows request of a new enterprise role.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Reset Password",
+          "code": "PER_RESET_PASSWORD_PRIV",
+          "description": "Allows reset password links to be emailed to users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Batch Load Job Set",
+          "code": "HRC_RUN_HR_BATCH_LOAD_JOB_SET_PRIV",
+          "description": "Allows running of the batch load job set.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Data Access Set Listing Report",
+          "code": "GL_RUN_DATA_ACCESS_SET_LISTING_REPORT_PRIV",
+          "description": "Allows submission of the data access set listing report.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Regenerate HCM Data Security Grants Process",
+          "code": "PER_PROCESS_USERS_ROLES_REQUESTS_PROCESS_PRIV",
+          "description": "Allows the Regenerate HCM Data Security Grants process to be run.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Retrieve Latest LDAP Changes Process",
+          "code": "PER_MAP_AND_SYNCHRONIZE_USER_ACCOUNT_DETAILS_PRIV",
+          "description": "Allows the Retrieve Latest LDAP Changes process to be run.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Send Pending LDAP Requests Process",
+          "code": "PER_SYNCHRONIZE_USERS_ROLES_PROCESS_PRIV",
+          "description": "Allows the Send Pending LDAP Requests process to be run.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Users by Service Report",
+          "code": "FUN_RUN_USERS_BY_SERVICE_REPORT_PRIV",
+          "description": "Submit Users by Service Report",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Sync External Users To LDAP",
+          "code": "HZ_SYNC_EXTERNAL_USERS_TO_LDAP_PRIV",
+          "description": "Allows the running of the process that sends personal data for external users to LDAP",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Synchronize SCM Job Roles",
+          "code": "INV_SYNCHRONIZE_SCM_JOB_ROLES_PRIV",
+          "description": "Privilege to synchronize SCM jobs with other pillars such as HCM and CRM.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Use REST Service - Identity Integration",
+          "code": "ASE_REST_SERVICE_ACCESS_IDENTITY_INTEGRATION_PRIV",
+          "description": "Allows users to call all methods associated with the Identity Integration REST Service",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Use Trading Community REST Services for HCM User Role Provisioning",
+          "code": "HZ_REST_SERVICE_ACCESS_FOR_HCM_URP_PRIV",
+          "description": "Allows users to call Trading Community REST services for HCM user role provisioning.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Access Explorer",
+          "code": "ZCA_VIEW_ACCESS_EXPLORER_PRIV",
+          "description": "Allows to explore the access an user has for a named record of an object using the access explorer tool.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Application Pages Security",
+          "code": "HEY_VIEW_APPLICATION_PAGES_SECURITY_PRIV",
+          "description": "Allows viewing of application pages and page groups for controlling page access.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Business Objects",
+          "code": "HEY_VIEW_BUSINESS_OBJECTS_PRIV",
+          "description": "Allows the viewing of business objects that are used for security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Data Security Grants",
+          "code": "HEY_VIEW_DATA_SECURITY_GRANTS_PRIV",
+          "description": "Allows the viewing of the security conditions assigned to the users that govern data access by users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Data Security Profiles",
+          "code": "HEY_VIEW_DATA_SECURITY_PROFILES_PRIV",
+          "description": "Allows the viewing of security profiles, which contain the business objects and fields that govern data access by users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Oracle Fusion General Ledger Data Access Set Definition",
+          "code": "GL_VIEW_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+          "description": "Allows view access of data access set definitions and makes data access set selection.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Scheduled Process Tracker",
+          "code": "HEY_VIEW_SCHEDULED_PROCESS_TRACKER_PRIV",
+          "description": "Allows viewing of scheduled process tracking information.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Student Management Home Page Setups",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+          "description": "Allows viewing of Student Management home page setups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View User Accounts",
+          "code": "HEY_VIEW_USER_ACCOUNTS_PRIV",
+          "description": "Allows the viewing of user accounts.",
+          "inheritedFrom": "Risk Administrator"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 71,
+        "directPrivileges": 71,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Risk Administrator\" (ORA_GTG_RISK_ADMINISTRATOR_JOB) with 71 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "16 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Risk Administrator\" with 71 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794822407395
+  },
+  "role_privileges:ora_gtg_risk_administrator_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Risk Administrator",
+      "roleCode": "ORA_GTG_RISK_ADMINISTRATOR_JOB",
+      "role": {
+        "name": "Risk Administrator",
+        "code": "ORA_GTG_RISK_ADMINISTRATOR_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Administer Risk Upgrade",
+          "code": "ORA_GTG_ADMINISTER_RISK_UPGRADE_PRIV",
+          "description": "Allows user to receive upgrade messages and initiate the upgrade job.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Risk Management Dashboard",
+          "code": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+          "description": "Allows viewing of the analytic information on the Risk Management dashboard.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Administer Student Group",
+          "code": "HEY_ADMINISTER_PROXY_GROUP_PRIV",
+          "description": "Allows administration of managed student groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Apply HCM Role Provisioning Rules",
+          "code": "PER_APPLY_HCM_ROLE_PROVISIONING_RULES_PRIV",
+          "description": "Allows application of HCM role-provisioning rules.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Assign Oracle Fusion General Ledger Data Access Set Definition",
+          "code": "GL_ASSIGN_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+          "description": "Allows assignment of data access sets.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Configure Interface",
+          "code": "HRC_CONFIGURE_HR_INTERFACE_PRIV",
+          "description": "Allows configuration of the interface for transaction and batch processing.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Configure Public Worker Access",
+          "code": "PER_CONFIGURE_PUBLIC_WORKER_ACCESS_PRIV",
+          "description": "Allows configuration of public worker access when using Oracle Search.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Define Oracle Fusion General Ledger Data Access Set",
+          "code": "GL_SET_UP_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+          "description": "Allows definition of data access sets.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Delete Access Group",
+          "code": "ZCA_DELETE_ACCESS_GROUP_PRIV",
+          "description": "Allows the user to delete an access group.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Delete Scheduled Process Tracker",
+          "code": "HEY_DELETE_SCHEDULED_PROCESS_TRACKER_PRIV",
+          "description": "Allows deletion of scheduled process tracking information.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Enable and Disable Access Groups",
+          "code": "ZCA_ENABLE_DISABLE_ACCESS_GROUPS_PRIV",
+          "description": "Allows the user to enable and disable all access groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Grant Search Framework Manager Permissions",
+          "code": "FND_SEARCH_FWK_MGR_PRIV",
+          "description": "Allows granting permission to a user to manage search framework index metadata, using REST Service.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Import Workers",
+          "code": "PER_IMPORT_WORKERS_PRIV",
+          "description": "Allows import of multiple worker records.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Load Batch Data",
+          "code": "HRC_LOAD_HR_BATCH_DATA_PRIV",
+          "description": "Allows batch loading of data.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Active Directory Integration",
+          "code": "ASE_MANAGE_ACTIVE_DIRECTORY_INTEGRATION_PRIV",
+          "description": "Allows users to use functions and services that manage the Active Directory integration",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Application Pages Security",
+          "code": "HEY_MANAGE_APPLICATION_PAGES_SECURITY_PRIV",
+          "description": "Allows management of application pages and page groups for controlling page access.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Candidate Security Profile",
+          "code": "IRC_MANAGE_CANDIDATE_SECURITY_PROFILE_PRIV",
+          "description": "Allows to manage candidate security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Country Security Profile",
+          "code": "PER_MANAGE_COUNTRY_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of country security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Data Access for Users",
+          "code": "FUN_MANAGE_DATA_ACCESS_FOR_USERS_PRIV",
+          "description": "Manage data access for user provisioned roles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Data Security Grants",
+          "code": "HEY_MANAGE_DATA_SECURITY_GRANTS_PRIV",
+          "description": "Allows the assigning of security profiles and security conditions to users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Data Security Profiles",
+          "code": "HEY_MANAGE_DATA_SECURITY_PROFILES_PRIV",
+          "description": "Allows the mapping of business objects and fields for data security access.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Document Type Security Profile",
+          "code": "PER_MANAGE_DOCUMENT_TYPE_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of document type security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Group Access",
+          "code": "ZCA_MANAGE_GROUP_ACCESS_PRIV",
+          "description": "Allows configuring Access Groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM Data Role",
+          "code": "PER_MANAGE_HCM_DATA_ROLE_PRIV",
+          "description": "Allows management of HCM data roles and assignment of security profiles to those roles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM Exclusion Rules",
+          "code": "PER_MANAGE_HCM_EXCLUSION_RULES_PRIV",
+          "description": "Allows management of the rules for excluding specified data instances from a person security profile data instance set.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM LDAP User Account Options",
+          "code": "PER_MANAGE_HCM_LDAP_USER_ACCOUNT_OPTIONS_PRIV",
+          "description": "Allows management of HCM LDAP user account options.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage HCM Role Provisioning Rules",
+          "code": "PER_MANAGE_HCM_ROLE_PROVISIONING_RULES_PRIV",
+          "description": "Allows management of HCM role-provisioning rules and creation of auto provisioned role requests for all users based on current role-provisioning rules.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Job Requisition Security Profile",
+          "code": "IRC_MANAGE_JOB_REQUISITION_SECURITY_PROFILE_PRIV",
+          "description": "Allows to managet the job requisition security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Legislative Data Group Security Profile",
+          "code": "PER_MANAGE_LEGISLATIVE_DATA_GROUP_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of legislative data group security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Oracle Search ACL Exclusion Rules for HCM",
+          "code": "PER_MANAGE_HCM_SEARCH_ACL_EXCLUSION_RULES_PRIV",
+          "description": "Allows management of the rules for excluding specified roles and users from the Oracle Search access control lists that are maintained by the HCM access control list computation process.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Organization Security Profile",
+          "code": "PER_MANAGE_ORGANIZATION_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of organization security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Page Permissions Security",
+          "code": "HEY_MANAGE_PAGE_PERMISSIONS_SECURITY_PRIV",
+          "description": "Allows management of page permissions for functional security.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Payroll Element Security Profile",
+          "code": "PAY_MANAGE_PAYROLL_ELEMENT_SECURITY_PROFILE_PRIV",
+          "description": "Allows users to manage payroll element security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Payroll Flow Security Profile",
+          "code": "PAY_MANAGE_PAYROLL_FLOW_SECURITY_PROFILE_PRIV",
+          "description": "Manage Payroll Flow Security Profile",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Payroll Security Profile",
+          "code": "PAY_MANAGE_PAYROLL_SECURITY_PROFILE_PRIV",
+          "description": "Manage Payroll Security Profile",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Person Security Profile",
+          "code": "PER_MANAGE_PERSON_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of person security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Person and Assignment Security Profile",
+          "code": "PER_MANAGE_PERSON_AND_ASSIGNMENT_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of person and assignment security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Position Security Profile",
+          "code": "PER_MANAGE_POSITION_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of position security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Run Results",
+          "code": "HRC_MANAGE_HR_RUN_RESULTS_PRIV",
+          "description": "Allows management of run results.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Sales and Service Access",
+          "code": "ZCA_MANAGE_SALES_AND_SERVICE_ACCESS_PRIV",
+          "description": "Allows configuring access for Sales and Service objects.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Security Roles",
+          "code": "HEY_MANAGE_SECURITY_ROLES_PRIV",
+          "description": "Allows management of security roles and role groups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Student Group Configurations",
+          "code": "HEY_MANAGE_PROXY_GROUP_CONFIGURATIONS_PRIV",
+          "description": "Allows management of common managed student group configurations.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Student Management Home Page Setups",
+          "code": "HEY_MANAGE_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+          "description": "Allows management of Student Management home page setups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Supplier User Roles",
+          "code": "POZ_MANAGE_SUPPLIER_USER_ROLES_PRIV",
+          "description": "Allows managing the set of authorized job roles for supplier user provisioning.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Talent Pool Security Profile",
+          "code": "HRM_MANAGE_TALENT_POOL_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of talent pool security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Transaction Security Profile",
+          "code": "PER_MANAGE_TRANSACTION_SECURITY_PROFILE_PRIV",
+          "description": "Allows management of transaction security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Manage Workforce Structures Work Area",
+          "code": "PER_MANAGE_WORKFORCE_STRUCTURES_WORK_AREA_PRIV",
+          "description": "Allows access to the Work Structures Management work area.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Monitor Batch Load Process",
+          "code": "HRC_MONITOR_HR_BATCH_LOAD_PROCESS_PRIV",
+          "description": "Allows monitoring of the batch load process.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Preview HCM Data Security",
+          "code": "PER_PREVIEW_HCM_DATA_SECURITY_PRIV",
+          "description": "Allows access to preview and analyze user access to secured HCM data.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Request Enterprise Role",
+          "code": "PER_REQ_ENTERPRISE_ROLE_PRIV",
+          "description": "Allows request of a new enterprise role.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Reset Password",
+          "code": "PER_RESET_PASSWORD_PRIV",
+          "description": "Allows reset password links to be emailed to users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Batch Load Job Set",
+          "code": "HRC_RUN_HR_BATCH_LOAD_JOB_SET_PRIV",
+          "description": "Allows running of the batch load job set.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Data Access Set Listing Report",
+          "code": "GL_RUN_DATA_ACCESS_SET_LISTING_REPORT_PRIV",
+          "description": "Allows submission of the data access set listing report.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Regenerate HCM Data Security Grants Process",
+          "code": "PER_PROCESS_USERS_ROLES_REQUESTS_PROCESS_PRIV",
+          "description": "Allows the Regenerate HCM Data Security Grants process to be run.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Retrieve Latest LDAP Changes Process",
+          "code": "PER_MAP_AND_SYNCHRONIZE_USER_ACCOUNT_DETAILS_PRIV",
+          "description": "Allows the Retrieve Latest LDAP Changes process to be run.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Send Pending LDAP Requests Process",
+          "code": "PER_SYNCHRONIZE_USERS_ROLES_PROCESS_PRIV",
+          "description": "Allows the Send Pending LDAP Requests process to be run.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Run Users by Service Report",
+          "code": "FUN_RUN_USERS_BY_SERVICE_REPORT_PRIV",
+          "description": "Submit Users by Service Report",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Sync External Users To LDAP",
+          "code": "HZ_SYNC_EXTERNAL_USERS_TO_LDAP_PRIV",
+          "description": "Allows the running of the process that sends personal data for external users to LDAP",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Synchronize SCM Job Roles",
+          "code": "INV_SYNCHRONIZE_SCM_JOB_ROLES_PRIV",
+          "description": "Privilege to synchronize SCM jobs with other pillars such as HCM and CRM.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Use REST Service - Identity Integration",
+          "code": "ASE_REST_SERVICE_ACCESS_IDENTITY_INTEGRATION_PRIV",
+          "description": "Allows users to call all methods associated with the Identity Integration REST Service",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "Use Trading Community REST Services for HCM User Role Provisioning",
+          "code": "HZ_REST_SERVICE_ACCESS_FOR_HCM_URP_PRIV",
+          "description": "Allows users to call Trading Community REST services for HCM user role provisioning.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Access Explorer",
+          "code": "ZCA_VIEW_ACCESS_EXPLORER_PRIV",
+          "description": "Allows to explore the access an user has for a named record of an object using the access explorer tool.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Application Pages Security",
+          "code": "HEY_VIEW_APPLICATION_PAGES_SECURITY_PRIV",
+          "description": "Allows viewing of application pages and page groups for controlling page access.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Business Objects",
+          "code": "HEY_VIEW_BUSINESS_OBJECTS_PRIV",
+          "description": "Allows the viewing of business objects that are used for security profiles.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Data Security Grants",
+          "code": "HEY_VIEW_DATA_SECURITY_GRANTS_PRIV",
+          "description": "Allows the viewing of the security conditions assigned to the users that govern data access by users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Data Security Profiles",
+          "code": "HEY_VIEW_DATA_SECURITY_PROFILES_PRIV",
+          "description": "Allows the viewing of security profiles, which contain the business objects and fields that govern data access by users.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Oracle Fusion General Ledger Data Access Set Definition",
+          "code": "GL_VIEW_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+          "description": "Allows view access of data access set definitions and makes data access set selection.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Scheduled Process Tracker",
+          "code": "HEY_VIEW_SCHEDULED_PROCESS_TRACKER_PRIV",
+          "description": "Allows viewing of scheduled process tracking information.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View Student Management Home Page Setups",
+          "code": "HEY_VIEW_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+          "description": "Allows viewing of Student Management home page setups.",
+          "inheritedFrom": "Risk Administrator"
+        },
+        {
+          "name": "View User Accounts",
+          "code": "HEY_VIEW_USER_ACCOUNTS_PRIV",
+          "description": "Allows the viewing of user accounts.",
+          "inheritedFrom": "Risk Administrator"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 71,
+        "directPrivileges": 71,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Risk Administrator\" (ORA_GTG_RISK_ADMINISTRATOR_JOB) with 71 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "16 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Risk Administrator\" with 71 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794822407431
+  },
+  "role_privileges:risk manager": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Risk Manager",
+      "roleCode": "ORA_GTG_RISK_ACTIVITIES_MANAGER_JOB",
+      "role": {
+        "name": "Risk Manager",
+        "code": "ORA_GTG_RISK_ACTIVITIES_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "View Risk Management Dashboard",
+          "code": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+          "description": "Allows viewing of the analytic information on the Risk Management dashboard.",
+          "inheritedFrom": "Risk Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 1,
+        "directPrivileges": 1,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Risk Manager\" (ORA_GTG_RISK_ACTIVITIES_MANAGER_JOB) with 1 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "1 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Risk Manager\" with 1 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794825009754
+  },
+  "role_privileges:ora_gtg_risk_activities_manager_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Risk Manager",
+      "roleCode": "ORA_GTG_RISK_ACTIVITIES_MANAGER_JOB",
+      "role": {
+        "name": "Risk Manager",
+        "code": "ORA_GTG_RISK_ACTIVITIES_MANAGER_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "View Risk Management Dashboard",
+          "code": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+          "description": "Allows viewing of the analytic information on the Risk Management dashboard.",
+          "inheritedFrom": "Risk Manager"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 1,
+        "directPrivileges": 1,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Risk Manager\" (ORA_GTG_RISK_ACTIVITIES_MANAGER_JOB) with 1 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "1 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Risk Manager\" with 1 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794825009802
+  },
+  "role_privileges:claaps risk administrator": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Claaps Risk Administrator",
+      "roleCode": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB",
+      "role": {
+        "name": "Claaps Risk Administrator",
+        "code": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Administer Risk Upgrade",
+          "code": "ORA_GTG_ADMINISTER_RISK_UPGRADE_PRIV",
+          "description": "Allows user to receive upgrade messages and initiate the upgrade job.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        },
+        {
+          "name": "Export Access Point Data",
+          "code": "GTG_EXPORT_ACCESS_POINT_DATA_PRIV",
+          "description": "Allows user to export access points and role assignment data.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        },
+        {
+          "name": "Import Access Point Data",
+          "code": "GTG_IMPORT_ACCESS_POINT_DATA_PRIV",
+          "description": "Allows user to import access points and role assignment data.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        },
+        {
+          "name": "View Risk Management Dashboard",
+          "code": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+          "description": "Allows viewing of the analytic information on the Risk Management dashboard.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 4,
+        "directPrivileges": 4,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Claaps Risk Administrator\" (CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB) with 4 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "15 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Claaps Risk Administrator\" with 4 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794826231015
+  },
+  "role_privileges:claaps_gtg_risk_administrator_job_job": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Claaps Risk Administrator",
+      "roleCode": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB",
+      "role": {
+        "name": "Claaps Risk Administrator",
+        "code": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Administer Risk Upgrade",
+          "code": "ORA_GTG_ADMINISTER_RISK_UPGRADE_PRIV",
+          "description": "Allows user to receive upgrade messages and initiate the upgrade job.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        },
+        {
+          "name": "Export Access Point Data",
+          "code": "GTG_EXPORT_ACCESS_POINT_DATA_PRIV",
+          "description": "Allows user to export access points and role assignment data.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        },
+        {
+          "name": "Import Access Point Data",
+          "code": "GTG_IMPORT_ACCESS_POINT_DATA_PRIV",
+          "description": "Allows user to import access points and role assignment data.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        },
+        {
+          "name": "View Risk Management Dashboard",
+          "code": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+          "description": "Allows viewing of the analytic information on the Risk Management dashboard.",
+          "inheritedFrom": "Claaps Risk Administrator"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 4,
+        "directPrivileges": 4,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Claaps Risk Administrator\" (CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB) with 4 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "15 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Claaps Risk Administrator\" with 4 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1794826231071
   }
 }

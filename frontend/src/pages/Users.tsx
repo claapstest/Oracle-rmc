@@ -120,7 +120,12 @@ export default function Users({
   }, [onRegisterBack]);
 
   useEffect(() => {
-    setActiveCategoryFilter(initialFilter);
+    const norm = (initialFilter || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (norm === 'UNASSIGNED' || norm.includes('ROLES_WITHOUT_USERS')) {
+      setActiveCategoryFilter('ALL');
+    } else {
+      setActiveCategoryFilter(initialFilter);
+    }
     setStatusFilter('ALL');
     setSearchTerm('');
     setDrawerRoleSearch('');

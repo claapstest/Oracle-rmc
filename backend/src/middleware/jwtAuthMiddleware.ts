@@ -13,6 +13,7 @@ import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/authService.js';
 import { recordAuditEvent } from '../services/auditService.js';
 import { tokenService } from '../auth/tokenService.js';
+import { bindRequestCryptoContext } from '../security/cryptoAuditContext.js';
 
 function logSecurityAudit(email: string, action: string, details: string, req?: Request, userId?: string | null) {
   console.log(`[AUDIT] [${new Date().toISOString()}] User: ${email} | Action: ${action} | Details: ${details}`);
@@ -111,7 +112,8 @@ export async function verifyJwtAndSession(req: Request, res: Response, next: Nex
       authProvider: res.locals.authProvider
     };
 
-    next();
+    // VYR-038: attribute any protected-record decryption in this request to this principal.
+    bindRequestCryptoContext(req, res, next);
   } catch (err: any) {
     console.error('[verifyJwtAndSession Error]:', err);
     return res.status(500).json({

@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import zlib from 'zlib';
 import path from 'path';
 import fs from 'fs';
@@ -16,17 +15,26 @@ import { roleHierarchyService } from './services/roleHierarchyService.js';
 import { userAccessReportService } from './services/userAccessReportService.js';
 import { apiRouter } from './routes/api.js';
 import { initializeAuthProvider, keyManager } from './auth/index.js';
+import { corsMiddleware, securityHeadersMiddleware } from './security/securityHeadersService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middlewares
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// VYR-048: Configure trusted proxy support carefully to prevent IP spoofing
+const trustProxySetting = (process.env.TRUST_PROXY || '').trim().toLowerCase();
+if (trustProxySetting === 'true' || trustProxySetting === '1') {
+  app.set('trust proxy', true);
+} else if (trustProxySetting && trustProxySetting !== 'false' && trustProxySetting !== '0') {
+  app.set('trust proxy', trustProxySetting);
+} else {
+  app.set('trust proxy', false);
+}
+
+// VYR-050: Security headers and strict CORS
+app.use(securityHeadersMiddleware);
+app.use(corsMiddleware);
 // Compress large JSON payloads (>= 2KB) with gzip when client supports it
 app.use((req, res, next) => {
   const acceptEncoding = String(req.headers['accept-encoding'] || '');
@@ -59,8 +67,9 @@ app.use((req, res, next) => {
   };
   next();
 });
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// VYR-049: Reduced global body size limit from 50mb to 2mb (per-route limits in requestValidationService)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Logger middleware
 app.use((req, res, next) => {
@@ -104,6 +113,15 @@ app.get(['/.well-known/jwks.json', '/api/.well-known/jwks.json'], async (_req, r
     console.error('[JWKS Error]:', err);
     res.status(500).json({ error: 'Failed to retrieve JWKS' });
   }
+});
+
+// VYR-050: Prevent browser caching of API responses containing sensitive data
+app.use('/api', (req, res, next) => {
+  if (!res.getHeader('Cache-Control')) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
 });
 
 // API Routes

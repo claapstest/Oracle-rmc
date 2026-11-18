@@ -27,6 +27,18 @@ interface RolesProps {
   onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
+const normalizeCategory = (cat?: string): string => {
+  if (!cat) return 'ALL';
+  const norm = cat.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (norm === 'ALL' || norm === '') return 'ALL';
+  if (norm.includes('UNASSIGNED') || norm.includes('WITHOUT_USERS') || norm.includes('NO_USERS') || norm.includes('ZERO_USERS')) return 'UNASSIGNED';
+  if (norm.includes('JOB')) return 'JOB';
+  if (norm.includes('DUTY')) return 'DUTY';
+  if (norm.includes('DATA')) return 'DATA';
+  if (norm.includes('ABSTRACT')) return 'ABSTRACT';
+  return cat.trim().toUpperCase();
+};
+
 export default function Roles({
   initialCategory = 'ALL',
   isActive = true,
@@ -36,8 +48,14 @@ export default function Roles({
 }: RolesProps) {
   const [roles, setRoles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState(() => (initialCategory ? initialCategory.toUpperCase() : 'ALL'));
+  const [categoryFilter, setCategoryFilter] = useState(() => normalizeCategory(initialCategory));
+  const [moduleFilter, setModuleFilter] = useState('ALL');
+  const [availableModules, setAvailableModules] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<any | null>(null);
+  const [roleMembers, setRoleMembers] = useState<any[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   
   // Synchronize internal selected role drawer with topbar Back button
   useEffect(() => {
@@ -123,6 +141,47 @@ export default function Roles({
   const [dataSource, setDataSource] = useState('');
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>('DEMO');
 
+  const handleSyncAuthoritativeRoles = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await api.syncRoles();
+      if (res?.success) {
+        setSyncMessage({
+          type: 'success',
+          text: `Successfully synced ${res.totalRoles?.toLocaleString() || 'all'} authoritative roles from ${res.source || 'BI Publisher'} (${res.duration || ''}).`
+        });
+        const startIndex = (currentPage - 1) * pageSize + 1;
+        const refreshed = await api.getRoles(
+          searchTerm || undefined,
+          categoryFilter === 'ALL' ? undefined : categoryFilter,
+          startIndex,
+          pageSize,
+          moduleFilter === 'ALL' ? undefined : moduleFilter
+        );
+        if (refreshed?.roles) {
+          setRoles(refreshed.roles);
+          setTotalResults(refreshed.totalResults || refreshed.roles.length);
+          if (refreshed.modules && Array.isArray(refreshed.modules)) {
+            setAvailableModules(refreshed.modules);
+          }
+        }
+      } else {
+        setSyncMessage({
+          type: 'error',
+          text: res?.message || res?.error || 'Role synchronization failed.'
+        });
+      }
+    } catch (err: any) {
+      setSyncMessage({
+        type: 'error',
+        text: err.message || 'Failed to sync roles from BI Publisher.'
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
     let isCancelled = false;
     // Instant loading on mount / category / page change; debounce search typing by 300ms
@@ -136,13 +195,17 @@ export default function Roles({
           searchTerm || undefined,
           categoryFilter === 'ALL' ? undefined : categoryFilter,
           startIndex,
-          pageSize
+          pageSize,
+          moduleFilter === 'ALL' ? undefined : moduleFilter
         );
         if (!isCancelled && res?.roles) {
           setRoles(res.roles);
           setTotalResults(res.totalResults || res.roles.length);
           setDataSource(res.dataSource || 'Oracle Fusion');
           setEnvironmentMode(res.mode || 'DEMO');
+          if (res.modules && Array.isArray(res.modules) && res.modules.length > 0) {
+            setAvailableModules(res.modules);
+          }
         }
       } catch (err) {
         if (!isCancelled) {
@@ -161,35 +224,51 @@ export default function Roles({
       isCancelled = true;
       clearTimeout(delayDebounceFn);
     };
-  }, [searchTerm, categoryFilter, currentPage, pageSize]);
+  }, [searchTerm, categoryFilter, moduleFilter, currentPage, pageSize]);
 
   // Update category filter and clear search if initialCategory changes
   useEffect(() => {
-    const targetCat = (initialCategory || 'ALL').toUpperCase();
+    const targetCat = normalizeCategory(initialCategory);
     setCategoryFilter(targetCat);
     setSearchTerm('');
+    setModuleFilter('ALL');
     setCurrentPage(1);
     setSelectedRole(null);
   }, [initialCategory]);
 
-  // Fetch details (hierarchy and privileges) when role selection changes
+  // Fetch details (hierarchy, privileges, and authoritative direct members) when role selection changes
   useEffect(() => {
     if (!selectedRole) return;
     
     async function loadRoleEntitlements() {
       setDetailLoading(true);
+      setMembersLoading(true);
       setHierarchyData(null);
       setPrivilegeData(null);
-      try {
-        const hierRes = await api.getRoleHierarchy(selectedRole.displayName);
-        setHierarchyData(hierRes);
+      setRoleMembers([]);
 
-        const privRes = await api.getRolePrivileges(selectedRole.displayName);
-        setPrivilegeData(privRes);
+      try {
+        const [hierRes, privRes, membersRes] = await Promise.allSettled([
+          api.getRoleHierarchy(selectedRole.displayName || selectedRole.roleCode),
+          api.getRolePrivileges(selectedRole.displayName || selectedRole.roleCode),
+          api.getRoleMembers(selectedRole.roleCode || selectedRole.displayName)
+        ]);
+
+        if (hierRes.status === 'fulfilled') setHierarchyData(hierRes.value);
+        if (privRes.status === 'fulfilled') setPrivilegeData(privRes.value);
+        if (membersRes.status === 'fulfilled' && (membersRes.value as any)?.members) {
+          setRoleMembers((membersRes.value as any).members);
+        } else if (Array.isArray(selectedRole.members)) {
+          setRoleMembers(selectedRole.members);
+        }
       } catch (err) {
         console.error('Error fetching role details:', err);
+        if (Array.isArray(selectedRole.members)) {
+          setRoleMembers(selectedRole.members);
+        }
       } finally {
         setDetailLoading(false);
+        setMembersLoading(false);
       }
     }
 
@@ -217,9 +296,7 @@ export default function Roles({
     DUTY: 'Duty Roles',
     DATA: 'Data Roles',
     ABSTRACT: 'Abstract Roles',
-    GRC: 'GRC / Access Rules',
-    UNASSIGNED: 'Roles Without Users',
-    OTHER: 'Other Roles'
+    UNASSIGNED: 'Roles Without Users'
   };
   const activeCategoryName = categoryFilter !== 'ALL' ? (categoryLabelMap[categoryFilter] || 'Roles') : 'Roles';
 
@@ -228,11 +305,14 @@ export default function Roles({
     if (categoryFilter !== 'ALL') {
       list.push({ label: 'Category', value: categoryLabelMap[categoryFilter] || categoryFilter });
     }
+    if (moduleFilter !== 'ALL') {
+      list.push({ label: 'Module', value: moduleFilter });
+    }
     if (searchTerm) {
       list.push({ label: 'Search', value: `"${searchTerm}"` });
     }
     return list;
-  }, [categoryFilter, searchTerm]);
+  }, [categoryFilter, moduleFilter, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
 
@@ -351,7 +431,7 @@ export default function Roles({
               Security Role Catalog
             </h1>
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
-              Browse Job, Duty, GRC, and Abstract roles mapped in the {dataSource || 'Oracle Fusion'} registry.
+              Browse Job, Duty, Data, and Abstract roles mapped in the {dataSource || 'Oracle Fusion'} registry.
               {categoryFilter !== 'ALL' && (
                 <span 
                   onClick={() => {
@@ -376,9 +456,56 @@ export default function Roles({
                   Filter: {activeCategoryName} <X size={12} />
                 </span>
               )}
+              {moduleFilter !== 'ALL' && (
+                <span 
+                  onClick={() => {
+                    setModuleFilter('ALL');
+                    setSearchTerm('');
+                    setCurrentPage(1);
+                  }}
+                  style={{ 
+                    marginLeft: '0.6rem', 
+                    padding: '0.15rem 0.6rem', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                    borderRadius: '9999px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}
+                  title="Click to reset filter to All Modules"
+                >
+                  Module: {moduleFilter} <X size={12} />
+                </span>
+              )}
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <button
+              onClick={handleSyncAuthoritativeRoles}
+              disabled={syncing}
+              className="btn"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                color: '#ffffff',
+                padding: '0.35rem 0.85rem',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                borderRadius: '8px',
+                cursor: syncing ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                backdropFilter: 'blur(8px)'
+              }}
+              title="Sync authoritative roles directly from Oracle Fusion BI Publisher (/Custom/Claaps_All_Module_Roles.xdo)"
+            >
+              <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+              <span>{syncing ? 'Syncing BIP Roles...' : 'Sync BIP Roles'}</span>
+            </button>
             <div style={{
               padding: '0.4rem 0.95rem',
               fontSize: '0.78rem',
@@ -393,6 +520,29 @@ export default function Roles({
             </div>
           </div>
         </div>
+
+        {syncMessage && (
+          <div style={{
+            margin: '0.75rem 0',
+            padding: '0.6rem 1rem',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: syncMessage.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            border: `1px solid ${syncMessage.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+            color: syncMessage.type === 'success' ? '#16a34a' : '#dc2626'
+          }}>
+            <span>{syncMessage.text}</span>
+            <button
+              onClick={() => setSyncMessage(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Filters & Page Size */}
         <div className="filter-bar-responsive" style={{ marginBottom: '1.5rem' }}>
@@ -444,9 +594,22 @@ export default function Roles({
             <option value="DUTY">Duty Roles</option>
             <option value="DATA">Data Roles</option>
             <option value="ABSTRACT">Abstract Roles</option>
-            <option value="GRC">GRC / Access Rules</option>
-            <option value="UNASSIGNED">Roles Without Users</option>
-            <option value="OTHER">Other Roles</option>
+          </select>
+
+          <select
+            className="form-select"
+            value={moduleFilter}
+            onChange={(e) => {
+              setModuleFilter(e.target.value);
+              setSearchTerm('');
+              setCurrentPage(1);
+            }}
+            style={{ maxWidth: '180px' }}
+          >
+            <option value="ALL">All Modules</option>
+            {availableModules.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
           </select>
 
           <EnterpriseExportControl
@@ -464,6 +627,7 @@ export default function Roles({
             availableColumns={[
               { key: 'displayName', label: 'Display Name', defaultSelected: true },
               { key: 'roleCode', label: 'Role Code', defaultSelected: true },
+              { key: 'module', label: 'Module', defaultSelected: true, getValue: (r: any) => r.module || 'Common' },
               { key: 'category', label: 'Category', defaultSelected: true },
               { key: 'description', label: 'Description', defaultSelected: true, getValue: (r: any) => r.description || '—' },
               {
@@ -488,7 +652,8 @@ export default function Roles({
                 scope === 'FILTERED' ? (searchTerm || undefined) : undefined,
                 scope === 'FILTERED' && categoryFilter !== 'ALL' ? categoryFilter : undefined,
                 1,
-                countToFetch
+                countToFetch,
+                scope === 'FILTERED' && moduleFilter !== 'ALL' ? moduleFilter : undefined
               );
               return res?.roles || [];
             }}
@@ -519,6 +684,7 @@ export default function Roles({
               <tr>
                 <th>Display Name</th>
                 <th>Role Code</th>
+                <th>Module</th>
                 <th>Category</th>
                 <th>Action</th>
               </tr>
@@ -528,12 +694,12 @@ export default function Roles({
                 <TableLoadingState
                   title="Searching Oracle Fusion Roles Catalog..."
                   subtitle="Retrieving security roles, categories, and assigned permissions"
-                  colSpan={4}
+                  colSpan={5}
                   skeletonRows={4}
                 />
               ) : roles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
                       <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                         No roles matched your search criteria.
@@ -541,11 +707,12 @@ export default function Roles({
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         {searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.'}
                       </p>
-                      {(searchTerm || categoryFilter !== 'ALL') && (
+                      {(searchTerm || categoryFilter !== 'ALL' || moduleFilter !== 'ALL') && (
                         <button
                           onClick={() => {
                             setSearchTerm('');
                             setCategoryFilter('ALL');
+                            setModuleFilter('ALL');
                             setCurrentPage(1);
                           }}
                           className="btn btn-secondary"
@@ -566,6 +733,11 @@ export default function Roles({
                   >
                     <td style={{ fontWeight: 600 }}>{highlightMatch(role.displayName, searchTerm)}</td>
                     <td><code>{highlightMatch(role.roleCode, searchTerm)}</code></td>
+                    <td>
+                      <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', fontWeight: 600, border: '1px solid rgba(59, 130, 246, 0.25)', fontSize: '0.72rem' }}>
+                        {role.module || 'Common'}
+                      </span>
+                    </td>
                     <td><span className="badge badge-blue">{role.category}</span></td>
                     <td>
                       <button 
@@ -627,7 +799,12 @@ export default function Roles({
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
             <div>
-              <span className="badge badge-blue" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>{selectedRole.category} Role</span>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>{selectedRole.category} Role</span>
+                <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#2563EB', fontSize: '0.7rem', fontWeight: 600 }}>
+                  {selectedRole.module || 'Common'}
+                </span>
+              </div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0 }}>
                 {selectedRole.displayName}
               </h3>
@@ -703,16 +880,35 @@ export default function Roles({
               {detailTab === 'OVERVIEW' && (
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Assigned Identities ({selectedRole.members?.length || 0})
+                    Assigned Identities ({membersLoading ? 'Loading...' : (roleMembers.length > 0 ? roleMembers.length : (selectedRole.members?.length || 0))})
                   </div>
-                  {selectedRole.members && selectedRole.members.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      {selectedRole.members.map((m: any, idx: number) => (
-                        <div key={idx} className="glass-panel" style={{ padding: '0.5rem 0.75rem', display: 'flex', justifyItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: 600 }}>{m.display}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Member Code: {m.value ? m.value.replace('usr_', '') : (m.name || 'N/A')}</span>
-                        </div>
-                      ))}
+                  {membersLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem 0' }}>
+                      <div style={{ height: '32px', width: '100%' }} className="skeleton" />
+                      <div style={{ height: '32px', width: '100%' }} className="skeleton" />
+                    </div>
+                  ) : (roleMembers.length > 0 ? roleMembers : (selectedRole.members || [])).length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {(roleMembers.length > 0 ? roleMembers : selectedRole.members).map((m: any, idx: number) => {
+                        const displayName = m.displayName || m.display || m.userName || m.value;
+                        const username = m.userName || m.value || m.name;
+                        return (
+                          <div key={idx} className="glass-panel" style={{ padding: '0.55rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayName}</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Username: <code style={{ color: 'var(--accent-blue)' }}>{username}</code>
+                                {m.email && m.email !== username && <span style={{ marginLeft: '0.4rem' }}>&bull; {m.email}</span>}
+                              </span>
+                            </div>
+                            {m.active !== undefined && (
+                              <span className={`badge ${m.active ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: '0.68rem' }}>
+                                {m.active ? 'Active' : 'Inactive'}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)' }}>

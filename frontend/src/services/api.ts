@@ -337,10 +337,11 @@ export const api = {
   },
 
   // Roles
-  async getRoles(filter?: string, category?: string, startIndex?: number, count?: number) {
+  async getRoles(filter?: string, category?: string, startIndex?: number, count?: number, module?: string) {
     const params = new URLSearchParams();
     if (filter) params.append('filter', filter);
     if (category && category !== 'ALL') params.append('category', category);
+    if (module && module !== 'ALL') params.append('module', module);
     if (startIndex) params.append('startIndex', String(startIndex));
     if (count) params.append('count', String(count));
     params.append('source', 'oracle');

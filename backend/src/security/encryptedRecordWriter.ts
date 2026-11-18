@@ -19,9 +19,52 @@
 import {
   buildTableRecordAad,
   CURRENT_ENCRYPTION_FORMAT_VERSION,
+  getRecordNaturalId,
   isEncryptedPayload,
 } from './encryptionContract.js';
 import { encryptionService } from './encryptionService.js';
+import { classifyCryptoError, newCryptoIncidentId, ProtectedDataError, CryptoFailureCategory } from './cryptoFailure.js';
+import { cryptoAuditService, CryptoOperation } from './cryptoAuditService.js';
+
+function safeRecordRef(tableName: string, record: Record<string, any>): string | null {
+  try {
+    return getRecordNaturalId(tableName, record).slice(0, 200) || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * VYR-038: converts any failure at the raw-record boundary into a classified,
+ * audited ProtectedDataError. The original error never leaves this function.
+ */
+function failClosed(
+  operation: CryptoOperation,
+  tableName: string,
+  record: Record<string, any>,
+  environmentHost: string,
+  err: unknown,
+  keyId: string | null,
+  forcedCategory?: CryptoFailureCategory
+): ProtectedDataError {
+  if (err instanceof ProtectedDataError) return err;
+  let category = forcedCategory || classifyCryptoError(err);
+  if (operation === 'ENCRYPT' && (category === 'UNKNOWN' || category === 'CORRUPTED_PAYLOAD')) {
+    category = 'ENCRYPTION_FAILURE';
+  }
+  const incidentId = newCryptoIncidentId();
+  cryptoAuditService.recordFailure({
+    operation,
+    tenant: environmentHost || null,
+    tableName,
+    recordRef: safeRecordRef(tableName, record),
+    keyId,
+    category,
+    incidentId,
+    internalDetail: String((err as any)?.message || err || ''),
+  });
+  return new ProtectedDataError(category, incidentId, operation);
+}
 
 export const RAW_ENCRYPTION_ENV = 'VEYRA_RAW_ENCRYPTION';
 
@@ -75,15 +118,22 @@ export async function encryptRawField(
     throw new Error(`[EncryptedRecordWriter] Refusing to persist a missing raw payload for ${tableName}`);
   }
 
-  const payload = await encryptionService.encryptPayload(
-    rawObject,
-    buildTableRecordAad(tableName, record, environmentHost)
-  );
+  let payload: unknown;
+  try {
+    payload = await encryptionService.encryptPayload(
+      rawObject,
+      buildTableRecordAad(tableName, record, environmentHost)
+    );
+  } catch (err) {
+    // Fail closed (VYR-038): no plaintext fallback; the caller's INSERT never runs.
+    throw failClosed('ENCRYPT', tableName, record, environmentHost, err, null);
+  }
 
   // Boundary check: the encryption service must return a genuine container.
   // A degraded KMS/provider returning plaintext is rejected before any SQL.
   if (!isEncryptedPayload(payload)) {
-    throw new Error(`[EncryptedRecordWriter] Encryption service returned a non-encrypted payload for ${tableName}; refusing to persist`);
+    throw failClosed('ENCRYPT', tableName, record, environmentHost,
+      new Error('Encryption service returned a non-encrypted payload'), null, 'ENCRYPTION_FAILURE');
   }
 
   return { rawValue: payload, isEncrypted: true, encryptionKey: payload.keyId };
@@ -107,6 +157,10 @@ export function assertEncryptedRawWrite(tableName: string, write: RawFieldWrite)
  * Read-side counterpart (consumed by VYR-035): dual-mode. Legacy plaintext
  * payloads are returned untouched; EncryptedPayload containers are decrypted
  * and verified against the record's AAD.
+ *
+ * VYR-038: every decrypt of a protected record is audited (who, tenant,
+ * record, purpose, time, outcome). Failures throw ProtectedDataError, whose
+ * message is safe to return to clients and never contains crypto detail.
  */
 export async function decryptRawField<T = any>(
   tableName: string,
@@ -114,10 +168,28 @@ export async function decryptRawField<T = any>(
   rawColumnValue: unknown,
   environmentHost: string
 ): Promise<T> {
-  return encryptionService.decryptEntityRecord<T>(
-    tableName,
-    record,
-    rawColumnValue,
-    environmentHost
-  );
+  if (!isEncryptedPayload(rawColumnValue)) {
+    // A row flagged encrypted must hold a genuine container; anything else is
+    // treated as corrupted rather than returned as if it were plaintext.
+    if (record?.is_encrypted === true) {
+      throw failClosed('DECRYPT', tableName, record, environmentHost,
+        new Error('Row is flagged encrypted but does not hold an encrypted container'), null, 'CORRUPTED_PAYLOAD');
+    }
+    return rawColumnValue as T; // legacy plaintext row (migration window)
+  }
+
+  const keyId = typeof rawColumnValue.keyId === 'string' ? rawColumnValue.keyId : null;
+  try {
+    const plain = await encryptionService.decryptEntityRecord<T>(tableName, record, rawColumnValue, environmentHost);
+    cryptoAuditService.recordSuccess({
+      operation: 'DECRYPT',
+      tenant: environmentHost || null,
+      tableName,
+      recordRef: safeRecordRef(tableName, record),
+      keyId,
+    });
+    return plain;
+  } catch (err) {
+    throw failClosed('DECRYPT', tableName, record, environmentHost, err, keyId);
+  }
 }
