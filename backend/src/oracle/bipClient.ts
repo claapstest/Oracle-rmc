@@ -143,6 +143,7 @@ export interface BipRolesReportResult {
 export interface UserDetailsBipRow {
   userId?: string | number | null;
   username: string;
+  userCategory: string | null;
   active: boolean;
   personNumber: string | null;
   firstName: string | null;
@@ -225,6 +226,14 @@ export class BipClient {
    */
   public readonly userDetailsReportPaths = [
     process.env.BIP_USER_DETAILS_REPORT_PATH,
+    // Current authoritative report: derives STATUS from PER_USERS.SUSPENDED (not ACTIVE_FLAG)
+    // and resolves USER_CATEGORY from PER_LDAP_USERS. Supersedes "userdetails report.xdo",
+    // whose ACTIVE_FLAG column reported every account as active.
+    '/shared/Custom/User Status Report.xdo',
+    '/Custom/User Status Report.xdo',
+    '/shared/Custom/User Status Report',
+    '/Custom/User Status Report',
+    // Legacy fallbacks (ACTIVE_FLAG-based).
     '/Custom/userdetails report.xdo',
     '/shared/Custom/userdetails report.xdo',
     '/Custom/userdetails report',
@@ -1089,20 +1098,35 @@ export class BipClient {
       }
 
       const headers = (rawRows[headerIdx] as any[]).map(h => String(h || '').trim().toUpperCase());
-      const idxUserId = headers.indexOf('USER_ID');
-      const idxUsername = headers.indexOf('USERNAME');
-      const idxActive = headers.indexOf('ACTIVE_FLAG');
-      const idxPersonNum = headers.indexOf('PERSON_NUMBER');
-      const idxFirstName = headers.indexOf('FIRST_NAME');
-      const idxLastName = headers.indexOf('LAST_NAME');
-      const idxFullName = headers.indexOf('FULL_NAME');
-      const idxEmail = headers.indexOf('EMAIL_ADDRESS');
-      const idxDept = headers.indexOf('DEPARTMENT_NAME');
-      const idxJob = headers.indexOf('JOB_NAME');
-      const idxBu = headers.indexOf('BUSINESS_UNIT_NAME');
-      const idxLocation = headers.indexOf('LOCATION_NAME');
-      const idxManager = headers.indexOf('MANAGER_NAME');
-      const idxRoleCount = headers.indexOf('NUMBER_OF_ROLES');
+      // Accept both the current "User Status Report" column names and the legacy
+      // "userdetails report" ones, so either report can back this page.
+      const col = (...aliases: string[]): number => {
+        for (const a of aliases) {
+          const i = headers.indexOf(a);
+          if (i >= 0) return i;
+        }
+        return -1;
+      };
+      const idxUserId = col('USER_ID');
+      const idxUsername = col('USERNAME');
+      const idxStatus = col('STATUS', 'USER_ACCOUNT_STATUS');
+      const idxActive = col('ACTIVE_FLAG');
+      const idxCategory = col('USER_CATEGORY');
+      const idxPersonNum = col('PERSON_NUMBER');
+      const idxFirstName = col('FIRST_NAME');
+      const idxLastName = col('LAST_NAME');
+      const idxFullName = col('FULL_NAME');
+      const idxEmail = col('EMAIL_ADDRESS');
+      const idxDept = col('DEPARTMENT', 'DEPARTMENT_NAME');
+      const idxJob = col('JOB', 'JOB_NAME');
+      const idxBu = col('BUSINESS_UNIT', 'BUSINESS_UNIT_NAME');
+      const idxLocation = col('LOCATION', 'LOCATION_NAME');
+      const idxManager = col('MANAGER', 'MANAGER_NAME');
+      const idxRoleCount = col('NUMBER_OF_ROLES');
+
+      if (idxStatus === -1 && idxActive === -1) {
+        console.warn('[BIP Client] User Details report exposes neither STATUS nor ACTIVE_FLAG; all users will be treated as active.');
+      }
 
       const userMap = new Map<string, UserDetailsBipRow>();
 
@@ -1112,35 +1136,62 @@ export class BipClient {
         const username = idxUsername >= 0 ? String(row[idxUsername] || '').trim() : '';
         if (!username) continue;
 
-        const activeStr = idxActive >= 0 ? String(row[idxActive] || '').trim().toUpperCase() : 'Y';
-        const isActive = activeStr === 'Y' || activeStr === 'TRUE';
-        const personNumber = idxPersonNum >= 0 && row[idxPersonNum] !== null ? String(row[idxPersonNum]).trim() : null;
-        const firstName = idxFirstName >= 0 && row[idxFirstName] !== null ? String(row[idxFirstName]).trim() : null;
-        const lastName = idxLastName >= 0 && row[idxLastName] !== null ? String(row[idxLastName]).trim() : null;
-        const fullName = idxFullName >= 0 && row[idxFullName] !== null ? String(row[idxFullName]).trim() : null;
-        const email = idxEmail >= 0 && row[idxEmail] !== null ? String(row[idxEmail]).trim() : null;
-        const department = idxDept >= 0 && row[idxDept] !== null ? String(row[idxDept]).trim() : null;
-        const job = idxJob >= 0 && row[idxJob] !== null ? String(row[idxJob]).trim() : null;
-        const businessUnit = idxBu >= 0 && row[idxBu] !== null ? String(row[idxBu]).trim() : null;
-        const location = idxLocation >= 0 && row[idxLocation] !== null ? String(row[idxLocation]).trim() : null;
-        const manager = idxManager >= 0 && row[idxManager] !== null ? String(row[idxManager]).trim() : null;
+        // Trims a cell and collapses Oracle's placeholder values ("null", "IS_NULL",
+        // "N/A") to a real null so the UI renders an em-dash rather than the literal.
+        const cell = (idx: number): string | null => {
+          if (idx < 0) return null;
+          const raw = row[idx];
+          if (raw === null || raw === undefined) return null;
+          const val = String(raw).trim();
+          if (!val) return null;
+          const upper = val.toUpperCase();
+          if (upper === 'NULL' || upper === 'IS_NULL' || upper === 'N/A') return null;
+          return val;
+        };
+
+        // Account status: the current report exposes a derived STATUS column
+        // (Active/Inactive, sourced from PER_USERS.SUSPENDED). Only fall back to the
+        // legacy ACTIVE_FLAG when STATUS is absent — ACTIVE_FLAG is 'Y' for virtually
+        // every row and does not reflect the status shown in the Security Console.
+        let isActive: boolean;
+        if (idxStatus >= 0) {
+          isActive = (cell(idxStatus) || '').toUpperCase() === 'ACTIVE';
+        } else if (idxActive >= 0) {
+          const activeStr = (cell(idxActive) || '').toUpperCase();
+          isActive = activeStr === 'Y' || activeStr === 'TRUE';
+        } else {
+          isActive = true;
+        }
+
+        const userCategory = cell(idxCategory);
+        const personNumber = cell(idxPersonNum);
+        const firstName = cell(idxFirstName);
+        const lastName = cell(idxLastName);
+        const fullName = cell(idxFullName);
+        const email = cell(idxEmail);
+        const department = cell(idxDept);
+        const job = cell(idxJob);
+        const businessUnit = cell(idxBu);
+        const location = cell(idxLocation);
+        const manager = cell(idxManager);
         const rawRoleCount = idxRoleCount >= 0 && row[idxRoleCount] !== null ? parseInt(String(row[idxRoleCount]), 10) : 0;
         const roleCount = isNaN(rawRoleCount) ? 0 : rawRoleCount;
 
         const record: UserDetailsBipRow = {
           userId: idxUserId >= 0 ? row[idxUserId] : null,
           username,
+          userCategory: userCategory || 'DEFAULT',
           active: isActive,
-          personNumber: personNumber && personNumber.toLowerCase() !== 'null' ? personNumber : null,
+          personNumber,
           firstName,
           lastName,
           fullName: fullName || `${firstName || ''} ${lastName || ''}`.trim() || username,
           email,
-          department: department && department.toLowerCase() !== 'null' ? department : null,
-          job: job && job.toLowerCase() !== 'null' ? job : null,
-          businessUnit: businessUnit && businessUnit.toLowerCase() !== 'null' ? businessUnit : null,
-          location: location && location.toLowerCase() !== 'null' ? location : null,
-          manager: manager && manager.toLowerCase() !== 'null' ? manager : null,
+          department,
+          job,
+          businessUnit,
+          location,
+          manager,
           roleCount
         };
 

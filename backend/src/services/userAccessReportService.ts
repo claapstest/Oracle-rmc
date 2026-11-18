@@ -532,6 +532,9 @@ export class UserAccessReportService {
         else inactiveUsers++;
 
         const uRoles = userRolesMap.get(username.toUpperCase()) || [];
+        // USER_CATEGORY now comes from the BIP report (resolved from PER_LDAP_USERS);
+        // 'DEFAULT' remains the fallback for accounts with no LDAP sync history.
+        const userCategory = u.userCategory || 'DEFAULT';
         const personNumber = u.personNumber || null;
         const firstName = u.firstName || null;
         const lastName = u.lastName || null;
@@ -547,7 +550,7 @@ export class UserAccessReportService {
           usersWithoutRoles++;
           report.push({
             username,
-            userCategory: 'DEFAULT',
+            userCategory,
             firstName,
             lastName,
             displayName,
@@ -570,7 +573,7 @@ export class UserAccessReportService {
           for (const role of uRoles) {
             report.push({
               username,
-              userCategory: 'DEFAULT',
+              userCategory,
               firstName,
               lastName,
               displayName,
