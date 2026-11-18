@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Award, X, Users, Network, KeyRound, AlertTriangle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { Search, Award, X, Users, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { TableLoadingState } from '../components/TableLoadingState';
@@ -85,55 +85,6 @@ export default function Roles({
   const [pageSize, setPageSize] = useState(25);
   const [totalResults, setTotalResults] = useState(0);
 
-  // Tabs within role details: 'OVERVIEW', 'HIERARCHY', 'PRIVILEGES'
-  const [detailTab, setDetailTab] = useState<'OVERVIEW' | 'HIERARCHY' | 'PRIVILEGES'>('OVERVIEW');
-  const [hierarchyData, setHierarchyData] = useState<any | null>(null);
-  const [privilegeData, setPrivilegeData] = useState<any | null>(null);
-  
-  // Modal for viewing users associated with a specific functional privilege
-  const [privilegeUsersModal, setPrivilegeUsersModal] = useState<{
-    open: boolean;
-    privilegeName: string;
-    users: any[];
-    loading: boolean;
-    search: string;
-    total: number;
-  }>({
-    open: false,
-    privilegeName: '',
-    users: [],
-    loading: false,
-    search: '',
-    total: 0
-  });
-
-  const handleOpenPrivilegeUsers = async (privilegeName: string) => {
-    setPrivilegeUsersModal({
-      open: true,
-      privilegeName,
-      users: [],
-      loading: true,
-      search: '',
-      total: 0
-    });
-    try {
-      const res = await api.getUsersByPrivilege(privilegeName, 1, 100);
-      if (res?.success) {
-        setPrivilegeUsersModal(prev => ({
-          ...prev,
-          users: res.users || [],
-          total: res.total || (res.users || []).length,
-          loading: false
-        }));
-      } else {
-        setPrivilegeUsersModal(prev => ({ ...prev, loading: false }));
-      }
-    } catch (err) {
-      console.error('[Privilege Users Lookup Error]:', err);
-      setPrivilegeUsersModal(prev => ({ ...prev, loading: false }));
-    }
-  };
-  
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -243,19 +194,13 @@ export default function Roles({
     async function loadRoleEntitlements() {
       setDetailLoading(true);
       setMembersLoading(true);
-      setHierarchyData(null);
-      setPrivilegeData(null);
       setRoleMembers([]);
 
       try {
-        const [hierRes, privRes, membersRes] = await Promise.allSettled([
-          api.getRoleHierarchy(selectedRole.displayName || selectedRole.roleCode),
-          api.getRolePrivileges(selectedRole.displayName || selectedRole.roleCode),
+        const [membersRes] = await Promise.allSettled([
           api.getRoleMembers(selectedRole.roleCode || selectedRole.displayName)
         ]);
 
-        if (hierRes.status === 'fulfilled') setHierarchyData(hierRes.value);
-        if (privRes.status === 'fulfilled') setPrivilegeData(privRes.value);
         if (membersRes.status === 'fulfilled' && (membersRes.value as any)?.members) {
           setRoleMembers((membersRes.value as any).members);
         } else if (Array.isArray(selectedRole.members)) {
@@ -273,23 +218,8 @@ export default function Roles({
     }
 
     loadRoleEntitlements();
-    setDetailTab('OVERVIEW');
   }, [selectedRole]);
 
-  const renderHierarchyNode = (node: any, depth = 0) => {
-    if (!node) return null;
-    return (
-      <div key={node.code} style={{ marginLeft: `${depth * 1.25}rem`, marginTop: '0.4rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
-          <span style={{ color: 'var(--text-muted)' }}>└─</span>
-          <span style={{ fontWeight: depth === 0 ? 700 : 500 }}>{node.name}</span>
-          <code style={{ fontSize: '0.7rem' }}>({node.code})</code>
-          <span className="badge badge-blue" style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem' }}>{node.category}</span>
-        </div>
-        {node.children?.map((child: any) => renderHierarchyNode(child, depth + 1))}
-      </div>
-    );
-  };
 
   const categoryLabelMap: Record<string, string> = {
     JOB: 'Job Roles',
@@ -833,37 +763,6 @@ export default function Roles({
             </button>
           )}
 
-          {/* Sub Tabs Navigation */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', gap: '1rem', marginBottom: '1.25rem' }}>
-            {[
-              { id: 'OVERVIEW', label: 'Members', icon: Users },
-              { id: 'HIERARCHY', label: 'Hierarchy', icon: Network },
-              { id: 'PRIVILEGES', label: 'Privileges', icon: KeyRound }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setDetailTab(tab.id as any)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  paddingBottom: '0.5rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: detailTab === tab.id ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                  borderBottom: detailTab === tab.id ? '2px solid var(--accent-gold)' : '2px solid transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <tab.icon size={14} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
 
           {/* Tab Contents */}
           {detailLoading ? (
@@ -875,8 +774,8 @@ export default function Roles({
           ) : (
             <div style={{ fontSize: '0.85rem' }}>
               
-              {/* Tab 1: Members (Overview) */}
-              {detailTab === 'OVERVIEW' && (
+              {/* Members */}
+              {(
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Assigned Identities ({membersLoading ? 'Loading...' : (roleMembers.length > 0 ? roleMembers.length : (selectedRole.members?.length || 0))})
@@ -917,121 +816,6 @@ export default function Roles({
                 </div>
               )}
 
-              {/* Tab 2: Hierarchy */}
-              {detailTab === 'HIERARCHY' && (
-                <div>
-                  {hierarchyData?.integrationRequired ? (
-                    <div style={{
-                      padding: '1rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(217, 119, 6, 0.05)',
-                      border: '1px dashed var(--accent-gold)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-                        <AlertTriangle size={15} />
-                        <span>Oracle Integration Required</span>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                        {hierarchyData.message}
-                      </p>
-                    </div>
-                  ) : hierarchyData?.hierarchy ? (
-                    <div style={{ padding: '0.25rem' }}>
-                      {renderHierarchyNode(hierarchyData.hierarchy)}
-                    </div>
-                  ) : (
-                    <p style={{ color: 'var(--text-muted)' }}>Hierarchy not available.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Tab 3: Privileges */}
-              {detailTab === 'PRIVILEGES' && (
-                <div>
-                  {privilegeData?.integrationRequired ? (
-                    <div style={{
-                      padding: '1rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(217, 119, 6, 0.05)',
-                      border: '1px dashed var(--accent-gold)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-                        <AlertTriangle size={15} />
-                        <span>Oracle Integration Required</span>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                        {privilegeData.message}
-                      </p>
-                    </div>
-                  ) : privilegeData?.privileges && privilegeData.privileges.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Entitlements list ({privilegeData.privileges.length})
-                        </div>
-                        <EnterpriseExportControl
-                          filename={`${selectedRole.roleCode || selectedRole.displayName}_privileges`}
-                          sheetName="Role Privileges"
-                          reportTitle={`Role ${selectedRole.displayName} Entitlements`}
-                          entityName="Privileges"
-                          buttonText="Export Excel"
-                          size="sm"
-                          currentPageData={privilegeData.privileges}
-                          filteredCount={privilegeData.privileges.length}
-                          totalCount={privilegeData.privileges.length}
-                          availableColumns={[
-                            { key: 'name', label: 'Privilege Name', defaultSelected: true },
-                            { key: 'inheritedFrom', label: 'Inherited From', defaultSelected: true }
-                          ]}
-                        />
-                      </div>
-                      <div className="table-container" style={{ margin: 0 }}>
-                        <table className="enterprise-table" style={{ fontSize: '0.75rem' }}>
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Inherited From</th>
-                              <th style={{ textAlign: 'right' }}>Users</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {privilegeData.privileges.map((p: any, idx: number) => (
-                              <tr key={idx}>
-                                <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                <td style={{ color: 'var(--text-muted)' }}>{p.inheritedFrom}</td>
-                                <td style={{ textAlign: 'right' }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenPrivilegeUsers(p.name)}
-                                    className="btn btn-secondary"
-                                    style={{
-                                      padding: '0.2rem 0.55rem',
-                                      fontSize: '0.7rem',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '0.25rem',
-                                      color: 'var(--accent-blue)',
-                                      borderColor: 'rgba(53, 99, 233, 0.25)'
-                                    }}
-                                    title="View users holding this privilege"
-                                  >
-                                    <Users size={11} />
-                                    <span>Users</span>
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)' }}>
-                      No permissions directly mapped to this role item.
-                    </div>
-                  )}
-                </div>
-              )}
 
             </div>
           )}
@@ -1041,203 +825,6 @@ export default function Roles({
 
       </div>
 
-      {/* Users with Privilege Modal */}
-      {privilegeUsersModal.open && (
-        <div className="responsive-modal-overlay">
-          <div className="responsive-modal-card" style={{
-            backgroundColor: 'var(--bg-primary, #1e293b)',
-            borderRadius: '12px',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-            maxWidth: '850px'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '1rem 1.5rem',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'var(--bg-secondary)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(37, 99, 235, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent-blue)'
-                }}>
-                  <KeyRound size={18} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Users with Privilege: {privilegeUsersModal.privilegeName}
-                  </h3>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                    Reverse RBAC entitlement grant via assigned and inherited roles
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span className="badge badge-blue" style={{ fontSize: '0.72rem' }}>
-                  {privilegeUsersModal.total.toLocaleString()} Users
-                </span>
-                <button
-                  onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, open: false }))}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex'
-                  }}
-                  title="Close modal"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Search Filter */}
-            <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  placeholder="Filter users by username, name, or role..."
-                  value={privilegeUsersModal.search}
-                  onChange={(e) => setPrivilegeUsersModal(prev => ({ ...prev, search: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.45rem 2rem',
-                    fontSize: '0.82rem',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    color: 'var(--text-primary)',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                {privilegeUsersModal.search && (
-                  <button
-                    type="button"
-                    onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, search: '' }))}
-                    style={{
-                      position: 'absolute',
-                      right: '0.65rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Body / Table */}
-            <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
-              {privilegeUsersModal.loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '1.5rem 0' }}>
-                  <div style={{ height: '32px', width: '100%' }} className="skeleton" />
-                  <div style={{ height: '32px', width: '90%' }} className="skeleton" />
-                  <div style={{ height: '32px', width: '95%' }} className="skeleton" />
-                  <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                    Searching users holding roles with this privilege...
-                  </div>
-                </div>
-              ) : privilegeUsersModal.users.length === 0 ? (
-                <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  No active users are currently assigned roles that hold this privilege.
-                </div>
-              ) : (
-                (() => {
-                  const q = privilegeUsersModal.search.trim().toLowerCase();
-                  const filtered = privilegeUsersModal.users.filter(u => {
-                    if (!q) return true;
-                    return (
-                      (u.username || '').toLowerCase().includes(q) ||
-                      (u.displayName || '').toLowerCase().includes(q) ||
-                      (u.email || '').toLowerCase().includes(q) ||
-                      (u.grantedViaRoleName || '').toLowerCase().includes(q) ||
-                      (u.grantedViaRoleCode || '').toLowerCase().includes(q)
-                    );
-                  });
-
-                  if (filtered.length === 0) {
-                    return (
-                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                        No users match "{privilegeUsersModal.search}".
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <table className="enterprise-table" style={{ fontSize: '0.78rem', width: '100%' }}>
-                      <thead>
-                        <tr>
-                          <th>Username</th>
-                          <th>Display Name</th>
-                          <th>Email Address</th>
-                          <th>Active</th>
-                          <th>Granted Via Role</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filtered.map((u, i) => (
-                          <tr key={i}>
-                            <td><code>{u.username}</code></td>
-                            <td style={{ fontWeight: 600 }}>{u.displayName || '—'}</td>
-                            <td>{u.email || '—'}</td>
-                            <td>
-                              <span className={`badge ${u.isActive ? 'badge-active' : 'badge-inactive'}`}>
-                                {u.isActive ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td>
-                              <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>
-                                {u.grantedViaRoleName}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  );
-                })()
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{
-              padding: '0.75rem 1.5rem',
-              borderTop: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              backgroundColor: 'var(--bg-secondary)'
-            }}>
-              <button
-                type="button"
-                onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, open: false }))}
-                className="btn btn-secondary"
-                style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
