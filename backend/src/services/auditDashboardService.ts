@@ -260,34 +260,36 @@ class AuditDashboardService {
     }
 
     // 1. Authoritative User & Role metrics from cached directory
+    // Zeros, never invented figures: an empty dashboard is legible as "no data",
+    // while a plausible-looking fabricated count is indistinguishable from real data.
     const statsData = (oracleService as any).getCachedCounts ? (oracleService as any).getCachedCounts() : {
-      totalUsers: 3335,
-      activeUsers: 3203,
-      inactiveUsers: 132,
-      totalRoles: 4713,
-      jobRolesCount: 513,
-      dutyRolesCount: 4004,
-      dataRolesCount: 48,
-      abstractRolesCount: 109,
-      grcRolesCount: 12,
-      otherRolesCount: 27,
-      rolesWithoutUsersCount: 4231,
-      rolesWithUsersCount: 482,
-      highRiskRolesCount: 12,
-      usersWithoutRolesCount: 2238,
-      activeUsersWithoutRolesCount: 2106,
-      singleRoleUsersCount: 130,
-      multipleRoleUsersCount: 967,
-      securityAdminsCount: 481,
-      highRiskUsersCount: 481
+      totalUsers: 0,
+      activeUsers: 0,
+      inactiveUsers: 0,
+      totalRoles: 0,
+      jobRolesCount: 0,
+      dutyRolesCount: 0,
+      dataRolesCount: 0,
+      abstractRolesCount: 0,
+      grcRolesCount: 0,
+      otherRolesCount: 0,
+      rolesWithoutUsersCount: 0,
+      rolesWithUsersCount: 0,
+      highRiskRolesCount: 0,
+      usersWithoutRolesCount: 0,
+      activeUsersWithoutRolesCount: 0,
+      singleRoleUsersCount: 0,
+      multipleRoleUsersCount: 0,
+      securityAdminsCount: 0,
+      highRiskUsersCount: 0
     };
 
     // 2. Fetch Control & Incident summary directly from PostgreSQL in <10ms
-    let totalControls = 55;
-    let activeControls = 37;
-    let controlsWithIncidents = 37;
-    let totalIncidents = 62374;
-    let openIssues = 28728; // assigned incidents
+    let totalControls = 0;
+    let activeControls = 0;
+    let controlsWithIncidents = 0;
+    let totalIncidents = 0;
+    let openIssues = 0; // assigned incidents
 
     try {
       const dbControlsRes = await dbQuery(`
@@ -315,31 +317,34 @@ class AuditDashboardService {
     }
 
     const activeRisks = activeControls;
-    const reportsGenerated = 5;
-    const pendingReviews = 3;
+    const reportsGenerated = 0;
+    const pendingReviews = 0;
 
     // Aggregate visual counters
-    let totalUsers = statsData.totalUsers || 3335;
-    let activeUsers = statsData.activeUsers || 3203;
-    let inactiveUsers = statsData.inactiveUsers || 132;
-    const jobRolesCount = statsData.jobRolesCount !== undefined ? statsData.jobRolesCount : 513;
-    const dutyRolesCount = statsData.dutyRolesCount !== undefined ? statsData.dutyRolesCount : 4004;
-    const dataRolesCount = statsData.dataRolesCount !== undefined ? statsData.dataRolesCount : 48;
-    const abstractRolesCount = statsData.abstractRolesCount !== undefined ? statsData.abstractRolesCount : 109;
-    const grcRolesCount = statsData.grcRolesCount !== undefined ? statsData.grcRolesCount : 12;
-    const otherRolesCount = statsData.otherRolesCount !== undefined ? statsData.otherRolesCount : 27;
+    let totalUsers = statsData.totalUsers ?? 0;
+    let activeUsers = statsData.activeUsers ?? 0;
+    let inactiveUsers = statsData.inactiveUsers ?? 0;
+    const jobRolesCount = statsData.jobRolesCount ?? 0;
+    const dutyRolesCount = statsData.dutyRolesCount ?? 0;
+    const dataRolesCount = statsData.dataRolesCount ?? 0;
+    const abstractRolesCount = statsData.abstractRolesCount ?? 0;
+    const grcRolesCount = statsData.grcRolesCount ?? 0;
+    const otherRolesCount = statsData.otherRolesCount ?? 0;
     const categorySum = jobRolesCount + dutyRolesCount + dataRolesCount + abstractRolesCount + grcRolesCount + otherRolesCount;
-    const totalRoles = Math.max(statsData.totalRoles || 0, categorySum) || 4713;
-    const rolesWithoutUsersCount = statsData.rolesWithoutUsersCount !== undefined ? statsData.rolesWithoutUsersCount : 4231;
-    const rolesWithUsersCount = statsData.rolesWithUsersCount !== undefined ? statsData.rolesWithUsersCount : 482;
-    const highRiskRolesCount = statsData.highRiskRolesCount || 12;
-    const auditEventsCount = statsData.auditEventsCount || 26203;
-    let highRiskUsersCount = (statsData.highRiskUsersCount && statsData.highRiskUsersCount > 0) ? statsData.highRiskUsersCount : 481;
-    let securityAdminsCount = (statsData.securityAdminsCount && statsData.securityAdminsCount > 0) ? statsData.securityAdminsCount : 481;
-    let usersWithoutRolesCount = (statsData.usersWithoutRolesCount && statsData.usersWithoutRolesCount > 0) ? statsData.usersWithoutRolesCount : 2238;
-    let multipleRoleUsersCount = (statsData.multipleRoleUsersCount && statsData.multipleRoleUsersCount > 0) ? statsData.multipleRoleUsersCount : 967;
-    let singleRoleUsersCount = (statsData.singleRoleUsersCount && statsData.singleRoleUsersCount > 0) ? statsData.singleRoleUsersCount : 130;
-    let activeUsersWithoutRolesCount = (statsData.activeUsersWithoutRolesCount && statsData.activeUsersWithoutRolesCount > 0) ? statsData.activeUsersWithoutRolesCount : 2106;
+    const totalRoles = Math.max(statsData.totalRoles ?? 0, categorySum);
+    const rolesWithoutUsersCount = statsData.rolesWithoutUsersCount ?? 0;
+    const rolesWithUsersCount = statsData.rolesWithUsersCount ?? 0;
+    // High Risk Roles is the GRC role count. It was previously defaulted to 12,
+    // which rendered a fabricated "12" on every environment whose catalog has no
+    // GRC-categorised roles.
+    const highRiskRolesCount = statsData.highRiskRolesCount ?? grcRolesCount ?? 0;
+    const auditEventsCount = statsData.auditEventsCount ?? 0;
+    let highRiskUsersCount = statsData.highRiskUsersCount ?? 0;
+    let securityAdminsCount = statsData.securityAdminsCount ?? 0;
+    let usersWithoutRolesCount = statsData.usersWithoutRolesCount ?? 0;
+    let multipleRoleUsersCount = statsData.multipleRoleUsersCount ?? 0;
+    let singleRoleUsersCount = statsData.singleRoleUsersCount ?? 0;
+    let activeUsersWithoutRolesCount = statsData.activeUsersWithoutRolesCount ?? 0;
 
     // User Account Health is derived from the same population the Users list renders
     // (BIP User Status Report -> oracle_raw_user_access), so the panel and the list
@@ -429,28 +434,11 @@ class AuditDashboardService {
       console.warn('[AuditDashboardService] Database risk trend query note:', e.message);
     }
 
-    if (activityTrend.length === 0) {
-      activityTrend = [
-        { date: '2026-03-20', count: 14, inserts: 4, updates: 8, deletes: 2 },
-        { date: '2026-03-21', count: 22, inserts: 6, updates: 12, deletes: 4 },
-        { date: '2026-03-22', count: 18, inserts: 5, updates: 10, deletes: 3 },
-        { date: '2026-03-23', count: 31, inserts: 9, updates: 17, deletes: 5 },
-        { date: '2026-03-24', count: 27, inserts: 8, updates: 15, deletes: 4 },
-        { date: '2026-03-25', count: 35, inserts: 11, updates: 19, deletes: 5 },
-        { date: '2026-03-26', count: 42, inserts: 14, updates: 23, deletes: 5 }
-      ];
-    }
+    // No synthetic trend: an empty series renders as "no activity", which is true,
+    // whereas the previous seven fabricated days were indistinguishable from real ones.
 
     // Top At-Risk Business Objects
-    const businessObjects = Array.isArray(statsData.businessObjects) && statsData.businessObjects.length > 0
-      ? statsData.businessObjects
-      : [
-          { businessObject: 'User Role Membership', eventCount: 84, activityLevel: 'High' },
-          { businessObject: 'Data Security Policy', eventCount: 46, activityLevel: 'Medium' },
-          { businessObject: 'Privilege Grants', eventCount: 32, activityLevel: 'Medium' },
-          { businessObject: 'Audit Configuration', eventCount: 19, activityLevel: 'Low' },
-          { businessObject: 'Enterprise Role Hierarchy', eventCount: 12, activityLevel: 'Low' }
-        ];
+    const businessObjects = Array.isArray(statsData.businessObjects) ? statsData.businessObjects : [];
 
     // High Risk Identities
     const highRiskIdentities = Array.isArray(statsData.highRiskIdentities)
@@ -1035,13 +1023,16 @@ class AuditDashboardService {
     const savedRequests = commandCenterService.getSavedRequests();
     const history = commandCenterService.getHistory();
 
-    const totalUsers = Math.max(adminUsers.length, rawMetrics.totalUsers || 7915);
-    const activeUsers = adminUsers.filter(u => u.status === 'ACTIVE').length || (rawMetrics.activeUsers || 7731);
+    // Live figures only; no invented minimums. Note the `|| rawMetrics...` chains
+    // are retained because a zero-length admin list legitimately means "fall back
+    // to the directory metrics", but the fabricated tail values are gone.
+    const totalUsers = Math.max(adminUsers.length, rawMetrics.totalUsers ?? 0);
+    const activeUsers = adminUsers.filter(u => u.status === 'ACTIVE').length || (rawMetrics.activeUsers ?? 0);
     const suspendedUsers = adminUsers.filter(u => u.status === 'SUSPENDED').length;
     const disabledUsers = adminUsers.filter(u => u.status === 'DISABLED').length;
-    const inactiveUsers = adminUsers.filter(u => u.status !== 'ACTIVE').length || (rawMetrics.inactiveUsers || 184);
-    const siteAdminsCount = adminUsers.filter(u => u.isAdmin || u.role === 'SITE_ADMIN').length || 1;
-    const usersWithoutRolesCount = rawMetrics.usersWithoutRolesCount || 24;
+    const inactiveUsers = adminUsers.filter(u => u.status !== 'ACTIVE').length || (rawMetrics.inactiveUsers ?? 0);
+    const siteAdminsCount = adminUsers.filter(u => u.isAdmin || u.role === 'SITE_ADMIN').length;
+    const usersWithoutRolesCount = rawMetrics.usersWithoutRolesCount ?? 0;
 
     const userScope: UserScopeInfo = {
       userId: user.userId || 'usr_admin',
