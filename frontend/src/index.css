@@ -1153,17 +1153,6 @@ details div.glass-panel div {
   max-width: 100%;
 }
 
-.users-roles-detail-panel {
-  width: 420px;
-  max-width: 100%;
-  flex-shrink: 0;
-  height: fit-content;
-  position: sticky;
-  top: 1.5rem;
-  align-self: flex-start;
-  box-sizing: border-box;
-}
-
 /* Responsive Filter & Pagination Toolbars */
 .filter-bar-responsive {
   display: flex;
@@ -1297,12 +1286,6 @@ details div.glass-panel div {
   .users-roles-layout-container {
     flex-direction: column;
     gap: 1.5rem;
-  }
-
-  .users-roles-detail-panel {
-    width: 100% !important;
-    max-width: 100% !important;
-    position: static !important;
   }
 }
 
