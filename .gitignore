@@ -42,6 +42,9 @@ Thumbs.db
 # Vite temporary files
 *.timestamp-*.mjs
 
+# Scratch and temporary scripts
+scratch/
+
 # Python Virtual Environments & Bytecode
 .venv/
 */.venv/

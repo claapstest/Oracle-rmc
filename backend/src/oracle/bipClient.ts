@@ -140,6 +140,23 @@ export interface BipRolesReportResult {
   error?: string;
 }
 
+export interface UserDetailsBipRow {
+  userId?: string | number | null;
+  username: string;
+  active: boolean;
+  personNumber: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  email: string | null;
+  department: string | null;
+  job: string | null;
+  businessUnit: string | null;
+  location: string | null;
+  manager: string | null;
+  roleCount?: number;
+}
+
 export class BipClient {
   private axiosInstance: AxiosInstance;
   public reportPath = '/Custom/Claaps Access Certification Review Report.xdo';
@@ -202,6 +219,21 @@ export class BipClient {
   ].filter(Boolean) as string[];
   private allModuleRolesResolvedPath: string | null = null;
   private allModuleRolesResolvedAt = 0;
+
+  /**
+   * Priority candidates for the User Details report.
+   */
+  public readonly userDetailsReportPaths = [
+    process.env.BIP_USER_DETAILS_REPORT_PATH,
+    '/Custom/userdetails report.xdo',
+    '/shared/Custom/userdetails report.xdo',
+    '/Custom/userdetails report',
+    '/shared/Custom/userdetails report',
+    '/Custom/User Details Report.xdo',
+    '/shared/Custom/User Details Report.xdo'
+  ].filter(Boolean) as string[];
+  private userDetailsResolvedPath: string | null = null;
+  private userDetailsResolvedAt = 0;
   private readonly defaultTimeoutMs = 60000; // 60 seconds for BI Publisher report generation
 
   constructor() {
@@ -952,6 +984,181 @@ export class BipClient {
       // Invalidate cached path so next call re-discovers (report may have been moved/deleted)
       this.autoProvResolvedPath = null;
       this.autoProvResolvedAt = 0;
+      return [];
+    }
+  }
+
+  /**
+   * Resolves and executes the User Details BIP report (/Custom/userdetails report.xdo).
+   * Returns deduplicated UserDetailsBipRow[] rows.
+   */
+  public async runUserDetailsReport(): Promise<UserDetailsBipRow[]> {
+    if (!this.isConfigured()) {
+      console.warn('[BIP Client] User Details report skipped: Oracle instance link not configured.');
+      return [];
+    }
+    const reportPath = await this.findUserDetailsReportPath();
+    if (!reportPath) {
+      console.warn('[BIP Client] User Details report path could not be resolved.');
+      return [];
+    }
+    const { baseUrl } = this.getCredentials();
+    const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
+    try {
+      console.log(`[BIP Client] Executing User Details BIP report: "${reportPath}"`);
+      const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
+      const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
+        headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
+        responseType: 'text',
+      });
+      const rows = await this.parseUserDetailsSoapResponse(response.data);
+      if (rows.length > 0) {
+        console.log(`[BIP Client] User Details report "${reportPath}" returned ${rows.length} unique users.`);
+        return rows;
+      }
+      console.warn(`[BIP Client] User Details report "${reportPath}" returned 0 data rows.`);
+      return [];
+    } catch (err: any) {
+      console.warn(`[BIP Client] User Details report "${reportPath}" failed:`, err.message);
+      this.userDetailsResolvedPath = null;
+      this.userDetailsResolvedAt = 0;
+      return [];
+    }
+  }
+
+  public async findUserDetailsReportPath(): Promise<string | null> {
+    const now = Date.now();
+    if (this.userDetailsResolvedPath && now - this.userDetailsResolvedAt < 60 * 60 * 1000) {
+      return this.userDetailsResolvedPath;
+    }
+    for (const candidate of this.userDetailsReportPaths) {
+      try {
+        if (await this.isReportExist(candidate)) {
+          this.userDetailsResolvedPath = candidate;
+          this.userDetailsResolvedAt = now;
+          console.log(`[BIP Client] Resolved User Details report: "${candidate}"`);
+          return candidate;
+        }
+      } catch { /* try next */ }
+    }
+    return null;
+  }
+
+  public async parseUserDetailsSoapResponse(xmlContent: string): Promise<UserDetailsBipRow[]> {
+    if (!xmlContent || typeof xmlContent !== 'string') return [];
+    let parsedXml: any;
+    try {
+      parsedXml = await xml2js.parseStringPromise(xmlContent, {
+        explicitArray: false, ignoreAttrs: true, tagNameProcessors: [xml2js.processors.stripPrefix],
+      });
+    } catch {
+      return [];
+    }
+    const fault = this.extractSoapFaultFromParsed(parsedXml);
+    if (fault) {
+      console.warn('[BIP Client] User Details SOAP Fault:', fault);
+      return [];
+    }
+    const rawReportBytes = this.findFieldRecursively(parsedXml, 'reportBytes');
+    if (!rawReportBytes || typeof rawReportBytes !== 'string') return [];
+    return this.parseUserDetailsXlsxBase64(rawReportBytes);
+  }
+
+  public parseUserDetailsXlsxBase64(base64Data: string): UserDetailsBipRow[] {
+    try {
+      const buffer = Buffer.from(base64Data.replace(/[\s\r\n]+/g, ''), 'base64');
+      if (buffer.length === 0) return [];
+      const workbook = xlsx.read(buffer, { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!sheet) return [];
+      const rawRows = xlsx.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null, blankrows: false });
+      if (!rawRows || rawRows.length < 2) return [];
+
+      // Find header row containing USERNAME / USER_ID
+      let headerIdx = -1;
+      for (let r = 0; r < Math.min(10, rawRows.length); r++) {
+        const row = (rawRows[r] as any[]).map(c => String(c || '').trim().toUpperCase());
+        if (row.includes('USERNAME') || (row.includes('USER_ID') && row.includes('ACTIVE_FLAG'))) {
+          headerIdx = r;
+          break;
+        }
+      }
+      if (headerIdx === -1) {
+        console.warn('[BIP Client] User Details header row not found.');
+        return [];
+      }
+
+      const headers = (rawRows[headerIdx] as any[]).map(h => String(h || '').trim().toUpperCase());
+      const idxUserId = headers.indexOf('USER_ID');
+      const idxUsername = headers.indexOf('USERNAME');
+      const idxActive = headers.indexOf('ACTIVE_FLAG');
+      const idxPersonNum = headers.indexOf('PERSON_NUMBER');
+      const idxFirstName = headers.indexOf('FIRST_NAME');
+      const idxLastName = headers.indexOf('LAST_NAME');
+      const idxFullName = headers.indexOf('FULL_NAME');
+      const idxEmail = headers.indexOf('EMAIL_ADDRESS');
+      const idxDept = headers.indexOf('DEPARTMENT_NAME');
+      const idxJob = headers.indexOf('JOB_NAME');
+      const idxBu = headers.indexOf('BUSINESS_UNIT_NAME');
+      const idxLocation = headers.indexOf('LOCATION_NAME');
+      const idxManager = headers.indexOf('MANAGER_NAME');
+      const idxRoleCount = headers.indexOf('NUMBER_OF_ROLES');
+
+      const userMap = new Map<string, UserDetailsBipRow>();
+
+      for (let r = headerIdx + 1; r < rawRows.length; r++) {
+        const row = rawRows[r] as any[];
+        if (!row || row.length === 0) continue;
+        const username = idxUsername >= 0 ? String(row[idxUsername] || '').trim() : '';
+        if (!username) continue;
+
+        const activeStr = idxActive >= 0 ? String(row[idxActive] || '').trim().toUpperCase() : 'Y';
+        const isActive = activeStr === 'Y' || activeStr === 'TRUE';
+        const personNumber = idxPersonNum >= 0 && row[idxPersonNum] !== null ? String(row[idxPersonNum]).trim() : null;
+        const firstName = idxFirstName >= 0 && row[idxFirstName] !== null ? String(row[idxFirstName]).trim() : null;
+        const lastName = idxLastName >= 0 && row[idxLastName] !== null ? String(row[idxLastName]).trim() : null;
+        const fullName = idxFullName >= 0 && row[idxFullName] !== null ? String(row[idxFullName]).trim() : null;
+        const email = idxEmail >= 0 && row[idxEmail] !== null ? String(row[idxEmail]).trim() : null;
+        const department = idxDept >= 0 && row[idxDept] !== null ? String(row[idxDept]).trim() : null;
+        const job = idxJob >= 0 && row[idxJob] !== null ? String(row[idxJob]).trim() : null;
+        const businessUnit = idxBu >= 0 && row[idxBu] !== null ? String(row[idxBu]).trim() : null;
+        const location = idxLocation >= 0 && row[idxLocation] !== null ? String(row[idxLocation]).trim() : null;
+        const manager = idxManager >= 0 && row[idxManager] !== null ? String(row[idxManager]).trim() : null;
+        const rawRoleCount = idxRoleCount >= 0 && row[idxRoleCount] !== null ? parseInt(String(row[idxRoleCount]), 10) : 0;
+        const roleCount = isNaN(rawRoleCount) ? 0 : rawRoleCount;
+
+        const record: UserDetailsBipRow = {
+          userId: idxUserId >= 0 ? row[idxUserId] : null,
+          username,
+          active: isActive,
+          personNumber: personNumber && personNumber.toLowerCase() !== 'null' ? personNumber : null,
+          firstName,
+          lastName,
+          fullName: fullName || `${firstName || ''} ${lastName || ''}`.trim() || username,
+          email,
+          department: department && department.toLowerCase() !== 'null' ? department : null,
+          job: job && job.toLowerCase() !== 'null' ? job : null,
+          businessUnit: businessUnit && businessUnit.toLowerCase() !== 'null' ? businessUnit : null,
+          location: location && location.toLowerCase() !== 'null' ? location : null,
+          manager: manager && manager.toLowerCase() !== 'null' ? manager : null,
+          roleCount
+        };
+
+        const key = username.toUpperCase();
+        const existing = userMap.get(key);
+        // Deduplication rule: prefer active record and more populated worker details
+        if (!existing) {
+          userMap.set(key, record);
+        } else if (!existing.active && record.active) {
+          userMap.set(key, record);
+        } else if (existing.active === record.active && (!existing.department || !existing.job) && (record.department || record.job)) {
+          userMap.set(key, record);
+        }
+      }
+
+      return Array.from(userMap.values());
+    } catch (err: any) {
+      console.warn('[BIP Client] Failed to parse User Details Excel:', err.message);
       return [];
     }
   }
