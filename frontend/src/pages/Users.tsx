@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
+import { Search, UserCheck, ShieldAlert, ArrowRight, User as UserIcon, X, Mail, Shield, Sparkles, ChevronLeft, ChevronRight, KeyRound, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { TableLoadingState } from '../components/TableLoadingState';
@@ -37,6 +37,7 @@ export default function Users({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalResults, setTotalResults] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
   const [directoryTotal, setDirectoryTotal] = useState(0);
   const [activeCount, setActiveCount] = useState<number | null>(null);
   const [inactiveCount, setInactiveCount] = useState<number | null>(null);
@@ -120,12 +121,7 @@ export default function Users({
   }, [onRegisterBack]);
 
   useEffect(() => {
-    const norm = (initialFilter || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
-    if (norm === 'UNASSIGNED' || norm.includes('ROLES_WITHOUT_USERS')) {
-      setActiveCategoryFilter('ALL');
-    } else {
-      setActiveCategoryFilter(initialFilter);
-    }
+    setActiveCategoryFilter(initialFilter);
     setStatusFilter('ALL');
     setSearchTerm('');
     setDrawerRoleSearch('');
@@ -166,16 +162,15 @@ export default function Users({
           startIndex,
           pageSize,
           activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
-          statusFilter !== 'ALL' ? statusFilter : undefined,
-          'database'
+          statusFilter !== 'ALL' ? statusFilter : undefined
         );
         if (!isCancelled && res?.users) {
           setUsers(res.users);
           setTotalResults(res.totalResults !== undefined ? res.totalResults : res.users.length);
-          if (res.directoryTotal !== undefined) setDirectoryTotal(res.directoryTotal);
+          if (res.directoryTotal) setDirectoryTotal(res.directoryTotal);
           if (res.activeCount !== undefined) setActiveCount(res.activeCount);
           if (res.inactiveCount !== undefined) setInactiveCount(res.inactiveCount);
-          setDataSource(res.dataSource || 'Live Oracle Fusion API');
+          setDataSource(res.dataSource || 'Oracle Fusion SCIM API');
         }
       } catch (err) {
         if (!isCancelled) {
@@ -194,7 +189,7 @@ export default function Users({
       isCancelled = true;
       clearTimeout(delayDebounceFn);
     };
-  }, [searchTerm, currentPage, pageSize, activeCategoryFilter, statusFilter]);
+  }, [searchTerm, currentPage, pageSize, activeCategoryFilter, statusFilter, reloadToken]);
 
   // Client-side filtering on current page items for status/insight tags if applicable
   const filteredUsers = useMemo(() => {
@@ -350,18 +345,7 @@ export default function Users({
           setCurrentPage(1);
         }}
         className="form-select"
-        style={{
-          width: '78px',
-          minWidth: '78px',
-          height: '28px',
-          padding: '0.15rem 1.6rem 0.15rem 0.6rem',
-          fontSize: '0.8rem',
-          lineHeight: 1.2,
-          backgroundPosition: 'right 0.45rem center',
-          backgroundSize: '0.75rem',
-          borderRadius: '6px',
-          cursor: 'pointer'
-        }}
+        style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
       >
         <option value={25}>25</option>
         <option value={50}>50</option>
@@ -413,7 +397,7 @@ export default function Users({
               Identity & Access Management
             </h1>
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <span>Verify user statuses and trace role entitlements across the identity catalog.</span>
+              <span>Verify user statuses and trace role entitlements inside the {dataSource || 'Oracle Fusion'} catalog.</span>
               {activeCategoryFilter && activeCategoryFilter !== 'ALL' && (
                 <span style={{
                   display: 'inline-flex',
@@ -495,7 +479,7 @@ export default function Users({
               type="text"
               className="form-input"
               style={{ paddingLeft: '2.5rem' }}
-              placeholder="Search by username..."
+              placeholder="Search by username or display name..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -526,6 +510,18 @@ export default function Users({
             <option value="INACTIVE">Inactive Users {inactiveCount !== null ? `(${inactiveCount.toLocaleString()})` : ''}</option>
           </select>
 
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setReloadToken(token => token + 1)}
+            disabled={loading}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+            title="Refresh user list from Oracle Fusion"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+
           {/* Enterprise Export Control */}
           <EnterpriseExportControl
             filename={statusFilter === 'INACTIVE' ? 'inactive_users_directory' : statusFilter === 'ACTIVE' ? 'active_users_directory' : 'users_directory'}
@@ -543,6 +539,7 @@ export default function Users({
               { key: 'userCategory', label: 'User Category', defaultSelected: true, getValue: (u: any) => u.userCategory || '' },
               { key: 'firstName', label: 'First Name', defaultSelected: true, getValue: (u: any) => u.firstName || '' },
               { key: 'lastName', label: 'Last Name', defaultSelected: true, getValue: (u: any) => u.lastName || '' },
+              { key: 'displayName', label: 'Display Name', defaultSelected: false },
               { key: 'email', label: 'Email Address', defaultSelected: true, getValue: (u: any) => u.email || 'N/A' },
               { key: 'status', label: 'Active', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
               { key: 'roleCount', label: 'Number of Roles', defaultSelected: true, getValue: (u: any) => Array.isArray(u.assignedRoles) ? u.assignedRoles.length : (typeof u.roleCount === 'number' ? u.roleCount : 0) },
@@ -564,8 +561,7 @@ export default function Users({
                 1,
                 countToFetch,
                 scope === 'FILTERED' && activeCategoryFilter !== 'ALL' ? activeCategoryFilter : undefined,
-                scope === 'FILTERED' && statusFilter !== 'ALL' ? statusFilter : undefined,
-                'database'
+                scope === 'FILTERED' && statusFilter !== 'ALL' ? statusFilter : undefined
               );
               return res?.users || [];
             }}

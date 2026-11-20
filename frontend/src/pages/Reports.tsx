@@ -28,15 +28,14 @@ import {
   Eye,
   X,
   User,
+  Users,
   Sliders,
   RotateCcw,
   ChevronDown,
   ChevronUp,
   FolderTree,
   Key,
-  ExternalLink,
-  Columns,
-  AlignLeft
+  ExternalLink
 } from 'lucide-react';
 import { api } from '../services/api';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
@@ -44,14 +43,6 @@ import { ReportSelectorDropdown } from '../components/ReportSelectorDropdown';
 import ReportsList from '../components/ReportsList';
 import { TableLoadingState, ContentLoadingState } from '../components/TableLoadingState';
 import { formatControlTypeName, isAccessControl, isTransactionControl } from '../utils/controlTypeMapping';
-import { DomainIncidentStatusCard, type LifecycleStatusKey } from '../components/DomainIncidentStatusCard';
-import {
-  ACCESS_INCIDENT_COLUMNS,
-  TRANSACTION_INCIDENT_COLUMNS,
-  getIncidentAttr,
-  renderSharedIncidentCell,
-  type IncidentColumnDef,
-} from '../utils/incidentSchema';
 
 interface ReportsProps {
   environmentMode?: string;
@@ -69,6 +60,7 @@ type ReportId =
   | 'INCIDENTS_DETAILED'
   | 'USER_ROLE_MAPPING' 
   | 'ROLE_HIERARCHY' 
+  | 'USER_ACCESS'
   | 'AUDIT_HISTORY';
 
 interface ReportMeta {
@@ -114,6 +106,14 @@ const REPORT_DEFINITIONS: ReportMeta[] = [
     icon: GitFork
   },
   {
+    id: 'USER_ACCESS',
+    section: 'SECURITY',
+    title: 'User Detail Report',
+    subtitle: 'Complete Fusion user access, role and organizational information.',
+    badge: 'Security',
+    icon: Users
+  },
+  {
     id: 'AUDIT_HISTORY',
     section: 'AUDIT',
     title: 'Audit History',
@@ -147,6 +147,7 @@ const REPORT_SELECTOR_NAMES: Record<ReportId, string> = {
   INCIDENTS_DETAILED: 'Incidents Detailed',
   USER_ROLE_MAPPING: 'User Role Mapping Report',
   ROLE_HIERARCHY: 'Role Hierarchy Report',
+  USER_ACCESS: 'User Detail Report',
   AUDIT_HISTORY: 'Audit History Report'
 };
 
@@ -278,6 +279,7 @@ export default function Reports({
   const [selectedIncidentsControlId, setSelectedIncidentsControlId] = useState<string>('ALL');
   const [availableIncidentControls, setAvailableIncidentControls] = useState<any[]>([]);
   const [incidentsStatusFilter, setIncidentsStatusFilter] = useState<string>('ALL');
+  const [incidentsStateFilter, setIncidentsStateFilter] = useState<string>('ALL');
   const [incidentsSyncState, setIncidentsSyncState] = useState<{
     cacheStatus?: 'NOT_CACHED' | 'SYNCING' | 'READY' | 'PARTIAL' | 'ERROR';
     fetchedCount?: number;
@@ -297,62 +299,9 @@ export default function Reports({
   // Server-side paging state for the ALL-controls incidents view (60K+ rows
   // stay in Postgres; the UI only ever holds one page).
   const [incidentsServerTotal, setIncidentsServerTotal] = useState<number>(0);
-  // Unfiltered domain total, kept separate from the filtered total so the export
-  // dialog can show a truthful "All Results" count instead of the loaded page size.
-  const [incidentsServerGrandTotal, setIncidentsServerGrandTotal] = useState<number>(0);
   const incidentsPageReloadGuard = useRef(false);
-  const incidentsPagingMountedRef = useRef(false);
-  const prevIncidentsSearchRef = useRef(incidentsSearch);
   const [selectedIncidentDetail, setSelectedIncidentDetail] = useState<any | null>(null);
   const incidentsPollingRef = useRef<any>(null);
-  const [incidentsDomain, setIncidentsDomain] = useState<'ACCESS' | 'TRANSACTION'>('ACCESS');
-  const [incidentsDomainKpis, setIncidentsDomainKpis] = useState<{
-    access: { total: number; assigned: number; accepted: number; remediate: number; resolved: number };
-    transaction: { total: number; assigned: number; accepted: number; remediate: number; resolved: number };
-  }>({
-    access: { total: 0, assigned: 0, accepted: 0, remediate: 0, resolved: 0 },
-    transaction: { total: 0, assigned: 0, accepted: 0, remediate: 0, resolved: 0 },
-  });
-  const currentIncidentColumns: IncidentColumnDef[] = useMemo(
-    () => (incidentsDomain === 'TRANSACTION' ? TRANSACTION_INCIDENT_COLUMNS : ACCESS_INCIDENT_COLUMNS),
-    [incidentsDomain]
-  );
-  const [visibleIncidentKeys, setVisibleIncidentKeys] = useState<Set<string>>(
-    () => new Set(ACCESS_INCIDENT_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
-  );
-  const [isIncidentColumnsOpen, setIsIncidentColumnsOpen] = useState<boolean>(false);
-  const incidentColumnsRef = useRef<HTMLDivElement>(null);
-  const [incidentWrapText, setIncidentWrapText] = useState<boolean>(true);
-
-  useEffect(() => {
-    const targetCols = incidentsDomain === 'TRANSACTION' ? TRANSACTION_INCIDENT_COLUMNS : ACCESS_INCIDENT_COLUMNS;
-    setVisibleIncidentKeys(new Set(targetCols.filter(c => c.defaultVisible).map(c => c.key)));
-  }, [incidentsDomain]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (incidentColumnsRef.current && !incidentColumnsRef.current.contains(e.target as Node)) {
-        setIsIncidentColumnsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const toggleIncidentColumn = (key: string) => {
-    setVisibleIncidentKeys(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        if (next.size > 1) next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
-  const selectAllIncidentColumns = () => setVisibleIncidentKeys(new Set(currentIncidentColumns.map(c => c.key)));
-  const clearAllIncidentColumns = () => setVisibleIncidentKeys(new Set(['resultId']));
-  const resetIncidentColumns = () => setVisibleIncidentKeys(new Set(currentIncidentColumns.filter(c => c.defaultVisible).map(c => c.key)));
 
   // -------------------------------------------------------------
   // 3. USER ROLE MAPPING REPORT STATE
@@ -399,6 +348,29 @@ export default function Reports({
   const [auditLoading, setAuditLoading] = useState<boolean>(false);
   const [auditError, setAuditError] = useState<string>('');
   const [auditDateWarning, setAuditDateWarning] = useState<string>('');
+
+  // -------------------------------------------------------------
+  // 6. USER DETAIL REPORT STATE
+  // -------------------------------------------------------------
+  const [userAccessData, setUserAccessData] = useState<any[]>([]);
+  const [userAccessSummary, setUserAccessSummary] = useState<{
+    totalUsers: number;
+    usersWithRoles: number;
+    usersWithoutRoles: number;
+    totalRoleAssignments: number;
+    activeUsers: number;
+    inactiveUsers: number;
+  } | null>(null);
+  const [userAccessLoading, setUserAccessLoading] = useState<boolean>(false);
+  const [userAccessError, setUserAccessError] = useState<string>('');
+  const [userAccessSearch, setUserAccessSearch] = useState<string>('');
+  const [userAccessStatusFilter, setUserAccessStatusFilter] = useState<string>('ALL');
+  const [userAccessBuFilter, setUserAccessBuFilter] = useState<string>('ALL');
+  const [userAccessDeptFilter, setUserAccessDeptFilter] = useState<string>('ALL');
+  const [userAccessManagerFilter, setUserAccessManagerFilter] = useState<string>('ALL');
+  const [userAccessRoleFilter, setUserAccessRoleFilter] = useState<string>('ALL');
+  // KPI card drill-down filter for the User Detail table (ALL = no KPI filtering)
+  const [userAccessKpiFilter, setUserAccessKpiFilter] = useState<'ALL' | 'WITH_ROLES' | 'WITHOUT_ROLES' | 'ASSIGNMENTS' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   // Cleanup polling intervals on unmount
   useEffect(() => {
@@ -508,8 +480,7 @@ export default function Reports({
     limitOverride?: number,
     searchOverride?: string,
     statusOverride?: string,
-    stateOverride?: string,
-    domainOverride?: 'ACCESS' | 'TRANSACTION'
+    stateOverride?: string
   ) => {
     setIncidentsLoading(true);
     setIncidentsError('');
@@ -517,10 +488,9 @@ export default function Reports({
       const serverMode = (controlId || '') === 'ALL';
       const effSearch = searchOverride !== undefined ? searchOverride : incidentsSearch;
       const effStatus = statusOverride !== undefined ? statusOverride : incidentsStatusFilter;
-      const effState = stateOverride !== undefined ? stateOverride : 'ALL';
+      const effState = stateOverride !== undefined ? stateOverride : incidentsStateFilter;
       const effPage = pageOverride ?? currentPage;
       const effLimit = limitOverride ?? pageSize;
-      const effDomain = domainOverride ?? incidentsDomain;
 
       const res = await api.getRiskIncidents({
         controlId,
@@ -529,8 +499,7 @@ export default function Reports({
         limit: serverMode ? effLimit : undefined,
         search: serverMode ? effSearch : undefined,
         status: serverMode ? effStatus : undefined,
-        state: serverMode ? effState : undefined,
-        domain: effDomain
+        state: serverMode ? effState : undefined
       });
       if (res && res.success) {
         setIncidentsData(res.items || []);
@@ -542,29 +511,8 @@ export default function Reports({
         if (serverMode && typeof (res.filteredCount ?? res.totalCount) === 'number') {
           setIncidentsServerTotal(res.filteredCount ?? res.totalCount);
         }
-        if (serverMode && typeof res.totalCount === 'number') {
-          setIncidentsServerGrandTotal(res.totalCount);
-        }
         if (Array.isArray(res.availableControls)) {
           setAvailableIncidentControls(res.availableControls);
-        }
-        if (res.domainKpis) {
-          setIncidentsDomainKpis({
-            access: {
-              total: res.domainKpis.access?.total || 0,
-              assigned: res.domainKpis.access?.assigned || 0,
-              accepted: res.domainKpis.access?.accepted || 0,
-              remediate: res.domainKpis.access?.inRemediation ?? res.domainKpis.access?.remediate ?? 0,
-              resolved: res.domainKpis.access?.closedOrResolved ?? res.domainKpis.access?.resolved ?? 0,
-            },
-            transaction: {
-              total: res.domainKpis.transaction?.total || 0,
-              assigned: res.domainKpis.transaction?.assigned || 0,
-              accepted: res.domainKpis.transaction?.accepted || 0,
-              remediate: res.domainKpis.transaction?.inRemediation ?? res.domainKpis.transaction?.remediate ?? 0,
-              resolved: res.domainKpis.transaction?.closedOrResolved ?? res.domainKpis.transaction?.resolved ?? 0,
-            }
-          });
         }
         if (res.kpis) {
           const raw = res.kpis;
@@ -634,67 +582,14 @@ export default function Reports({
     }
   };
 
-  // Bulk export reader for the ALL-controls incidents view.
-  // The table only ever holds one server page, so an export of the filtered or
-  // full result set has to page the backend until every row is collected.
-  const EXPORT_CHUNK_SIZE = 5000;
-  const EXPORT_MAX_ROWS = 250000; // hard stop so a runaway count cannot hang the tab
-
-  const fetchAllIncidentsForExport = async (scope: 'FILTERED' | 'ALL'): Promise<any[]> => {
-    const applyFilters = scope === 'FILTERED';
-    const expected = applyFilters ? incidentsServerTotal : incidentsServerGrandTotal;
-    const collected: any[] = [];
-    const seenIds = new Set<string>();
-    let page = 1;
-
-    while (collected.length < EXPORT_MAX_ROWS) {
-      const res = await api.getRiskIncidents({
-        controlId: 'ALL',
-        page,
-        limit: EXPORT_CHUNK_SIZE,
-        search: applyFilters ? incidentsSearch : undefined,
-        status: applyFilters ? incidentsStatusFilter : 'ALL',
-        state: 'ALL',
-        domain: incidentsDomain
-      });
-
-      if (!res || res.success === false) {
-        throw new Error(res?.message || res?.error || 'Unable to read incidents for export.');
-      }
-
-      const batch: any[] = Array.isArray(res.items) ? res.items : [];
-      if (batch.length === 0) break;
-
-      for (const row of batch) {
-        // Guard against a duplicated page if the dataset shifts mid-export.
-        const key = `${row?.controlId ?? ''}::${row?.id ?? ''}`;
-        if (row?.id !== undefined && seenIds.has(key)) continue;
-        if (row?.id !== undefined) seenIds.add(key);
-        collected.push(row);
-      }
-
-      const reportedTotal = typeof res.filteredCount === 'number' ? res.filteredCount : expected;
-      if (batch.length < EXPORT_CHUNK_SIZE) break;
-      if (reportedTotal > 0 && collected.length >= reportedTotal) break;
-      page += 1;
-    }
-
-    if (expected > 0 && collected.length < expected) {
-      console.warn(
-        `[Reports] Incident export collected ${collected.length} of ${expected} expected rows.`
-      );
-    }
-    return collected;
-  };
-
   // Loader 3: User Role Mappings
   const loadUserRoleMappings = async () => {
     setUserRoleLoading(true);
     setUserRoleError('');
     try {
-      // Load both users and role hierarchy report from PostgreSQL in parallel
+      // Load both users and role hierarchy report in parallel to build authoritative privileges lookup
       const [res, hierRes] = await Promise.all([
-        api.getUsers(undefined, 1, 10000, undefined, undefined, 'database'),
+        api.getUsers(undefined, 1, 1000),
         hierarchyData && hierarchyData.length > 0
           ? Promise.resolve({ items: hierarchyData })
           : api.getRoleHierarchyReport().catch(() => ({ items: [] }))
@@ -1232,8 +1127,7 @@ export default function Reports({
         username: auditUserQuery,
         action: auditActionFilter,
         pageNumber: 1,
-        pageSize: 5000,
-        source: 'database'
+        pageSize: 5000
       });
       const logsList = Array.isArray(res?.logs) ? res.logs : (Array.isArray(res?.items) ? res.items : []);
       setAuditLogs(logsList);
@@ -1245,54 +1139,61 @@ export default function Reports({
     }
   };
 
+  // Loader 6: User Detail Report
+  const loadUserAccessReport = async (forceRefresh = false) => {
+    setUserAccessLoading(true);
+    setUserAccessError('');
+    try {
+      const res = await api.getUserAccessReport({ refresh: forceRefresh });
+      if (res?.data) {
+        setUserAccessData(res.data);
+        if (res.summary) {
+          setUserAccessSummary(res.summary);
+        }
+      } else if (res?.error) {
+        setUserAccessError(res.error);
+      }
+    } catch (err: any) {
+      console.error('Failed to load user access report:', err);
+      setUserAccessError(err.message || 'Unable to retrieve user detail report from Oracle Fusion.');
+    } finally {
+      setUserAccessLoading(false);
+    }
+  };
+
   // Initial load when report changes
   useEffect(() => {
     if (activeReportId === 'CONTROL_SUMMARY' && controlsData.length === 0 && !controlsLoading) {
       loadControlsSummary();
     } else if (activeReportId === 'INCIDENTS_DETAILED' && incidentsData.length === 0 && !incidentsLoading) {
-      loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
+      loadRiskIncidents(selectedIncidentsControlId);
     } else if (activeReportId === 'USER_ROLE_MAPPING' && userRoleData.length === 0 && !userRoleLoading) {
       loadUserRoleMappings();
     } else if (activeReportId === 'ROLE_HIERARCHY' && hierarchyData.length === 0 && !hierarchyLoading) {
       loadRoleHierarchy();
     } else if (activeReportId === 'AUDIT_HISTORY' && auditLogs.length === 0 && !auditLoading) {
       loadAuditHistory();
+    } else if (activeReportId === 'USER_ACCESS' && userAccessData.length === 0 && !userAccessLoading) {
+      loadUserAccessReport();
     }
   }, [activeReportId]);
 
-  const switchIncidentsDomain = (nextDomain: 'ACCESS' | 'TRANSACTION', initialStatus = 'ALL') => {
-    setIncidentsDomain(nextDomain);
-    setSelectedIncidentsControlId('ALL');
-    setIncidentsStatusFilter(initialStatus);
-    if (currentPage !== 1) {
-      incidentsPageReloadGuard.current = true;
-      setCurrentPage(1);
-    }
-    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, initialStatus, 'ALL', nextDomain);
-  };
-
   // Server-mode incidents paging: shared pager drives backend page fetches.
   useEffect(() => {
-    if (!incidentsPagingMountedRef.current) {
-      incidentsPagingMountedRef.current = true;
-      return;
-    }
     if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
     if (incidentsPageReloadGuard.current) {
       incidentsPageReloadGuard.current = false;
       return;
     }
-    loadRiskIncidents('ALL', false, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
+    loadRiskIncidents('ALL', false, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize]);
 
   // Server-mode incidents search (debounced): reset to page 1 and refetch.
   useEffect(() => {
-    if (prevIncidentsSearchRef.current === incidentsSearch) return;
-    prevIncidentsSearchRef.current = incidentsSearch;
     if (activeReportId !== 'INCIDENTS_DETAILED' || selectedIncidentsControlId !== 'ALL') return;
     const t = setTimeout(() => {
-      loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
+      loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, incidentsStateFilter);
     }, 450);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1345,6 +1246,7 @@ export default function Reports({
         (ctrl.controlId && String(ctrl.controlId).toLowerCase().includes(q)) ||
         (ctrl.controlName && ctrl.controlName.toLowerCase().includes(q)) ||
         (ctrl.description && ctrl.description.toLowerCase().includes(q)) ||
+        (ctrl.scheduledBy && ctrl.scheduledBy.toLowerCase().includes(q)) ||
         (ctrl.controlTypeCode && String(ctrl.controlTypeCode).includes(q));
 
       const matchesStatus = controlsStatusFilter === 'ALL' ||
@@ -1376,17 +1278,14 @@ export default function Reports({
         (item.userFirstName && item.userFirstName.toLowerCase().includes(q)) ||
         (item.userLastName && item.userLastName.toLowerCase().includes(q)) ||
         (item.role && item.role.toLowerCase().includes(q)) ||
-        (item.groupingValue && String(item.groupingValue).toLowerCase().includes(q)) ||
-        (item.group && String(item.group).toLowerCase().includes(q)) ||
-        (item.resultGroup && String(item.resultGroup).toLowerCase().includes(q)) ||
-        (item.investigator && String(item.investigator).toLowerCase().includes(q)) ||
         (item.incidentInformation && item.incidentInformation.toLowerCase().includes(q));
 
       const matchesStatus = matchesIncidentLifecycleStatus(item, incidentsStatusFilter);
+      const matchesState = matchesIncidentLifecycleState(item, incidentsStateFilter);
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesState;
     });
-  }, [incidentsData, incidentsSearch, incidentsStatusFilter]);
+  }, [incidentsData, incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
 
   // 3. User Role Mappings Filtered
   const filteredUserRoleData = useMemo(() => {
@@ -1448,6 +1347,58 @@ export default function Reports({
     return auditLogs;
   }, [auditLogs]);
 
+  // 6. User Access Filtered
+  const filteredUserAccessData = useMemo(() => {
+    return userAccessData.filter(row => {
+      // KPI card drill-down (AND-ed with the dropdown filters below)
+      if (userAccessKpiFilter === 'WITH_ROLES' || userAccessKpiFilter === 'ASSIGNMENTS') {
+        if (!row.roleName && !row.roleCode) return false;
+      } else if (userAccessKpiFilter === 'WITHOUT_ROLES') {
+        if (row.roleName || row.roleCode) return false;
+      } else if (userAccessKpiFilter === 'ACTIVE') {
+        if (!row.active) return false;
+      } else if (userAccessKpiFilter === 'INACTIVE') {
+        if (row.active) return false;
+      }
+      if (userAccessSearch) {
+        const term = userAccessSearch.toLowerCase().trim();
+        const match =
+          (row.username && String(row.username).toLowerCase().includes(term)) ||
+          (row.displayName && String(row.displayName).toLowerCase().includes(term)) ||
+          (row.firstName && String(row.firstName).toLowerCase().includes(term)) ||
+          (row.lastName && String(row.lastName).toLowerCase().includes(term)) ||
+          (row.email && String(row.email).toLowerCase().includes(term)) ||
+          (row.roleName && String(row.roleName).toLowerCase().includes(term)) ||
+          (row.roleCode && String(row.roleCode).toLowerCase().includes(term)) ||
+          (row.autoProvisioned && String(row.autoProvisioned).toLowerCase().includes(term)) ||
+          (row.department && String(row.department).toLowerCase().includes(term)) ||
+          (row.job && String(row.job).toLowerCase().includes(term)) ||
+          (row.businessUnit && String(row.businessUnit).toLowerCase().includes(term)) ||
+          (row.location && String(row.location).toLowerCase().includes(term)) ||
+          (row.manager && String(row.manager).toLowerCase().includes(term)) ||
+          (row.personNumber && String(row.personNumber).toLowerCase().includes(term));
+        if (!match) return false;
+      }
+      if (userAccessStatusFilter !== 'ALL') {
+        if (userAccessStatusFilter === 'ACTIVE' && !row.active) return false;
+        if (userAccessStatusFilter === 'INACTIVE' && row.active) return false;
+      }
+      if (userAccessBuFilter !== 'ALL' && row.businessUnit !== userAccessBuFilter) {
+        return false;
+      }
+      if (userAccessDeptFilter !== 'ALL' && row.department !== userAccessDeptFilter) {
+        return false;
+      }
+      if (userAccessRoleFilter !== 'ALL' && row.roleName !== userAccessRoleFilter) {
+        return false;
+      }
+      if (userAccessManagerFilter !== 'ALL' && row.manager !== userAccessManagerFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [userAccessData, userAccessSearch, userAccessKpiFilter, userAccessStatusFilter, userAccessBuFilter, userAccessDeptFilter, userAccessRoleFilter, userAccessManagerFilter]);
+
   // Active dataset pointer
   const currentDataset = useMemo(() => {
     switch (activeReportId) {
@@ -1455,10 +1406,82 @@ export default function Reports({
       case 'INCIDENTS_DETAILED': return filteredIncidents;
       case 'USER_ROLE_MAPPING': return filteredUserRoleData;
       case 'ROLE_HIERARCHY': return filteredHierarchyData;
+      case 'USER_ACCESS': return filteredUserAccessData;
       case 'AUDIT_HISTORY': return filteredAuditLogs;
       default: return [];
     }
-  }, [activeReportId, filteredControls, filteredIncidents, filteredUserRoleData, filteredHierarchyData, filteredAuditLogs]);
+  }, [activeReportId, filteredControls, filteredIncidents, filteredUserRoleData, filteredHierarchyData, filteredUserAccessData, filteredAuditLogs]);
+
+  // Active Filters & Options for User Detail Report
+  const userAccessBuOptions = useMemo(() => {
+    const set = new Set<string>();
+    userAccessData.forEach(r => { if (r.businessUnit) set.add(r.businessUnit); });
+    return Array.from(set).sort();
+  }, [userAccessData]);
+
+  const userAccessDeptOptions = useMemo(() => {
+    const set = new Set<string>();
+    userAccessData.forEach(r => { if (r.department) set.add(r.department); });
+    return Array.from(set).sort();
+  }, [userAccessData]);
+
+  const userAccessRoleOptions = useMemo(() => {
+    const set = new Set<string>();
+    userAccessData.forEach(r => { if (r.roleName) set.add(r.roleName); });
+    return Array.from(set).sort();
+  }, [userAccessData]);
+
+  const userAccessManagerOptions = useMemo(() => {
+    const set = new Set<string>();
+    userAccessData.forEach(r => { if (r.manager) set.add(r.manager); });
+    return Array.from(set).sort();
+  }, [userAccessData]);
+
+  const userAccessKpiFilterLabels: Record<string, string> = {
+    WITH_ROLES: 'Users With Roles',
+    WITHOUT_ROLES: 'Users Without Roles',
+    ASSIGNMENTS: 'Role Assignments',
+    ACTIVE: 'Active Users',
+    INACTIVE: 'Inactive Users'
+  };
+
+  const selectUserAccessKpiFilter = (key: 'ALL' | 'WITH_ROLES' | 'WITHOUT_ROLES' | 'ASSIGNMENTS' | 'ACTIVE' | 'INACTIVE') => {
+    setUserAccessKpiFilter(prev => (prev === key ? 'ALL' : key));
+    setCurrentPage(1);
+  };
+
+  const userAccessActiveFilters = useMemo(() => {
+    const list: { label: string; value: string }[] = [];
+    if (userAccessKpiFilter !== 'ALL') list.push({ label: 'View', value: userAccessKpiFilterLabels[userAccessKpiFilter] || userAccessKpiFilter });
+    if (userAccessSearch) list.push({ label: 'Search', value: `"${userAccessSearch}"` });
+    if (userAccessStatusFilter !== 'ALL') list.push({ label: 'Status', value: userAccessStatusFilter });
+    if (userAccessRoleFilter !== 'ALL') list.push({ label: 'Role', value: userAccessRoleFilter });
+    if (userAccessBuFilter !== 'ALL') list.push({ label: 'Business Unit', value: userAccessBuFilter });
+    if (userAccessDeptFilter !== 'ALL') list.push({ label: 'Department', value: userAccessDeptFilter });
+    if (userAccessManagerFilter !== 'ALL') list.push({ label: 'Manager', value: userAccessManagerFilter });
+    return list;
+  }, [userAccessKpiFilter, userAccessSearch, userAccessStatusFilter, userAccessRoleFilter, userAccessBuFilter, userAccessDeptFilter, userAccessManagerFilter]);
+
+  const hasActiveUserAccessFilters = Boolean(
+    userAccessKpiFilter !== 'ALL' ||
+    userAccessSearch ||
+    userAccessStatusFilter !== 'ALL' ||
+    userAccessRoleFilter !== 'ALL' ||
+    userAccessBuFilter !== 'ALL' ||
+    userAccessDeptFilter !== 'ALL' ||
+    userAccessManagerFilter !== 'ALL'
+  );
+
+  const resetUserAccessFilters = () => {
+    setUserAccessKpiFilter('ALL');
+    setUserAccessSearch('');
+    setUserAccessStatusFilter('ALL');
+    setUserAccessRoleFilter('ALL');
+    setUserAccessBuFilter('ALL');
+    setUserAccessDeptFilter('ALL');
+    setUserAccessManagerFilter('ALL');
+    setCurrentPage(1);
+  };
 
   // Active pagination slice (server-driven for ALL-controls incidents)
   const isIncidentsServerPaging = activeReportId === 'INCIDENTS_DETAILED' && selectedIncidentsControlId === 'ALL';
@@ -1494,23 +1517,24 @@ export default function Reports({
   // Active Filters & Reset Helpers for Incidents Detailed
   const incidentsActiveFilters = useMemo(() => {
     const list: { label: string; value: string }[] = [];
-    list.push({ label: 'Domain', value: incidentsDomain === 'TRANSACTION' ? 'Transaction Controls' : 'Access Controls' });
     list.push({ label: 'Control ID', value: selectedIncidentsControlId });
     if (incidentsSearch) list.push({ label: 'Search', value: `"${incidentsSearch}"` });
     if (incidentsStatusFilter !== 'ALL') {
       const displayStatus = incidentsStatusFilter === 'IN_REMEDIATION' ? 'In Remediation' : incidentsStatusFilter === 'RESOLVED' ? 'Closed / Resolved' : incidentsStatusFilter === 'ACCEPTED' ? 'Accepted' : incidentsStatusFilter === 'ASSIGNED' ? 'Assigned' : incidentsStatusFilter;
       list.push({ label: 'Status', value: displayStatus });
     }
+    if (incidentsStateFilter !== 'ALL') list.push({ label: 'State', value: incidentsStateFilter });
     return list;
-  }, [incidentsDomain, selectedIncidentsControlId, incidentsSearch, incidentsStatusFilter]);
+  }, [selectedIncidentsControlId, incidentsSearch, incidentsStatusFilter, incidentsStateFilter]);
 
-  const hasActiveIncidentsFilters = Boolean(incidentsSearch || incidentsStatusFilter !== 'ALL');
+  const hasActiveIncidentsFilters = Boolean(incidentsSearch || incidentsStatusFilter !== 'ALL' || incidentsStateFilter !== 'ALL');
   const resetIncidentsFilters = () => {
     setIncidentsSearch('');
     setIncidentsStatusFilter('ALL');
+    setIncidentsStateFilter('ALL');
     setCurrentPage(1);
     if (selectedIncidentsControlId === 'ALL') {
-      loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
+      loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL');
     }
   };
 
@@ -1691,7 +1715,7 @@ export default function Reports({
                 onClick={() => loadControlsSummary(true)}
                 disabled={controlsLoading}
                 style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-                title="Refresh control summary report"
+                title="Refresh control summary report from Oracle Fusion"
               >
                 <RefreshCw size={13} className={controlsLoading ? 'animate-spin' : ''} />
                 <span>{controlsLoading ? 'Refreshing...' : 'Refresh'}</span>
@@ -1699,6 +1723,19 @@ export default function Reports({
             )}
 
 
+            {activeReportId === 'USER_ACCESS' && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => loadUserAccessReport(true)}
+                disabled={userAccessLoading}
+                style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+                title="Force refresh live user access data from Oracle Fusion"
+              >
+                <RefreshCw size={13} className={userAccessLoading ? 'animate-spin' : ''} />
+                <span>{userAccessLoading ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+            )}
 
             {/* Standardized Table Download Control */}
             {activeReportId === 'CONTROL_SUMMARY' && (
@@ -1725,7 +1762,9 @@ export default function Reports({
                   { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount ?? 0 },
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
-                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
+                  { key: 'scheduledBy', label: 'Last run by', defaultSelected: false, getValue: (c: any) => c.scheduledBy || '—' },
+                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' },
+                  { key: 'calculationNotes', label: 'Calculation Notes', defaultSelected: false, getValue: (c: any) => c.calculationNotes || '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -1737,37 +1776,33 @@ export default function Reports({
 
             {activeReportId === 'INCIDENTS_DETAILED' && (
               <EnterpriseExportControl
-                filename={`${incidentsDomain.toLowerCase()}_control_${selectedIncidentsControlId}_incidents_detailed`}
-                sheetName={incidentsDomain === 'TRANSACTION' ? 'Transaction Incidents' : 'Access Incidents'}
-                reportTitle={`Advanced ${incidentsDomain === 'TRANSACTION' ? 'Transaction' : 'Access'} Control ${selectedIncidentsControlId} Incident Detailed Audit`}
-                dataSource="Oracle Fusion Risk Management Cloud"
+                filename={`control_${selectedIncidentsControlId}_incidents_detailed`}
+                sheetName="Incidents Detailed"
+                reportTitle={`Oracle Advanced Control ${selectedIncidentsControlId} Incident Detailed Audit`}
+                dataSource="Oracle Fusion Continuous Monitoring"
                 entityName="Incidents"
                 buttonText="Export Excel"
                 currentPageData={paginatedSlice}
-                filteredCount={isIncidentsServerPaging ? incidentsServerTotal : filteredIncidents.length}
-                totalCount={isIncidentsServerPaging ? Math.max(incidentsServerGrandTotal, incidentsServerTotal) : incidentsData.length}
+                filteredCount={filteredIncidents.length}
+                totalCount={incidentsData.length}
                 appliedFilters={incidentsActiveFilters}
-                availableColumns={currentIncidentColumns.map(col => ({
-                  key: col.key,
-                  label: col.label,
-                  defaultSelected: visibleIncidentKeys.has(col.key),
-                  getValue: (i: any) => {
-                    const val = getIncidentAttr(i, col.key, {
-                      controlName: resolveIncidentControlName(i),
-                      controlType: col.key === 'controlType' ? (i.controlType || (incidentsDomain === 'TRANSACTION' ? '174' : '173')) : undefined,
-                      isTxControl: incidentsDomain === 'TRANSACTION'
-                    });
-                    if (col.key === 'controlType') return formatControlTypeName(val);
-                    return val !== null && val !== undefined && val !== '' ? String(val) : '—';
-                  }
-                }))}
+                availableColumns={[
+                  { key: 'id', label: 'Incident ID', defaultSelected: true, getValue: (i: any) => String(i.id || '').replace(/^#/, '') },
+                  { key: 'controlName', label: 'Control Name', defaultSelected: true, getValue: (i: any) => resolveIncidentControlName(i) },
+                  { key: 'user', label: 'Global User', defaultSelected: true, getValue: (i: any) => i.globalUserName || (i.userFirstName ? `${i.userFirstName} ${i.userLastName || ''}` : 'Not available') },
+                  { key: 'role', label: 'Role', defaultSelected: true, getValue: (i: any) => i.role || 'Not available' },
+                  { key: 'priority', label: 'Priority', defaultSelected: true, getValue: (i: any) => i.priority !== undefined ? String(i.priority) : '—' },
+                  { key: 'status', label: 'Status', defaultSelected: true },
+                  { key: 'state', label: 'State', defaultSelected: true },
+                  { key: 'incidentInformation', label: 'Incident Information', defaultSelected: true, getValue: (i: any) => i.incidentInformation || '—' },
+                  { key: 'entitlement', label: 'Entitlement', defaultSelected: false, getValue: (i: any) => i.entitlement || 'Not available' },
+                  { key: 'accessPointName', label: 'Access Point', defaultSelected: false, getValue: (i: any) => i.accessPointName || 'Not available' },
+                  { key: 'accessPointType', label: 'Access Point Type', defaultSelected: false, getValue: (i: any) => i.accessPointType || 'Not available' },
+                  { key: 'creationDate', label: 'Created Date', defaultSelected: true, getValue: (i: any) => i.creationDate ? new Date(i.creationDate).toLocaleString() : 'Not available' },
+                  { key: 'closedDate', label: 'Closed Date', defaultSelected: false, getValue: (i: any) => i.closedDate ? new Date(i.closedDate).toLocaleString() : 'Not available' }
+                ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
-                  // ALL-controls mode pages server-side: the component only holds
-                  // the visible page, so pull the full set from the backend.
-                  if (isIncidentsServerPaging) {
-                    return fetchAllIncidentsForExport(scope === 'FILTERED' ? 'FILTERED' : 'ALL');
-                  }
                   if (scope === 'FILTERED') return filteredIncidents;
                   return incidentsData;
                 }}
@@ -1897,7 +1932,42 @@ export default function Reports({
               />
             )}
 
-
+            {activeReportId === 'USER_ACCESS' && (
+              <EnterpriseExportControl
+                filename="oracle_user_detail_report"
+                sheetName="User Detail"
+                reportTitle="Oracle Fusion User Detail Report"
+                dataSource="Oracle Fusion Cloud (SCIM & Public Workers)"
+                entityName="User Access Records"
+                buttonText="Export Excel"
+                currentPageData={paginatedSlice}
+                filteredCount={filteredUserAccessData.length}
+                totalCount={userAccessData.length}
+                appliedFilters={userAccessActiveFilters}
+                availableColumns={[
+                  { key: 'username', label: 'Username', defaultSelected: true },
+                  { key: 'displayName', label: 'Display Name', defaultSelected: true, getValue: (r: any) => r.displayName || '—' },
+                  { key: 'firstName', label: 'First Name', defaultSelected: true, getValue: (r: any) => r.firstName || '—' },
+                  { key: 'lastName', label: 'Last Name', defaultSelected: true, getValue: (r: any) => r.lastName || '—' },
+                  { key: 'email', label: 'Email', defaultSelected: true, getValue: (r: any) => r.email || '—' },
+                  { key: 'active', label: 'Status', defaultSelected: true, getValue: (r: any) => r.active ? 'Active' : 'Inactive' },
+                  { key: 'roleName', label: 'Role Name', defaultSelected: true, getValue: (r: any) => r.roleName || '—' },
+                  { key: 'roleCode', label: 'Role Code', defaultSelected: true, getValue: (r: any) => r.roleCode || '—' },
+                  { key: 'autoProvisioned', label: 'Auto Provision', defaultSelected: true, getValue: (r: any) => r.autoProvisioned || '—' },
+                  { key: 'personNumber', label: 'Person Number', defaultSelected: true, getValue: (r: any) => r.personNumber || '—' },
+                  { key: 'department', label: 'Department', defaultSelected: true, getValue: (r: any) => r.department || '—' },
+                  { key: 'job', label: 'Job', defaultSelected: true, getValue: (r: any) => r.job || '—' },
+                  { key: 'businessUnit', label: 'Business Unit', defaultSelected: true, getValue: (r: any) => r.businessUnit || '—' },
+                  { key: 'location', label: 'Location', defaultSelected: true, getValue: (r: any) => r.location || '—' },
+                  { key: 'manager', label: 'Manager', defaultSelected: true, getValue: (r: any) => r.manager || '—' }
+                ]}
+                onFetchScopeData={async (scope) => {
+                  if (scope === 'PAGE') return paginatedSlice;
+                  if (scope === 'FILTERED') return filteredUserAccessData;
+                  return userAccessData;
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -1984,7 +2054,7 @@ export default function Reports({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Data Source Status:
+                  Calculation Status:
                 </span>
                 
                 {/* Status Badge */}
@@ -2015,7 +2085,7 @@ export default function Reports({
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Search by Control ID, Name, or Type..."
+                  placeholder="Search by Control ID, Name, Last run by, or Type..."
                   value={controlsSearch}
                   onChange={(e) => { setControlsSearch(e.target.value); setCurrentPage(1); }}
                   style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
@@ -2109,117 +2179,237 @@ export default function Reports({
             REPORT 2: INCIDENTS DETAILED (PART 3, 4, 5, 6)
             ------------------------------------------------------------- */}
         {activeReportId === 'INCIDENTS_DETAILED' && (() => {
+          const isTotalCardActive = incidentsStatusFilter === 'ALL';
           const isAssignedCardActive = incidentsStatusFilter === 'ASSIGNED';
-          const isRemediationCardActive = incidentsStatusFilter === 'IN_REMEDIATION' || incidentsStatusFilter === 'REMEDIATE';
+          const isRemediationCardActive = incidentsStatusFilter === 'IN_REMEDIATION';
           const isAcceptedCardActive = incidentsStatusFilter === 'ACCEPTED';
           const isResolvedCardActive = incidentsStatusFilter === 'RESOLVED' || incidentsStatusFilter === 'CLOSED';
 
-          const toBackendStatus = (k: LifecycleStatusKey): string => (k === 'REMEDIATE' ? 'IN_REMEDIATION' : k);
-          const toCardFilterKey = (s: string): LifecycleStatusKey => {
-            const u = (s || 'ALL').toUpperCase();
-            if (u === 'IN_REMEDIATION' || u === 'REMEDIATE') return 'REMEDIATE';
-            if (u === 'CLOSED' || u === 'RESOLVED') return 'RESOLVED';
-            if (u === 'ASSIGNED' || u === 'ACCEPTED') return u as LifecycleStatusKey;
-            return 'ALL';
-          };
-
-          const handleDomainStatusFilter = (targetDomain: 'ACCESS' | 'TRANSACTION', nextStatus: LifecycleStatusKey) => {
-            const mapped = toBackendStatus(nextStatus);
-            if (targetDomain !== incidentsDomain) {
-              switchIncidentsDomain(targetDomain, mapped);
-              return;
-            }
-            setIncidentsStatusFilter(mapped);
+          const handleIncidentKpiCardClick = (targetStatus: string) => {
+            const nextStatus = (incidentsStatusFilter === targetStatus && targetStatus !== 'ALL') ? 'ALL' : targetStatus;
+            setIncidentsStatusFilter(nextStatus);
             setCurrentPage(1);
             if (selectedIncidentsControlId === 'ALL') {
-              loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, mapped, 'ALL', targetDomain);
+              loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, nextStatus, incidentsStateFilter);
             }
           };
 
           return (
             <div>
-              {/* Domain Switcher Buttons (Access Controls vs Transaction Controls) */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.1rem', maxWidth: '100%' }}>
-                <div style={{ display: 'inline-flex', flexWrap: 'wrap', maxWidth: '100%', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', padding: '0.3rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                  <button
-                    type="button"
-                    onClick={() => { if (incidentsDomain !== 'ACCESS') switchIncidentsDomain('ACCESS'); }}
-                    className={`btn ${incidentsDomain === 'ACCESS' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.45rem',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      padding: '0.45rem 0.95rem',
-                      borderRadius: '8px',
-                      border: incidentsDomain === 'ACCESS' ? 'none' : '1px solid transparent',
-                      backgroundColor: incidentsDomain === 'ACCESS' ? '#3B82F6' : 'transparent',
-                      color: incidentsDomain === 'ACCESS' ? '#ffffff' : 'var(--text-secondary)',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    <Shield size={14} style={{ flexShrink: 0 }} />
-                    <span>Access Controls Incidents</span>
-                    <span className="badge" style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      backgroundColor: incidentsDomain === 'ACCESS' ? 'rgba(255,255,255,0.2)' : 'rgba(59,130,246,0.12)',
-                      color: incidentsDomain === 'ACCESS' ? '#ffffff' : '#3B82F6',
-                    }}>
-                      {(incidentsDomainKpis.access.total || 0).toLocaleString()}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => { if (incidentsDomain !== 'TRANSACTION') switchIncidentsDomain('TRANSACTION'); }}
-                    className={`btn ${incidentsDomain === 'TRANSACTION' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.45rem',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      padding: '0.45rem 0.95rem',
-                      borderRadius: '8px',
-                      border: incidentsDomain === 'TRANSACTION' ? 'none' : '1px solid transparent',
-                      backgroundColor: incidentsDomain === 'TRANSACTION' ? '#10B981' : 'transparent',
-                      color: incidentsDomain === 'TRANSACTION' ? '#ffffff' : 'var(--text-secondary)',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    <Scale size={14} style={{ flexShrink: 0 }} />
-                    <span>Transaction Controls Incidents</span>
-                    <span className="badge" style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      backgroundColor: incidentsDomain === 'TRANSACTION' ? 'rgba(255,255,255,0.2)' : 'rgba(16,185,129,0.12)',
-                      color: incidentsDomain === 'TRANSACTION' ? '#ffffff' : '#10B981',
-                    }}>
-                      {(incidentsDomainKpis.transaction.total || 0).toLocaleString()}
-                    </span>
-                  </button>
+              {/* Top KPI Metrics Cards (Interactive Filter Cards) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                
+                {/* KPI 1: Total Incidents */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('ALL')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('ALL'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-gold)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isTotalCardActive
+                      ? '0 0 0 2px var(--accent-gold), 0 8px 20px rgba(234, 179, 8, 0.2)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isTotalCardActive ? 'rgba(234, 179, 8, 0.08)' : 'var(--bg-secondary)',
+                    transform: isTotalCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to view all incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <FileText size={16} style={{ color: 'var(--accent-gold)' }} />
+                      Total Incidents
+                    </div>
+                    {isTotalCardActive && (
+                      <span className="badge badge-gold" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Showing All
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {(() => {
+                      const kpiSum = (incidentsKpis.assigned || 0) + (incidentsKpis.inRemediation || 0) + (incidentsKpis.accepted || 0) + (incidentsKpis.closedOrResolved || 0);
+                      const displayTotal = Math.max(incidentsKpis.total || 0, kpiSum);
+                      return displayTotal > 0
+                        ? displayTotal.toLocaleString()
+                        : (incidentsLoading ? 'Calculating...' : (incidentsKpis.total !== undefined ? incidentsKpis.total.toLocaleString() : 'Not available'));
+                    })()}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Authoritative continuous monitoring
+                  </div>
                 </div>
-              </div>
 
-              {/* Active Domain Incident Status Card (Access OR Transaction based on selected tab) */}
-              <div style={{ marginBottom: '1.25rem', width: '100%', minWidth: 0 }}>
-                {incidentsDomain === 'ACCESS' ? (
-                  <DomainIncidentStatusCard
-                    domain="ACCESS"
-                    stats={incidentsDomainKpis.access}
-                    activeFilter={toCardFilterKey(incidentsStatusFilter)}
-                    onFilterChange={(next) => handleDomainStatusFilter('ACCESS', next)}
-                  />
-                ) : (
-                  <DomainIncidentStatusCard
-                    domain="TRANSACTION"
-                    stats={incidentsDomainKpis.transaction}
-                    activeFilter={toCardFilterKey(incidentsStatusFilter)}
-                    onFilterChange={(next) => handleDomainStatusFilter('TRANSACTION', next)}
-                  />
-                )}
+                {/* KPI 2: Assigned Incidents */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('ASSIGNED')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('ASSIGNED'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-blue)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isAssignedCardActive
+                      ? '0 0 0 2px var(--accent-blue), 0 8px 20px rgba(37, 99, 235, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isAssignedCardActive ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-secondary)',
+                    transform: isAssignedCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by Assigned incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldAlert size={16} style={{ color: 'var(--accent-blue)' }} />
+                      Assigned
+                    </div>
+                    {isAssignedCardActive && (
+                      <span className="badge badge-primary" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.assigned || 0) > 0 ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                    {incidentsKpis.assigned !== undefined ? incidentsKpis.assigned.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Awaiting investigation
+                  </div>
+                </div>
+
+                {/* KPI 3: In Remediation Incidents */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('IN_REMEDIATION')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('IN_REMEDIATION'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-red)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isRemediationCardActive
+                      ? '0 0 0 2px var(--accent-red), 0 8px 20px rgba(239, 68, 68, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isRemediationCardActive ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)',
+                    transform: isRemediationCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by In Remediation incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldAlert size={16} style={{ color: 'var(--accent-red)' }} />
+                      In Remediation
+                    </div>
+                    {isRemediationCardActive && (
+                      <span className="badge badge-danger" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (incidentsKpis.inRemediation || 0) > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
+                    {incidentsKpis.inRemediation !== undefined ? incidentsKpis.inRemediation.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : 'Not available')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Actively being remediated
+                  </div>
+                </div>
+
+                {/* KPI 4: Accepted */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('ACCEPTED')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('ACCEPTED'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid #F59E0B',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isAcceptedCardActive
+                      ? '0 0 0 2px #F59E0B, 0 8px 20px rgba(245, 158, 11, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isAcceptedCardActive ? 'rgba(245, 158, 11, 0.08)' : 'var(--bg-secondary)',
+                    transform: isAcceptedCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by Accepted Exceptions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <CheckCircle2 size={16} style={{ color: '#F59E0B' }} />
+                      Accepted Exceptions
+                    </div>
+                    {isAcceptedCardActive && (
+                      <span className="badge badge-gold" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {incidentsKpis.accepted !== undefined ? incidentsKpis.accepted.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Policy exception accepted
+                  </div>
+                </div>
+
+                {/* KPI 5: Closed / Resolved */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="glass-panel"
+                  onClick={() => handleIncidentKpiCardClick('RESOLVED')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIncidentKpiCardClick('RESOLVED'); } }}
+                  style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    borderLeft: '4px solid var(--accent-green)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isResolvedCardActive
+                      ? '0 0 0 2px var(--accent-green), 0 8px 20px rgba(34, 197, 94, 0.25)'
+                      : '0 2px 6px rgba(0,0,0,0.04)',
+                    backgroundColor: isResolvedCardActive ? 'rgba(34, 197, 94, 0.08)' : 'var(--bg-secondary)',
+                    transform: isResolvedCardActive ? 'translateY(-2px)' : 'none'
+                  }}
+                  title="Click to filter table by Closed / Resolved incidents"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldCheck size={16} style={{ color: 'var(--accent-green)' }} />
+                      Closed / Resolved
+                    </div>
+                    {isResolvedCardActive && (
+                      <span className="badge badge-active" style={{ fontSize: '0.62rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Filter
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {incidentsKpis.closedOrResolved !== undefined ? incidentsKpis.closedOrResolved.toLocaleString() : ((incidentsKpis.status === 'CALCULATING' || incidentsLoading) ? 'Calculating...' : '0')}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Remediated compliance records
+                  </div>
+                </div>
+
               </div>
 
               {/* Active Filter Linkage Bar */}
@@ -2235,8 +2425,8 @@ export default function Reports({
                   border: '1px solid var(--border-color)',
                   borderLeft: `4px solid ${
                     isAssignedCardActive ? 'var(--accent-blue)' :
-                    isRemediationCardActive ? '#F59E0B' :
-                    isAcceptedCardActive ? '#8B5CF6' :
+                    isRemediationCardActive ? 'var(--accent-red)' :
+                    isAcceptedCardActive ? '#F59E0B' :
                     'var(--accent-green)'
                   }`
                 }}>
@@ -2255,7 +2445,7 @@ export default function Reports({
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => handleDomainStatusFilter(incidentsDomain, 'ALL')}
+                    onClick={() => handleIncidentKpiCardClick('ALL')}
                     style={{ fontSize: '0.76rem', padding: '0.25rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <RotateCcw size={12} />
@@ -2280,7 +2470,7 @@ export default function Reports({
               }}>
                 <RefreshCw size={14} className={incidentsSyncState.cacheStatus === 'SYNCING' ? 'animate-spin' : ''} />
                 <span>
-                  {incidentsSyncState.message || (incidentsSyncState.cacheStatus === 'SYNCING' ? 'Synchronizing incidents in the background...' : 'Continuous monitoring incidents status: ' + incidentsSyncState.cacheStatus)}
+                  {incidentsSyncState.message || (incidentsSyncState.cacheStatus === 'SYNCING' ? 'Synchronizing incidents in the background with Oracle Fusion...' : 'Continuous monitoring incidents status: ' + incidentsSyncState.cacheStatus)}
                 </span>
                 {incidentsSyncState.fetchedCount !== undefined && incidentsSyncState.totalCount !== undefined && (
                   <span style={{ fontWeight: 600 }}>
@@ -2290,8 +2480,8 @@ export default function Reports({
               </div>
             )}
 
-            {/* Filter Toolbar Row 1: Control, Search, Status, State */}
-            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem' }}>
+            {/* Filter Toolbar (Unified & Compact) */}
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.25rem' }}>
               
               {/* Control Scope Selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -2306,29 +2496,30 @@ export default function Reports({
                       incidentsPageReloadGuard.current = true;
                       setCurrentPage(1);
                     }
-                    loadRiskIncidents(newId, false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain);
+                    loadRiskIncidents(newId, false, 1, pageSize);
                   }}
-                  style={{ width: '250px', fontSize: '0.82rem' }}
+                  style={{ width: '280px', fontSize: '0.82rem' }}
                 >
-                  <option value="ALL">All {incidentsDomain === 'TRANSACTION' ? 'Transaction' : 'Access'} Controls</option>
+                  <option value="ALL">All Cached Controls</option>
                   {availableIncidentControls.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.id} - {c.name ? c.name.substring(0, 32) : 'Control'}{c.incidentCount !== undefined ? ` (${c.incidentCount.toLocaleString()})` : ''}
                     </option>
                   ))}
+                  {/* Placeholder while the live control list loads */}
                   {availableIncidentControls.length === 0 && (
-                    <option value="ALL" disabled>No controls available</option>
+                    <option value="ALL" disabled>Loading live controls…</option>
                   )}
                 </select>
               </div>
 
               {/* Universal Search Input */}
-              <div style={{ position: 'relative', flex: 1, minWidth: '210px' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
                 <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
                   className="form-input"
-                  placeholder={incidentsDomain === 'TRANSACTION' ? 'Search by ID, Control, Grouping Value, or Group...' : 'Search by ID, User, Role, or Information...'}
+                  placeholder="Search by ID, User, Role, or Information..."
                   value={incidentsSearch}
                   onChange={(e) => { setIncidentsSearch(e.target.value); setCurrentPage(1); }}
                   style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
@@ -2344,10 +2535,10 @@ export default function Reports({
                   setIncidentsStatusFilter(newStatus);
                   setCurrentPage(1);
                   if (selectedIncidentsControlId === 'ALL') {
-                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, newStatus, 'ALL', incidentsDomain);
+                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, newStatus, incidentsStateFilter);
                   }
                 }}
-                style={{ width: '145px', fontSize: '0.84rem' }}
+                style={{ width: '155px', fontSize: '0.84rem' }}
               >
                 <option value="ALL">Status: All</option>
                 <option value="ASSIGNED">Assigned</option>
@@ -2355,147 +2546,52 @@ export default function Reports({
                 <option value="ACCEPTED">Accepted</option>
                 <option value="RESOLVED">Closed / Resolved</option>
               </select>
-            </div>
 
-            {/* Table Display & View Controls Bar Row 2 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  {incidentsDomain === 'TRANSACTION' ? 'Transaction Controls' : 'Access Controls'} Table &bull; {visibleIncidentKeys.size} of {currentIncidentColumns.length} columns visible
-                </span>
-                {hasActiveIncidentsFilters && (
-                  <button
-                    type="button"
-                    onClick={resetIncidentsFilters}
-                    className="btn btn-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', padding: '0.32rem 0.65rem', color: 'var(--accent-red)' }}
-                    title="Reset search and status filters"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Reset Filters</span>
-                  </button>
-                )}
-              </div>
+              {/* State Filter */}
+              <select
+                className="form-select"
+                value={incidentsStateFilter}
+                onChange={(e) => {
+                  const newState = e.target.value;
+                  setIncidentsStateFilter(newState);
+                  setCurrentPage(1);
+                  if (selectedIncidentsControlId === 'ALL') {
+                    loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, newState);
+                  }
+                }}
+                style={{ width: '160px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">State: All</option>
+                <option value="IN_INVESTIGATION">In Investigation</option>
+                <option value="APPROVED">Approved</option>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="CLOSED">Closed</option>
+              </select>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
-                {/* Text Wrap Toggle */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => loadRiskIncidents(selectedIncidentsControlId, true)}
+                disabled={incidentsLoading}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.42rem 0.85rem' }}
+                title="Refresh incident records from Oracle Fusion"
+              >
+                <RefreshCw size={13} className={incidentsLoading ? 'animate-spin' : ''} />
+                <span>{incidentsLoading ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+
+              {hasActiveIncidentsFilters && (
                 <button
                   type="button"
-                  onClick={() => setIncidentWrapText(prev => !prev)}
-                  className={`btn ${incidentWrapText ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.42rem 0.85rem' }}
-                  title={incidentWrapText ? 'Switch to compact single-line view' : 'Wrap cells to show full text without truncation'}
-                >
-                  <AlignLeft size={14} />
-                  <span>{incidentWrapText ? 'Wrap: Full Text' : 'Wrap: Compact'}</span>
-                </button>
-
-                {/* Columns Selector Dropdown (Right-aligned so popover opens inward without clipping) */}
-                <div style={{ position: 'relative' }} ref={incidentColumnsRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsIncidentColumnsOpen(prev => !prev)}
-                    className="btn btn-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.42rem 0.85rem' }}
-                    title="Select or deselect table columns"
-                  >
-                    <Columns size={14} />
-                    <span>Columns ({visibleIncidentKeys.size}/{currentIncidentColumns.length})</span>
-                    <ChevronDown size={13} />
-                  </button>
-
-                  {isIncidentColumnsOpen && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: 'calc(100% + 6px)',
-                        width: '280px',
-                        maxWidth: 'calc(100vw - 2rem)',
-                        backgroundColor: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        boxShadow: '0 12px 28px -5px rgba(0, 0, 0, 0.35)',
-                        padding: '0.75rem',
-                        zIndex: 80
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          Visible Columns ({visibleIncidentKeys.size}/{currentIncidentColumns.length})
-                        </span>
-                        <button
-                          type="button"
-                          onClick={resetIncidentColumns}
-                          style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.72rem', cursor: 'pointer', padding: 0, fontWeight: 600 }}
-                          title="Reset to default columns"
-                        >
-                          Reset
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem' }}>
-                        <button
-                          type="button"
-                          onClick={selectAllIncidentColumns}
-                          style={{ flex: 1, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.72rem', padding: '0.28rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                        >
-                          Select All
-                        </button>
-                        <button
-                          type="button"
-                          onClick={clearAllIncidentColumns}
-                          style={{ flex: 1, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.72rem', padding: '0.28rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                        >
-                          Clear All
-                        </button>
-                      </div>
-
-                      <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                        {currentIncidentColumns.map(col => {
-                          const isChecked = visibleIncidentKeys.has(col.key);
-                          return (
-                            <label
-                              key={col.key}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.8rem',
-                                color: 'var(--text-primary)',
-                                cursor: 'pointer',
-                                padding: '0.25rem 0.35rem',
-                                borderRadius: '4px',
-                                backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.08)' : 'transparent'
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleIncidentColumn(col.key)}
-                                style={{ accentColor: 'var(--accent-blue)' }}
-                              />
-                              <span>{col.label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
+                  onClick={resetIncidentsFilters}
                   className="btn btn-secondary"
-                  onClick={() => loadRiskIncidents(selectedIncidentsControlId, true, currentPage, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL', incidentsDomain)}
-                  disabled={incidentsLoading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.42rem 0.85rem' }}
-                  title="Refresh incident records from database"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: 'var(--accent-red)' }}
+                  title="Reset search and status filters"
                 >
-                  <RefreshCw size={13} className={incidentsLoading ? 'animate-spin' : ''} />
-                  <span>{incidentsLoading ? 'Refreshing...' : 'Refresh'}</span>
+                  <RotateCcw size={13} />
+                  <span>Reset Filters</span>
                 </button>
-              </div>
+              )}
             </div>
 
             {/* Active Incidents Filter Chips */}
@@ -2515,7 +2611,19 @@ export default function Reports({
                       setIncidentsStatusFilter('ALL');
                       setCurrentPage(1);
                       if (selectedIncidentsControlId === 'ALL') {
-                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, 'ALL', 'ALL', incidentsDomain);
+                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, 'ALL', incidentsStateFilter);
+                      }
+                    }} />
+                  </span>
+                )}
+                {incidentsStateFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    State: {incidentsStateFilter === 'IN_INVESTIGATION' ? 'In Investigation' : incidentsStateFilter === 'APPROVED' ? 'Approved' : incidentsStateFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => {
+                      setIncidentsStateFilter('ALL');
+                      setCurrentPage(1);
+                      if (selectedIncidentsControlId === 'ALL') {
+                        loadRiskIncidents('ALL', false, 1, pageSize, incidentsSearch, incidentsStatusFilter, 'ALL');
                       }
                     }} />
                   </span>
@@ -2851,8 +2959,240 @@ export default function Reports({
           </div>
         )}
 
+        {/* -------------------------------------------------------------
+            REPORT 6: USER DETAIL REPORT KPIS & FILTERS
+            ------------------------------------------------------------- */}
+        {activeReportId === 'USER_ACCESS' && (
+          <div>
+            {/* Top KPI Metrics Cards (Matches VEYRA Design) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              
+              {/* Card 1: Total Users */}
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('ALL')} title="Click to show all users" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-gold)', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'ALL' ? '0 0 0 2px var(--accent-gold)' : undefined }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <Users size={16} style={{ color: 'var(--accent-gold)' }} />
+                  Total Users
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {userAccessSummary ? userAccessSummary.totalUsers.toLocaleString() : (userAccessLoading ? '...' : 0)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Master SCIM Population
+                </div>
+              </div>
+
+              {/* Card 2: Users With Roles */}
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('WITH_ROLES')} title="Click to show only users with roles" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'WITH_ROLES' ? '0 0 0 2px var(--accent-blue)' : undefined }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <UserCheck size={16} style={{ color: 'var(--accent-blue)' }} />
+                  Users With Roles
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+                  {userAccessSummary ? userAccessSummary.usersWithRoles.toLocaleString() : (userAccessLoading ? '...' : 0)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Assigned 1+ security roles
+                </div>
+              </div>
+
+              {/* Card 3: Users Without Roles */}
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('WITHOUT_ROLES')} title="Click to show only users without roles" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #F59E0B', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'WITHOUT_ROLES' ? '0 0 0 2px #F59E0B' : undefined }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <AlertCircle size={16} style={{ color: '#F59E0B' }} />
+                  Users Without Roles
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: (userAccessSummary?.usersWithoutRoles || 0) > 0 ? '#F59E0B' : 'var(--text-primary)' }}>
+                  {userAccessSummary ? userAccessSummary.usersWithoutRoles.toLocaleString() : (userAccessLoading ? '...' : 0)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Retained in report
+                </div>
+              </div>
+
+              {/* Card 4: Total Role Assignments */}
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('ASSIGNMENTS')} title="Click to show only role assignment rows" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #8B5CF6', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'ASSIGNMENTS' ? '0 0 0 2px #8B5CF6' : undefined }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <Layers size={16} style={{ color: '#8B5CF6' }} />
+                  Total Role Assignments
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#8B5CF6' }}>
+                  {userAccessSummary ? userAccessSummary.totalRoleAssignments.toLocaleString() : (userAccessLoading ? '...' : 0)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Total user-role grants
+                </div>
+              </div>
+
+              {/* Card 5: Active Users */}
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('ACTIVE')} title="Click to show only active users" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-green)', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'ACTIVE' ? '0 0 0 2px var(--accent-green)' : undefined }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <CheckCircle2 size={16} style={{ color: 'var(--accent-green)' }} />
+                  Active Users
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-green)' }}>
+                  {userAccessSummary ? userAccessSummary.activeUsers.toLocaleString() : (userAccessLoading ? '...' : 0)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Enabled login accounts
+                </div>
+              </div>
+
+              {/* Card 6: Inactive Users */}
+              <div className="glass-panel" onClick={() => selectUserAccessKpiFilter('INACTIVE')} title="Click to show only inactive users" style={{ padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #94A3B8', cursor: 'pointer', boxShadow: userAccessKpiFilter === 'INACTIVE' ? '0 0 0 2px #94A3B8' : undefined }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                  <User size={16} style={{ color: '#94A3B8' }} />
+                  Inactive Users
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {userAccessSummary ? userAccessSummary.inactiveUsers.toLocaleString() : (userAccessLoading ? '...' : 0)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Disabled or locked accounts
+                </div>
+              </div>
+
+            </div>
+
+            {/* Filter Toolbar for User Detail Report */}
+            <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Search user, email, role, job, department, manager..."
+                  value={userAccessSearch}
+                  onChange={(e) => { setUserAccessSearch(e.target.value); setCurrentPage(1); }}
+                  style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
+                />
+              </div>
+
+              <select
+                className="form-select"
+                value={userAccessStatusFilter}
+                onChange={(e) => { setUserAccessStatusFilter(e.target.value); setCurrentPage(1); }}
+                style={{ width: '135px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">Status: All</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+
+              <select
+                className="form-select"
+                value={userAccessRoleFilter}
+                onChange={(e) => { setUserAccessRoleFilter(e.target.value); setCurrentPage(1); }}
+                style={{ width: '160px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">Role: All</option>
+                {userAccessRoleOptions.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+
+              <select
+                className="form-select"
+                value={userAccessBuFilter}
+                onChange={(e) => { setUserAccessBuFilter(e.target.value); setCurrentPage(1); }}
+                style={{ width: '160px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">Business Unit: All</option>
+                {userAccessBuOptions.map(bu => (
+                  <option key={bu} value={bu}>{bu}</option>
+                ))}
+              </select>
+
+              <select
+                className="form-select"
+                value={userAccessDeptFilter}
+                onChange={(e) => { setUserAccessDeptFilter(e.target.value); setCurrentPage(1); }}
+                style={{ width: '160px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">Department: All</option>
+                {userAccessDeptOptions.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+
+              <select
+                className="form-select"
+                value={userAccessManagerFilter}
+                onChange={(e) => { setUserAccessManagerFilter(e.target.value); setCurrentPage(1); }}
+                style={{ width: '160px', fontSize: '0.84rem' }}
+              >
+                <option value="ALL">Manager: All</option>
+                {userAccessManagerOptions.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+
+              {hasActiveUserAccessFilters && (
+                <button
+                  type="button"
+                  onClick={resetUserAccessFilters}
+                  className="btn btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: 'var(--accent-red)' }}
+                  title="Reset all filters"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+            </div>
+
+            {/* Active User Access Filter Chips */}
+            {hasActiveUserAccessFilters && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Filters:</span>
+                {userAccessKpiFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    View: {userAccessKpiFilterLabels[userAccessKpiFilter]}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessKpiFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
+                {userAccessSearch && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    Search: "{userAccessSearch}"
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessSearch(''); setCurrentPage(1); }} />
+                  </span>
+                )}
+                {userAccessStatusFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    Status: {userAccessStatusFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessStatusFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
+                {userAccessRoleFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    Role: {userAccessRoleFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessRoleFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
+                {userAccessBuFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    BU: {userAccessBuFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessBuFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
+                {userAccessDeptFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    Dept: {userAccessDeptFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessDeptFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
+                {userAccessManagerFilter !== 'ALL' && (
+                  <span className="badge badge-blue" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '2px 8px' }}>
+                    Manager: {userAccessManagerFilter}
+                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => { setUserAccessManagerFilter('ALL'); setCurrentPage(1); }} />
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Error Banner */}
-        {(controlsError || incidentsError || userRoleError || hierarchyError || auditError) && (
+        {(controlsError || incidentsError || userRoleError || hierarchyError || auditError || userAccessError) && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -2866,7 +3206,7 @@ export default function Reports({
             marginBottom: '1rem'
           }}>
             <AlertCircle size={16} />
-            <span>{controlsError || incidentsError || userRoleError || hierarchyError || auditError}</span>
+            <span>{controlsError || incidentsError || userRoleError || hierarchyError || auditError || userAccessError}</span>
           </div>
         )}
 
@@ -2891,20 +3231,21 @@ export default function Reports({
                     <th style={{ width: '100px', textAlign: 'right' }}>Accepted</th>
                     <th style={{ width: '120px', textAlign: 'right' }}>Closed / Resolved</th>
                     <th style={{ width: '140px' }}>Last Run Date</th>
+                    <th style={{ width: '130px' }}>Last run by</th>
                   </tr>
                 </thead>
                 <tbody>
                   {controlsLoading ? (
                     <TableLoadingState
-                      title="Loading Controls Summary..."
+                      title="Loading Controls Summary from Oracle Fusion..."
                       subtitle="Reading synced enterprise controls, scheduled jobs, and incident exposure"
-                      colSpan={10}
+                      colSpan={11}
                       skeletonRows={5}
                       minHeight="280px"
                     />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                      <td colSpan={11} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
                           <Shield size={24} />
                         </div>
@@ -3055,6 +3396,10 @@ export default function Reports({
                             {formatOracleDate(ctrl.lastRunDate)}
                           </td>
 
+                          {/* 11. Last run by */}
+                          <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                            {ctrl.scheduledBy || '—'}
+                          </td>
                         </tr>
                       );
                     })
@@ -3064,99 +3409,180 @@ export default function Reports({
             </div>
           )}
 
-          {/* Table 2: Incidents Detailed (Unified Schema with Advanced Controls) */}
+          {/* Table 2: Incidents Detailed (PART 6) */}
           {activeReportId === 'INCIDENTS_DETAILED' && (
-            <div>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2400px' : '1100px' }}>
-                  <thead>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="enterprise-table" style={{ minWidth: '1100px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '120px' }}>Incident ID</th>
+                    <th style={{ minWidth: '220px' }}>Control Name</th>
+                    <th style={{ width: '160px' }}>User</th>
+                    <th style={{ minWidth: '180px' }}>Role</th>
+                    <th style={{ minWidth: '220px' }}>Incident Information</th>
+                    <th style={{ width: '95px' }}>Status</th>
+                    <th style={{ width: '130px' }}>State</th>
+                    <th style={{ width: '140px' }}>Created Date</th>
+                    <th style={{ width: '130px' }}>Closed Date</th>
+                    <th style={{ width: '95px', textAlign: 'center' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incidentsLoading ? (
+                    <TableLoadingState
+                      title="Loading Incidents Detailed from Oracle Fusion..."
+                      subtitle="Retrieving continuous monitoring incidents and compliance records"
+                      colSpan={10}
+                      skeletonRows={5}
+                      minHeight="280px"
+                    />
+                  ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      {currentIncidentColumns.filter(c => visibleIncidentKeys.has(c.key)).map(c => (
-                        <th
-                          key={c.key}
-                          style={c.stickyLeft
-                            ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', boxShadow: '2px 0 5px rgba(0,0,0,0.08)' }
-                            : { minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
+                          <ShieldAlert size={24} />
+                        </div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {selectedIncidentsControlId === '113308' ? 'Zero Incidents Confirmed' : 'No Incidents Found'}
+                        </h4>
+                        <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                          {selectedIncidentsControlId === '113308' 
+                            ? 'Control #113308 has 0 active continuous monitoring violations in Oracle Fusion.' 
+                            : 'No incident records match the current filter selection or search criteria.'}
+                        </p>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            setIncidentsSearch('');
+                            setIncidentsStatusFilter('ALL');
+                            setIncidentsStateFilter('ALL');
+                            setCurrentPage(1);
+                            if (selectedIncidentsControlId === 'ALL') {
+                              loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL');
+                            }
+                          }}
+                          style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
                         >
-                          {c.label.toUpperCase()}
-                        </th>
-                      ))}
-                      <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '100px', textAlign: 'center', whiteSpace: 'nowrap', boxShadow: '-2px 0 5px rgba(0,0,0,0.08)' }}>ACTION</th>
+                          Clear Filters
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  {!incidentsLoading && paginatedSlice.length > 0 && (
-                    <tbody>
-                      {paginatedSlice.map((inc: any, idx: number) => (
-                        <tr key={inc.id || idx}>
-                          {currentIncidentColumns
-                            .filter(c => visibleIncidentKeys.has(c.key))
-                            .map(col => renderSharedIncidentCell(inc, col.key, {
-                              columns: currentIncidentColumns,
-                              wrapText: incidentWrapText,
-                              context: {
-                                controlName: resolveIncidentControlName(inc),
-                                isTxControl: incidentsDomain === 'TRANSACTION'
-                              }
-                            }))}
+                  ) : (
+                    paginatedSlice.map((inc: any) => (
+                      <tr key={inc.id}>
+                        {/* 1. Incident ID */}
+                        <td>
+                          <span style={{ fontWeight: 700, color: 'var(--accent-blue)', fontSize: '0.84rem' }}>
+                            {String(inc.id || '').replace(/^#/, '')}
+                          </span>
+                        </td>
 
-                          <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', whiteSpace: 'nowrap', boxShadow: '-2px 0 5px rgba(0,0,0,0.08)' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              onClick={() => setSelectedIncidentDetail(inc)}
-                              style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                            >
-                              <Eye size={12} />
-                              <span>Details</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                        {/* 2. Control Name */}
+                        <td>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              fontSize: '0.82rem',
+                              color: 'var(--text-primary)',
+                              maxWidth: '250px',
+                              lineHeight: '1.3'
+                            }}
+                            title={resolveIncidentControlName(inc)}
+                          >
+                            {resolveIncidentControlName(inc)}
+                          </div>
+                        </td>
+
+                        {/* 3. User */}
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                            {inc.globalUserName || (inc.userFirstName ? `${inc.userFirstName} ${inc.userLastName || ''}` : <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not available</span>)}
+                          </div>
+                          {inc.globalUserId && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              ID: {inc.globalUserId}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 4. Role */}
+                        <td>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={inc.role || 'Not available'}>
+                            {renderFieldVal(inc.role)}
+                          </div>
+                        </td>
+
+                        {/* 5. Incident Information */}
+                        <td>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '260px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={inc.incidentInformation || '—'}>
+                            {renderFieldVal(inc.incidentInformation)}
+                          </div>
+                        </td>
+
+                        {/* 6. Status */}
+                        <td>
+                          <span
+                            className={`badge ${
+                              (inc.status || '').toUpperCase() === 'ASSIGNED'
+                                ? 'badge-danger'
+                                : (inc.status || '').toUpperCase().includes('REMEDIAT')
+                                ? 'badge-warning'
+                                : (inc.status || '').toUpperCase().includes('ACCEPT')
+                                ? 'badge-gold'
+                                : (inc.status || '').toUpperCase().includes('RESOLV') || (inc.status || '').toUpperCase().includes('CLOSE')
+                                ? 'badge-active'
+                                : 'badge-neutral'
+                            }`}
+                            style={{ fontSize: '0.68rem' }}
+                          >
+                            {renderFieldVal(inc.status)}
+                          </span>
+                        </td>
+
+                        {/* 7. State */}
+                        <td>
+                          <span
+                            className={`badge ${
+                              (inc.state || '').toUpperCase() === 'APPROVED'
+                                ? 'badge-primary'
+                                : (inc.state || '').toUpperCase().includes('INVESTIGAT')
+                                ? 'badge-gold'
+                                : 'badge-neutral'
+                            }`}
+                            style={{ fontSize: '0.68rem' }}
+                          >
+                            {renderFieldVal(inc.state)}
+                          </span>
+                        </td>
+
+                        {/* 8. Created */}
+                        <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                          {formatOracleDate(inc.creationDate)}
+                        </td>
+
+                        {/* 9. Closed */}
+                        <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                          {inc.closedDate ? formatOracleDate(inc.closedDate) : <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not available</span>}
+                        </td>
+
+                        {/* 10. Action: View Details */}
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setSelectedIncidentDetail(inc)}
+                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                          >
+                            <Eye size={12} />
+                            <span>Details</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
-                </table>
-              </div>
-
-              {incidentsLoading ? (
-                <div style={{ padding: '2rem 1rem', borderTop: '1px solid var(--border-color)' }}>
-                  <ContentLoadingState
-                    title="Loading incidents..."
-                    subtitle="Retrieving continuous monitoring incidents and compliance records"
-                    minHeight="280px"
-                    showSkeleton={true}
-                    skeletonRows={5}
-                  />
-                </div>
-              ) : paginatedSlice.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', borderTop: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
-                    <ShieldAlert size={24} />
-                  </div>
-                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {selectedIncidentsControlId === '113308' ? 'Zero Incidents Confirmed' : 'No Incidents Found'}
-                  </h4>
-                  <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                    {selectedIncidentsControlId === '113308' 
-                      ? 'Control #113308 has 0 active continuous monitoring violations.' 
-                      : 'No incident records match the current domain, filter selection, or search criteria.'}
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setIncidentsSearch('');
-                      setIncidentsStatusFilter('ALL');
-                      setCurrentPage(1);
-                      if (selectedIncidentsControlId === 'ALL') {
-                        loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
-                      }
-                    }}
-                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              ) : null}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -3486,7 +3912,200 @@ export default function Reports({
             </div>
           )}
 
+          {/* Table 6: User Detail Report */}
+          {activeReportId === 'USER_ACCESS' && (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="enterprise-table" style={{ minWidth: '1900px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ minWidth: '120px' }}>Username</th>
+                    <th style={{ minWidth: '140px' }}>Display Name</th>
+                    <th style={{ minWidth: '110px' }}>First Name</th>
+                    <th style={{ minWidth: '110px' }}>Last Name</th>
+                    <th style={{ minWidth: '160px' }}>Email</th>
+                    <th style={{ width: '90px' }}>Status</th>
+                    <th style={{ minWidth: '180px' }}>Role Name</th>
+                    <th style={{ minWidth: '160px' }}>Role Code</th>
+                    <th style={{ width: '110px' }}>Auto Provision</th>
+                    <th style={{ width: '110px' }}>Person Number</th>
+                    <th style={{ minWidth: '150px' }}>Department</th>
+                    <th style={{ minWidth: '140px' }}>Job</th>
+                    <th style={{ minWidth: '150px' }}>Business Unit</th>
+                    <th style={{ minWidth: '120px' }}>Location</th>
+                    <th style={{ minWidth: '140px' }}>Manager</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userAccessLoading && userAccessData.length === 0 ? (
+                    Array.from({ length: 10 }).map((_, idx) => (
+                      <tr key={`uar-skel-${idx}`} className="animate-pulse">
+                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '150px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '100px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '110px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                        <td><div style={{ height: '14px', width: '100px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                      </tr>
+                    ))
+                  ) : paginatedSlice.length === 0 ? (
+                    <tr>
+                      <td colSpan={15} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                          <Users size={32} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+                          <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                            No user access records found.
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                            {hasActiveUserAccessFilters ? 'No user assignments match the current filter selection.' : 'No user access data found in the connected environment.'}
+                          </div>
+                          {hasActiveUserAccessFilters && (
+                            <button
+                              type="button"
+                              onClick={resetUserAccessFilters}
+                              className="btn btn-secondary"
+                              style={{ marginTop: '0.5rem', fontSize: '0.78rem' }}
+                            >
+                              Clear Filters
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedSlice.map((row: any, idx: number) => (
+                      <tr key={`uar-${row.username}-${row.roleCode || 'norole'}-${idx}`}>
+                        {/* 1. Username */}
+                        <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
+                          {onInvestigateUser ? (
+                            <button
+                              type="button"
+                              onClick={() => onInvestigateUser(row.username, row.displayName || row.username)}
+                              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent-blue)', fontWeight: 600, cursor: 'pointer', textAlign: 'left', textDecoration: 'underline' }}
+                              title="Click to open Investigation Workspace for user"
+                            >
+                              {row.username}
+                            </button>
+                          ) : (
+                            row.username
+                          )}
+                        </td>
 
+                        {/* 2. Display Name */}
+                        <td>
+                          {row.displayName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 2a. First Name (live Oracle SCIM name.givenName) */}
+                        <td>
+                          {row.firstName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 2b. Last Name (live Oracle SCIM name.familyName) */}
+                        <td>
+                          {row.lastName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 3. Email */}
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          {row.email || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 4. Status */}
+                        <td>
+                          <span className={`badge ${row.active ? 'badge-active' : 'badge-inactive'}`} style={{ fontSize: '0.68rem' }}>
+                            {row.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+
+                        {/* 5. Role Name */}
+                        <td style={{ fontWeight: 500 }}>
+                          {row.roleName ? (
+                            onInspectRole && row.roleCode ? (
+                              <button
+                                type="button"
+                                onClick={() => onInspectRole(row.roleCode, row.roleName)}
+                                style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-primary)', fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}
+                                title="Click to inspect role details"
+                              >
+                                {row.roleName}
+                              </button>
+                            ) : (
+                              row.roleName
+                            )
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(No Assigned Roles)</span>
+                          )}
+                        </td>
+
+                        {/* 6. Role Code */}
+                        <td>
+                          {row.roleCode ? (
+                            <code style={{ fontSize: '0.78rem' }}>{row.roleCode}</code>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* 6a. Auto Provision (live Oracle BIP User Role Auto-Provisioning report) */}
+                        <td>
+                          {row.autoProvisioned ? (
+                            <span className={`badge ${row.autoProvisioned === 'Yes' ? 'badge-active' : 'badge-inactive'}`} style={{ fontSize: '0.68rem' }}>
+                              {row.autoProvisioned}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* 7. Person Number */}
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {row.personNumber || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 9. Department */}
+                        <td>
+                          {row.department || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 10. Job */}
+                        <td>
+                          {row.job || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 11. Business Unit */}
+                        <td>
+                          {row.businessUnit || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 12. Location */}
+                        <td>
+                          {row.location || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+
+                        {/* 13. Manager */}
+                        <td>
+                          {row.manager ? (
+                            <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{row.manager}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
         </div>
 
@@ -3516,7 +4135,7 @@ export default function Reports({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Rows per page:</span>
                 <select
                   className="form-select"
@@ -3525,18 +4144,7 @@ export default function Reports({
                     setPageSize(parseInt(e.target.value, 10));
                     setCurrentPage(1);
                   }}
-                  style={{
-                    width: '78px',
-                    minWidth: '78px',
-                    height: '28px',
-                    padding: '0.15rem 1.6rem 0.15rem 0.6rem',
-                    fontSize: '0.78rem',
-                    lineHeight: 1.2,
-                    backgroundPosition: 'right 0.45rem center',
-                    backgroundSize: '0.75rem',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
+                  style={{ padding: '0.2rem 0.5rem', height: '28px', fontSize: '0.78rem' }}
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -3746,15 +4354,7 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{resolveIncidentControlName(selectedIncidentDetail)}</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{getIncidentAttr(selectedIncidentDetail, 'controlType') || '-'}</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{getIncidentAttr(selectedIncidentDetail, 'resultId') || '-'}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{resolveIncidentControlName(selectedIncidentDetail)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Status</span>
@@ -3780,15 +4380,15 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>User ID</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.globalUserId)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.globalUserId)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>First Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.userFirstName)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.userFirstName)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Name</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.userLastName)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.userLastName)}</span>
                   </div>
                 </div>
               </div>
@@ -3808,30 +4408,30 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                       {renderFieldVal(selectedIncidentDetail.conflictingRoles)}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Entitlement</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.entitlement)}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.entitlement)}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.accessPointType)}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.accessPointType)}</span>
                     </div>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Name</span>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                       {renderFieldVal(selectedIncidentDetail.accessPointName)}
                     </div>
                   </div>
                   {selectedIncidentDetail.conflictingAccPointName && (
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Access Point</span>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                         {renderFieldVal(selectedIncidentDetail.conflictingAccPointName)}
                       </div>
                     </div>
@@ -3848,34 +4448,18 @@ export default function Reports({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Incident Information</span>
-                    <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.65rem 0.85rem', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600, border: '1px solid var(--border-color)', lineHeight: '1.4' }}>
+                    <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.65rem 0.85rem', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)', lineHeight: '1.4' }}>
                       {renderFieldVal(selectedIncidentDetail.incidentInformation)}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginTop: '0.25rem' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Grouping Value</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'groupingValue'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.groupingValue)}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'dataSource'))}</span>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'group'))}</span>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Number of Occurrences</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'numberOfOccurrences'))}</span>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'attachments'))}</span>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'comments'))}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{renderFieldVal(selectedIncidentDetail.dataSource)}</span>
                     </div>
                   </div>
                 </div>
@@ -3890,35 +4474,31 @@ export default function Reports({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.createdBy)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.createdBy)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Created Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(selectedIncidentDetail.creationDate)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.creationDate)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.lastUpdatedBy)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.lastUpdatedBy)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Update Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(selectedIncidentDetail.lastUpdateDate)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.lastUpdateDate)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Closed By</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(selectedIncidentDetail.closedBy)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.closedBy)}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Closed Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(selectedIncidentDetail.closedDate)}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{formatOracleDate(selectedIncidentDetail.closedDate)}</span>
                   </div>
-                  <div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Last Run Date</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatOracleDate(getIncidentAttr(selectedIncidentDetail, 'lastRunDate'))}</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'investigator'))}</span>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Result Investigator</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedIncidentDetail.resultInvestigator)}</span>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Award, X, Users, ArrowRight, RefreshCw } from 'lucide-react';
+import { Search, Award, X, Users, Network, KeyRound, AlertTriangle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { TableLoadingState } from '../components/TableLoadingState';
@@ -27,18 +27,6 @@ interface RolesProps {
   onRegisterBack?: (config: { canGoBack: boolean; onBack: () => void; label?: string } | null) => void;
 }
 
-const normalizeCategory = (cat?: string): string => {
-  if (!cat) return 'ALL';
-  const norm = cat.trim().toUpperCase().replace(/[\s-]+/g, '_');
-  if (norm === 'ALL' || norm === '') return 'ALL';
-  if (norm.includes('UNASSIGNED') || norm.includes('WITHOUT_USERS') || norm.includes('NO_USERS') || norm.includes('ZERO_USERS')) return 'UNASSIGNED';
-  if (norm.includes('JOB')) return 'JOB';
-  if (norm.includes('DUTY')) return 'DUTY';
-  if (norm.includes('DATA')) return 'DATA';
-  if (norm.includes('ABSTRACT')) return 'ABSTRACT';
-  return cat.trim().toUpperCase();
-};
-
 export default function Roles({
   initialCategory = 'ALL',
   isActive = true,
@@ -48,11 +36,23 @@ export default function Roles({
 }: RolesProps) {
   const [roles, setRoles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState(() => normalizeCategory(initialCategory));
-  const [moduleFilter, setModuleFilter] = useState('ALL');
-  const [availableModules, setAvailableModules] = useState<string[]>([]);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState(() => (initialCategory ? initialCategory.toUpperCase() : 'ALL'));
+  const [selectedRole, setSelectedRole] = useState<any | null>(null);
+  
+  // Synchronize internal selected role drawer with topbar Back button
+  useEffect(() => {
+    if (onRegisterBack) {
+      if (isActive && selectedRole) {
+        onRegisterBack({
+          canGoBack: true,
+          onBack: () => setSelectedRole(null),
+          label: 'Roles Catalog'
+        });
+      } else if (isActive) {
+        onRegisterBack(null);
+      }
+    }
+  }, [isActive, selectedRole, onRegisterBack]);
 
   useEffect(() => {
     return () => {
@@ -66,53 +66,63 @@ export default function Roles({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [totalResults, setTotalResults] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
 
+  // Tabs within role details: 'OVERVIEW', 'HIERARCHY', 'PRIVILEGES'
+  const [detailTab, setDetailTab] = useState<'OVERVIEW' | 'HIERARCHY' | 'PRIVILEGES'>('OVERVIEW');
+  const [hierarchyData, setHierarchyData] = useState<any | null>(null);
+  const [privilegeData, setPrivilegeData] = useState<any | null>(null);
+  
+  // Modal for viewing users associated with a specific functional privilege
+  const [privilegeUsersModal, setPrivilegeUsersModal] = useState<{
+    open: boolean;
+    privilegeName: string;
+    users: any[];
+    loading: boolean;
+    search: string;
+    total: number;
+  }>({
+    open: false,
+    privilegeName: '',
+    users: [],
+    loading: false,
+    search: '',
+    total: 0
+  });
+
+  const handleOpenPrivilegeUsers = async (privilegeName: string) => {
+    setPrivilegeUsersModal({
+      open: true,
+      privilegeName,
+      users: [],
+      loading: true,
+      search: '',
+      total: 0
+    });
+    try {
+      const res = await api.getUsersByPrivilege(privilegeName, 1, 100);
+      if (res?.success) {
+        setPrivilegeUsersModal(prev => ({
+          ...prev,
+          users: res.users || [],
+          total: res.total || (res.users || []).length,
+          loading: false
+        }));
+      } else {
+        setPrivilegeUsersModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (err) {
+      console.error('[Privilege Users Lookup Error]:', err);
+      setPrivilegeUsersModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+  
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState('');
   const [environmentMode, setEnvironmentMode] = useState<'DEMO' | 'ORACLE_FUSION'>('DEMO');
-
-  const handleSyncAuthoritativeRoles = async () => {
-    setSyncing(true);
-    setSyncMessage(null);
-    try {
-      const res = await api.syncRoles();
-      if (res?.success) {
-        setSyncMessage({
-          type: 'success',
-          text: `Successfully synced ${res.totalRoles?.toLocaleString() || 'all'} authoritative roles from ${res.source || 'BI Publisher'} (${res.duration || ''}).`
-        });
-        const startIndex = (currentPage - 1) * pageSize + 1;
-        const refreshed = await api.getRoles(
-          searchTerm || undefined,
-          categoryFilter === 'ALL' ? undefined : categoryFilter,
-          startIndex,
-          pageSize,
-          moduleFilter === 'ALL' ? undefined : moduleFilter
-        );
-        if (refreshed?.roles) {
-          setRoles(refreshed.roles);
-          setTotalResults(refreshed.totalResults || refreshed.roles.length);
-          if (refreshed.modules && Array.isArray(refreshed.modules)) {
-            setAvailableModules(refreshed.modules);
-          }
-        }
-      } else {
-        setSyncMessage({
-          type: 'error',
-          text: res?.message || res?.error || 'Role synchronization failed.'
-        });
-      }
-    } catch (err: any) {
-      setSyncMessage({
-        type: 'error',
-        text: err.message || 'Failed to sync roles from BI Publisher.'
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -127,17 +137,13 @@ export default function Roles({
           searchTerm || undefined,
           categoryFilter === 'ALL' ? undefined : categoryFilter,
           startIndex,
-          pageSize,
-          moduleFilter === 'ALL' ? undefined : moduleFilter
+          pageSize
         );
         if (!isCancelled && res?.roles) {
           setRoles(res.roles);
           setTotalResults(res.totalResults || res.roles.length);
           setDataSource(res.dataSource || 'Oracle Fusion');
           setEnvironmentMode(res.mode || 'DEMO');
-          if (res.modules && Array.isArray(res.modules) && res.modules.length > 0) {
-            setAvailableModules(res.modules);
-          }
         }
       } catch (err) {
         if (!isCancelled) {
@@ -156,25 +162,65 @@ export default function Roles({
       isCancelled = true;
       clearTimeout(delayDebounceFn);
     };
-  }, [searchTerm, categoryFilter, moduleFilter, currentPage, pageSize]);
+  }, [searchTerm, categoryFilter, currentPage, pageSize, reloadToken]);
 
   // Update category filter and clear search if initialCategory changes
   useEffect(() => {
-    const targetCat = normalizeCategory(initialCategory);
+    const targetCat = (initialCategory || 'ALL').toUpperCase();
     setCategoryFilter(targetCat);
     setSearchTerm('');
-    setModuleFilter('ALL');
     setCurrentPage(1);
+    setSelectedRole(null);
   }, [initialCategory]);
 
+  // Fetch details (hierarchy and privileges) when role selection changes
+  useEffect(() => {
+    if (!selectedRole) return;
+    
+    async function loadRoleEntitlements() {
+      setDetailLoading(true);
+      setHierarchyData(null);
+      setPrivilegeData(null);
+      try {
+        const hierRes = await api.getRoleHierarchy(selectedRole.displayName);
+        setHierarchyData(hierRes);
 
+        const privRes = await api.getRolePrivileges(selectedRole.displayName);
+        setPrivilegeData(privRes);
+      } catch (err) {
+        console.error('Error fetching role details:', err);
+      } finally {
+        setDetailLoading(false);
+      }
+    }
+
+    loadRoleEntitlements();
+    setDetailTab('OVERVIEW');
+  }, [selectedRole]);
+
+  const renderHierarchyNode = (node: any, depth = 0) => {
+    if (!node) return null;
+    return (
+      <div key={node.code} style={{ marginLeft: `${depth * 1.25}rem`, marginTop: '0.4rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+          <span style={{ color: 'var(--text-muted)' }}>└─</span>
+          <span style={{ fontWeight: depth === 0 ? 700 : 500 }}>{node.name}</span>
+          <code style={{ fontSize: '0.7rem' }}>({node.code})</code>
+          <span className="badge badge-blue" style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem' }}>{node.category}</span>
+        </div>
+        {node.children?.map((child: any) => renderHierarchyNode(child, depth + 1))}
+      </div>
+    );
+  };
 
   const categoryLabelMap: Record<string, string> = {
     JOB: 'Job Roles',
     DUTY: 'Duty Roles',
     DATA: 'Data Roles',
     ABSTRACT: 'Abstract Roles',
-    UNASSIGNED: 'Roles Without Users'
+    GRC: 'GRC / Access Rules',
+    UNASSIGNED: 'Roles Without Users',
+    OTHER: 'Other Roles'
   };
   const activeCategoryName = categoryFilter !== 'ALL' ? (categoryLabelMap[categoryFilter] || 'Roles') : 'Roles';
 
@@ -183,14 +229,11 @@ export default function Roles({
     if (categoryFilter !== 'ALL') {
       list.push({ label: 'Category', value: categoryLabelMap[categoryFilter] || categoryFilter });
     }
-    if (moduleFilter !== 'ALL') {
-      list.push({ label: 'Module', value: moduleFilter });
-    }
     if (searchTerm) {
       list.push({ label: 'Search', value: `"${searchTerm}"` });
     }
     return list;
-  }, [categoryFilter, moduleFilter, searchTerm]);
+  }, [categoryFilter, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
 
@@ -241,18 +284,7 @@ export default function Roles({
       <span>Rows per page:</span>
       <select
         className="form-select"
-        style={{
-          width: '78px',
-          minWidth: '78px',
-          height: '28px',
-          padding: '0.15rem 1.6rem 0.15rem 0.6rem',
-          fontSize: '0.8rem',
-          lineHeight: 1.2,
-          backgroundPosition: 'right 0.45rem center',
-          backgroundSize: '0.75rem',
-          borderRadius: '6px',
-          cursor: 'pointer'
-        }}
+        style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
         value={pageSize}
         onChange={(e) => {
           setPageSize(Number(e.target.value));
@@ -309,7 +341,7 @@ export default function Roles({
               Security Role Catalog
             </h1>
             <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: 0 }}>
-              Browse Job, Duty, Data, and Abstract roles mapped in the Oracle Fusion registry.
+              Browse Job, Duty, GRC, and Abstract roles mapped in the {dataSource || 'Oracle Fusion'} registry.
               {categoryFilter !== 'ALL' && (
                 <span 
                   onClick={() => {
@@ -334,56 +366,9 @@ export default function Roles({
                   Filter: {activeCategoryName} <X size={12} />
                 </span>
               )}
-              {moduleFilter !== 'ALL' && (
-                <span 
-                  onClick={() => {
-                    setModuleFilter('ALL');
-                    setSearchTerm('');
-                    setCurrentPage(1);
-                  }}
-                  style={{ 
-                    marginLeft: '0.6rem', 
-                    padding: '0.15rem 0.6rem', 
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
-                    borderRadius: '9999px', 
-                    fontSize: '0.75rem', 
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem'
-                  }}
-                  title="Click to reset filter to All Modules"
-                >
-                  Module: {moduleFilter} <X size={12} />
-                </span>
-              )}
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <button
-              onClick={handleSyncAuthoritativeRoles}
-              disabled={syncing}
-              className="btn"
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.4)',
-                color: '#ffffff',
-                padding: '0.35rem 0.85rem',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                borderRadius: '8px',
-                cursor: syncing ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                backdropFilter: 'blur(8px)'
-              }}
-              title="Sync authoritative roles directly from Oracle Fusion BI Publisher (/Custom/Claaps_All_Module_Roles.xdo)"
-            >
-              <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-              <span>{syncing ? 'Syncing BIP Roles...' : 'Sync BIP Roles'}</span>
-            </button>
+          <div style={{ position: 'relative', zIndex: 2 }}>
             <div style={{
               padding: '0.4rem 0.95rem',
               fontSize: '0.78rem',
@@ -398,29 +383,6 @@ export default function Roles({
             </div>
           </div>
         </div>
-
-        {syncMessage && (
-          <div style={{
-            margin: '0.75rem 0',
-            padding: '0.6rem 1rem',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: syncMessage.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: `1px solid ${syncMessage.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-            color: syncMessage.type === 'success' ? '#16a34a' : '#dc2626'
-          }}>
-            <span>{syncMessage.text}</span>
-            <button
-              onClick={() => setSyncMessage(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
 
         {/* Filters & Page Size */}
         <div className="filter-bar-responsive" style={{ marginBottom: '1.5rem' }}>
@@ -472,23 +434,22 @@ export default function Roles({
             <option value="DUTY">Duty Roles</option>
             <option value="DATA">Data Roles</option>
             <option value="ABSTRACT">Abstract Roles</option>
+            <option value="GRC">GRC / Access Rules</option>
+            <option value="UNASSIGNED">Roles Without Users</option>
+            <option value="OTHER">Other Roles</option>
           </select>
 
-          <select
-            className="form-select"
-            value={moduleFilter}
-            onChange={(e) => {
-              setModuleFilter(e.target.value);
-              setSearchTerm('');
-              setCurrentPage(1);
-            }}
-            style={{ maxWidth: '180px' }}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setReloadToken(token => token + 1)}
+            disabled={loading}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+            title="Refresh roles catalog from Oracle Fusion"
           >
-            <option value="ALL">All Modules</option>
-            {availableModules.map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
 
           <EnterpriseExportControl
             filename="oracle_roles_catalog"
@@ -505,7 +466,6 @@ export default function Roles({
             availableColumns={[
               { key: 'displayName', label: 'Role Name', defaultSelected: true },
               { key: 'roleCode', label: 'Role Code', defaultSelected: true },
-              { key: 'module', label: 'Module', defaultSelected: true, getValue: (r: any) => r.module || 'Common' },
               { key: 'category', label: 'Category', defaultSelected: true },
               { key: 'description', label: 'Description', defaultSelected: true, getValue: (r: any) => r.description || '—' },
               {
@@ -521,6 +481,7 @@ export default function Roles({
                   return 0;
                 }
               },
+              { key: 'classification', label: 'Classification', defaultSelected: false, getValue: (r: any) => r.roleCode?.startsWith('CLAAPS_') || r.roleCode?.startsWith('CUSTOM_') ? 'Custom' : 'Standard Oracle' }
             ]}
             onFetchScopeData={async (scope) => {
               if (scope === 'PAGE') return roles;
@@ -529,8 +490,7 @@ export default function Roles({
                 scope === 'FILTERED' ? (searchTerm || undefined) : undefined,
                 scope === 'FILTERED' && categoryFilter !== 'ALL' ? categoryFilter : undefined,
                 1,
-                countToFetch,
-                scope === 'FILTERED' && moduleFilter !== 'ALL' ? moduleFilter : undefined
+                countToFetch
               );
               return res?.roles || [];
             }}
@@ -561,9 +521,7 @@ export default function Roles({
               <tr>
                 <th>Role Name</th>
                 <th>Role Code</th>
-                <th>Module</th>
                 <th>Category</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -571,12 +529,12 @@ export default function Roles({
                 <TableLoadingState
                   title="Searching Oracle Fusion Roles Catalog..."
                   subtitle="Retrieving security roles, categories, and assigned permissions"
-                  colSpan={5}
+                  colSpan={3}
                   skeletonRows={4}
                 />
               ) : roles.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={3} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
                       <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                         No roles matched your search criteria.
@@ -584,12 +542,11 @@ export default function Roles({
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         {searchTerm ? `No results for "${searchTerm}" in ${categoryFilter !== 'ALL' ? activeCategoryName : 'all categories'}.` : 'No roles available in this category.'}
                       </p>
-                      {(searchTerm || categoryFilter !== 'ALL' || moduleFilter !== 'ALL') && (
+                      {(searchTerm || categoryFilter !== 'ALL') && (
                         <button
                           onClick={() => {
                             setSearchTerm('');
                             setCategoryFilter('ALL');
-                            setModuleFilter('ALL');
                             setCurrentPage(1);
                           }}
                           className="btn btn-secondary"
@@ -603,33 +560,14 @@ export default function Roles({
                 </tr>
               ) : (
                 roles.map(role => (
-                  <tr key={role.id || role.roleCode}>
+                  <tr
+                    key={role.id || role.roleCode}
+                    onClick={() => setSelectedRole(role)}
+                    style={{ cursor: 'pointer', backgroundColor: selectedRole?.roleCode === role.roleCode ? 'rgba(255, 255, 255, 0.04)' : '' }}
+                  >
                     <td style={{ fontWeight: 600 }}>{highlightMatch(role.displayName, searchTerm)}</td>
                     <td><code>{highlightMatch(role.roleCode, searchTerm)}</code></td>
-                    <td>
-                      <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', fontWeight: 600, border: '1px solid rgba(59, 130, 246, 0.25)', fontSize: '0.72rem' }}>
-                        {role.module || 'Common'}
-                      </span>
-                    </td>
                     <td><span className="badge badge-blue">{role.category}</span></td>
-                    <td>
-                      <button 
-                        onClick={() => onInvestigateRole?.(role.roleCode, role.displayName)}
-                        className="btn btn-secondary" 
-                        style={{ 
-                          padding: '0.2rem 0.5rem', 
-                          fontSize: '0.72rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          color: 'var(--accent-blue)',
-                          borderColor: 'rgba(53, 99, 233, 0.25)'
-                        }}
-                      >
-                        <span>Inspect</span>
-                        <ArrowRight size={10} />
-                      </button>
-                    </td>
                   </tr>
                 ))
               )}
@@ -656,8 +594,431 @@ export default function Roles({
         )}
       </div>
 
+      {/* Right Drawer Card */}
+      {selectedRole && (
+        <div className="glass-panel animate-fade-in users-roles-detail-panel" style={{
+          padding: '1.5rem'
+        }}>
+          
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+            <div>
+              <span className="badge badge-blue" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>{selectedRole.category} Role</span>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-header)', margin: 0 }}>
+                {selectedRole.displayName}
+              </h3>
+              <code style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{selectedRole.roleCode}</code>
+            </div>
+            <button
+              onClick={() => setSelectedRole(null)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '1.25rem' }}>
+            {selectedRole.description}
+          </p>
+
+          {/* Deep Investigation Workspace Trigger */}
+          {onInvestigateRole && (
+            <button 
+              onClick={() => onInvestigateRole(selectedRole.roleCode, selectedRole.displayName)}
+              className="btn btn-primary"
+              style={{ width: '100%', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              <Sparkles size={14} />
+              <span>Launch Deep Workspace</span>
+            </button>
+          )}
+
+          {/* Sub Tabs Navigation */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', gap: '1rem', marginBottom: '1.25rem' }}>
+            {[
+              { id: 'OVERVIEW', label: 'Members', icon: Users },
+              { id: 'HIERARCHY', label: 'Hierarchy', icon: Network },
+              { id: 'PRIVILEGES', label: 'Privileges', icon: KeyRound }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setDetailTab(tab.id as any)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  paddingBottom: '0.5rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: detailTab === tab.id ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                  borderBottom: detailTab === tab.id ? '2px solid var(--accent-gold)' : '2px solid transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <tab.icon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Contents */}
+          {detailLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem' }}>
+              <div style={{ height: '20px', width: '100%' }} className="skeleton" />
+              <div style={{ height: '20px', width: '80%' }} className="skeleton" />
+              <div style={{ height: '20px', width: '90%' }} className="skeleton" />
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.85rem' }}>
+              
+              {/* Tab 1: Members (Overview) */}
+              {detailTab === 'OVERVIEW' && (
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Assigned Identities ({selectedRole.members?.length || 0})
+                  </div>
+                  {selectedRole.members && selectedRole.members.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {selectedRole.members.map((m: any, idx: number) => (
+                        <div key={idx} className="glass-panel" style={{ padding: '0.5rem 0.75rem', display: 'flex', justifyItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 600 }}>{m.display}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Member Code: {m.value ? m.value.replace('usr_', '') : (m.name || 'N/A')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)' }}>
+                      No direct member assignments. (Inherited by parent roles or unassigned).
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Hierarchy */}
+              {detailTab === 'HIERARCHY' && (
+                <div>
+                  {hierarchyData?.integrationRequired ? (
+                    <div style={{
+                      padding: '1rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(217, 119, 6, 0.05)',
+                      border: '1px dashed var(--accent-gold)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                        <AlertTriangle size={15} />
+                        <span>Oracle Integration Required</span>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        {hierarchyData.message}
+                      </p>
+                    </div>
+                  ) : hierarchyData?.hierarchy ? (
+                    <div style={{ padding: '0.25rem' }}>
+                      {renderHierarchyNode(hierarchyData.hierarchy)}
+                    </div>
+                  ) : (
+                    <p style={{ color: 'var(--text-muted)' }}>Hierarchy not available.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Privileges */}
+              {detailTab === 'PRIVILEGES' && (
+                <div>
+                  {privilegeData?.integrationRequired ? (
+                    <div style={{
+                      padding: '1rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(217, 119, 6, 0.05)',
+                      border: '1px dashed var(--accent-gold)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                        <AlertTriangle size={15} />
+                        <span>Oracle Integration Required</span>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        {privilegeData.message}
+                      </p>
+                    </div>
+                  ) : privilegeData?.privileges && privilegeData.privileges.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Entitlements list ({privilegeData.privileges.length})
+                        </div>
+                        <EnterpriseExportControl
+                          filename={`${selectedRole.roleCode || selectedRole.displayName}_privileges`}
+                          sheetName="Role Privileges"
+                          reportTitle={`Role ${selectedRole.displayName} Entitlements`}
+                          entityName="Privileges"
+                          buttonText="Export Excel"
+                          size="sm"
+                          currentPageData={privilegeData.privileges}
+                          filteredCount={privilegeData.privileges.length}
+                          totalCount={privilegeData.privileges.length}
+                          availableColumns={[
+                            { key: 'name', label: 'Privilege Name', defaultSelected: true },
+                            { key: 'inheritedFrom', label: 'Inherited From', defaultSelected: true }
+                          ]}
+                        />
+                      </div>
+                      <div className="table-container" style={{ margin: 0 }}>
+                        <table className="enterprise-table" style={{ fontSize: '0.75rem' }}>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Inherited From</th>
+                              <th style={{ textAlign: 'right' }}>Users</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {privilegeData.privileges.map((p: any, idx: number) => (
+                              <tr key={idx}>
+                                <td style={{ fontWeight: 600 }}>{p.name}</td>
+                                <td style={{ color: 'var(--text-muted)' }}>{p.inheritedFrom}</td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenPrivilegeUsers(p.name)}
+                                    className="btn btn-secondary"
+                                    style={{
+                                      padding: '0.2rem 0.55rem',
+                                      fontSize: '0.7rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      color: 'var(--accent-blue)',
+                                      borderColor: 'rgba(53, 99, 233, 0.25)'
+                                    }}
+                                    title="View users holding this privilege"
+                                  >
+                                    <Users size={11} />
+                                    <span>Users</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)' }}>
+                      No permissions directly mapped to this role item.
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          )}
+
+        </div>
+      )}
+
       </div>
 
+      {/* Users with Privilege Modal */}
+      {privilegeUsersModal.open && (
+        <div className="responsive-modal-overlay">
+          <div className="responsive-modal-card" style={{
+            backgroundColor: 'var(--bg-primary, #1e293b)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+            maxWidth: '850px'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-blue)'
+                }}>
+                  <KeyRound size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Users with Privilege: {privilegeUsersModal.privilegeName}
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    Reverse RBAC entitlement grant via assigned and inherited roles
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span className="badge badge-blue" style={{ fontSize: '0.72rem' }}>
+                  {privilegeUsersModal.total.toLocaleString()} Users
+                </span>
+                <button
+                  onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, open: false }))}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex'
+                  }}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Search Filter */}
+            <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Filter users by username, name, or role..."
+                  value={privilegeUsersModal.search}
+                  onChange={(e) => setPrivilegeUsersModal(prev => ({ ...prev, search: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 2rem',
+                    fontSize: '0.82rem',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {privilegeUsersModal.search && (
+                  <button
+                    type="button"
+                    onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, search: '' }))}
+                    style={{
+                      position: 'absolute',
+                      right: '0.65rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Body / Table */}
+            <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+              {privilegeUsersModal.loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '1.5rem 0' }}>
+                  <div style={{ height: '32px', width: '100%' }} className="skeleton" />
+                  <div style={{ height: '32px', width: '90%' }} className="skeleton" />
+                  <div style={{ height: '32px', width: '95%' }} className="skeleton" />
+                  <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    Searching users holding roles with this privilege...
+                  </div>
+                </div>
+              ) : privilegeUsersModal.users.length === 0 ? (
+                <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No active users are currently assigned roles that hold this privilege.
+                </div>
+              ) : (
+                (() => {
+                  const q = privilegeUsersModal.search.trim().toLowerCase();
+                  const filtered = privilegeUsersModal.users.filter(u => {
+                    if (!q) return true;
+                    return (
+                      (u.username || '').toLowerCase().includes(q) ||
+                      (u.displayName || '').toLowerCase().includes(q) ||
+                      (u.email || '').toLowerCase().includes(q) ||
+                      (u.grantedViaRoleName || '').toLowerCase().includes(q) ||
+                      (u.grantedViaRoleCode || '').toLowerCase().includes(q)
+                    );
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                        No users match "{privilegeUsersModal.search}".
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <table className="enterprise-table" style={{ fontSize: '0.78rem', width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th>Username</th>
+                          <th>Display Name</th>
+                          <th>Email Address</th>
+                          <th>Active</th>
+                          <th>Granted Via Role</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((u, i) => (
+                          <tr key={i}>
+                            <td><code>{u.username}</code></td>
+                            <td style={{ fontWeight: 600 }}>{u.displayName || '—'}</td>
+                            <td>{u.email || '—'}</td>
+                            <td>
+                              <span className={`badge ${u.isActive ? 'badge-active' : 'badge-inactive'}`}>
+                                {u.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>
+                                {u.grantedViaRoleName}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '0.75rem 1.5rem',
+              borderTop: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              backgroundColor: 'var(--bg-secondary)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setPrivilegeUsersModal(prev => ({ ...prev, open: false }))}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
