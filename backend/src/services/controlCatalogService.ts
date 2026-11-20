@@ -418,6 +418,8 @@ export class ControlCatalogService {
             CreationDate: raw.CreationDate ?? raw.creationDate ?? null,
             CreatedBy: raw.CreatedBy ?? raw.createdBy ?? null,
             LastUpdatedBy: raw.LastUpdatedBy ?? raw.lastUpdatedBy ?? null,
+            LatestJobId: raw.LatestJobId ?? raw.latestJobId ?? null,
+            ScheduledBy: raw.ScheduledBy ?? raw.scheduledBy ?? null,
             IncidentCount: s ? s.total_incidents : (raw.IncidentCount ?? undefined),
             raw
           });
