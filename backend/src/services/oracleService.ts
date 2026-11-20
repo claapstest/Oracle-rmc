@@ -4008,14 +4008,18 @@ class OracleService {
     // No hardcoded specs, invented users, actions, or comments — the UI renders
     // an empty state (report ran) or the error message (report failed).
     const worksheetRanOk = Boolean(bipResult && bipResult.success);
+    const isConfigurationError = Boolean(bipResult?.isConfigurationError);
     return {
       success: worksheetRanOk,
       certificationId: Number(cleanCertId) || cleanCertId,
       count: 0,
       data: [],
+      isConfigurationError,
       message: worksheetRanOk
         ? 'No user access details found for this certification.'
-        : (bipResult?.message || 'Unable to retrieve Access Certification details from Oracle Fusion.')
+        : isConfigurationError
+          ? 'Access Certification details are not available. The Oracle BIP integration has not been configured yet.'
+          : (bipResult?.message || 'Unable to retrieve Access Certification details from Oracle Fusion.')
     };
   }
 
