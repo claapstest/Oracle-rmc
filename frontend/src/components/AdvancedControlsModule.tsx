@@ -120,14 +120,11 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '95px' },
   { key: 'type', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
-  { key: 'statusId', label: 'Status ID', defaultVisible: false, minWidth: '95px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '110px' },
-  { key: 'stateCode', label: 'State Code', defaultVisible: false, minWidth: '110px' },
-  { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '140px' },
+  { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '130px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
   { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
-  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '130px' },
   { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: false, minWidth: '140px' },
 ];
 
@@ -2076,11 +2073,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'lastUpdateDate', label: 'Last Updated Date', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
       { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
       { key: 'enforcementType', label: 'Priority', defaultSelected: false, getValue: c => c.enforcementType || '' },
-      { key: 'latestJobId', label: 'Job ID', defaultSelected: false, getValue: c => c.latestJobId || '' },
       { key: 'createdBy', label: 'Created By', defaultSelected: false, getValue: c => c.createdBy || '' },
-      { key: 'creationDate', label: 'Creation Date', defaultSelected: false, getValue: c => c.creationDate || '' },
       { key: 'lastUpdatedBy', label: 'Last Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
-      { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: c => c.scheduledBy || '' },
     ];
   }, []);
 
@@ -2553,28 +2547,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Latest Job ID</span>
-                    <code style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedControlDetail.latestJobId)}</code>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Created By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.createdBy)}</span>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Creation Date</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{formatOracleDate(selectedControlDetail.creationDate)}</span>
-                  </div>
-
-                  <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Scheduled By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.scheduledBy)}</span>
                   </div>
                 </div>
               </div>

@@ -1758,13 +1758,13 @@ export default function Reports({
                   { key: 'state', label: 'State', defaultSelected: true },
                   { key: 'controlType', label: 'Control Type', defaultSelected: true, getValue: (c: any) => c.controlTypeName || (c.controlTypeCode !== null && c.controlTypeCode !== undefined && String(c.controlTypeCode).trim() !== '' ? formatControlTypeName(c.controlTypeCode) : '—') },
                   { key: 'totalIncidentCount', label: 'Total Incidents', defaultSelected: true, getValue: (c: any) => c.totalIncidentCount ?? 0 },
-                  { key: 'assignedOrInRemediationCount', label: 'Assigned / In Remediation', defaultSelected: true, getValue: (c: any) => c.assignedOrInRemediationCount ?? 0 },
+                  { key: 'assignedCount', label: 'Assigned', defaultSelected: true, getValue: (c: any) => c.assignedCount ?? c.assignedOrInRemediationCount ?? 0 },
+                  { key: 'remediateCount', label: 'Remediate', defaultSelected: true, getValue: (c: any) => c.remediateCount ?? 0 },
                   { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount ?? 0 },
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
-                  { key: 'scheduledBy', label: 'Last run by', defaultSelected: false, getValue: (c: any) => c.scheduledBy || '—' },
-                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' },
-                  { key: 'calculationNotes', label: 'Calculation Notes', defaultSelected: false, getValue: (c: any) => c.calculationNotes || '—' }
+                  { key: 'lastRunBy', label: 'Last Run By', defaultSelected: false, getValue: (c: any) => c.lastUpdatedBy || c.scheduledBy || '—' },
+                  { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
@@ -2053,10 +2053,6 @@ export default function Reports({
               gap: '0.75rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Calculation Status:
-                </span>
-                
                 {/* Status Badge */}
                 <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem' }}>
                   <Check size={12} /> {controlsLoading ? 'LOADING' : 'READY'}
@@ -3227,25 +3223,26 @@ export default function Reports({
                     <th style={{ width: '90px' }}>State</th>
                     <th style={{ width: '110px' }}>Control Type</th>
                     <th style={{ width: '130px', textAlign: 'right' }}>Total Incidents</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Assigned / In Rem.</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Assigned</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Remediate</th>
                     <th style={{ width: '100px', textAlign: 'right' }}>Accepted</th>
                     <th style={{ width: '120px', textAlign: 'right' }}>Closed / Resolved</th>
                     <th style={{ width: '140px' }}>Last Run Date</th>
-                    <th style={{ width: '130px' }}>Last run by</th>
+                    <th style={{ width: '130px' }}>Last Run By</th>
                   </tr>
                 </thead>
                 <tbody>
                   {controlsLoading ? (
                     <TableLoadingState
-                      title="Loading Controls Summary from Oracle Fusion..."
+                      title="Loading Controls Summary..."
                       subtitle="Reading synced enterprise controls, scheduled jobs, and incident exposure"
-                      colSpan={11}
+                      colSpan={12}
                       skeletonRows={5}
                       minHeight="280px"
                     />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={11} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                      <td colSpan={12} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
                           <Shield size={24} />
                         </div>
@@ -3360,14 +3357,29 @@ export default function Reports({
                             )}
                           </td>
 
-                          {/* 7. Assigned / In Remediation */}
+                          {/* 7. Assigned */}
                           <td style={{ textAlign: 'right', fontSize: '0.82rem' }}>
-                            {ctrl.assignedOrInRemediationCount !== null && ctrl.assignedOrInRemediationCount !== undefined ? (
+                            {ctrl.assignedCount !== null && ctrl.assignedCount !== undefined ? (
+                              <span style={{ color: ctrl.assignedCount > 0 ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
+                                {ctrl.assignedCount.toLocaleString()}
+                              </span>
+                            ) : ctrl.assignedOrInRemediationCount !== null && ctrl.assignedOrInRemediationCount !== undefined ? (
                               <span style={{ color: ctrl.assignedOrInRemediationCount > 0 ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
                                 {ctrl.assignedOrInRemediationCount.toLocaleString()}
                               </span>
                             ) : (
                               <span style={{ color: 'var(--text-muted)' }}>—</span>
+                            )}
+                          </td>
+
+                          {/* 7b. Remediate */}
+                          <td style={{ textAlign: 'right', fontSize: '0.82rem' }}>
+                            {ctrl.remediateCount !== null && ctrl.remediateCount !== undefined ? (
+                              <span style={{ color: ctrl.remediateCount > 0 ? '#D97706' : 'var(--text-secondary)' }}>
+                                {ctrl.remediateCount.toLocaleString()}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>0</span>
                             )}
                           </td>
 
@@ -3396,9 +3408,9 @@ export default function Reports({
                             {formatOracleDate(ctrl.lastRunDate)}
                           </td>
 
-                          {/* 11. Last run by */}
+                          {/* 11. Last Run By */}
                           <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                            {ctrl.scheduledBy || '—'}
+                            {ctrl.lastUpdatedBy || ctrl.scheduledBy || '—'}
                           </td>
                         </tr>
                       );
