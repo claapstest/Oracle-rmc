@@ -533,6 +533,30 @@ export const authRateLimiter: RequestHandler = (req, res, next) => {
 };
 
 /**
+ * Dedicated rate limiter for session refresh / keepalive heartbeats.
+ * Allows frequent client-side keepalive pings while guarding against abusive loops.
+ * Default: 60 requests per 15 minutes per IP (allowing 1 refresh every 15s).
+ */
+export const sessionRefreshRateLimiter: RequestHandler = (req, res, next) => {
+  const max = parseInt(process.env.SESSION_REFRESH_RATE_LIMIT_MAX || '60', 10);
+  const windowMs = parseInt(process.env.SESSION_REFRESH_RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 min
+
+  const limiter = rateLimitService.createLimiter({
+    tierName: 'session-refresh',
+    max,
+    windowMs,
+    message: 'Too many session refresh requests. Please throttle activity sync.',
+    keyGenerator: (r) => {
+      const authHeader = r.header('Authorization') || '';
+      const ip = getClientIp(r);
+      return `refresh:${ip}:${authHeader.slice(-16)}`;
+    },
+  });
+
+  return limiter(req, res, next);
+};
+
+/**
  * Strict rate limiter for sensitive admin operations, credentials rotation, and manual syncs.
  * Default: 20 requests per minute per IP / user.
  */

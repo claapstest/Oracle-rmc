@@ -90,7 +90,11 @@ class TokenService {
 
     const bundle = await keyManager.getSigningKeyBundle();
     const now = Math.floor(Date.now() / 1000);
-    const exp = now + VEYRA_JWT_LIFETIME_SECONDS;
+    const timeoutMinutes = parseInt(process.env.SESSION_INACTIVITY_TIMEOUT_MINUTES || '', 10);
+    const tokenLifetimeSeconds = !isNaN(timeoutMinutes) && timeoutMinutes > 0
+      ? timeoutMinutes * 60
+      : (parseInt(process.env.JWT_LIFETIME_SECONDS || '', 10) || VEYRA_JWT_LIFETIME_SECONDS);
+    const exp = now + tokenLifetimeSeconds;
     const jti = crypto.randomUUID();
 
     const issuer = (params.issuer || process.env.JWT_ISSUER || VEYRA_JWT_ISSUER).trim();

@@ -60,6 +60,8 @@ export const schemas = {
   'POST /auth/logout': z.object({
     token: safeString(4096).optional(),
     sessionId: safeString(128).optional(),
+    email: safeEmail().optional(),
+    userId: safeId().optional(),
     postLogoutRedirectUri: safeString(2048).optional(),
     post_logout_redirect_uri: safeString(2048).optional(),
   }).strict(),

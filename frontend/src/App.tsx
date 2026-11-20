@@ -127,6 +127,11 @@ export default function App() {
     return (localStorage.getItem('environmentMode') as 'DEMO' | 'ORACLE_FUSION') || 'ORACLE_FUSION';
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState<number>(() => {
+    const envVal = (import.meta as any).env?.VITE_SESSION_TIMEOUT_MINUTES;
+    const parsed = envVal ? parseInt(envVal, 10) : 0;
+    return parsed > 0 ? parsed : 60;
+  });
   const [userRole, setUserRole] = useState(() => getActiveUserRole());
   const [userPermissions, setUserPermissions] = useState<string[]>(() => getActiveUserPermissions());
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -200,6 +205,9 @@ export default function App() {
           if (res.environmentMode) {
             setEnvironmentMode(res.environmentMode);
             localStorage.setItem('environmentMode', res.environmentMode);
+          }
+          if (res.sessionTimeoutMinutes && typeof res.sessionTimeoutMinutes === 'number' && res.sessionTimeoutMinutes > 0) {
+            setSessionTimeoutMinutes(res.sessionTimeoutMinutes);
           }
         } else {
           clearActiveAuthSession();
@@ -707,7 +715,7 @@ export default function App() {
   } = useSessionTimeout({
     isLoggedIn,
     onLogout: (reason) => handleLogout(reason),
-    timeoutSeconds: 15 * 60, // 15 minutes inactivity
+    timeoutSeconds: sessionTimeoutMinutes * 60,
     warningSeconds: 60       // 60 seconds warning modal
   });
 

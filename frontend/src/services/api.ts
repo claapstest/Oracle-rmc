@@ -152,13 +152,15 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   const promise = (async () => {
     try {
       const token = getActiveAuthToken();
+      const mergedHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...((options.headers as Record<string, string>) || {}),
+      };
+
       const res = await fetch(`${API_BASE}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-          ...options.headers,
-        },
         ...options,
+        headers: mergedHeaders,
       });
 
       if (!res.ok) {
@@ -755,11 +757,18 @@ export const api = {
   async logout(params?: { postLogoutRedirectUri?: string; upstream?: boolean }) {
     try {
       const token = getActiveAuthToken();
-      return await apiRequest('/auth/logout', {
+      const email = getActiveUserEmail();
+      await apiRequest('/auth/logout', {
         method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        body: params ? JSON.stringify({ ...params, token }) : (token ? JSON.stringify({ token }) : undefined),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(params || {}),
+          token: token || undefined,
+          email: email || undefined,
+        }),
       });
+    } catch (err) {
+      console.warn('[API Service] Logout request notice:', (err as Error)?.message || err);
     } finally {
       clearActiveAuthSession();
       clearClientApiCache();
