@@ -120,8 +120,9 @@ async function runTests() {
     'AC2.1: refreshSessionActivity successfully updates lastActivityAt'
   );
 
-  // Simulate inactivity expiration by backdating lastActivityAt beyond 15 minutes (901 seconds)
-  const expiredTime = Date.now() - (901 * 1000);
+  // Simulate inactivity expiration by backdating lastActivityAt beyond inactivity window
+  const inactivityWindowMs = (parseInt(process.env.SESSION_INACTIVITY_TIMEOUT_MINUTES, 10) || 15) * 60 * 1000;
+  const expiredTime = Date.now() - (inactivityWindowMs + 60000);
   const activeSessionObj = authService.getSession(session2Token);
   if (activeSessionObj) {
     activeSessionObj.lastActivityAt = expiredTime;

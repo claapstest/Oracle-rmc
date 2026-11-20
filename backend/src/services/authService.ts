@@ -678,7 +678,7 @@ export class AuthService {
   ): Promise<LoginResult> {
     const ipAddress = clientMeta.ipAddress;
     const userAgent = clientMeta.userAgent;
-    const force = Boolean(clientMeta.force);
+    const force = Boolean(clientMeta.force || (clientMeta as any)?.forceOverride);
     const providerId = clientMeta.providerId || 'LOCAL';
     // 3. AC6: Transition any expired or inactive ACTIVE sessions for this user to EXPIRED status
     try {
@@ -1592,40 +1592,87 @@ export class AuthService {
   }
 
   // AC5 & AC6: Logout API & Invalidation
-  public async logout(token: string, clientMeta?: { ipAddress?: string; userAgent?: string }) {
-    if (!token) return;
-    const effectiveToken = tokenService.extractSessionId(token) || token;
-    this.sessionDbLastWritten.delete(effectiveToken);
-    this.sessionDbLastWritten.delete(token);
-    const session = activeSessions.get(effectiveToken) || activeSessions.get(token);
+  public async logout(token: string, clientMeta?: { ipAddress?: string; userAgent?: string; userId?: string; sessionId?: string; email?: string }) {
+    const effectiveToken = clientMeta?.sessionId || (token ? (tokenService.extractSessionId(token) || token) : '');
+    if (effectiveToken) {
+      this.sessionDbLastWritten.delete(effectiveToken);
+    }
+    if (token) {
+      this.sessionDbLastWritten.delete(token);
+    }
+    if (clientMeta?.sessionId) {
+      this.sessionDbLastWritten.delete(clientMeta.sessionId);
+    }
+
+    const session = (effectiveToken ? activeSessions.get(effectiveToken) : undefined) ||
+                    (token ? activeSessions.get(token) : undefined) ||
+                    (clientMeta?.sessionId ? activeSessions.get(clientMeta.sessionId) : undefined);
+    const resolvedUserId = clientMeta?.userId || session?.userId;
+    const resolvedEmail = clientMeta?.email || session?.email;
+
     if (session) {
       session.status = 'LOGGED_OUT';
     }
-    activeSessions.delete(effectiveToken);
-    activeSessions.delete(token);
+    if (effectiveToken) activeSessions.delete(effectiveToken);
+    if (token) activeSessions.delete(token);
+    if (clientMeta?.sessionId) activeSessions.delete(clientMeta.sessionId);
+
+    // Comprehensive in-memory activeSessions cleanup for this user / session
+    for (const [key, s] of activeSessions.entries()) {
+      if (
+        (token && s.token === token) ||
+        (effectiveToken && s.sessionId === effectiveToken) ||
+        (clientMeta?.sessionId && s.sessionId === clientMeta.sessionId) ||
+        (resolvedUserId && s.userId === resolvedUserId) ||
+        (resolvedEmail && s.email.toLowerCase() === resolvedEmail.toLowerCase())
+      ) {
+        s.status = 'LOGGED_OUT';
+        activeSessions.delete(key);
+      }
+    }
+
     try {
-      const updateRes = await dbQuery(
-        `UPDATE veyra_session 
-         SET status = 'LOGGED_OUT', logged_out_at = NOW() 
-         WHERE session_id = $1 AND status = 'ACTIVE'
-         RETURNING user_id, ip_address, user_agent`,
-        [effectiveToken]
-      );
-      const row = updateRes.rows[0];
-      const userId = row?.user_id || session?.userId;
-      if (userId) {
+      // 1. Immediately invalidate in PostgreSQL by session_id
+      if (effectiveToken || token) {
+        await dbQuery(
+          `UPDATE veyra_session 
+           SET status = 'LOGGED_OUT', logged_out_at = NOW() 
+           WHERE (session_id = $1 OR session_id = $2 OR session_id = $3) AND status = 'ACTIVE'`,
+          [effectiveToken || '', token || '', clientMeta?.sessionId || '']
+        );
+      }
+
+      // 2. IMMEDIATELY DESTROY any active sessions for this user in PostgreSQL
+      if (resolvedUserId) {
+        await dbQuery(
+          `UPDATE veyra_session 
+           SET status = 'LOGGED_OUT', logged_out_at = NOW() 
+           WHERE user_id = $1 AND status = 'ACTIVE'`,
+          [resolvedUserId]
+        );
+      } else if (resolvedEmail) {
+        await dbQuery(
+          `UPDATE veyra_session s
+           SET status = 'LOGGED_OUT', logged_out_at = NOW() 
+           FROM veyra_user u
+           WHERE s.user_id = u.id AND LOWER(u.email) = LOWER($1) AND s.status = 'ACTIVE'`,
+          [resolvedEmail.trim()]
+        );
+      }
+
+      if (resolvedUserId) {
         await auditService.recordAuditEvent({
-          userId,
+          userId: resolvedUserId,
           eventType: 'LOGOUT',
-          ipAddress: clientMeta?.ipAddress || row?.ip_address,
-          userAgent: clientMeta?.userAgent || row?.user_agent,
+          ipAddress: clientMeta?.ipAddress || null,
+          userAgent: clientMeta?.userAgent || null,
           targetType: 'SESSION',
-          targetId: effectiveToken,
+          targetId: effectiveToken || resolvedUserId,
           details: { reason: 'USER_LOGOUT' }
         }).catch(() => { });
       }
     } catch (err) {
-      // ignore
+      console.warn('[Auth Service] Database error during logout:', (err as Error).message);
     }
   }
 

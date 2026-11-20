@@ -7,8 +7,8 @@ import { maskSensitive } from '../security/cryptoFailure.js';
 import { securityEventLogger } from '../security/securityEventLogger.js';
 import { config, savePersistedConfig } from '../config.js';
 import { mockUsers, mockAuditTrail } from '../services/mockData.js';
-import { authService } from '../services/authService.js';
-import { getAuthenticationProvider, keyManager } from '../auth/index.js';
+import { authService, getInactivityTimeoutMs } from '../services/authService.js';
+import { getAuthenticationProvider, keyManager, tokenService } from '../auth/index.js';
 import {
   completeAuthorization,
   createAuthorizationRequest,
@@ -38,6 +38,7 @@ import { userRoleRawDbService } from '../services/userRoleRawDbService.js';
 import {
   rateLimitService,
   authRateLimiter,
+  sessionRefreshRateLimiter,
   sensitiveAdminRateLimiter,
   apiRateLimiter,
   tenantRateLimiter,
@@ -377,6 +378,7 @@ apiRouter.get('/auth/config', (_req: Request, res: Response) => {
     isExternal: meta.isExternal,
     supportedAuthMethods: meta.supportedAuthMethods,
     entraEnabled: isEntra,
+    sessionTimeoutMinutes: Math.floor(getInactivityTimeoutMs() / 60000),
   };
 
   if (isEntra && typeof (provider as any).getPublicConfig === 'function') {
@@ -635,12 +637,13 @@ apiRouter.get('/auth/status', requireAuth, (req: Request, res: Response) => {
     isAdmin: res.locals.isAdmin,
     authProvider: res.locals.authProvider || authService.getEffectiveProvider(),
     sessionId: res.locals.sessionId,
-    environmentMode: config.environmentMode
+    environmentMode: config.environmentMode,
+    sessionTimeoutMinutes: Math.floor(getInactivityTimeoutMs() / 60000)
   });
 });
 
 // POST /auth/refresh - Refresh Active Session Inactivity Timer & Issue Fresh JWT (AC3, AC4, VYR-024, VYR-048 Rate Limited)
-apiRouter.post('/auth/refresh', authRateLimiter, requireAuth, async (req: Request, res: Response) => {
+apiRouter.post('/auth/refresh', sessionRefreshRateLimiter, requireAuth, async (req: Request, res: Response) => {
   const token = res.locals.token;
   const result = await authService.refreshSessionActivity(token);
 
@@ -669,18 +672,45 @@ apiRouter.post('/auth/refresh', authRateLimiter, requireAuth, async (req: Reques
 apiRouter.post('/auth/logout', enforceBodySizeLimit('POST /auth/logout'), validateBody('POST /auth/logout'), async (req: Request, res: Response) => {
   const authHeader = req.header('Authorization');
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : (req.body?.token || req.body?.sessionId);
-  if (!token) {
-    return res.status(400).json({ success: false, message: 'Missing token for logout.' });
-  }
 
   const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
   const userAgent = req.get('user-agent') || 'Unknown Client';
 
-  const validation = await authService.validateSession(token, false);
-  const email = validation.session?.email || 'Unknown User';
+  // Extract session details (even if expired or unverified)
+  let extractedUserId: string | undefined = req.body?.userId;
+  let extractedSessionId: string | undefined = req.body?.sessionId;
+  let extractedEmail: string | undefined = req.body?.email;
+
+  if (token && tokenService.isJwt(token)) {
+    try {
+      const decoded = tokenService.decodeToken(token);
+      if (!extractedUserId) extractedUserId = decoded.payload.sub;
+      if (!extractedSessionId) extractedSessionId = decoded.payload.sid;
+    } catch (_) {}
+  } else if (token && !extractedSessionId) {
+    extractedSessionId = token;
+  }
+
+  // Look up user by email if provided to guarantee immediate session destruction
+  if (!extractedUserId && extractedEmail) {
+    try {
+      const uRes = await authService.getUserByEmail ? await authService.getUserByEmail(extractedEmail) : null;
+    } catch (_) {}
+  }
+
+  const validation = token ? await authService.validateSession(token, false) : { valid: false, session: undefined };
+  const email = validation.session?.email || extractedEmail || 'Unknown User';
+  const userId = validation.session?.userId || extractedUserId;
   const sessionProvider = validation.session?.authProvider || authService.getEffectiveProvider();
-  await authService.logout(token, { ipAddress: rawIp, userAgent });
-  logAudit(email, 'USER_LOGOUT', `Logged out successfully; local session invalidated (provider: ${sessionProvider})`);
+
+  await authService.logout(token || extractedSessionId || '', {
+    ipAddress: rawIp,
+    userAgent,
+    userId,
+    sessionId: extractedSessionId,
+    email: email !== 'Unknown User' ? email : undefined
+  });
+  logAudit(email, 'USER_LOGOUT', `Logged out successfully; session immediately destroyed (provider: ${sessionProvider})`);
 
   const postLogoutRedirectUri = req.body?.postLogoutRedirectUri || req.query?.post_logout_redirect_uri || req.body?.post_logout_redirect_uri;
   const upstreamSupported = isEntraEnabled();

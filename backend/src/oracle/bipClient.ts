@@ -244,6 +244,13 @@ export class BipClient {
   private userDetailsResolvedPath: string | null = null;
   private userDetailsResolvedAt = 0;
   private readonly defaultTimeoutMs = 60000; // 60 seconds for BI Publisher report generation
+  /**
+   * The User Details extract is a full-directory report (thousands of rows, joined
+   * across effective-dated HCM tables), so it needs considerably longer than the
+   * default. A timeout here is not harmless: the caller falls back to SCIM, which
+   * omits APPID service accounts entirely.
+   */
+  private readonly userDetailsTimeoutMs = Number(process.env.BIP_USER_DETAILS_TIMEOUT_MS) || 300000;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -1006,33 +1013,69 @@ export class BipClient {
       console.warn('[BIP Client] User Details report skipped: Oracle instance link not configured.');
       return [];
     }
-    const reportPath = await this.findUserDetailsReportPath();
-    if (!reportPath) {
-      console.warn('[BIP Client] User Details report path could not be resolved.');
-      return [];
+
+    // Walk every candidate until one actually yields rows. Resolving a single path
+    // and giving up when it fails is not good enough here: the caller's only
+    // fallback is SCIM, whose population excludes APPID service accounts, so one
+    // slow or broken report would silently shrink the directory.
+    const now = Date.now();
+    const cached = this.userDetailsResolvedPath && now - this.userDetailsResolvedAt < 60 * 60 * 1000
+      ? this.userDetailsResolvedPath
+      : null;
+    const ordered = Array.from(new Set(
+      cached ? [cached, ...this.userDetailsReportPaths] : this.userDetailsReportPaths
+    ));
+
+    const attempts: string[] = [];
+    for (const candidate of ordered) {
+      let exists = false;
+      try {
+        exists = await this.isReportExist(candidate);
+      } catch (err: any) {
+        attempts.push(`${candidate}: existence check failed (${err.message})`);
+        continue;
+      }
+      if (!exists) continue;
+
+      try {
+        const rows = await this.executeUserDetailsReport(candidate);
+        if (rows.length > 0) {
+          this.userDetailsResolvedPath = candidate;
+          this.userDetailsResolvedAt = Date.now();
+          console.log(`[BIP Client] User Details report "${candidate}" returned ${rows.length} unique users.`);
+          return rows;
+        }
+        attempts.push(`${candidate}: returned 0 data rows`);
+      } catch (err: any) {
+        attempts.push(`${candidate}: ${err.message}`);
+      }
     }
+
+    this.userDetailsResolvedPath = null;
+    this.userDetailsResolvedAt = 0;
+    console.warn(
+      '[BIP Client] No User Details report produced rows. Attempts: ' +
+      (attempts.length > 0 ? attempts.join(' | ') : 'no candidate path exists') +
+      '. Falling back to SCIM, which omits APPID service accounts, so the directory will be incomplete.'
+    );
+    return [];
+  }
+
+  /**
+   * Runs one User Details report and parses it. Throws on transport/SOAP failure so
+   * the caller can record the reason and try the next candidate.
+   */
+  private async executeUserDetailsReport(reportPath: string): Promise<UserDetailsBipRow[]> {
     const { baseUrl } = this.getCredentials();
     const endpoint = `${baseUrl}/xmlpserver/services/ExternalReportWSSService`;
-    try {
-      console.log(`[BIP Client] Executing User Details BIP report: "${reportPath}"`);
-      const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
-      const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
-        headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
-        responseType: 'text',
-      });
-      const rows = await this.parseUserDetailsSoapResponse(response.data);
-      if (rows.length > 0) {
-        console.log(`[BIP Client] User Details report "${reportPath}" returned ${rows.length} unique users.`);
-        return rows;
-      }
-      console.warn(`[BIP Client] User Details report "${reportPath}" returned 0 data rows.`);
-      return [];
-    } catch (err: any) {
-      console.warn(`[BIP Client] User Details report "${reportPath}" failed:`, err.message);
-      this.userDetailsResolvedPath = null;
-      this.userDetailsResolvedAt = 0;
-      return [];
-    }
+    console.log(`[BIP Client] Executing User Details BIP report: "${reportPath}"`);
+    const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1);
+    const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
+      headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
+      responseType: 'text',
+      timeout: this.userDetailsTimeoutMs,
+    });
+    return this.parseUserDetailsSoapResponse(response.data);
   }
 
   public async findUserDetailsReportPath(): Promise<string | null> {
@@ -1109,7 +1152,7 @@ export class BipClient {
       };
       const idxUserId = col('USER_ID');
       const idxUsername = col('USERNAME');
-      const idxStatus = col('STATUS', 'USER_ACCOUNT_STATUS');
+      const idxStatus = col('STATUS', 'USER_STATUS', 'USER_ACCOUNT_STATUS', 'ACCOUNT_STATUS');
       const idxActive = col('ACTIVE_FLAG');
       const idxCategory = col('USER_CATEGORY');
       const idxPersonNum = col('PERSON_NUMBER');
