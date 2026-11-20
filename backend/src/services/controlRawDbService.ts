@@ -426,18 +426,13 @@ export class ControlRawDbService {
         sync_status = 'READY',
         raw_incidents = EXCLUDED.raw_incidents,
         assigned_incidents = CASE
-          WHEN GREATEST(COALESCE(EXCLUDED.total_incidents, 0), COALESCE(oracle_control_incidents.total_incidents, 0)) > 
-               (COALESCE(EXCLUDED.accepted_incidents, 0) + COALESCE(EXCLUDED.remediate_incidents, 0) + COALESCE(EXCLUDED.resolved_incidents, 0))
-          THEN GREATEST(
-            COALESCE(EXCLUDED.assigned_incidents, 0),
-            GREATEST(COALESCE(EXCLUDED.total_incidents, 0), COALESCE(oracle_control_incidents.total_incidents, 0)) - 
-            (COALESCE(EXCLUDED.accepted_incidents, 0) + COALESCE(EXCLUDED.remediate_incidents, 0) + COALESCE(EXCLUDED.resolved_incidents, 0))
-          )
-          ELSE EXCLUDED.assigned_incidents
+          WHEN COALESCE(oracle_control_incidents.assigned_incidents, 0) > 0 AND COALESCE(oracle_control_incidents.total_incidents, 0) >= EXCLUDED.total_incidents
+          THEN oracle_control_incidents.assigned_incidents
+          ELSE GREATEST(COALESCE(EXCLUDED.assigned_incidents, 0), GREATEST(COALESCE(EXCLUDED.total_incidents, 0), COALESCE(oracle_control_incidents.total_incidents, 0)) - (COALESCE(EXCLUDED.accepted_incidents, 0) + COALESCE(EXCLUDED.remediate_incidents, 0) + COALESCE(EXCLUDED.resolved_incidents, 0)))
         END,
-        accepted_incidents = EXCLUDED.accepted_incidents,
-        remediate_incidents = EXCLUDED.remediate_incidents,
-        resolved_incidents = EXCLUDED.resolved_incidents,
+        accepted_incidents = GREATEST(COALESCE(EXCLUDED.accepted_incidents, 0), COALESCE(oracle_control_incidents.accepted_incidents, 0)),
+        remediate_incidents = GREATEST(COALESCE(EXCLUDED.remediate_incidents, 0), COALESCE(oracle_control_incidents.remediate_incidents, 0)),
+        resolved_incidents = GREATEST(COALESCE(EXCLUDED.resolved_incidents, 0), COALESCE(oracle_control_incidents.resolved_incidents, 0)),
         is_encrypted = EXCLUDED.is_encrypted,
         encryption_format_version = EXCLUDED.encryption_format_version,
         encryption_key_id = EXCLUDED.encryption_key_id,
