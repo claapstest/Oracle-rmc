@@ -257,27 +257,28 @@ export class IncidentCountCacheService {
 
     const promise = (async () => {
       try {
-        console.log(`[IncidentCountCache] Fetching authoritative count for control "${cleanId}" from Oracle...`);
-        const res = await this.client.getAdvancedControlIncidents(cleanId, {
-          offset: 0,
-          limit: 1,
-          totalResults: true,
-          timeout: 60000
-        });
+        console.log(`[IncidentCountCache] Fetching authoritative lifecycle counts for control "${cleanId}" from Oracle...`);
+        const [totRes, assRes, accRes, remRes, resRes, closedRes] = await Promise.all([
+          this.client.getAdvancedControlIncidents(cleanId, { offset: 0, limit: 1, totalResults: true, timeout: 60000 }),
+          this.client.getAdvancedControlIncidents(cleanId, { offset: 0, limit: 1, totalResults: true, q: "Status='ASSIGNED'", timeout: 60000 }).catch(() => null),
+          this.client.getAdvancedControlIncidents(cleanId, { offset: 0, limit: 1, totalResults: true, q: "Status='ACCEPTED'", timeout: 60000 }).catch(() => null),
+          this.client.getAdvancedControlIncidents(cleanId, { offset: 0, limit: 1, totalResults: true, q: "Status='REMEDIATION'", timeout: 60000 }).catch(() => null),
+          this.client.getAdvancedControlIncidents(cleanId, { offset: 0, limit: 1, totalResults: true, q: "Status='RESOLVED'", timeout: 60000 }).catch(() => null),
+          this.client.getAdvancedControlIncidents(cleanId, { offset: 0, limit: 1, totalResults: true, q: "Status='CLOSED'", timeout: 60000 }).catch(() => null)
+        ]);
 
         let totalResults: number | null = null;
-        if (res?.totalResults !== undefined && res?.totalResults !== null) {
-          totalResults = parseInt(String(res.totalResults), 10);
-        } else if (Array.isArray(res?.items)) {
-          totalResults = res.items.length;
+        if (totRes?.totalResults !== undefined && totRes?.totalResults !== null) {
+          totalResults = parseInt(String(totRes.totalResults), 10);
+        } else if (Array.isArray(totRes?.items)) {
+          totalResults = totRes.items.length;
         }
 
         if (totalResults !== null && !isNaN(totalResults)) {
-          const accepted = existing?.accepted ?? 0;
-          const remediate = existing?.remediate ?? 0;
-          const resolved = existing?.resolved ?? 0;
-          const nonAssigned = accepted + remediate + resolved;
-          const assigned = Math.max(0, totalResults - nonAssigned);
+          const accepted = accRes?.totalResults !== undefined ? Number(accRes.totalResults) : (existing?.accepted ?? 0);
+          const remediate = remRes?.totalResults !== undefined ? Number(remRes.totalResults) : (existing?.remediate ?? 0);
+          const resolved = ((resRes?.totalResults !== undefined ? Number(resRes.totalResults) : 0) + (closedRes?.totalResults !== undefined ? Number(closedRes.totalResults) : 0)) || (existing?.resolved ?? 0);
+          const assigned = assRes?.totalResults !== undefined ? Number(assRes.totalResults) : Math.max(0, totalResults - (accepted + remediate + resolved));
 
           const readyEntry: CachedCountEntry = {
             controlId: cleanId,
@@ -291,7 +292,7 @@ export class IncidentCountCacheService {
           };
           this.memoryCache.set(cleanId, readyEntry);
           this.saveToDisk();
-          console.log(`[IncidentCountCache] Control "${cleanId}" count updated: ${totalResults}`);
+          console.log(`[IncidentCountCache] Control "${cleanId}" counts updated: total=${totalResults}, assigned=${assigned}, accepted=${accepted}, remediate=${remediate}, resolved=${resolved}`);
 
           // Persist authoritative count to PostgreSQL so DB queries and restarts retain it
           try {
@@ -311,12 +312,12 @@ export class IncidentCountCacheService {
               VALUES ($1, $2, $3, $4, $5, $6, $7, 'READY', NOW())
               ON CONFLICT (environment_host, control_id)
               DO UPDATE SET
-                total_incidents = GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0)),
-                assigned_incidents = CASE
-                  WHEN (COALESCE(oracle_control_incidents.accepted_incidents, 0) + COALESCE(oracle_control_incidents.remediate_incidents, 0) + COALESCE(oracle_control_incidents.resolved_incidents, 0)) > 0
-                  THEN GREATEST(0, GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0)) - COALESCE(oracle_control_incidents.accepted_incidents, 0) - COALESCE(oracle_control_incidents.remediate_incidents, 0) - COALESCE(oracle_control_incidents.resolved_incidents, 0))
-                  ELSE GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0))
-                END,
+                total_incidents = EXCLUDED.total_incidents,
+                assigned_incidents = EXCLUDED.assigned_incidents,
+                accepted_incidents = EXCLUDED.accepted_incidents,
+                remediate_incidents = EXCLUDED.remediate_incidents,
+                resolved_incidents = EXCLUDED.resolved_incidents,
+                sync_status = 'READY',
                 updated_at = NOW()`,
               [host, cleanId, totalResults, assigned, accepted, remediate, resolved]
             );
