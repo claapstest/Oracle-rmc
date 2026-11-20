@@ -4,8 +4,7 @@ import {
   Users, 
   KeyRound, 
   FileText, 
-  Sparkles, 
-  X, 
+  X,
   Download, 
   Bookmark, 
   BookmarkCheck, 
@@ -100,7 +99,6 @@ export default function InvestigationWorkspace({
   const [rolesSearch, setRolesSearch] = useState('');
 
   // Role briefing status & note (isolated from core role data)
-  const [briefingNote, setBriefingNote] = useState<string | null>(null);
 
   // Decoupled background loading states
   const [privilegeLoading, setPrivilegeLoading] = useState(false);
@@ -238,11 +236,6 @@ export default function InvestigationWorkspace({
           .then(privs => {
             if (!isMounted) return;
             setPrivilegeData(privs);
-            if (privs?.briefingUnavailable) {
-              setBriefingNote(privs.briefingNote || 'Role intelligence summary is temporarily unavailable.');
-            } else {
-              setBriefingNote(null);
-            }
           })
           .catch(err => {
             if (!isMounted) return;
@@ -1003,28 +996,6 @@ export default function InvestigationWorkspace({
                   </div>
                 </div>
               )}
-
-
-              <div className="glass-panel" style={{ padding: '1rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Sparkles size={14} style={{ color: 'var(--accent-gold)' }} />
-                  <span>Role Intelligence Summary</span>
-                </h4>
-                {briefingNote ? (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(234, 179, 8, 0.08)', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid rgba(234, 179, 8, 0.2)' }}>
-                    <Info size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: '0.15rem' }} />
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', margin: 0 }}>
-                      {briefingNote} Core security permissions and member mapping remain fully functional.
-                    </p>
-                  </div>
-                ) : (
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', margin: 0 }}>
-                    {isRole 
-                      ? (privilegeData?.briefingText || `Role ${entity.name} represents a major security checkpoint. Review assigned privileges and inheritance hierarchy to evaluate sensitive access.`)
-                      : `Identity ${entity.name} currently holds ${data?.assignedRoles?.length || 0} active roles. Direct roles can lead to conflicts if invoice submission and approvals are combined.`}
-                  </p>
-                )}
-              </div>
 
               {isRole && data?.assignedRoles && data.assignedRoles.length > 0 && (
                 <div style={{ marginTop: '1.5rem' }}>
