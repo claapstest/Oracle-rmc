@@ -940,6 +940,71 @@ export default function Settings({ environmentMode, setEnvironmentMode }: Settin
               </div>
             </div>
 
+            {syncingGlobal && (() => {
+              const taskText = globalSyncStatus?.currentTask || '';
+              const stepMatch = taskText.match(/Step (\d+)\/(\d+)/);
+              const currentStep = stepMatch ? parseInt(stepMatch[1], 10) : 0;
+              const totalSteps = stepMatch ? parseInt(stepMatch[2], 10) : 5;
+              const progressPct = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
+              const stepLabel = taskText.replace(/^Step \d+\/\d+:\s*/, '');
+
+              return (
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {stepLabel || 'Initializing...'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+                      {currentStep}/{totalSteps} steps — {progressPct}%
+                    </span>
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '10px',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    borderRadius: '9999px',
+                    overflow: 'hidden',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{
+                      width: `${progressPct}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #2563EB, #3B82F6, #60A5FA)',
+                      borderRadius: '9999px',
+                      transition: 'width 0.6s ease-in-out',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                        animation: 'shimmer 1.5s infinite'
+                      }} />
+                    </div>
+                  </div>
+                  <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem' }}>
+                    {Array.from({ length: totalSteps }, (_, i) => (
+                      <div key={i} style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        color: i < currentStep ? 'var(--accent-green)' : i === currentStep ? 'var(--accent-blue)' : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.2rem'
+                      }}>
+                        {i < currentStep ? '✓' : i === currentStep ? '●' : '○'} Step {i + 1}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {globalSyncMessage && (
               <div style={{
                 marginTop: '1rem',

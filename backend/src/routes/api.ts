@@ -2942,7 +2942,12 @@ apiRouter.post('/risk/controls/refresh', requirePrivilege(['RISK_MANAGEMENT', 'R
 // GET /risk/controls/counts - Retrieve all cached incident counts and sync stale in background
 apiRouter.get('/risk/controls/counts', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
+    const triggerSync = req.query.sync === 'true';
+    const force = req.query.refresh === 'true';
     const counts = oracleService.getIncidentCounts();
+    if (triggerSync || force) {
+      oracleService.syncMissingOrStaleCounts(undefined, force);
+    }
     res.json({ success: true, counts });
   } catch (err) {
     res.status(500).json({ success: false, message: (err as Error).message });
@@ -3659,6 +3664,20 @@ apiRouter.post('/admin/locks/recover-stale', requireAdmin, sensitiveAdminRateLim
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: `Failed to recover stale locks: ${err.message}` });
+  }
+});
+
+// POST /api/admin/locks/force-release - Force-release a stuck distributed lock by key (Admin only)
+apiRouter.post('/admin/locks/force-release', requireAdmin, sensitiveAdminRateLimiter, async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const lockKey = req.body?.lockKey || '__GLOBAL__:full';
+  try {
+    const released = await distributedLockService.releaseLock(lockKey);
+    oracleSyncService.releaseLock(true);
+    logAudit(adminUser, 'LOCK_FORCE_RELEASED', `Admin force-released distributed lock: ${lockKey}`);
+    res.json({ success: true, message: `Lock "${lockKey}" force-released.`, released });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to force-release lock: ${err.message}` });
   }
 });
 

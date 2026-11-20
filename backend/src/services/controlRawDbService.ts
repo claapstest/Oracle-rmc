@@ -107,7 +107,7 @@ export class ControlRawDbService {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         return new URL(rawUrl).host;
       }
-    } catch (_) {}
+    } catch (_) { }
     return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
@@ -301,17 +301,26 @@ export class ControlRawDbService {
       try {
         await query(
           `UPDATE oracle_control_incidents
-           SET total_incidents = jsonb_array_length(raw_incidents),
+           SET total_incidents = GREATEST(
+                 COALESCE(total_incidents, 0),
+                 CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN jsonb_array_length(raw_incidents) ELSE 0 END
+               ),
                assigned_incidents = CASE 
                  WHEN COALESCE(assigned_incidents, 0) = 0 THEN 
-                   GREATEST(0, jsonb_array_length(raw_incidents) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0))
+                   GREATEST(
+                     0,
+                     GREATEST(
+                       COALESCE(total_incidents, 0),
+                       CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN jsonb_array_length(raw_incidents) ELSE 0 END
+                     ) - COALESCE(accepted_incidents, 0) - COALESCE(remediate_incidents, 0) - COALESCE(resolved_incidents, 0)
+                   )
                  ELSE assigned_incidents 
                END,
                updated_at = NOW()
            WHERE jsonb_typeof(raw_incidents) = 'array' 
-             AND jsonb_array_length(raw_incidents) > COALESCE(total_incidents, 0)`
+             AND (CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN jsonb_array_length(raw_incidents) ELSE 0 END) > COALESCE(total_incidents, 0)`
         );
-      } catch (_) {}
+      } catch (_) { }
     }
 
     const res = await query<{
@@ -411,12 +420,21 @@ export class ControlRawDbService {
       ON CONFLICT (environment_host, control_id)
       DO UPDATE SET
         control_name = COALESCE(EXCLUDED.control_name, oracle_control_incidents.control_name),
-        total_incidents = EXCLUDED.total_incidents,
+        total_incidents = GREATEST(COALESCE(EXCLUDED.total_incidents, 0), COALESCE(oracle_control_incidents.total_incidents, 0)),
         last_oracle_update_date = COALESCE(EXCLUDED.last_oracle_update_date, oracle_control_incidents.last_oracle_update_date),
         last_synced_at = NOW(),
         sync_status = 'READY',
         raw_incidents = EXCLUDED.raw_incidents,
-        assigned_incidents = EXCLUDED.assigned_incidents,
+        assigned_incidents = CASE
+          WHEN GREATEST(COALESCE(EXCLUDED.total_incidents, 0), COALESCE(oracle_control_incidents.total_incidents, 0)) > 
+               (COALESCE(EXCLUDED.accepted_incidents, 0) + COALESCE(EXCLUDED.remediate_incidents, 0) + COALESCE(EXCLUDED.resolved_incidents, 0))
+          THEN GREATEST(
+            COALESCE(EXCLUDED.assigned_incidents, 0),
+            GREATEST(COALESCE(EXCLUDED.total_incidents, 0), COALESCE(oracle_control_incidents.total_incidents, 0)) - 
+            (COALESCE(EXCLUDED.accepted_incidents, 0) + COALESCE(EXCLUDED.remediate_incidents, 0) + COALESCE(EXCLUDED.resolved_incidents, 0))
+          )
+          ELSE EXCLUDED.assigned_incidents
+        END,
         accepted_incidents = EXCLUDED.accepted_incidents,
         remediate_incidents = EXCLUDED.remediate_incidents,
         resolved_incidents = EXCLUDED.resolved_incidents,
@@ -445,12 +463,12 @@ export class ControlRawDbService {
     if (this.incidentCountCacheService && typeof this.incidentCountCacheService.setCount === 'function') {
       try {
         this.incidentCountCacheService.setCount(cleanId, total, 'READY', breakdown);
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Invalidate facets cache and sync indexed row table for this control
     this.facetsCache.delete(`${host}|${cleanId}`);
-    this.syncSingleControlRowsFromDb(host, cleanId).catch(() => {});
+    this.syncSingleControlRowsFromDb(host, cleanId).catch(() => { });
 
     return rawIncidents.length;
   }
@@ -898,25 +916,31 @@ export class ControlRawDbService {
           [indexedMeta.environment_host, cleanId, limit, offset]
         );
         const rawItems = fastRes.rows.map(r => r.raw);
-        return { total: fullSyncedTotal, rawItems, count: rawItems.length, isFiltered: false, fullSyncedTotal };
+        if (rawItems.length > 0 || offset >= fullSyncedTotal) {
+          return { total: fullSyncedTotal, rawItems, count: rawItems.length, isFiltered: false, fullSyncedTotal };
+        }
+        // If normalized table was unexpectedly empty, trigger index sync and fall through to raw JSONB
+        this.syncSingleControlRowsFromDb(indexedMeta.environment_host, cleanId).catch(() => { });
+      } else {
+        const whereClause = `WHERE r.environment_host = $1 AND r.control_id = $2 AND ${conds.join(' AND ')}`;
+        const filteredRes = await query<{ raw: any; filtered_total: string }>(
+          `SELECT r.raw, COUNT(*) OVER() AS filtered_total
+           FROM oracle_incident_rows r
+           ${whereClause}
+           ORDER BY r.ord
+           LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
+          [indexedMeta.environment_host, cleanId, ...params, limit, offset]
+        );
+        if (filteredRes.rows.length > 0) {
+          const total = Number(filteredRes.rows[0].filtered_total || 0);
+          const rawItems = filteredRes.rows.map(r => r.raw);
+          return { total, rawItems, count: rawItems.length, isFiltered: true, fullSyncedTotal };
+        }
       }
-
-      const whereClause = `WHERE r.environment_host = $1 AND r.control_id = $2 AND ${conds.join(' AND ')}`;
-      const filteredRes = await query<{ raw: any; filtered_total: string }>(
-        `SELECT r.raw, COUNT(*) OVER() AS filtered_total
-         FROM oracle_incident_rows r
-         ${whereClause}
-         ORDER BY r.ord
-         LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
-        [indexedMeta.environment_host, cleanId, ...params, limit, offset]
-      );
-      const total = filteredRes.rows.length > 0 ? Number(filteredRes.rows[0].filtered_total || 0) : 0;
-      const rawItems = filteredRes.rows.map(r => r.raw);
-      return { total, rawItems, count: rawItems.length, isFiltered: true, fullSyncedTotal };
     }
 
     // Kick off non-blocking indexing if not synced yet
-    this.ensureIncidentRowsInitialized().catch(() => {});
+    this.ensureIncidentRowsInitialized().catch(() => { });
 
     const { conds, params, nextParam } = this.buildIncidentFilterConditions(options, 3, false);
     const isFiltered = conds.length > 0;
@@ -926,7 +950,7 @@ export class ControlRawDbService {
     const sql = `
       WITH target AS (
         SELECT control_id, control_name, raw_incidents, total_incidents,
-               jsonb_array_length(COALESCE(raw_incidents, '[]'::jsonb)) AS synced_len
+               (CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN jsonb_array_length(raw_incidents) ELSE 0 END) AS synced_len
         FROM oracle_control_incidents
         WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
         ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)
@@ -955,7 +979,7 @@ export class ControlRawDbService {
 
     // Either no row exists in DB, offset exceeded, or filter matched 0 items — check fullSyncedTotal cheaply
     const metaRes = await query<{ synced_len: number }>(
-      `SELECT jsonb_array_length(COALESCE(raw_incidents, '[]'::jsonb))::int AS synced_len
+      `SELECT (CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN jsonb_array_length(raw_incidents) ELSE 0 END)::int AS synced_len
        FROM oracle_control_incidents
        WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND control_id = $2
        ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)
@@ -1439,7 +1463,7 @@ export class ControlRawDbService {
       // Fall back to JSONB path if normalized table is missing or incomplete
     }
 
-    this.ensureIncidentRowsInitialized().catch(() => {});
+    this.ensureIncidentRowsInitialized().catch(() => { });
 
     const { conds, params, nextParam } = this.buildIncidentFilterConditions(options, 3, true);
     const whereExtra = conds.length > 0 ? `AND ${conds.join(' AND ')}` : '';
@@ -1549,7 +1573,7 @@ export class ControlRawDbService {
         control_id,
         control_name,
         total_incidents,
-        COALESCE(jsonb_array_length(raw_incidents), 0) as synced_incidents,
+        CASE WHEN jsonb_typeof(raw_incidents) = 'array' THEN jsonb_array_length(raw_incidents) ELSE 0 END as synced_incidents,
         last_oracle_update_date,
         last_synced_at,
         updated_at as last_checked_at,
@@ -1607,7 +1631,11 @@ export class ControlRawDbService {
       ON CONFLICT (environment_host, control_id)
       DO UPDATE SET
         control_name = COALESCE(EXCLUDED.control_name, oracle_control_incidents.control_name),
-        total_incidents = COALESCE(EXCLUDED.total_incidents, oracle_control_incidents.total_incidents),
+        total_incidents = CASE
+          WHEN EXCLUDED.total_incidents IS NOT NULL AND EXCLUDED.total_incidents > 0
+          THEN GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0))
+          ELSE COALESCE(oracle_control_incidents.total_incidents, EXCLUDED.total_incidents)
+        END,
         last_oracle_update_date = COALESCE(EXCLUDED.last_oracle_update_date, oracle_control_incidents.last_oracle_update_date),
         last_synced_at = CASE WHEN EXCLUDED.sync_status IN ('READY', 'PARTIAL') THEN NOW() ELSE oracle_control_incidents.last_synced_at END,
         sync_status = COALESCE(EXCLUDED.sync_status, oracle_control_incidents.sync_status),
@@ -1618,7 +1646,7 @@ export class ControlRawDbService {
       host,
       cleanId,
       data.controlName || null,
-      data.totalIncidents ?? 0,
+      data.totalIncidents !== undefined && data.totalIncidents !== null ? data.totalIncidents : null,
       data.lastOracleUpdateDate || null,
       data.syncStatus || 'SYNCING',
     ]);
@@ -1654,8 +1682,7 @@ export class ControlRawDbService {
         offset: 0,
         limit: 1,
         totalResults: true,
-        orderBy: 'LastUpdateDate:desc',
-        timeout: 15000,
+        timeout: 60000,
       });
 
       const firstItem = Array.isArray(probeRes?.items) ? probeRes.items[0] : null;
@@ -1663,7 +1690,7 @@ export class ControlRawDbService {
       const totalOracleCount = typeof probeRes?.totalResults === 'number' ? probeRes.totalResults : (probeRes?.items?.length || 0);
 
       await query(
-        `UPDATE oracle_control_incidents SET updated_at = NOW(), total_incidents = COALESCE($1, total_incidents) WHERE environment_host = $2 AND control_id = $3`,
+        `UPDATE oracle_control_incidents SET updated_at = NOW(), total_incidents = GREATEST(COALESCE($1, 0), COALESCE(total_incidents, 0)) WHERE environment_host = $2 AND control_id = $3`,
         [totalOracleCount, this.getHost(), cleanId]
       );
 
@@ -1799,12 +1826,12 @@ export class ControlRawDbService {
       }
 
       // Store ALL raw incidents into that single cell in 1 single row!
-      await this.saveControlRawIncidents(cleanId, allRawItems, controlName, totalResults || allRawItems.length, maxOracleUpdateDate);
+      await this.saveControlRawIncidents(cleanId, allRawItems, controlName, Math.max(totalResults, allRawItems.length), maxOracleUpdateDate);
 
       return { totalSynced: allRawItems.length, syncStatus: 'READY' };
     } catch (err: any) {
       if (allRawItems.length > 0) {
-        await this.saveControlRawIncidents(cleanId, allRawItems, controlName, totalResults, maxOracleUpdateDate);
+        await this.saveControlRawIncidents(cleanId, allRawItems, controlName, Math.max(totalResults, allRawItems.length), maxOracleUpdateDate);
       }
       return { totalSynced: allRawItems.length, syncStatus: allRawItems.length > 0 ? 'PARTIAL' : 'ERROR', errorMessage: err.message };
     }
@@ -1893,7 +1920,7 @@ export class ControlRawDbService {
         try {
           // Persist raw control definition to oracle_raw_controls
           if (ctrl.raw) {
-            await this.saveRawControl(ctrl.id, ctrl.raw).catch(() => {});
+            await this.saveRawControl(ctrl.id, ctrl.raw).catch(() => { });
           }
 
           const isAlreadyInDb = existingControls.has(ctrl.id);

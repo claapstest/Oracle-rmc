@@ -156,7 +156,6 @@ export default function InvestigationWorkspace({
       setMembersSearch('');
       setMembersPage(1);
       setRolesSearch('');
-      setBriefingNote(null);
 
       if (entity.type === 'role') {
         // Step 1: Fast Initial Base Metadata Resolution (0ms in-memory cache lookup, avoids full /api/roles catalog download)

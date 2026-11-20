@@ -1345,7 +1345,6 @@ export default function Reports({
         (ctrl.controlId && String(ctrl.controlId).toLowerCase().includes(q)) ||
         (ctrl.controlName && ctrl.controlName.toLowerCase().includes(q)) ||
         (ctrl.description && ctrl.description.toLowerCase().includes(q)) ||
-        (ctrl.scheduledBy && ctrl.scheduledBy.toLowerCase().includes(q)) ||
         (ctrl.controlTypeCode && String(ctrl.controlTypeCode).includes(q));
 
       const matchesStatus = controlsStatusFilter === 'ALL' ||
@@ -1692,7 +1691,7 @@ export default function Reports({
                 onClick={() => loadControlsSummary(true)}
                 disabled={controlsLoading}
                 style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-                title="Refresh control summary report from PostgreSQL database"
+                title="Refresh control summary report"
               >
                 <RefreshCw size={13} className={controlsLoading ? 'animate-spin' : ''} />
                 <span>{controlsLoading ? 'Refreshing...' : 'Refresh'}</span>
@@ -1743,7 +1742,7 @@ export default function Reports({
                 filename={`${incidentsDomain.toLowerCase()}_control_${selectedIncidentsControlId}_incidents_detailed`}
                 sheetName={incidentsDomain === 'TRANSACTION' ? 'Transaction Incidents' : 'Access Incidents'}
                 reportTitle={`Advanced ${incidentsDomain === 'TRANSACTION' ? 'Transaction' : 'Access'} Control ${selectedIncidentsControlId} Incident Detailed Audit`}
-                dataSource="PostgreSQL Continuous Monitoring Repository"
+                dataSource="Oracle Fusion Risk Management Cloud"
                 entityName="Incidents"
                 buttonText="Export Excel"
                 currentPageData={paginatedSlice}
@@ -2014,7 +2013,7 @@ export default function Reports({
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Search by Control ID, Name, Scheduled By, or Type..."
+                  placeholder="Search by Control ID, Name, or Type..."
                   value={controlsSearch}
                   onChange={(e) => { setControlsSearch(e.target.value); setCurrentPage(1); }}
                   style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}

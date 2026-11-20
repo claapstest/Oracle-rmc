@@ -175,7 +175,7 @@ export default function Users({
           if (res.directoryTotal !== undefined) setDirectoryTotal(res.directoryTotal);
           if (res.activeCount !== undefined) setActiveCount(res.activeCount);
           if (res.inactiveCount !== undefined) setInactiveCount(res.inactiveCount);
-          setDataSource(res.dataSource || 'PostgreSQL Database');
+          setDataSource(res.dataSource || 'Live Oracle Fusion API');
         }
       } catch (err) {
         if (!isCancelled) {

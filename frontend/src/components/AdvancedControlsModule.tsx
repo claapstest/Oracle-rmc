@@ -64,13 +64,10 @@ export interface AdvancedControlRecord {
   type: string | number | null;
   lastRunDate: string | null;
   lastUpdateDate: string | null;
-  latestJobId: number | string | null;
   createdBy: string | null;
-  creationDate: string | null;
   status: string;
   state: string;
   lastUpdatedBy: string | null;
-  scheduledBy: string | null;
   incidentCount?: number;
   incidentBreakdown?: {
     assigned: number;
@@ -121,7 +118,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'type', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '110px' },
-  { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '130px' },
+  { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '140px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
   { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
@@ -789,9 +786,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         const matchesId = ctrl.id && String(ctrl.id).toLowerCase().includes(q);
         const matchesName = ctrl.name && ctrl.name.toLowerCase().includes(q);
         const matchesDesc = ctrl.description && ctrl.description.toLowerCase().includes(q);
-        const matchesScheduled = ctrl.scheduledBy && ctrl.scheduledBy.toLowerCase().includes(q);
         const matchesCreated = ctrl.createdBy && ctrl.createdBy.toLowerCase().includes(q);
-        if (!matchesId && !matchesName && !matchesDesc && !matchesScheduled && !matchesCreated) {
+        if (!matchesId && !matchesName && !matchesDesc && !matchesCreated) {
           return false;
         }
       }
@@ -2519,6 +2515,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
 
                   <div>
+
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
                   </div>
@@ -3135,7 +3132,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 ? `Filtering incidents (Page ${incidentPage})...`
                                 : `Loading page ${incidentPage} (${incidentPageSize} rows)...`
                             }
-                            subtitle="Querying PostgreSQL synced incident store"
+                            subtitle="Loading incident records"
                           />
                         </div>
                       )}
@@ -4821,12 +4818,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   {visibleColumnKeys.has('incidentCount') && (
                     <th 
-                      style={{ width: '110px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '140px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('incidentCount')}
-                      title="Sort by Incidents Count"
+                      title="Sort by Count of Incidents"
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span>Incidents</span>
+                        <span>Count of Incidents</span>
                         {sortField === 'incidentCount' ? (sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
                       </div>
                     </th>
@@ -4862,12 +4859,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Created By</th>
                   )}
 
-                  {visibleColumnKeys.has('creationDate') && (
-                    <th style={{ width: '130px', whiteSpace: 'nowrap' }}>Creation Date</th>
-                  )}
-
                   {visibleColumnKeys.has('lastUpdatedBy') && (
-                    <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Updated By</th>
+                    <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Last Updated By</th>
                   )}
 
                   <th style={{ width: '90px', whiteSpace: 'nowrap', textAlign: 'right' }}>Action</th>
@@ -5062,12 +5055,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         {visibleColumnKeys.has('createdBy') && (
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             {renderFieldVal(ctrl.createdBy)}
-                          </td>
-                        )}
-
-                        {visibleColumnKeys.has('creationDate') && (
-                          <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                            {formatOracleDate(ctrl.creationDate)}
                           </td>
                         )}
 
