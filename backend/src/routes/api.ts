@@ -2758,7 +2758,12 @@ apiRouter.post('/risk/controls/refresh', requirePrivilege(['RISK_MANAGEMENT', 'R
 // GET /risk/controls/counts - Retrieve all cached incident counts and sync stale in background
 apiRouter.get('/risk/controls/counts', requirePrivilege(['RISK_MANAGEMENT', 'RISK_READ']), async (req: Request, res: Response) => {
   try {
+    const triggerSync = req.query.sync === 'true';
+    const force = req.query.refresh === 'true';
     const counts = oracleService.getIncidentCounts();
+    if (triggerSync || force) {
+      oracleService.syncMissingOrStaleCounts(undefined, force);
+    }
     res.json({ success: true, counts });
   } catch (err) {
     res.status(500).json({ success: false, message: (err as Error).message });

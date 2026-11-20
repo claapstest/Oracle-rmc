@@ -197,8 +197,9 @@ export class IncidentCountCacheService {
     if (!entry || entry.status !== 'READY' || typeof entry.count !== 'number') {
       return false;
     }
-    // Database counts remain authoritative throughout the day until off-peak sync or forced refresh
-    return true;
+    const ttlMs = this.getTTLMinutes() * 60 * 1000;
+    const age = Date.now() - new Date(entry.updatedAt).getTime();
+    return age < ttlMs;
   }
 
   public getCount(controlId: string): CachedCountEntry | null {
@@ -350,13 +351,15 @@ export class IncidentCountCacheService {
   }
 
   /**
-   * Syncs missing or stale counts across a list of controls in the background.
-   * Uses throttled concurrency (2 concurrent requests) to avoid stressing Oracle.
+   * Syncs missing or stale counts across all or specific controls in the background from Oracle REST API.
+   * Uses throttled concurrency (3 concurrent requests) to avoid stressing Oracle.
    */
-  public syncMissingOrStaleCounts(controlIds: string[]): void {
-    const toSync = controlIds.filter(id => {
+  public syncMissingOrStaleCounts(controlIds?: string[], force = false): void {
+    const targetIds = controlIds && controlIds.length > 0 ? controlIds : Array.from(this.memoryCache.keys());
+    const toSync = targetIds.filter(id => {
       const cleanId = String(id).trim();
       const existing = this.memoryCache.get(cleanId);
+      if (force) return !this.inFlightFetches.has(cleanId);
       return !this.isFresh(existing) && !this.inFlightFetches.has(cleanId);
     });
 
@@ -369,19 +372,19 @@ export class IncidentCountCacheService {
     }
 
     if (!this.isSyncingQueue) {
-      this.processQueue();
+      this.processQueue(force);
     }
   }
 
-  private async processQueue() {
+  private async processQueue(force = false) {
     if (this.isSyncingQueue) return;
     this.isSyncingQueue = true;
 
     try {
       while (this.queue.length > 0) {
-        // Take a batch of 2
-        const batch = this.queue.splice(0, 2);
-        await Promise.allSettled(batch.map(id => this.fetchCount(id, false)));
+        // Take a batch of 3 concurrent requests
+        const batch = this.queue.splice(0, 3);
+        await Promise.allSettled(batch.map(id => this.fetchCount(id, force)));
         // Short pause between batches
         if (this.queue.length > 0) {
           await new Promise(resolve => setTimeout(resolve, 300));

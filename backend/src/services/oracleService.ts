@@ -4094,6 +4094,10 @@ class OracleService {
     return this.controlCatalogService.getIncidentCountCacheService().fetchCount(controlId, forceRefresh);
   }
 
+  syncMissingOrStaleCounts(controlIds?: string[], force = false) {
+    this.controlCatalogService.getIncidentCountCacheService().syncMissingOrStaleCounts(controlIds, force);
+  }
+
   getControlCatalogService(): ControlCatalogService {
     return this.controlCatalogService;
   }
