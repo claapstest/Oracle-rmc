@@ -423,21 +423,24 @@ export class ControlCatalogService {
           });
 
           if (s) {
-            const effTotal = Math.max(
-              Number(s.total_incidents) || 0,
-              (Number(s.assigned_incidents) || 0) + (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0)
-            );
-            const nonAssigned = (Number(s.accepted_incidents) || 0) + (Number(s.remediate_incidents) || 0) + (Number(s.resolved_incidents) || 0);
-            const assigned = (Number(s.assigned_incidents) > 0)
+            const cachedEntry = this.incidentCountCacheService.getCount(ctrl.id);
+            const oracleTotal = Math.max(Number(s.total_incidents) || 0, cachedEntry?.count || 0);
+            const accepted = Number(s.accepted_incidents) || 0;
+            const remediate = Number(s.remediate_incidents) || 0;
+            const resolved = Number(s.resolved_incidents) || 0;
+            const nonAssigned = accepted + remediate + resolved;
+            const breakdownSum = (Number(s.assigned_incidents) || 0) + nonAssigned;
+            const effTotal = Math.max(oracleTotal, breakdownSum);
+            const assigned = (Number(s.assigned_incidents) > 0 && breakdownSum >= effTotal)
               ? Number(s.assigned_incidents)
               : Math.max(0, effTotal - nonAssigned);
 
             ctrl.incidentCount = effTotal;
             ctrl.incidentBreakdown = {
               assigned,
-              accepted: Number(s.accepted_incidents) || 0,
-              remediate: Number(s.remediate_incidents) || 0,
-              resolved: Number(s.resolved_incidents) || 0,
+              accepted,
+              remediate,
+              resolved,
             };
 
             this.incidentCountCacheService.setCount(ctrl.id, ctrl.incidentCount, 'READY', ctrl.incidentBreakdown);
@@ -488,6 +491,36 @@ export class ControlCatalogService {
           return ctrl;
         });
 
+        // When forceRefresh, fetch authoritative incident counts directly from Oracle
+        if (forceRefresh) {
+          console.log(`[Control Catalog] forceRefresh=true — fetching live incident counts from Oracle for ${loadedControls.length} controls...`);
+          const BATCH_SIZE = 5;
+          for (let i = 0; i < loadedControls.length; i += BATCH_SIZE) {
+            const batch = loadedControls.slice(i, i + BATCH_SIZE);
+            const results = await Promise.allSettled(
+              batch.map(ctrl => this.incidentCountCacheService.fetchCount(ctrl.id, true))
+            );
+            for (let j = 0; j < batch.length; j++) {
+              const ctrl = batch[j];
+              const result = results[j];
+              if (result.status === 'fulfilled' && result.value.count !== null) {
+                const freshCount = result.value.count;
+                const prevCount = ctrl.incidentCount ?? 0;
+                if (freshCount !== prevCount) {
+                  ctrl.incidentCount = freshCount;
+                  if (ctrl.incidentBreakdown) {
+                    const breakdownSum = (ctrl.incidentBreakdown.assigned || 0) + (ctrl.incidentBreakdown.accepted || 0) + (ctrl.incidentBreakdown.remediate || 0) + (ctrl.incidentBreakdown.resolved || 0);
+                    if (freshCount > breakdownSum && breakdownSum > 0) {
+                      ctrl.incidentBreakdown.assigned = Math.max(0, freshCount - ((ctrl.incidentBreakdown.accepted || 0) + (ctrl.incidentBreakdown.remediate || 0) + (ctrl.incidentBreakdown.resolved || 0)));
+                    }
+                  }
+                  console.log(`[Control Catalog] Control ${ctrl.id}: updated count ${prevCount} → ${freshCount}`);
+                }
+              }
+            }
+          }
+        }
+
         this.indexControls(loadedControls);
         this.lastCatalogFetchTime = Date.now();
         this.lastRefreshedAt = new Date().toISOString();
@@ -499,7 +532,7 @@ export class ControlCatalogService {
 
         return {
           success: true,
-          dataSource: 'PostgreSQL Database',
+          dataSource: 'Live Oracle Fusion API',
           items: loadedControls,
           totalCount: loadedControls.length,
           lastRefreshed: this.lastRefreshedAt,
@@ -539,7 +572,7 @@ export class ControlCatalogService {
         const ctrl = this.normalizeControl(item);
 
         // Persist fresh control definition with current ACTIVE / INACTIVE status to PostgreSQL
-        controlRawDbService.saveRawControl(ctrl.id, item).catch(() => {});
+        controlRawDbService.saveRawControl(ctrl.id, item).catch(() => { });
 
         const cachedCount = this.incidentCountCacheService.getCount(ctrl.id);
 
@@ -675,7 +708,7 @@ export class ControlCatalogService {
             }
           };
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Live-instance-only: never populate sample/demo controls. Return empty live error.
       return {
@@ -819,7 +852,7 @@ export class ControlCatalogService {
               if (headerRaw) {
                 control = this.normalizeControl(headerRaw);
                 this.byId.set(control.id, control);
-                controlRawDbService.saveRawControl(cleanId, headerRaw).catch(() => {});
+                controlRawDbService.saveRawControl(cleanId, headerRaw).catch(() => { });
               }
             } catch (headErr: any) {
               console.warn(`[Control Catalog] Live header fetch failed for "${cleanId}":`, headErr.message);
@@ -861,9 +894,13 @@ export class ControlCatalogService {
         }
       }
 
-      // Only fetch live from Oracle if count is still missing and explicit forceRefresh was requested
-      if ((!countEntry || countEntry.count === null) && options.forceRefresh) {
-        this.incidentCountCacheService.fetchCount(cleanId, true).catch(() => {});
+      if (options.forceRefresh || !countEntry || countEntry.count === null) {
+        if (options.forceRefresh) {
+          try {
+            countEntry = await this.incidentCountCacheService.fetchCount(cleanId, true);
+            incidentCount = countEntry.count ?? incidentCount;
+          } catch (_) { }
+        }
       }
 
       const enrichedControl: AdvancedControlItem = {
@@ -1046,7 +1083,7 @@ export class ControlCatalogService {
               if (headerRaw) {
                 control = this.normalizeControl(headerRaw);
                 this.byId.set(control.id, control);
-                controlRawDbService.saveRawControl(cleanId, headerRaw).catch(() => {});
+                controlRawDbService.saveRawControl(cleanId, headerRaw).catch(() => { });
               }
             } catch (hErr: any) {
               console.warn(`[Control Incidents] Live header fetch failed for ${cleanId}:`, hErr.message);
@@ -1091,7 +1128,12 @@ export class ControlCatalogService {
           return inc;
         });
         const watermark = await controlRawDbService.getWatermark(cleanId);
-        const authoritativeTotal = Math.max(watermark?.total_incidents || 0, dbRes.fullSyncedTotal);
+        const cachedCount = this.incidentCountCacheService.getCount(cleanId);
+        const authoritativeTotal = Math.max(
+          watermark?.total_incidents || 0,
+          cachedCount?.count || 0,
+          dbRes.fullSyncedTotal || 0
+        );
 
         return {
           success: true,

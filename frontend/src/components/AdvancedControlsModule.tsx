@@ -64,13 +64,10 @@ export interface AdvancedControlRecord {
   type: string | number | null;
   lastRunDate: string | null;
   lastUpdateDate: string | null;
-  latestJobId: number | string | null;
   createdBy: string | null;
-  creationDate: string | null;
   status: string;
   state: string;
   lastUpdatedBy: string | null;
-  scheduledBy: string | null;
   incidentCount?: number;
   incidentBreakdown?: {
     assigned: number;
@@ -123,12 +120,11 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'statusId', label: 'Status ID', defaultVisible: false, minWidth: '95px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '110px' },
   { key: 'stateCode', label: 'State Code', defaultVisible: false, minWidth: '110px' },
-  { key: 'incidentCount', label: 'Incidents', defaultVisible: true, minWidth: '110px' },
+  { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '140px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
   { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
-  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '130px' },
-  { key: 'lastUpdatedBy', label: 'Updated By', defaultVisible: false, minWidth: '140px' },
+  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: false, minWidth: '140px' },
 ];
 
 interface IncidentColumnDef {
@@ -792,9 +788,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         const matchesId = ctrl.id && String(ctrl.id).toLowerCase().includes(q);
         const matchesName = ctrl.name && ctrl.name.toLowerCase().includes(q);
         const matchesDesc = ctrl.description && ctrl.description.toLowerCase().includes(q);
-        const matchesScheduled = ctrl.scheduledBy && ctrl.scheduledBy.toLowerCase().includes(q);
         const matchesCreated = ctrl.createdBy && ctrl.createdBy.toLowerCase().includes(q);
-        if (!matchesId && !matchesName && !matchesDesc && !matchesScheduled && !matchesCreated) {
+        if (!matchesId && !matchesName && !matchesDesc && !matchesCreated) {
           return false;
         }
       }
@@ -2071,16 +2066,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'type', label: 'Control Type', defaultSelected: true, getValue: c => formatControlTypeName(c.type) },
       { key: 'status', label: 'Status', defaultSelected: true, getValue: c => c.status || 'ACTIVE' },
       { key: 'state', label: 'State', defaultSelected: true, getValue: c => c.state || c.stateCode || 'APPROVED' },
-      { key: 'incidentCount', label: 'Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined && c.incidentCount !== null ? c.incidentCount : 'Not available') },
+      { key: 'incidentCount', label: 'Count of Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined && c.incidentCount !== null ? c.incidentCount : 'Not available') },
       { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: c => c.lastRunDate || '' },
       { key: 'lastUpdateDate', label: 'Last Updated Date', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
       { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
       { key: 'enforcementType', label: 'Priority', defaultSelected: false, getValue: c => c.enforcementType || '' },
-      { key: 'latestJobId', label: 'Job ID', defaultSelected: false, getValue: c => c.latestJobId || '' },
       { key: 'createdBy', label: 'Created By', defaultSelected: false, getValue: c => c.createdBy || '' },
-      { key: 'creationDate', label: 'Creation Date', defaultSelected: false, getValue: c => c.creationDate || '' },
-      { key: 'lastUpdatedBy', label: 'Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
-      { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: c => c.scheduledBy || '' },
+      { key: 'lastUpdatedBy', label: 'Last Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
     ];
   }, []);
 
@@ -2525,28 +2517,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Latest Job ID</span>
-                    <code style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedControlDetail.latestJobId)}</code>
-                  </div>
-
-                  <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Created By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.createdBy)}</span>
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Creation Date</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{formatOracleDate(selectedControlDetail.creationDate)}</span>
-                  </div>
-
-                  <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Scheduled By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.scheduledBy)}</span>
                   </div>
                 </div>
               </div>
@@ -3200,7 +3177,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 ? `Filtering incidents (Page ${incidentPage})...`
                                 : `Loading page ${incidentPage} (${incidentPageSize} rows)...`
                             }
-                            subtitle="Querying PostgreSQL synced incident store"
+                            subtitle="Loading incident records"
                           />
                         </div>
                       )}
@@ -4898,12 +4875,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   {visibleColumnKeys.has('incidentCount') && (
                     <th 
-                      style={{ width: '110px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      style={{ width: '140px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('incidentCount')}
-                      title="Sort by Incidents Count"
+                      title="Sort by Count of Incidents"
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span>Incidents</span>
+                        <span>Count of Incidents</span>
                         {sortField === 'incidentCount' ? (sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
                       </div>
                     </th>
@@ -4939,12 +4916,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Created By</th>
                   )}
 
-                  {visibleColumnKeys.has('creationDate') && (
-                    <th style={{ width: '130px', whiteSpace: 'nowrap' }}>Creation Date</th>
-                  )}
-
                   {visibleColumnKeys.has('lastUpdatedBy') && (
-                    <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Updated By</th>
+                    <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Last Updated By</th>
                   )}
 
                   <th style={{ width: '90px', whiteSpace: 'nowrap', textAlign: 'right' }}>Action</th>
@@ -5139,12 +5112,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         {visibleColumnKeys.has('createdBy') && (
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             {renderFieldVal(ctrl.createdBy)}
-                          </td>
-                        )}
-
-                        {visibleColumnKeys.has('creationDate') && (
-                          <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                            {formatOracleDate(ctrl.creationDate)}
                           </td>
                         )}
 

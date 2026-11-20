@@ -28,7 +28,7 @@ function getRolesCachePath(): string {
       try {
         const parsed = JSON.parse(fs.readFileSync(c, 'utf8'));
         if (parsed?.roles && parsed.roles.length > 1000) return c;
-      } catch (_) {}
+      } catch (_) { }
     }
   }
   for (const c of candidates) {
@@ -84,12 +84,12 @@ function normalizeAssignedRoles(rolesList: any[] | undefined, isDemo: boolean): 
   if (!rolesList) return [];
   const seenCodes = new Set<string>();
   const normalized: any[] = [];
-  
+
   rolesList.forEach((r: any) => {
     let code = '';
     let name = '';
     let isCustom = false;
-    
+
     if (typeof r === 'string') {
       const resolved = mockRoles.find(x => x.roleCode === r || x.displayName === r);
       code = resolved ? resolved.roleCode : r;
@@ -100,7 +100,7 @@ function normalizeAssignedRoles(rolesList: any[] | undefined, isDemo: boolean): 
       name = r.displayName || r.display || r.roleName || code || 'Unknown Role Name';
       isCustom = code.startsWith('CLAAPS_') || code.startsWith('CUSTOM_');
     }
-    
+
     if (code && !seenCodes.has(code)) {
       seenCodes.add(code);
       const category = classifyRoleRecord({ name: code, roleCode: code, displayName: name });
@@ -112,7 +112,7 @@ function normalizeAssignedRoles(rolesList: any[] | undefined, isDemo: boolean): 
       });
     }
   });
-  
+
   return normalized;
 }
 
@@ -373,7 +373,7 @@ class OracleService {
     this.triggerBackgroundCounting();
     if (this.isConfigured()) {
       setTimeout(() => {
-        this.testConnection().catch(() => {});
+        this.testConnection().catch(() => { });
       }, 1500);
     }
   }
@@ -674,7 +674,7 @@ class OracleService {
       if (fs.existsSync(trendFilePath)) {
         try {
           currentTrend = JSON.parse(fs.readFileSync(trendFilePath, 'utf-8'));
-        } catch (_) {}
+        } catch (_) { }
       }
       for (const log of logs) {
         const rawDate = (log.timestamp || '').split(' ')[0] || (log.timestamp || '').split('T')[0];
@@ -784,11 +784,11 @@ class OracleService {
 
   async syncAuthoritativeRoles(): Promise<{ success: boolean; totalRoles: number; counts: any; duration: string; source?: string }> {
     if (this.isCounting || this.isDemoMode()) {
-      return { 
-        success: true, 
-        totalRoles: this.authoritativeRoles.length, 
+      return {
+        success: true,
+        totalRoles: this.authoritativeRoles.length,
         counts: this.getCachedCounts(),
-        duration: '0s (already in progress or demo)' 
+        duration: '0s (already in progress or demo)'
       };
     }
     this.isCounting = true;
@@ -1164,8 +1164,8 @@ class OracleService {
       }
       if (filterText) {
         const term = filterText.toLowerCase();
-        list = list.filter(u => 
-          u.userName.toLowerCase().includes(term) || 
+        list = list.filter(u =>
+          u.userName.toLowerCase().includes(term) ||
           u.displayName.toLowerCase().includes(term) ||
           u.email.toLowerCase().includes(term)
         );
@@ -1217,8 +1217,8 @@ class OracleService {
               );
             }
 
-            const totalResults = filterText 
-              ? noRoleRows.length 
+            const totalResults = filterText
+              ? noRoleRows.length
               : (effectiveStatus === 'ACTIVE' ? activeNoRoles : (effectiveStatus === 'INACTIVE' ? inactiveNoRoles : totalNoRoles));
 
             const sliced = noRoleRows.slice(startIndex - 1, startIndex - 1 + count);
@@ -1546,8 +1546,8 @@ class OracleService {
     console.log(`[USER LOOKUP DEBUG] Normalized username: "${cleanUserId}"`);
 
     if (this.isDemoMode()) {
-      const u = mockUsers.find(x => 
-        x.userName.toLowerCase() === cleanUserId.toLowerCase() || 
+      const u = mockUsers.find(x =>
+        x.userName.toLowerCase() === cleanUserId.toLowerCase() ||
         x.displayName.toLowerCase() === cleanUserId.toLowerCase() ||
         x.id.toLowerCase() === cleanUserId.toLowerCase()
       );
@@ -1638,7 +1638,7 @@ class OracleService {
           const resources = scimResponse?.Resources || [];
           console.log(`[USER LOOKUP DEBUG] Raw API user count: ${resources.length}`);
           console.log(`[USER LOOKUP DEBUG] Returned usernames: ${JSON.stringify(resources.map((r: any) => r.userName))}`);
-          
+
           const normalizedTarget = cleanUserId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
           const localMatch = resources.find((r: any) => {
             const uName = (r.userName || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -1901,7 +1901,7 @@ class OracleService {
 
     // 1. In-memory resolution from authoritative roles (0ms, 6,972 roles)
     if (this.authoritativeRoles.length > 0) {
-      const found = this.authoritativeRoles.find(r => 
+      const found = this.authoritativeRoles.find(r =>
         (r.roleCode && r.roleCode.toLowerCase() === clean) ||
         (r.displayName && r.displayName.toLowerCase() === clean) ||
         (r.id && r.id.toLowerCase() === clean)
@@ -1916,7 +1916,7 @@ class OracleService {
 
     // 3. Demo mode check
     if (this.isDemoMode()) {
-      const found = mockRoles.find(r => 
+      const found = mockRoles.find(r =>
         (r.roleCode && r.roleCode.toLowerCase() === clean) ||
         (r.displayName && r.displayName.toLowerCase() === clean) ||
         (r.id && r.id.toLowerCase() === clean)
@@ -1961,11 +1961,11 @@ class OracleService {
   async getRoleMembers(roleNameOrCode: string): Promise<Array<{ id: string; userName: string; displayName: string; active: boolean }>> {
     if (!roleNameOrCode) return [];
     const clean = roleNameOrCode.trim().toLowerCase();
-    
+
     // Resolve canonical role from authoritativeRoles to handle both roleCode and displayName
-    const knownRole = this.authoritativeRoles.find(r => 
-      r.roleCode.toLowerCase() === clean || 
-      r.displayName.toLowerCase() === clean || 
+    const knownRole = this.authoritativeRoles.find(r =>
+      r.roleCode.toLowerCase() === clean ||
+      r.displayName.toLowerCase() === clean ||
       r.id.toLowerCase() === clean
     );
 
@@ -1974,20 +1974,20 @@ class OracleService {
 
     // Check cache under canonical name or code
     const cached = this.getFromCache<Array<{ id: string; userName: string; displayName: string; active: boolean }>>(`role_members:${canonicalName.toLowerCase()}`) ||
-                   this.getFromCache<Array<{ id: string; userName: string; displayName: string; active: boolean }>>(`role_members:${canonicalCode.toLowerCase()}`);
+      this.getFromCache<Array<{ id: string; userName: string; displayName: string; active: boolean }>>(`role_members:${canonicalCode.toLowerCase()}`);
     if (cached && cached.length > 0) {
       return cached;
     }
 
     if (this.isDemoMode()) {
-      const role = mockRoles.find(r => 
-        r.displayName.toLowerCase() === clean || 
+      const role = mockRoles.find(r =>
+        r.displayName.toLowerCase() === clean ||
         r.roleCode.toLowerCase() === clean ||
         r.displayName.toLowerCase() === canonicalName.toLowerCase() ||
         r.roleCode.toLowerCase() === canonicalCode.toLowerCase()
       );
       if (!role) return [];
-      
+
       const memberIds = role.members.map(m => m.value);
       const members = mockUsers
         .filter(u => memberIds.includes(u.id) || (u.assignedRoles && u.assignedRoles.some(ar => ar.toLowerCase() === role.displayName.toLowerCase() || ar.toLowerCase() === role.roleCode.toLowerCase())))
@@ -2078,7 +2078,7 @@ class OracleService {
                 });
               }
             }
-          } catch (_) {}
+          } catch (_) { }
         }
         members = Array.from(parentMemberMap.values());
       }
@@ -2104,9 +2104,9 @@ class OracleService {
     }
 
     const clean = roleName.trim().toLowerCase();
-    const knownRole = this.authoritativeRoles.find(r => 
-      r.roleCode.toLowerCase() === clean || 
-      r.displayName.toLowerCase() === clean || 
+    const knownRole = this.authoritativeRoles.find(r =>
+      r.roleCode.toLowerCase() === clean ||
+      r.displayName.toLowerCase() === clean ||
       r.id.toLowerCase() === clean
     );
 
@@ -2792,7 +2792,7 @@ class OracleService {
     if (this.isDemoMode()) {
       const role = mockRoles.find(r => r.displayName.toLowerCase() === roleName.toLowerCase() || r.roleCode.toLowerCase() === roleName.toLowerCase());
       if (!role) return { success: false, message: 'Role not found' };
-      
+
       const resolveChildren = (code: string): any => {
         const found = mockRoles.find(r => r.roleCode === code);
         if (!found) return { name: code, category: 'Unknown' };
@@ -2931,8 +2931,8 @@ class OracleService {
   async getPrivilegesForRole(roleName: string) {
     if (this.isDemoMode()) {
       const term = roleName.toLowerCase();
-      const matches = mockRoles.filter(r => 
-        r.displayName.toLowerCase().includes(term) || 
+      const matches = mockRoles.filter(r =>
+        r.displayName.toLowerCase().includes(term) ||
         r.roleCode.toLowerCase().includes(term)
       );
 
@@ -2975,8 +2975,8 @@ class OracleService {
           message: `Mock Security Briefing generated for ${role.displayName}.`
         };
       } else {
-        const exactMatch = matches.find(r => 
-          r.displayName.toLowerCase() === term || 
+        const exactMatch = matches.find(r =>
+          r.displayName.toLowerCase() === term ||
           r.roleCode.toLowerCase() === term
         );
         if (exactMatch) {
@@ -3106,7 +3106,7 @@ class OracleService {
 
     // Fast In-Memory Resolution from Authoritative Dataset (6,972 roles)
     if (this.authoritativeRoles.length > 0) {
-      const authMatch = this.authoritativeRoles.find((r: any) => 
+      const authMatch = this.authoritativeRoles.find((r: any) =>
         (r.displayName || '').trim().toLowerCase() === normInput ||
         (r.roleCode || '').trim().toLowerCase() === normInput
       );
@@ -3145,8 +3145,8 @@ class OracleService {
         try {
           const scimRes = await this.client.getRoles({ filter: `displayName co "${roleName}"`, count: 50 });
           const list = scimRes?.Resources || [];
-          
-          const localMatches = list.filter((r: any) => 
+
+          const localMatches = list.filter((r: any) =>
             (r.displayName || '').trim().toLowerCase() === normInput ||
             (r.name || '').trim().toLowerCase() === normInput
           );
@@ -3164,7 +3164,7 @@ class OracleService {
           const scimRes = await this.client.getRoles({ filter: `displayName co "${roleName}"`, count: 50 });
           const list = scimRes?.Resources || [];
 
-          const partialMatches = list.filter((r: any) => 
+          const partialMatches = list.filter((r: any) =>
             (r.displayName || '').trim().toLowerCase().includes(normInput) ||
             (r.name || '').trim().toLowerCase().includes(normInput)
           );
@@ -3235,7 +3235,7 @@ class OracleService {
         category = classifyRoleRecord(resolvedRole);
         console.log(`[Role Resolution] Successfully resolved "${roleName}" to technical code "${roleCode}"`);
       } else {
-        const exactMatch = matches.find((r: any) => 
+        const exactMatch = matches.find((r: any) =>
           (r.displayName || '').trim().toLowerCase() === roleName.trim().toLowerCase() ||
           (r.name || '').trim().toLowerCase() === roleName.trim().toLowerCase()
         );
@@ -3279,7 +3279,7 @@ class OracleService {
       console.log('[Role Briefing Response]', JSON.stringify(briefingRes, null, 2));
 
       const result = briefingRes?.result;
-      
+
       const tParseStart = Date.now();
       let privilegesList: any[] = [];
       const completeListText = result?.["Complete list of privileges"] || '';
@@ -3339,7 +3339,7 @@ class OracleService {
             description: p.description || descMap.get(String(p.code || '').toUpperCase()) || ''
           }));
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const responsePayload = {
         success: true,
@@ -3399,7 +3399,7 @@ class OracleService {
             inheritedFrom: displayName || roleName
           }));
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Return a graceful payload with core role information so the workspace never breaks
       return {
@@ -3504,27 +3504,17 @@ class OracleService {
         }
       }
       const sumBd = assigned + accepted + remediate + resolved;
-      let sAssigned = assigned;
-      let sAccepted = accepted;
-      let sRemediate = remediate;
-      let sResolved = resolved;
-      if (total > 0 && sumBd !== total) {
-        if (sumBd === 0) {
-          sAssigned = total;
-        } else {
-          sAssigned = Math.round((assigned / sumBd) * total);
-          sAccepted = Math.round((accepted / sumBd) * total);
-          sRemediate = Math.round((remediate / sumBd) * total);
-          sResolved = Math.max(0, total - (sAssigned + sAccepted + sRemediate));
-        }
-      }
+      const authoritativeTotal = Math.max(total, sumBd);
+      const effectiveAssigned = authoritativeTotal > sumBd
+        ? Math.max(0, authoritativeTotal - (accepted + remediate + resolved))
+        : assigned;
       return {
-        total,
-        assigned: sAssigned,
-        inRemediation: sRemediate,
-        openOrActive: sAssigned + sRemediate,
-        accepted: sAccepted,
-        closedOrResolved: sResolved,
+        total: authoritativeTotal,
+        assigned: effectiveAssigned,
+        inRemediation: remediate,
+        openOrActive: effectiveAssigned + remediate,
+        accepted,
+        closedOrResolved: resolved,
         status: 'READY'
       };
     };
@@ -4062,7 +4052,7 @@ class OracleService {
   getIncidentCounts() {
     const rawCounts = this.controlCatalogService.getIncidentCountCacheService().getAllCounts();
     const incidentCacheService = this.controlCatalogService.getIncidentCacheService();
-    
+
     for (const [id, entry] of Object.entries(rawCounts)) {
       if (entry && typeof entry.count === 'number' && entry.assigned === undefined) {
         const cachedInc = incidentCacheService.readCache(id);

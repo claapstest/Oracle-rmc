@@ -1345,7 +1345,6 @@ export default function Reports({
         (ctrl.controlId && String(ctrl.controlId).toLowerCase().includes(q)) ||
         (ctrl.controlName && ctrl.controlName.toLowerCase().includes(q)) ||
         (ctrl.description && ctrl.description.toLowerCase().includes(q)) ||
-        (ctrl.scheduledBy && ctrl.scheduledBy.toLowerCase().includes(q)) ||
         (ctrl.controlTypeCode && String(ctrl.controlTypeCode).includes(q));
 
       const matchesStatus = controlsStatusFilter === 'ALL' ||
@@ -1692,7 +1691,7 @@ export default function Reports({
                 onClick={() => loadControlsSummary(true)}
                 disabled={controlsLoading}
                 style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-                title="Refresh control summary report from PostgreSQL database"
+                title="Refresh control summary report"
               >
                 <RefreshCw size={13} className={controlsLoading ? 'animate-spin' : ''} />
                 <span>{controlsLoading ? 'Refreshing...' : 'Refresh'}</span>
@@ -1726,7 +1725,6 @@ export default function Reports({
                   { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount ?? 0 },
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
-                  { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: (c: any) => c.scheduledBy || '—' },
                   { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
@@ -1742,7 +1740,7 @@ export default function Reports({
                 filename={`${incidentsDomain.toLowerCase()}_control_${selectedIncidentsControlId}_incidents_detailed`}
                 sheetName={incidentsDomain === 'TRANSACTION' ? 'Transaction Incidents' : 'Access Incidents'}
                 reportTitle={`Advanced ${incidentsDomain === 'TRANSACTION' ? 'Transaction' : 'Access'} Control ${selectedIncidentsControlId} Incident Detailed Audit`}
-                dataSource="PostgreSQL Continuous Monitoring Repository"
+                dataSource="Oracle Fusion Risk Management Cloud"
                 entityName="Incidents"
                 buttonText="Export Excel"
                 currentPageData={paginatedSlice}
@@ -2017,7 +2015,7 @@ export default function Reports({
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Search by Control ID, Name, Scheduled By, or Type..."
+                  placeholder="Search by Control ID, Name, or Type..."
                   value={controlsSearch}
                   onChange={(e) => { setControlsSearch(e.target.value); setCurrentPage(1); }}
                   style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
@@ -2893,21 +2891,20 @@ export default function Reports({
                     <th style={{ width: '100px', textAlign: 'right' }}>Accepted</th>
                     <th style={{ width: '120px', textAlign: 'right' }}>Closed / Resolved</th>
                     <th style={{ width: '140px' }}>Last Run Date</th>
-                    <th style={{ width: '130px' }}>Scheduled By</th>
                   </tr>
                 </thead>
                 <tbody>
                   {controlsLoading ? (
                     <TableLoadingState
-                      title="Loading Controls Summary from PostgreSQL Database..."
+                      title="Loading Controls Summary..."
                       subtitle="Reading synced enterprise controls, scheduled jobs, and incident exposure"
-                      colSpan={11}
+                      colSpan={10}
                       skeletonRows={5}
                       minHeight="280px"
                     />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={11} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
                           <Shield size={24} />
                         </div>
@@ -3058,10 +3055,6 @@ export default function Reports({
                             {formatOracleDate(ctrl.lastRunDate)}
                           </td>
 
-                          {/* 11. Scheduled By */}
-                          <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                            {ctrl.scheduledBy || '—'}
-                          </td>
                         </tr>
                       );
                     })

@@ -3478,6 +3478,20 @@ apiRouter.post('/admin/locks/recover-stale', requireAdmin, sensitiveAdminRateLim
   }
 });
 
+// POST /api/admin/locks/force-release - Force-release a stuck distributed lock by key (Admin only)
+apiRouter.post('/admin/locks/force-release', requireAdmin, sensitiveAdminRateLimiter, async (req: Request, res: Response) => {
+  const adminUser = res.locals.email || 'SITE_ADMIN';
+  const lockKey = req.body?.lockKey || '__GLOBAL__:full';
+  try {
+    const released = await distributedLockService.releaseLock(lockKey);
+    oracleSyncService.releaseLock(true);
+    logAudit(adminUser, 'LOCK_FORCE_RELEASED', `Admin force-released distributed lock: ${lockKey}`);
+    res.json({ success: true, message: `Lock "${lockKey}" force-released.`, released });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: `Failed to force-release lock: ${err.message}` });
+  }
+});
+
 // =========================================================
 // Sync Checkpoints, Watermarks & Quarantine Endpoints (Admin Only, VYR-044)
 // =========================================================

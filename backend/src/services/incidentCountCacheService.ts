@@ -35,7 +35,7 @@ export class IncidentCountCacheService {
     this.client = client;
     this.ensureCacheDir();
     this.loadFromDisk();
-    this.loadFromDb().catch(() => {});
+    this.loadFromDb().catch(() => { });
   }
 
   public recreateClient(client: OracleFusionClient) {
@@ -43,7 +43,17 @@ export class IncidentCountCacheService {
     this.inFlightFetches.clear();
     this.memoryCache.clear();
     this.loadFromDisk();
-    this.loadFromDb().catch(() => {});
+    this.loadFromDb().catch(() => { });
+  }
+
+  private getHost(): string {
+    const rawUrl = (process.env.FUSION_HOST || config.oracle.baseUrl || 'eiiv-dev14.fa.us6.oraclecloud.com').trim().toLowerCase();
+    try {
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        return new URL(rawUrl).host;
+      }
+    } catch (_) { }
+    return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
   /**
@@ -52,6 +62,7 @@ export class IncidentCountCacheService {
    */
   public async loadFromDb(): Promise<void> {
     try {
+      const host = this.getHost();
       const res = await query<{
         control_id: string;
         total_incidents: number;
@@ -74,17 +85,29 @@ export class IncidentCountCacheService {
            COALESCE(resolved_incidents, 0) AS resolved_incidents,
            last_synced_at
          FROM oracle_control_incidents
-         WHERE total_incidents IS NOT NULL`
+         WHERE (environment_host = $1 OR environment_host = 'eiiv-dev14.fa.us6.oraclecloud.com') AND total_incidents IS NOT NULL
+         ORDER BY (CASE WHEN environment_host = $1 THEN 0 ELSE 1 END)`,
+        [host]
       );
 
       if (res.rows.length > 0) {
         for (const r of res.rows) {
           const cleanId = String(r.control_id).trim();
-          const tot = Number(r.total_incidents || 0);
-          const nonAssigned = (Number(r.accepted_incidents) || 0) + (Number(r.remediate_incidents) || 0) + (Number(r.resolved_incidents) || 0);
-          const assigned = (Number(r.assigned_incidents) > 0)
+          const accepted = Number(r.accepted_incidents) || 0;
+          const remediate = Number(r.remediate_incidents) || 0;
+          const resolved = Number(r.resolved_incidents) || 0;
+          const nonAssigned = accepted + remediate + resolved;
+          const dbTotal = Number(r.total_incidents) || 0;
+          const assigned = (Number(r.assigned_incidents) > 0 && (Number(r.assigned_incidents) + nonAssigned >= dbTotal))
             ? Number(r.assigned_incidents)
-            : Math.max(0, tot - nonAssigned);
+            : Math.max(0, dbTotal - nonAssigned);
+          const tot = Math.max(dbTotal, assigned + nonAssigned);
+
+          // Never regress if memory cache already holds a higher authoritative live count
+          const existing = this.memoryCache.get(cleanId);
+          if (existing && typeof existing.count === 'number' && existing.count > tot) {
+            continue;
+          }
 
           this.memoryCache.set(cleanId, {
             controlId: cleanId,
@@ -92,9 +115,9 @@ export class IncidentCountCacheService {
             status: 'READY',
             updatedAt: r.last_synced_at ? new Date(r.last_synced_at).toISOString() : new Date().toISOString(),
             assigned,
-            accepted: Number(r.accepted_incidents) || 0,
-            remediate: Number(r.remediate_incidents) || 0,
-            resolved: Number(r.resolved_incidents) || 0,
+            accepted,
+            remediate,
+            resolved,
           });
         }
         console.log(`[IncidentCountCache] Seeded ${this.memoryCache.size} control incident counts and breakdowns directly from PostgreSQL.`);
@@ -166,7 +189,7 @@ export class IncidentCountCacheService {
       console.error('[IncidentCountCache] Atomic cache save failed:', err.message);
       try {
         if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
@@ -249,19 +272,57 @@ export class IncidentCountCacheService {
         }
 
         if (totalResults !== null && !isNaN(totalResults)) {
+          const accepted = existing?.accepted ?? 0;
+          const remediate = existing?.remediate ?? 0;
+          const resolved = existing?.resolved ?? 0;
+          const nonAssigned = accepted + remediate + resolved;
+          const assigned = Math.max(0, totalResults - nonAssigned);
+
           const readyEntry: CachedCountEntry = {
             controlId: cleanId,
             count: totalResults,
             status: 'READY',
             updatedAt: new Date().toISOString(),
-            assigned: existing?.assigned,
-            accepted: existing?.accepted,
-            remediate: existing?.remediate,
-            resolved: existing?.resolved,
+            assigned,
+            accepted,
+            remediate,
+            resolved,
           };
           this.memoryCache.set(cleanId, readyEntry);
           this.saveToDisk();
           console.log(`[IncidentCountCache] Control "${cleanId}" count updated: ${totalResults}`);
+
+          // Persist authoritative count to PostgreSQL so DB queries and restarts retain it
+          try {
+            const host = this.getHost();
+            await query(
+              `INSERT INTO oracle_control_incidents (
+                environment_host,
+                control_id,
+                total_incidents,
+                assigned_incidents,
+                accepted_incidents,
+                remediate_incidents,
+                resolved_incidents,
+                sync_status,
+                updated_at
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, 'READY', NOW())
+              ON CONFLICT (environment_host, control_id)
+              DO UPDATE SET
+                total_incidents = GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0)),
+                assigned_incidents = CASE
+                  WHEN (COALESCE(oracle_control_incidents.accepted_incidents, 0) + COALESCE(oracle_control_incidents.remediate_incidents, 0) + COALESCE(oracle_control_incidents.resolved_incidents, 0)) > 0
+                  THEN GREATEST(0, GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0)) - COALESCE(oracle_control_incidents.accepted_incidents, 0) - COALESCE(oracle_control_incidents.remediate_incidents, 0) - COALESCE(oracle_control_incidents.resolved_incidents, 0))
+                  ELSE GREATEST(EXCLUDED.total_incidents, COALESCE(oracle_control_incidents.total_incidents, 0))
+                END,
+                updated_at = NOW()`,
+              [host, cleanId, totalResults, assigned, accepted, remediate, resolved]
+            );
+          } catch (dbErr: any) {
+            console.warn(`[IncidentCountCache] Failed to persist count to DB for ${cleanId}:`, dbErr.message);
+          }
+
           return readyEntry;
         } else {
           throw new Error('Oracle response did not contain a valid totalResults integer.');
