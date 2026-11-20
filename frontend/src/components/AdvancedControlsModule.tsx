@@ -120,15 +120,12 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '95px' },
   { key: 'type', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
-  { key: 'statusId', label: 'Status ID', defaultVisible: false, minWidth: '95px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '110px' },
-  { key: 'stateCode', label: 'State Code', defaultVisible: false, minWidth: '110px' },
-  { key: 'incidentCount', label: 'Incidents', defaultVisible: true, minWidth: '110px' },
+  { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '130px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
   { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
-  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '130px' },
-  { key: 'lastUpdatedBy', label: 'Updated By', defaultVisible: false, minWidth: '140px' },
+  { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: false, minWidth: '140px' },
 ];
 
 interface IncidentColumnDef {
@@ -2071,16 +2068,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'type', label: 'Control Type', defaultSelected: true, getValue: c => formatControlTypeName(c.type) },
       { key: 'status', label: 'Status', defaultSelected: true, getValue: c => c.status || 'ACTIVE' },
       { key: 'state', label: 'State', defaultSelected: true, getValue: c => c.state || c.stateCode || 'APPROVED' },
-      { key: 'incidentCount', label: 'Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined && c.incidentCount !== null ? c.incidentCount : 'Not available') },
+      { key: 'incidentCount', label: 'Count of Incidents', defaultSelected: true, getValue: c => (c.incidentCount !== undefined && c.incidentCount !== null ? c.incidentCount : 'Not available') },
       { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: c => c.lastRunDate || '' },
       { key: 'lastUpdateDate', label: 'Last Updated Date', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
       { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
       { key: 'enforcementType', label: 'Priority', defaultSelected: false, getValue: c => c.enforcementType || '' },
-      { key: 'latestJobId', label: 'Job ID', defaultSelected: false, getValue: c => c.latestJobId || '' },
       { key: 'createdBy', label: 'Created By', defaultSelected: false, getValue: c => c.createdBy || '' },
-      { key: 'creationDate', label: 'Creation Date', defaultSelected: false, getValue: c => c.creationDate || '' },
-      { key: 'lastUpdatedBy', label: 'Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
-      { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: c => c.scheduledBy || '' },
+      { key: 'lastUpdatedBy', label: 'Last Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
     ];
   }, []);
 
@@ -2525,28 +2519,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Latest Job ID</span>
-                    <code style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedControlDetail.latestJobId)}</code>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Created By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.createdBy)}</span>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Creation Date</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{formatOracleDate(selectedControlDetail.creationDate)}</span>
-                  </div>
-
-                  <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Scheduled By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.scheduledBy)}</span>
                   </div>
                 </div>
               </div>
@@ -2588,33 +2562,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         '0 incidents'
                       )}
                     </span>
-                    {isTxControl ? (
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                          color: '#34D399',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          fontWeight: 600
-                        }}
-                      >
-                        Transaction Control Schema
-                      </span>
-                    ) : (
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(139, 92, 246, 0.12)',
-                          color: '#A78BFA',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
-                          fontWeight: 600
-                        }}
-                      >
-                        Access Control Schema
-                      </span>
-                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -2896,18 +2843,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                             <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
                               Incident Status Distribution
                             </h4>
-                            <span 
-                              className="badge" 
-                              style={{ 
-                                fontSize: '0.72rem', 
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)', 
-                                color: '#3B82F6', 
-                                border: '1px solid rgba(59, 130, 246, 0.25)',
-                                fontWeight: 600
-                              }}
-                            >
-                              Oracle Lifecycle
-                            </span>
                           </div>
                           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                             Continuous monitoring breakdown across the 4 standard Oracle incident lifecycle statuses. Click any status to filter the table.
@@ -4219,18 +4154,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
                       {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Incident Status
                     </h4>
-                    <span 
-                      className="badge" 
-                      style={{ 
-                        fontSize: '0.72rem', 
-                        backgroundColor: activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                        color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981', 
-                        border: `1px solid ${activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
-                        fontWeight: 600
-                      }}
-                    >
-                      Oracle Lifecycle
-                    </span>
                   </div>
                   <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
                     Continuous monitoring breakdown across 4 standard lifecycle statuses.
