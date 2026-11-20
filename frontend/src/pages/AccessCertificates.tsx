@@ -211,9 +211,9 @@ export default function AccessCertificates({
     } catch (err: any) {
       console.error('[AccessCertificates UI] Error loading drill-down:', err);
       const errMsg =
-        err?.response?.data?.message || err?.message || 'Unable to retrieve Access Certification details.';
+        err?.data?.message || err?.response?.data?.message || err?.message || 'Unable to retrieve Access Certification details.';
       setDetailsError(errMsg);
-      setIsConfigError(!!err?.response?.data?.isConfigurationError);
+      setIsConfigError(!!err?.data?.isConfigurationError || !!err?.response?.data?.isConfigurationError);
     } finally {
       setLoadingDetails(false);
     }
