@@ -859,7 +859,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   // Helper field fallback
   const renderFieldVal = (val: any) => {
     if (val === null || val === undefined || val === '') {
-      return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>;
+      return <span style={{ color: 'var(--text-muted)' }}>None</span>;
     }
     return String(val);
   };
