@@ -534,7 +534,7 @@ export default function Users({
                 <th>Business Unit</th>
                 <th>Location</th>
                 <th>Manager</th>
-                <th>Action</th>
+                <th style={{ position: 'sticky', right: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 2, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -577,20 +577,17 @@ export default function Users({
                     <td>{user.businessUnit || '—'}</td>
                     <td>{user.location || '—'}</td>
                     <td>{user.manager || '—'}</td>
-                    <td>
-                      <button 
+                    <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--bg-primary)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)' }}>
+                      <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           if (onInvestigateUser) {
                             onInvestigateUser(user.userName, user.displayName);
-                          } else {
-                            setSelectedUser(user);
                           }
                         }}
-                        className="btn btn-secondary" 
-                        style={{ 
-                          padding: '0.2rem 0.5rem', 
+                        className="btn btn-secondary"
+                        style={{
+                          padding: '0.2rem 0.5rem',
                           fontSize: '0.72rem',
                           display: 'inline-flex',
                           alignItems: 'center',
