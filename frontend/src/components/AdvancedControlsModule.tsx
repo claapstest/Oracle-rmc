@@ -2391,47 +2391,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.75rem' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                      <span className="badge badge-gold" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-                        Control ID: {selectedControlDetail.id}
-                      </span>
-                      
-                      {/* Product-level Type Label */}
-                      <span 
-                        className="badge" 
-                        style={{ 
-                          fontSize: '0.75rem', 
-                          fontWeight: 700, 
-                          backgroundColor: isAccessControl(selectedControlDetail.type) ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)', 
-                          color: isAccessControl(selectedControlDetail.type) ? '#3B82F6' : '#10B981',
-                          border: isAccessControl(selectedControlDetail.type) ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)'
-                        }}
-                      >
-                        {formatControlTypeName(selectedControlDetail.type)}
-                      </span>
-
-                      {/* Secondary Technical Oracle Code Badge */}
-                      <span 
-                        className="badge" 
-                        style={{ 
-                          fontSize: '0.72rem', 
-                          backgroundColor: 'var(--bg-tertiary)', 
-                          color: 'var(--text-muted)',
-                          border: '1px solid var(--border-color)'
-                        }}
-                        title="Oracle Fusion internal numeric type code"
-                      >
-                        {formatSecondaryTypeBadge(selectedControlDetail.type)}
-                      </span>
-
-                      <span className={`badge ${selectedControlDetail.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`} style={{ fontSize: '0.75rem' }}>
-                        {selectedControlDetail.status || 'Status N/A'}
-                      </span>
-                      <span className="badge badge-gold" style={{ fontSize: '0.75rem' }}>
-                        State: {selectedControlDetail.state || selectedControlDetail.stateCode || 'APPROVED'}
-                      </span>
-                    </div>
-
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-header)', color: 'var(--text-primary)', margin: 0 }}>
                       {selectedControlDetail.name}
                     </h2>
