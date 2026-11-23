@@ -1727,7 +1727,6 @@ export default function Reports({
                   { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount ?? 0 },
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
-                  { key: 'scheduledBy', label: 'Last Run By', defaultSelected: true, getValue: (c: any) => c.scheduledBy || '—' },
                   { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
@@ -2895,7 +2894,6 @@ export default function Reports({
                     <th style={{ width: '100px', textAlign: 'right' }}>Accepted</th>
                     <th style={{ width: '120px', textAlign: 'right' }}>Closed / Resolved</th>
                     <th style={{ width: '140px' }}>Last Run Date</th>
-                    <th style={{ width: '130px' }}>Last Run By</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2903,13 +2901,13 @@ export default function Reports({
                     <TableLoadingState
                       title="Loading Controls Summary from PostgreSQL Database..."
                       subtitle="Reading synced enterprise controls, scheduled jobs, and incident exposure"
-                      colSpan={12}
+                      colSpan={11}
                       skeletonRows={5}
                       minHeight="280px"
                     />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={12} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                      <td colSpan={11} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
                           <Shield size={24} />
                         </div>
@@ -3069,11 +3067,6 @@ export default function Reports({
                           {/* 10. Last Run Date */}
                           <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             {formatOracleDate(ctrl.lastRunDate)}
-                          </td>
-
-                          {/* 11. Last Run By */}
-                          <td style={{ fontSize: '0.82rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                            {ctrl.scheduledBy || <span style={{ color: 'var(--text-muted)' }}>—</span>}
                           </td>
 
                         </tr>
