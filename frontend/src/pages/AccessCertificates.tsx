@@ -429,23 +429,6 @@ export default function AccessCertificates({
               <FileSpreadsheet size={30} style={{ color: '#ffffff' }} />
             </div>
             <div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  marginBottom: '0.25rem'
-                }}
-              >
-                <span>Access Certification Drill-Down</span>
-                <span>•</span>
-                <span>ID: {drillDownCertId}</span>
-              </div>
               <h1
                 style={{
                   fontSize: '1.75rem',
@@ -458,9 +441,6 @@ export default function AccessCertificates({
               >
                 {certName}
               </h1>
-              <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.92rem', margin: '0.35rem 0 0 0' }}>
-                Oracle Fusion BI Publisher Certifier Worksheet &amp; User Access Details
-              </p>
             </div>
           </div>
 
@@ -601,14 +581,6 @@ export default function AccessCertificates({
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
-              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
-                Certification ID
-              </span>
-              <div style={{ fontSize: '1.02rem', fontWeight: 700, color: '#2563EB', marginTop: '0.35rem' }}>
-                {drillDownCertId}
-              </div>
-            </div>
 
             <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
               <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
@@ -710,9 +682,6 @@ export default function AccessCertificates({
                   Certifier Worksheet / User Access Details
                 </h3>
               </div>
-              <p style={{ color: '#64748B', fontSize: '0.84rem', margin: '0.25rem 0 0 0' }}>
-                User access privileges and direct manager assignments belonging to this certification.
-              </p>
             </div>
 
             {/* Right Search and Actions */}
@@ -1003,42 +972,11 @@ export default function AccessCertificates({
                 color: '#ffffff'
               }}
             >
-              Access Certificates
+              Access Certification
             </h1>
-            <p style={{ color: 'rgba(255, 255, 255, 0.88)', fontSize: '0.94rem', margin: '0.35rem 0 0 0' }}>
-              Oracle Fusion BI Publisher report execution for live Access Certification records.
-            </p>
           </div>
         </div>
 
-        {/* Right Badges in Banner */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', position: 'relative', zIndex: 2 }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.45rem 1rem',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              borderRadius: '9999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.16)',
-              border: '1px solid rgba(255, 255, 255, 0.28)',
-              color: '#ffffff'
-            }}
-          >
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: '#10B981',
-                boxShadow: '0 0 8px #10B981'
-              }}
-            />
-            <span>Live Oracle Fusion BIP</span>
-          </div>
-        </div>
       </div>
 
 

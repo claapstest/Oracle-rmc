@@ -42,6 +42,10 @@ export interface ControlSummaryItem {
   totalIncidentCount: number | null;
   /** Count of incidents in Assigned or In Remediation status */
   assignedOrInRemediationCount: number | null;
+  /** Count of incidents in Assigned status */
+  assignedCount: number | null;
+  /** Count of incidents in Remediation status */
+  remediateCount: number | null;
   /** Count of incidents accepted by business risk owner */
   acceptedCount: number | null;
   /** Count of closed or resolved incidents */
@@ -183,10 +187,13 @@ export class ControlSummaryService {
   public calculateCategoryCountsFromIncidents(incidents: ControlIncidentItem[]): {
     total: number;
     assignedOrInRemediation: number;
+    assigned: number;
+    remediate: number;
     accepted: number;
     closedOrResolved: number;
   } {
-    let assignedOrInRemediation = 0;
+    let assigned = 0;
+    let remediate = 0;
     let accepted = 0;
     let closedOrResolved = 0;
 
@@ -195,26 +202,22 @@ export class ControlSummaryService {
       const state = (inc.state || '').toUpperCase();
       const isClosed = inc.closedDate !== null && inc.closedDate !== undefined;
 
-      // Closed or Resolved
       if (status === 'CLOSED' || status === 'RESOLVED' || state === 'CLOSED' || isClosed) {
         closedOrResolved++;
-      }
-      // Accepted
-      else if (state === 'ACCEPTED' || status === 'ACCEPTED') {
+      } else if (state === 'ACCEPTED' || status === 'ACCEPTED') {
         accepted++;
-      }
-      // Assigned or In Remediation (verified live status: "ASSIGNED", state: "IN_INVESTIGATION")
-      else if (status === 'ASSIGNED' || status === 'IN_REMEDIATION' || status === 'NEW' || state === 'IN_INVESTIGATION') {
-        assignedOrInRemediation++;
+      } else if (status === 'IN_REMEDIATION' || status.includes('REMEDIAT') || state.includes('REMEDIAT')) {
+        remediate++;
       } else {
-        // Default unassigned or unclassified open incidents count toward active remediation
-        assignedOrInRemediation++;
+        assigned++;
       }
     }
 
     return {
       total: incidents.length,
-      assignedOrInRemediation,
+      assignedOrInRemediation: assigned + remediate,
+      assigned,
+      remediate,
       accepted,
       closedOrResolved
     };
@@ -326,6 +329,8 @@ export class ControlSummaryService {
 
       let totalIncidentCount: number | null = null;
       let assignedOrInRemediationCount: number | null = null;
+      let assignedCount: number | null = null;
+      let remediateCount: number | null = null;
       let acceptedCount: number | null = null;
       let closedOrResolvedCount: number | null = null;
       let countsStatus: 'READY' | 'PARTIAL' | 'CALCULATING' | 'NOT_STARTED' | 'ERROR' = 'NOT_STARTED';
@@ -356,6 +361,8 @@ export class ControlSummaryService {
         const breakdownTotal = assigned + remediate + accepted + resolved;
 
         assignedOrInRemediationCount = assigned + remediate;
+        assignedCount = assigned;
+        remediateCount = remediate;
         acceptedCount = accepted;
         closedOrResolvedCount = resolved;
         totalIncidentCount = (ctrl.incidentCount !== undefined && !isNaN(ctrl.incidentCount))
@@ -370,6 +377,8 @@ export class ControlSummaryService {
         const cats = this.calculateCategoryCountsFromIncidents(fullCache.incidents);
         totalIncidentCount = cats.total;
         assignedOrInRemediationCount = cats.assignedOrInRemediation;
+        assignedCount = cats.assigned;
+        remediateCount = cats.remediate;
         acceptedCount = cats.accepted;
         closedOrResolvedCount = cats.closedOrResolved;
         countsStatus = 'READY';
@@ -428,6 +437,8 @@ export class ControlSummaryService {
         createdBy: ctrl.createdBy,
         totalIncidentCount,
         assignedOrInRemediationCount,
+        assignedCount,
+        remediateCount,
         acceptedCount,
         closedOrResolvedCount,
         countsStatus,

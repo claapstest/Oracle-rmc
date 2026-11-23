@@ -131,7 +131,7 @@ export class IncidentCacheService {
       resultGroup: raw.ResultGroup ?? raw.resultGroup ?? raw.Group ?? raw.group ?? null,
       comments: raw.Comments ?? raw.comments ?? raw.IncidentComments ?? raw.incidentComments ?? null,
       attachments: raw.Attachments ?? raw.attachments ?? null,
-      numberOfOccurrences: raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences ?? null,
+      numberOfOccurrences: raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences ?? raw.IncidentCount ?? raw.incidentCount ?? raw.Count ?? raw.count ?? null,
       controlType: raw.ControlType ?? raw.controlType ?? null,
       incidentVersion: raw.IncidentVersion ?? raw.incidentVersion ?? null,
       raw
