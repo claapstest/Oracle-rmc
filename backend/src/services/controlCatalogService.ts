@@ -954,6 +954,11 @@ export class ControlCatalogService {
    * Normalizes raw Oracle incident into ControlIncidentItem
    */
   public normalizeIncident(raw: any, controlId: string, controlName?: string): ControlIncidentItem {
+    if (raw && typeof raw === 'object' && !raw._occFieldsLogged) {
+      const keys = Object.keys(raw).filter(k => /occur|count|number/i.test(k));
+      if (keys.length > 0) console.log(`[NormalizeIncident] control=${controlId} occurrence-related keys: ${keys.join(', ')}`);
+      raw._occFieldsLogged = true;
+    }
     const id = String(raw.Id ?? raw.id ?? raw.IncidentId ?? raw.ResultId ?? raw.resultId ?? `INC-${controlId}-${Math.random().toString(36).substring(2, 8)}`).trim();
     return {
       id,
@@ -994,7 +999,7 @@ export class ControlCatalogService {
       revisionDate: raw.RevisionDate ?? raw.revisionDate ?? null,
       comments: raw.Comments ?? raw.comments ?? raw.IncidentComments ?? raw.incidentComments ?? null,
       attachments: raw.Attachments ?? raw.attachments ?? null,
-      numberOfOccurrences: raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences ?? null,
+      numberOfOccurrences: raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences ?? raw.IncidentCount ?? raw.incidentCount ?? raw.Count ?? raw.count ?? null,
       controlType: raw.ControlType ?? raw.controlType ?? null,
       incidentVersion: raw.IncidentVersion ?? raw.incidentVersion ?? null,
       raw

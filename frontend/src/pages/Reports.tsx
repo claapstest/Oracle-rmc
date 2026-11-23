@@ -50,6 +50,7 @@ import {
   TRANSACTION_INCIDENT_COLUMNS,
   getIncidentAttr,
   renderSharedIncidentCell,
+  renderPersonOrInfo,
   type IncidentColumnDef,
 } from '../utils/incidentSchema';
 
@@ -1534,7 +1535,7 @@ export default function Reports({
   // Helper to render Oracle fields gracefully without inventing values
   const renderFieldVal = (val: any) => {
     if (val === null || val === undefined || val === '') {
-      return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not available</span>;
+      return <span style={{ color: 'var(--text-muted)' }}>None</span>;
     }
     return String(val);
   };
@@ -1721,10 +1722,12 @@ export default function Reports({
                   { key: 'state', label: 'State', defaultSelected: true },
                   { key: 'controlType', label: 'Control Type', defaultSelected: true, getValue: (c: any) => c.controlTypeName || (c.controlTypeCode !== null && c.controlTypeCode !== undefined && String(c.controlTypeCode).trim() !== '' ? formatControlTypeName(c.controlTypeCode) : '—') },
                   { key: 'totalIncidentCount', label: 'Total Incidents', defaultSelected: true, getValue: (c: any) => c.totalIncidentCount ?? 0 },
-                  { key: 'assignedOrInRemediationCount', label: 'Assigned / In Remediation', defaultSelected: true, getValue: (c: any) => c.assignedOrInRemediationCount ?? 0 },
+                  { key: 'assignedCount', label: 'Assigned', defaultSelected: true, getValue: (c: any) => c.assignedCount ?? 0 },
+                  { key: 'remediateCount', label: 'Remediation', defaultSelected: true, getValue: (c: any) => c.remediateCount ?? 0 },
                   { key: 'acceptedCount', label: 'Accepted', defaultSelected: true, getValue: (c: any) => c.acceptedCount ?? 0 },
                   { key: 'closedOrResolvedCount', label: 'Closed / Resolved', defaultSelected: true, getValue: (c: any) => c.closedOrResolvedCount ?? 0 },
                   { key: 'lastRunDate', label: 'Last Run Date', defaultSelected: true, getValue: (c: any) => c.lastRunDate ? new Date(c.lastRunDate).toLocaleString() : '—' },
+                  { key: 'scheduledBy', label: 'Last Run By', defaultSelected: true, getValue: (c: any) => c.scheduledBy || '—' },
                   { key: 'lastCalculatedAt', label: 'Last Synced At', defaultSelected: false, getValue: (c: any) => c.lastCalculatedAt ? new Date(c.lastCalculatedAt).toLocaleString() : '—' }
                 ]}
                 onFetchScopeData={async (scope) => {
@@ -1758,7 +1761,7 @@ export default function Reports({
                       isTxControl: incidentsDomain === 'TRANSACTION'
                     });
                     if (col.key === 'controlType') return formatControlTypeName(val);
-                    return val !== null && val !== undefined && val !== '' ? String(val) : '—';
+                    return val !== null && val !== undefined && val !== '' ? String(val) : 'None';
                   }
                 }))}
                 onFetchScopeData={async (scope) => {
@@ -2887,10 +2890,12 @@ export default function Reports({
                     <th style={{ width: '90px' }}>State</th>
                     <th style={{ width: '110px' }}>Control Type</th>
                     <th style={{ width: '130px', textAlign: 'right' }}>Total Incidents</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Assigned / In Rem.</th>
+                    <th style={{ width: '100px', textAlign: 'right' }}>Assigned</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Remediation</th>
                     <th style={{ width: '100px', textAlign: 'right' }}>Accepted</th>
                     <th style={{ width: '120px', textAlign: 'right' }}>Closed / Resolved</th>
                     <th style={{ width: '140px' }}>Last Run Date</th>
+                    <th style={{ width: '130px' }}>Last Run By</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2898,13 +2903,13 @@ export default function Reports({
                     <TableLoadingState
                       title="Loading Controls Summary..."
                       subtitle="Reading synced enterprise controls, scheduled jobs, and incident exposure"
-                      colSpan={10}
+                      colSpan={12}
                       skeletonRows={5}
                       minHeight="280px"
                     />
                   ) : paginatedSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={10} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                      <td colSpan={12} style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
                           <Shield size={24} />
                         </div>
@@ -3019,11 +3024,22 @@ export default function Reports({
                             )}
                           </td>
 
-                          {/* 7. Assigned / In Remediation */}
+                          {/* 7. Assigned */}
                           <td style={{ textAlign: 'right', fontSize: '0.82rem' }}>
-                            {ctrl.assignedOrInRemediationCount !== null && ctrl.assignedOrInRemediationCount !== undefined ? (
-                              <span style={{ color: ctrl.assignedOrInRemediationCount > 0 ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
-                                {ctrl.assignedOrInRemediationCount.toLocaleString()}
+                            {ctrl.assignedCount !== null && ctrl.assignedCount !== undefined ? (
+                              <span style={{ color: ctrl.assignedCount > 0 ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
+                                {ctrl.assignedCount.toLocaleString()}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>—</span>
+                            )}
+                          </td>
+
+                          {/* 7b. Remediation */}
+                          <td style={{ textAlign: 'right', fontSize: '0.82rem' }}>
+                            {ctrl.remediateCount !== null && ctrl.remediateCount !== undefined ? (
+                              <span style={{ color: ctrl.remediateCount > 0 ? '#F59E0B' : 'var(--text-secondary)' }}>
+                                {ctrl.remediateCount.toLocaleString()}
                               </span>
                             ) : (
                               <span style={{ color: 'var(--text-muted)' }}>—</span>
@@ -3053,6 +3069,11 @@ export default function Reports({
                           {/* 10. Last Run Date */}
                           <td style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             {formatOracleDate(ctrl.lastRunDate)}
+                          </td>
+
+                          {/* 11. Last Run By */}
+                          <td style={{ fontSize: '0.82rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                            {ctrl.scheduledBy || <span style={{ color: 'var(--text-muted)' }}>—</span>}
                           </td>
 
                         </tr>
@@ -3750,11 +3771,11 @@ export default function Reports({
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{getIncidentAttr(selectedIncidentDetail, 'controlType') || '-'}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'controlType'))}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{getIncidentAttr(selectedIncidentDetail, 'resultId') || '-'}</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'resultId'))}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Status</span>
@@ -3849,7 +3870,7 @@ export default function Reports({
                   <div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Incident Information</span>
                     <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.65rem 0.85rem', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600, border: '1px solid var(--border-color)', lineHeight: '1.4' }}>
-                      {renderFieldVal(selectedIncidentDetail.incidentInformation)}
+                      {renderPersonOrInfo(selectedIncidentDetail.incidentInformation)}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginTop: '0.25rem' }}>

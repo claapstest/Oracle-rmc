@@ -1212,7 +1212,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             }} 
             title={String(rawVal || '')}
           >
-            {renderPersonOrInfo(rawVal)}
+            {renderIncidentFieldVal(rawVal)}
           </td>
         );
 
@@ -3342,7 +3342,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Person / Subject</span>
-                                    <div>{renderPersonOrInfo(getIncidentAttr(viewingIncident, 'incidentInformation'))}</div>
+                                    <div>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}</div>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Grouping Value (Expression)</span>
@@ -3434,12 +3434,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <Clock size={15} /> Incident Lifecycle & Audit Metadata
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
-                                  <div>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Version</span>
-                                    <span className="badge" style={{ fontSize: '0.75rem' }}>
-                                      v{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentVersion'))}
-                                    </span>
-                                  </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>

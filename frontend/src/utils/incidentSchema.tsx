@@ -51,6 +51,7 @@ export const ACCESS_INCIDENT_COLUMNS: IncidentColumnDef[] = [
   { key: 'closedDate', label: 'Closed Date', defaultVisible: true, minWidth: '140px' },
   { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '140px' },
   { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
+  { key: 'numberOfOccurrences', label: 'Number of Occurrences', defaultVisible: true, minWidth: '185px' },
 ];
 
 // Transaction Controls Incidents columns (Oracle Type 174)
@@ -91,7 +92,7 @@ export const formatOracleDateValue = (dateStr: string | null | undefined) => {
 
 export const renderIncidentFieldVal = (val: any) => {
   if (val === null || val === undefined || val === '') {
-    return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>;
+    return <span style={{ color: 'var(--text-muted)' }}>None</span>;
   }
   return String(val);
 };
@@ -180,7 +181,7 @@ export const getIncidentAttr = (inc: any, attr: string, ctx?: IncidentAttrContex
       return Array.isArray(att) ? String(att.length) : String(att);
     }
     case 'numberOfOccurrences': {
-      const occ = inc.numberOfOccurrences ?? raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences;
+      const occ = inc.numberOfOccurrences ?? raw.NumberOfOccurrences ?? raw.numberOfOccurrences ?? raw.OccurrenceCount ?? raw.occurrenceCount ?? raw.Occurrences ?? raw.occurrences ?? raw.IncidentCount ?? raw.incidentCount ?? raw.Count ?? raw.count;
       return (occ !== undefined && occ !== null && occ !== '') ? String(occ) : null;
     }
     case 'globalUserId':
@@ -325,42 +326,36 @@ export const renderSharedIncidentCell = (
           style={{
             fontSize: '0.82rem',
             minWidth: '320px',
-            maxWidth: isWrap ? '650px' : '340px',
-            overflow: isWrap ? 'visible' : 'hidden',
-            textOverflow: isWrap ? 'clip' : 'ellipsis',
-            whiteSpace: isWrap ? 'normal' : 'nowrap',
-            wordBreak: 'break-word',
+            maxWidth: isWrap ? '500px' : '340px',
             lineHeight: 1.45,
           }}
           title={String(rawVal || '')}
         >
           {rawVal ? (
-            <code style={{ fontSize: '0.76rem', backgroundColor: 'rgba(59, 130, 246, 0.08)', padding: '0.2rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--text-primary)' }}>
+            <code style={{ fontSize: '0.76rem', backgroundColor: 'rgba(59, 130, 246, 0.08)', padding: '0.2rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: isWrap ? 3 : 1, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' }}>
               {rawVal}
             </code>
           ) : renderIncidentFieldVal(null)}
         </td>
       );
 
-    case 'incidentInformation':
+    case 'incidentInformation': {
       return (
         <td
           key={colKey}
           style={{
             fontSize: '0.85rem',
             minWidth: '240px',
-            maxWidth: isWrap ? '520px' : '280px',
-            overflow: isWrap ? 'visible' : 'hidden',
-            textOverflow: isWrap ? 'clip' : 'ellipsis',
-            whiteSpace: isWrap ? 'normal' : 'nowrap',
-            wordBreak: 'break-word',
+            maxWidth: isWrap ? '420px' : '280px',
             lineHeight: 1.45,
           }}
-          title={String(rawVal || '')}
         >
-          {renderPersonOrInfo(rawVal)}
+          <div style={{ display: '-webkit-box', WebkitLineClamp: isWrap ? 3 : 1, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' }}>
+            {renderIncidentFieldVal(rawVal)}
+          </div>
         </td>
       );
+    }
 
     case 'group':
       return (
@@ -369,11 +364,7 @@ export const renderSharedIncidentCell = (
           style={{
             fontSize: '0.85rem',
             minWidth: '240px',
-            maxWidth: isWrap ? '450px' : '260px',
-            overflow: isWrap ? 'visible' : 'hidden',
-            textOverflow: isWrap ? 'clip' : 'ellipsis',
-            whiteSpace: isWrap ? 'normal' : 'nowrap',
-            wordBreak: 'break-word',
+            maxWidth: isWrap ? '400px' : '260px',
             lineHeight: 1.4,
           }}
           title={String(rawVal || '')}
@@ -387,8 +378,12 @@ export const renderSharedIncidentCell = (
                 backgroundColor: 'rgba(16, 185, 129, 0.12)',
                 color: '#34D399',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
-                whiteSpace: isWrap ? 'normal' : 'nowrap',
                 textAlign: 'left',
+                display: '-webkit-box',
+                WebkitLineClamp: isWrap ? 2 : 1,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden',
+                wordBreak: 'break-word',
               }}
             >
               {rawVal}
@@ -422,16 +417,12 @@ export const renderSharedIncidentCell = (
           style={{
             fontSize: '0.85rem',
             minWidth: '300px',
-            maxWidth: isWrap ? '550px' : '340px',
-            overflow: isWrap ? 'visible' : 'hidden',
-            textOverflow: isWrap ? 'clip' : 'ellipsis',
-            whiteSpace: isWrap ? 'normal' : 'nowrap',
-            wordBreak: 'break-word',
+            maxWidth: isWrap ? '450px' : '340px',
             lineHeight: 1.45,
           }}
           title={String(rawVal || '')}
         >
-          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: isWrap ? 2 : 1, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' }}>
             {renderIncidentFieldVal(rawVal)}
           </span>
         </td>
@@ -490,15 +481,13 @@ export const renderSharedIncidentCell = (
             fontSize: '0.85rem',
             minWidth: '220px',
             maxWidth: isWrap ? '400px' : '240px',
-            overflow: isWrap ? 'visible' : 'hidden',
-            textOverflow: isWrap ? 'clip' : 'ellipsis',
-            whiteSpace: isWrap ? 'normal' : 'nowrap',
-            wordBreak: 'break-word',
             lineHeight: 1.4,
           }}
           title={String(rawVal || '')}
         >
-          {renderIncidentFieldVal(rawVal)}
+          <div style={{ display: '-webkit-box', WebkitLineClamp: isWrap ? 2 : 1, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' }}>
+            {renderIncidentFieldVal(rawVal)}
+          </div>
         </td>
       );
 
@@ -516,16 +505,12 @@ export const renderSharedIncidentCell = (
           style={{
             fontSize: '0.85rem',
             minWidth: '260px',
-            maxWidth: isWrap ? '460px' : '260px',
-            overflow: isWrap ? 'visible' : 'hidden',
-            textOverflow: isWrap ? 'clip' : 'ellipsis',
-            whiteSpace: isWrap ? 'normal' : 'nowrap',
-            wordBreak: 'break-word',
+            maxWidth: isWrap ? '400px' : '260px',
             lineHeight: 1.4,
           }}
           title={String(rawVal || '')}
         >
-          <code>{renderIncidentFieldVal(rawVal)}</code>
+          <code style={{ display: '-webkit-box', WebkitLineClamp: isWrap ? 2 : 1, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' }}>{renderIncidentFieldVal(rawVal)}</code>
         </td>
       );
 
@@ -577,8 +562,10 @@ export const renderSharedIncidentCell = (
 
     default:
       return (
-        <td key={colKey} style={{ fontSize: '0.85rem', whiteSpace: isWrap ? 'normal' : 'nowrap' }}>
-          {renderIncidentFieldVal(rawVal)}
+        <td key={colKey} style={{ fontSize: '0.85rem', maxWidth: isWrap ? '350px' : '240px' }} title={String(rawVal || '')}>
+          <div style={{ display: '-webkit-box', WebkitLineClamp: isWrap ? 2 : 1, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', wordBreak: 'break-word' }}>
+            {renderIncidentFieldVal(rawVal)}
+          </div>
         </td>
       );
   }
