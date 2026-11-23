@@ -2543,33 +2543,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         '0 incidents'
                       )}
                     </span>
-                    {isTxControl ? (
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                          color: '#34D399',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          fontWeight: 600
-                        }}
-                      >
-                        Transaction Control Schema
-                      </span>
-                    ) : (
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(139, 92, 246, 0.12)',
-                          color: '#A78BFA',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
-                          fontWeight: 600
-                        }}
-                      >
-                        Access Control Schema
-                      </span>
-                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -2765,6 +2738,29 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         </div>
                       )}
                     </div>
+
+                    <EnterpriseExportControl
+                      filename={`${selectedControlDetail?.id || 'control'}_${isTxControl ? 'transaction' : 'access'}_incidents`}
+                      sheetName={isTxControl ? 'Transaction Incidents' : 'Access Incidents'}
+                      reportTitle={`${selectedControlDetail?.name || 'Control'} — ${isTxControl ? 'Transaction' : 'Access'} Incidents`}
+                      dataSource="Oracle Fusion Risk Management Cloud"
+                      entityName="Incidents"
+                      buttonText="Export Excel"
+                      size="sm"
+                      currentPageData={incidentsList}
+                      filteredCount={filteredTotalCount ?? incidentsList.length}
+                      totalCount={incidentsTotalCount ?? incidentsList.length}
+                      availableColumns={currentIncidentColumns.map(col => ({
+                        key: col.key,
+                        label: col.label,
+                        defaultSelected: visibleIncidentKeys.has(col.key),
+                        getValue: (item: any) => item[col.key] ?? ''
+                      }))}
+                      onFetchScopeData={async (scope) => {
+                        if (scope === 'PAGE') return incidentsList;
+                        return incidentsList;
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -2851,18 +2847,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                             <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
                               Incident Status Distribution
                             </h4>
-                            <span 
-                              className="badge" 
-                              style={{ 
-                                fontSize: '0.72rem', 
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)', 
-                                color: '#3B82F6', 
-                                border: '1px solid rgba(59, 130, 246, 0.25)',
-                                fontWeight: 600
-                              }}
-                            >
-                              Oracle Lifecycle
-                            </span>
                           </div>
                           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                             Continuous monitoring breakdown across the 4 standard Oracle incident lifecycle statuses. Click any status to filter the table.
@@ -4174,18 +4158,6 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
                       {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Incident Status
                     </h4>
-                    <span 
-                      className="badge" 
-                      style={{ 
-                        fontSize: '0.72rem', 
-                        backgroundColor: activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                        color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981', 
-                        border: `1px solid ${activeSubSection === 'ACCESS' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
-                        fontWeight: 600
-                      }}
-                    >
-                      Oracle Lifecycle
-                    </span>
                   </div>
                   <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
                     Continuous monitoring breakdown across 4 standard lifecycle statuses.
