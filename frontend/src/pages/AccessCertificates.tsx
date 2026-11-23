@@ -85,7 +85,6 @@ export default function AccessCertificates({
   const [worksheetRows, setWorksheetRows] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState('');
-  const [isConfigError, setIsConfigError] = useState(false);
   const [worksheetSearchTerm, setWorksheetSearchTerm] = useState('');
   const [worksheetPageSize, setWorksheetPageSize] = useState(10);
   const [worksheetCurrentPage, setWorksheetCurrentPage] = useState(1);
@@ -203,17 +202,14 @@ export default function AccessCertificates({
       const res = await api.getAccessCertificationDetails(certId, isManualRefresh);
       if (res && res.success) {
         setWorksheetRows(Array.isArray(res.data) ? res.data : []);
-        setIsConfigError(false);
       } else {
         setDetailsError(res?.message || 'Unable to load certification details.');
-        setIsConfigError(!!res?.isConfigurationError);
       }
     } catch (err: any) {
       console.error('[AccessCertificates UI] Error loading drill-down:', err);
       const errMsg =
         err?.response?.data?.message || err?.message || 'Unable to retrieve Access Certification details.';
       setDetailsError(errMsg);
-      setIsConfigError(!!err?.response?.data?.isConfigurationError);
     } finally {
       setLoadingDetails(false);
     }
@@ -447,6 +443,8 @@ export default function AccessCertificates({
                 }}
               >
                 <span>Access Certification Drill-Down</span>
+                <span>•</span>
+                <span>ID: {drillDownCertId}</span>
               </div>
               <h1
                 style={{
@@ -460,11 +458,69 @@ export default function AccessCertificates({
               >
                 {certName}
               </h1>
+              <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.92rem', margin: '0.35rem 0 0 0' }}>
+                Oracle Fusion BI Publisher Certifier Worksheet &amp; User Access Details
+              </p>
             </div>
           </div>
 
-          {/* Right section */}
-          <div style={{ position: 'relative', zIndex: 2 }} />
+          {/* Right Badges in Banner */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', position: 'relative', zIndex: 2 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 1rem',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                borderRadius: '9999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                color: '#ffffff'
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: certStatus.toLowerCase() === 'active' ? '#10B981' : '#CBD5E1',
+                  boxShadow: certStatus.toLowerCase() === 'active' ? '0 0 8px #10B981' : 'none'
+                }}
+              />
+              <span>Status: {certStatus}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId }, true)}
+              disabled={loadingDetails}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 1.05rem',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                borderRadius: '9999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                color: '#ffffff',
+                cursor: loadingDetails ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.26)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+              }}
+            >
+              <RefreshCw size={14} className={loadingDetails ? 'animate-spin' : ''} />
+              <span>Refresh Worksheet</span>
+            </button>
+          </div>
         </div>
 
         {/* Error Banner if drill-down fetch failed */}
@@ -476,45 +532,36 @@ export default function AccessCertificates({
               display: 'flex',
               alignItems: 'flex-start',
               gap: '0.85rem',
-              backgroundColor: isConfigError ? '#FFFBEB' : '#FEF2F2',
-              border: `1px solid ${isConfigError ? '#F59E0B' : '#F87171'}`,
+              backgroundColor: '#FEF2F2',
+              border: '1px solid #F87171',
               borderRadius: '10px',
               padding: '1rem 1.25rem',
               marginBottom: '1.25rem',
-              color: isConfigError ? '#92400E' : '#991B1B',
+              color: '#991B1B',
               fontSize: '0.88rem'
             }}
           >
-            <AlertCircle size={18} style={{ color: isConfigError ? '#D97706' : '#DC2626', flexShrink: 0, marginTop: '0.1rem' }} />
+            <AlertCircle size={18} style={{ color: '#DC2626', flexShrink: 0, marginTop: '0.1rem' }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>
-                {isConfigError ? 'Configuration Required' : 'Integration Error'}
-              </div>
+              <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Integration Error</div>
               <div>{detailsError}</div>
-              {isConfigError && (
-                <div style={{ fontSize: '0.82rem', marginTop: '0.35rem', color: '#B45309' }}>
-                  Contact your administrator to configure the Oracle BIP connection settings.
-                </div>
-              )}
             </div>
-            {!isConfigError && (
-              <button
-                type="button"
-                onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId })}
-                style={{
-                  background: '#DC2626',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#ffffff',
-                  padding: '0.35rem 0.8rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Try Again
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => openCertificationDrillDown(drillDownSummary || { certificationId: drillDownCertId })}
+              style={{
+                background: '#DC2626',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#ffffff',
+                padding: '0.35rem 0.8rem',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
           </div>
         )}
 
@@ -551,6 +598,15 @@ export default function AccessCertificates({
               </span>
               <div style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
                 {certName}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Certification ID
+              </span>
+              <div style={{ fontSize: '1.02rem', fontWeight: 700, color: '#2563EB', marginTop: '0.35rem' }}>
+                {drillDownCertId}
               </div>
             </div>
 
@@ -613,6 +669,14 @@ export default function AccessCertificates({
               </div>
             </div>
 
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: '#64748B', fontWeight: 700 }}>
+                Creation Date
+              </span>
+              <div style={{ fontSize: '0.98rem', fontWeight: 600, color: '#334155', marginTop: '0.35rem' }}>
+                {formatCreationDate(certCreationDate)}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -939,13 +1003,42 @@ export default function AccessCertificates({
                 color: '#ffffff'
               }}
             >
-              Access Certification
+              Access Certificates
             </h1>
+            <p style={{ color: 'rgba(255, 255, 255, 0.88)', fontSize: '0.94rem', margin: '0.35rem 0 0 0' }}>
+              Oracle Fusion BI Publisher report execution for live Access Certification records.
+            </p>
           </div>
         </div>
 
-        {/* Right section placeholder */}
-        <div style={{ position: 'relative', zIndex: 2 }} />
+        {/* Right Badges in Banner */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', position: 'relative', zIndex: 2 }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.45rem 1rem',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              borderRadius: '9999px',
+              backgroundColor: 'rgba(255, 255, 255, 0.16)',
+              border: '1px solid rgba(255, 255, 255, 0.28)',
+              color: '#ffffff'
+            }}
+          >
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#10B981',
+                boxShadow: '0 0 8px #10B981'
+              }}
+            />
+            <span>Live Oracle Fusion BIP</span>
+          </div>
+        </div>
       </div>
 
 

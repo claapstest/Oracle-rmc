@@ -117,7 +117,7 @@ export default function Roles({
   useEffect(() => {
     let isCancelled = false;
     // Instant loading on mount / category / page change; debounce search typing by 300ms
-    const delay = searchTerm ? 500 : 0;
+    const delay = searchTerm ? 300 : 0;
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       setError('');

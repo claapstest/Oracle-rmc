@@ -125,6 +125,18 @@ export const DomainIncidentStatusCard: React.FC<DomainIncidentStatusCardProps> =
             <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
               {isAccess ? 'Access' : 'Transaction'} Controls Incident Status
             </h4>
+            <span
+              className="badge"
+              style={{
+                fontSize: '0.72rem',
+                backgroundColor: accentBg,
+                color: accentColor,
+                border: `1px solid ${accentBorder}`,
+                fontWeight: 600,
+              }}
+            >
+              Oracle Lifecycle
+            </span>
           </div>
           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
             Continuous monitoring breakdown across 4 standard lifecycle statuses. Click any status to filter the table.
