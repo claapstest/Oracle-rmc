@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Download, X, Check, FileSpreadsheet, FileText, RefreshCw, Filter, CheckSquare, Square, RotateCcw } from 'lucide-react';
 import { exportToExcel, exportToCsv, type ExcelColumn, type AppliedFilterInfo } from '../utils/excelExport';
 
@@ -261,8 +262,8 @@ export const EnterpriseExportControl: React.FC<EnterpriseExportControlProps> = (
         <span>{buttonText}</span>
       </button>
 
-      {/* Modal Dialog */}
-      {isDialogOpen && (
+      {/* Modal Dialog — rendered via portal to escape backdrop-filter stacking contexts */}
+      {isDialogOpen && ReactDOM.createPortal(
         <div
           style={{
             position: 'fixed',
@@ -713,7 +714,8 @@ export const EnterpriseExportControl: React.FC<EnterpriseExportControlProps> = (
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
