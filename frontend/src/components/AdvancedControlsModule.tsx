@@ -858,7 +858,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
   // Helper field fallback
   const renderFieldVal = (val: any) => {
     if (val === null || val === undefined || val === '') {
-      return <span style={{ color: 'var(--text-muted)' }}>None</span>;
+      return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>;
     }
     return String(val);
   };
@@ -1013,7 +1013,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
   // Helper to extract Person Name cleanly from IncidentInformation if formatted as "Person.Full Name: <name>"
   const renderPersonOrInfo = (val: string | null) => {
-    if (!val) return renderFieldVal(null);
+    if (!val) return renderIncidentFieldVal(null);
     const match = val.match(/^Person\.Full Name:\s*(.+)$/i);
     if (match) {
       return (
@@ -1037,7 +1037,14 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         </div>
       );
     }
-    return renderFieldVal(val);
+    return renderIncidentFieldVal(val);
+  };
+
+  const renderIncidentFieldVal = (val: any) => {
+    if (val === null || val === undefined || val === '') {
+      return <span style={{ color: 'var(--text-muted)' }}>None</span>;
+    }
+    return String(val);
   };
 
   // Helper to render dynamic table cell based on column key matching current schema (Access vs Transaction)
@@ -1115,7 +1122,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <span style={{ color: 'var(--accent-gold)' }}>
                 {displayVal}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
       }
@@ -1127,7 +1134,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
                 {rawVal}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
 
@@ -1147,21 +1154,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {String(rawVal).toUpperCase()}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
 
       case 'txPersonId':
         return (
           <td key={colKey} style={{ fontSize: '0.82rem' }}>
-            <code>{renderFieldVal(rawVal)}</code>
+            <code>{renderIncidentFieldVal(rawVal)}</code>
           </td>
         );
 
       case 'txExpenseTypeId':
         return (
           <td key={colKey} style={{ fontSize: '0.82rem' }}>
-            <code>{renderFieldVal(rawVal)}</code>
+            <code>{renderIncidentFieldVal(rawVal)}</code>
           </td>
         );
 
@@ -1185,7 +1192,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <code style={{ fontSize: '0.76rem', backgroundColor: 'rgba(59, 130, 246, 0.08)', padding: '0.2rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--text-primary)' }}>
                 {rawVal}
               </code>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
 
@@ -1240,7 +1247,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {rawVal}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
 
@@ -1257,7 +1264,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (
           <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center' }}>
             <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-              {renderFieldVal(rawVal)}
+              {renderIncidentFieldVal(rawVal)}
             </span>
           </td>
         );
@@ -1279,7 +1286,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             title={String(rawVal || '')}
           >
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              {renderFieldVal(rawVal)}
+              {renderIncidentFieldVal(rawVal)}
             </span>
           </td>
         );
@@ -1287,7 +1294,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'investigator':
         return (
           <td key={colKey} style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-            {renderFieldVal(rawVal)}
+            {renderIncidentFieldVal(rawVal)}
           </td>
         );
 
@@ -1295,7 +1302,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (
           <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center' }}>
             <span className="badge" style={{ fontSize: '0.72rem' }}>
-              v{renderFieldVal(rawVal)}
+              v{renderIncidentFieldVal(rawVal)}
             </span>
           </td>
         );
@@ -1316,7 +1323,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {rawVal}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
 
@@ -1339,14 +1346,14 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             }} 
             title={String(rawVal || '')}
           >
-            {renderFieldVal(rawVal)}
+            {renderIncidentFieldVal(rawVal)}
           </td>
         );
 
       case 'globalUserId':
         return (
           <td key={colKey} style={{ fontSize: '0.85rem' }}>
-            <code>{renderFieldVal(rawVal)}</code>
+            <code>{renderIncidentFieldVal(rawVal)}</code>
           </td>
         );
 
@@ -1366,7 +1373,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             }} 
             title={String(rawVal || '')}
           >
-            <code>{renderFieldVal(rawVal)}</code>
+            <code>{renderIncidentFieldVal(rawVal)}</code>
           </td>
         );
 
@@ -1389,7 +1396,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {typeText}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
       }
@@ -1401,7 +1408,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
                 {rawVal}
               </span>
-            ) : renderFieldVal(null)}
+            ) : renderIncidentFieldVal(null)}
           </td>
         );
 
@@ -1419,7 +1426,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       default:
         return (
           <td key={colKey} style={{ fontSize: '0.85rem' }}>
-            {renderFieldVal(rawVal)}
+            {renderIncidentFieldVal(rawVal)}
           </td>
         );
     }
@@ -3340,7 +3347,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Grouping Value (Expression)</span>
                                     <div style={{ backgroundColor: 'rgba(0,0,0,0.25)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                      {renderFieldVal(viewingGroupingRaw)}
+                                      {renderIncidentFieldVal(viewingGroupingRaw)}
                                     </div>
                                   </div>
                                   {(parsedGrouping.amount || parsedGrouping.date || parsedGrouping.currency || parsedGrouping.personId || parsedGrouping.expenseTypeId) && (
@@ -3385,37 +3392,37 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Group (Result Group)</span>
                                     <strong style={{ fontSize: '0.88rem', color: '#34D399' }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'group'))}
                                     </strong>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Type</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(formatControlTypeName(getIncidentAttr(viewingIncident, 'controlType')))}
+                                      {renderIncidentFieldVal(formatControlTypeName(getIncidentAttr(viewingIncident, 'controlType')))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Priority</span>
                                     <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Number of Occurrences</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'numberOfOccurrences'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'numberOfOccurrences'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Investigator</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
                                     </span>
                                   </div>
                                 </div>
@@ -3430,7 +3437,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Version</span>
                                     <span className="badge" style={{ fontSize: '0.75rem' }}>
-                                      v{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentVersion'))}
+                                      v{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentVersion'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3442,7 +3449,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3454,7 +3461,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3478,19 +3485,19 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
                                     </span>
                                   </div>
                                 </div>
@@ -3508,25 +3515,25 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User</span>
                                     <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'globalUser'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'globalUser'))}
                                     </strong>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User First Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User Last Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User ID</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                                      <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
+                                      <code>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
                                     </span>
                                   </div>
                                 </div>
@@ -3541,43 +3548,43 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Role</span>
                                     <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'role'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'role'))}
                                     </strong>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Entitlement</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information Codes</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', fontWeight: 600, wordBreak: 'break-all' }}>
-                                      <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
+                                      <code>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
                                     </span>
                                   </div>
                                 </div>
@@ -3591,48 +3598,48 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
+                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Priority</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'group'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
                                 </div>
@@ -3653,7 +3660,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3671,7 +3678,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3683,7 +3690,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
                                     </span>
                                   </div>
                                 </div>
