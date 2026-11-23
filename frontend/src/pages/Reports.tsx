@@ -2016,7 +2016,7 @@ export default function Reports({
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Search by Control ID, Name, or Type..."
+                  placeholder="Search by Control ID or Name..."
                   value={controlsSearch}
                   onChange={(e) => { setControlsSearch(e.target.value); setCurrentPage(1); }}
                   style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
