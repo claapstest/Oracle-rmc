@@ -380,6 +380,16 @@ export const api = {
     return apiRequest(`/roles/${encodeURIComponent(roleName)}/hierarchy`);
   },
 
+  async getCompletePrivilegeCount(roleNameOrCode: string, forceRefresh = false) {
+    const qs = forceRefresh ? '?refresh=true' : '';
+    return apiRequest(`/roles/${encodeURIComponent(roleNameOrCode)}/privilege-count${qs}`);
+  },
+
+  async getRolePrivilegeSummary(forceRefresh = false) {
+    const qs = forceRefresh ? '?refresh=true' : '';
+    return apiRequest(`/reports/role-privilege-summary${qs}`);
+  },
+
   async getRoleHierarchyReport(forceRefresh = false) {
     const res = await apiRequest(`/reports/role-hierarchy${forceRefresh ? '?refresh=true' : ''}`);
     if (res && Array.isArray(res.items) && Array.isArray(res.privilegesCatalog) && Array.isArray(res.privilegeSets)) {

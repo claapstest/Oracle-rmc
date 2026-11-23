@@ -1096,6 +1096,112 @@ export class BipClient {
     return null;
   }
 
+  /**
+   * Runs the "Privilege Count check Report" for a single role code.
+   */
+  public async runCompletePrivilegeCountReport(roleCode: string): Promise<{
+    success: boolean;
+    roleCode: string;
+    roleName: string;
+    directCount: number;
+    indirectCount: number;
+    totalCount: number;
+    details: Array<{
+      type: string;
+      privilegeCode: string;
+      privilegeName: string;
+      sourceRoles: string;
+    }>;
+    message?: string;
+    error?: string;
+  }> {
+    const cleanCode = String(roleCode || '').trim();
+    if (!cleanCode) {
+      return { success: false, roleCode: '', roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: 'Role code is required.' };
+    }
+    if (!this.isConfigured()) {
+      return { success: false, roleCode: cleanCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: 'Oracle Fusion not configured.' };
+    }
+    const reportPath = '/Custom/privilege Count check Report.xdo';
+    const endpoint = `${this.getCredentials().baseUrl}/xmlpserver/services/ExternalReportWSSService`;
+    const soapEnvelope = this.generateRunReportEnvelope(reportPath, 'xlsx', -1, { role_code: cleanCode });
+    try {
+      const response = await this.axiosInstance.post(endpoint, soapEnvelope, {
+        headers: { 'Content-Type': 'application/soap+xml; charset=UTF-8', Action: 'runReport' },
+        responseType: 'text',
+        timeout: 120000,
+      });
+      const parsed = await (this as any).parseCompletePrivilegeCountSoapResponse(response.data, cleanCode);
+      return parsed;
+    } catch (err: any) {
+      return { success: false, roleCode: cleanCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: err.message };
+    }
+  }
+
+  public async parseCompletePrivilegeCountSoapResponse(xmlContent: string, roleCode: string): Promise<any> {
+    if (!xmlContent || typeof xmlContent !== 'string') {
+      return { success: false, roleCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: 'Empty response.' };
+    }
+    let parsedXml: any;
+    try {
+      parsedXml = await xml2js.parseStringPromise(xmlContent, { explicitArray: false, ignoreAttrs: true, tagNameProcessors: [xml2js.processors.stripPrefix] });
+    } catch {
+      return { success: false, roleCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: 'XML parse error.' };
+    }
+    const fault = (this as any).extractSoapFaultFromParsed?.(parsedXml);
+    if (fault) return { success: false, roleCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: String(fault) };
+    const rawReportBytes = (this as any).findFieldRecursively?.(parsedXml, 'reportBytes');
+    if (!rawReportBytes || typeof rawReportBytes !== 'string') {
+      return { success: false, roleCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: 'No reportBytes.' };
+    }
+    return this.parseCompletePrivilegeCountXlsxBase64(rawReportBytes, roleCode);
+  }
+
+  public parseCompletePrivilegeCountXlsxBase64(base64Data: string, roleCode: string): any {
+    try {
+      const buffer = Buffer.from(base64Data.replace(/\s+/g, ''), 'base64');
+      const workbook = xlsx.read(buffer, { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const raw = xlsx.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null, blankrows: false });
+      // header row is index 1 (row 0 is title)
+      const header = raw[1] || raw[0];
+      const data = raw.slice(2).filter(r => r && r.some(c => c !== null && String(c).trim() !== ''));
+      if (data.length === 0) {
+        return { success: true, roleCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [] };
+      }
+      const idx = (name: string) => header.indexOf(name);
+      const iRoleCode = idx('ROLE_CODE');
+      const iRoleName = idx('ROLE_NAME');
+      const iDirect = idx('DIRECT_PRIVILEGE_COUNT');
+      const iIndirect = idx('INDIRECT_PRIVILEGE_COUNT');
+      const iTotal = idx('TOTAL_PRIVILEGE_COUNT');
+      const iType = idx('PRIVILEGE_TYPE');
+      const iPrivCode = idx('PRIVILEGE_CODE');
+      const iPrivName = idx('PRIVILEGE_NAME');
+      const iSource = idx('SOURCE_ROLES');
+      const r0 = data[0];
+      const details = data
+        .filter(r => r[iPrivName] !== null && String(r[iPrivName]).trim() !== '')
+        .map(r => ({
+          type: String(r[iType] || '').trim(),
+          privilegeCode: String(r[iPrivCode] || '').trim(),
+          privilegeName: String(r[iPrivName] || '').trim(),
+          sourceRoles: String(r[iSource] || '').trim(),
+        }));
+      return {
+        success: true,
+        roleCode: String(r0[iRoleCode] || roleCode).trim(),
+        roleName: String(r0[iRoleName] || '').trim(),
+        directCount: Number(r0[iDirect]) || 0,
+        indirectCount: Number(r0[iIndirect]) || 0,
+        totalCount: Number(r0[iTotal]) || 0,
+        details,
+      };
+    } catch (err: any) {
+      return { success: false, roleCode, roleName: '', directCount: 0, indirectCount: 0, totalCount: 0, details: [], error: err.message };
+    }
+  }
+
   public async parseUserDetailsSoapResponse(xmlContent: string): Promise<UserDetailsBipRow[]> {
     if (!xmlContent || typeof xmlContent !== 'string') return [];
     let parsedXml: any;

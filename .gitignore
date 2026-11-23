@@ -27,6 +27,8 @@ backend/oracle_config.json.tmp
 backend/cache/
 backend/oracle_user_access_report_cache.json
 backend/oracle_role_hierarchy_cache.json
+backend/oracle_access_certs_cache.json
+backend/oracle_certifier_worksheets_cache.json
 role_privilege_catalog.json
 backend/role_privilege_catalog.json
 /oracle_roles_cache.json

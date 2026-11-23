@@ -12,6 +12,15 @@ import { encryptRawField, trackingColumns } from '../security/encryptedRecordWri
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CACHE_FILE_PATH = path.join(__dirname, '../../oracle_role_hierarchy_cache.json');
+const ROLE_PRIVILEGE_COUNT_CACHE_PATH = path.join(__dirname, '../../role_privilege_count_cache.json');
+
+export interface RolePrivilegeSummaryItem {
+  roleCode: string;
+  roleName: string;
+  directCount: number;
+  indirectCount: number;
+  totalCount: number;
+}
 function getSeedFilePath(): string {
   const candidates = [
     path.join(__dirname, '../config/role_hierarchy_seed.json'),
@@ -862,6 +871,158 @@ export class RoleHierarchyService {
       childrenTree,
       privileges: rootPrivs,
       totalDescendants: childrenTree.length,
+    };
+  }
+
+  private completePrivilegeCountCache = new Map<string, { data: any; ts: number }>();
+  private readonly completePrivilegeCountTtl = 10 * 60 * 1000;
+
+  private loadPersistentPrivilegeCountCache(): Record<string, any> {
+    try {
+      if (fs.existsSync(ROLE_PRIVILEGE_COUNT_CACHE_PATH)) {
+        const raw = fs.readFileSync(ROLE_PRIVILEGE_COUNT_CACHE_PATH, 'utf8');
+        return JSON.parse(raw);
+      }
+    } catch (err) {
+      console.warn('[RoleHierarchyService] Error reading persistent privilege count cache:', (err as Error).message);
+    }
+    return {};
+  }
+
+  private saveToPersistentPrivilegeCountCache(roleCode: string, data: any) {
+    try {
+      const existing = this.loadPersistentPrivilegeCountCache();
+      existing[roleCode.toLowerCase()] = {
+        ...data,
+        cachedAt: new Date().toISOString()
+      };
+      fs.writeFileSync(ROLE_PRIVILEGE_COUNT_CACHE_PATH, JSON.stringify(existing, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('[RoleHierarchyService] Error saving persistent privilege count cache:', (err as Error).message);
+    }
+  }
+
+  public async getCompletePrivilegeCount(roleCode: string, forceRefresh = false): Promise<any> {
+    const code = String(roleCode || '').trim();
+    if (!code) return { success: false, error: 'Role code is required.' };
+    const cacheKey = code.toLowerCase();
+
+    // In-memory cache
+    const cached = this.completePrivilegeCountCache.get(cacheKey);
+    if (!forceRefresh && cached && Date.now() - cached.ts < this.completePrivilegeCountTtl) {
+      return { ...cached.data, cached: true };
+    }
+
+    // Persistent disk cache check
+    if (!forceRefresh) {
+      const diskCache = this.loadPersistentPrivilegeCountCache();
+      if (diskCache[cacheKey]) {
+        this.completePrivilegeCountCache.set(cacheKey, { data: diskCache[cacheKey], ts: Date.now() });
+        return { ...diskCache[cacheKey], cached: true };
+      }
+    }
+
+    try {
+      const result = await this.bipClient.runCompletePrivilegeCountReport(code);
+      if (result && result.success) {
+        this.completePrivilegeCountCache.set(cacheKey, { data: result, ts: Date.now() });
+        this.saveToPersistentPrivilegeCountCache(cacheKey, result);
+      }
+      return { ...result, cached: false };
+    } catch (err: any) {
+      if (cached) return { ...cached.data, cached: true, stale: true };
+      const diskCache = this.loadPersistentPrivilegeCountCache();
+      if (diskCache[cacheKey]) return { ...diskCache[cacheKey], cached: true, stale: true };
+      return { success: false, roleCode: code, error: err.message };
+    }
+  }
+
+  public async getRolePrivilegeSummary(forceRefresh = false): Promise<{
+    success: boolean;
+    dataSource: string;
+    items: RolePrivilegeSummaryItem[];
+    totalCount: number;
+    lastSyncedAt: string | null;
+  }> {
+    if (forceRefresh) {
+      await this.ensureLoadedFromDb(true);
+    } else if (!this.dbLoaded) {
+      if (this.memoryCache && this.memoryCache.length > 0) {
+        if (!this.dbLoadPromise) {
+          this.ensureLoadedFromDb(false).catch(() => {});
+        }
+      } else {
+        await this.ensureLoadedFromDb(false);
+      }
+    }
+
+    const allItems = this.memoryCache || [];
+    const persistentCounts = this.loadPersistentPrivilegeCountCache();
+    const roleMap = new Map<string, RolePrivilegeSummaryItem>();
+
+    // 1. Process all hierarchy items
+    for (const it of allItems) {
+      const code = String(it.roleCode || '').trim();
+      if (!code) continue;
+      const lower = code.toLowerCase();
+      if (!roleMap.has(lower)) {
+        const cached = persistentCounts[lower] || this.completePrivilegeCountCache.get(lower)?.data;
+        if (cached && typeof cached.directCount === 'number') {
+          roleMap.set(lower, {
+            roleCode: cached.roleCode || code,
+            roleName: cached.roleName || it.roleName || code,
+            directCount: cached.directCount ?? 0,
+            indirectCount: cached.indirectCount ?? 0,
+            totalCount: cached.totalCount ?? 0,
+          });
+        } else {
+          const privCount = Array.isArray(it.privileges) ? it.privileges.length : (it.privilegeCount || 0);
+          roleMap.set(lower, {
+            roleCode: code,
+            roleName: it.roleName || code,
+            directCount: 0,
+            indirectCount: privCount,
+            totalCount: privCount,
+          });
+        }
+      }
+    }
+
+    // 2. Ensure any roles in persistentCounts (e.g. AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy) are merged/updated
+    for (const [lower, cached] of Object.entries(persistentCounts)) {
+      if (!roleMap.has(lower)) {
+        roleMap.set(lower, {
+          roleCode: cached.roleCode || lower,
+          roleName: cached.roleName || cached.roleCode || lower,
+          directCount: cached.directCount ?? 0,
+          indirectCount: cached.indirectCount ?? 0,
+          totalCount: cached.totalCount ?? 0,
+        });
+      } else {
+        const item = roleMap.get(lower)!;
+        item.directCount = cached.directCount ?? item.directCount;
+        item.indirectCount = cached.indirectCount ?? item.indirectCount;
+        item.totalCount = cached.totalCount ?? item.totalCount;
+        if (cached.roleName) item.roleName = cached.roleName;
+      }
+    }
+
+    const items = Array.from(roleMap.values());
+    // Sort with primary customized roles first (e.g. AAA_*), then alphabetically
+    items.sort((a, b) => {
+      const aIsCustom = a.roleCode.startsWith('AAA_');
+      const bIsCustom = b.roleCode.startsWith('AAA_');
+      if (aIsCustom && !bIsCustom) return -1;
+      if (!aIsCustom && bIsCustom) return 1;
+      return a.roleName.localeCompare(b.roleName);
+    });
+
+    return {
+      success: true,
+      dataSource: 'Oracle Fusion (BIP)',
+      items,
+      totalCount: items.length,
+      lastSyncedAt: this.lastSyncedAt,
     };
   }
 
