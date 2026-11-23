@@ -767,26 +767,26 @@ export default function InvestigationWorkspace({
         </div>
 
         {/* Right Side: Tab Viewport Content */}
-        <div className="glass-panel animate-fade-in" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+        <div className="glass-panel animate-fade-in" style={{ display: 'flex', flexDirection: 'column' }}>
           
           {/* Tab 1: Overview */}
           {activeTab === 'OVERVIEW' && (
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Shield size={18} style={{ color: 'var(--accent-blue)' }} />
                 <span>Entity Security Health Summary</span>
               </h3>
 
               {isRole ? (
-                <div className="dashboard-grid-3" style={{ marginBottom: '2rem' }}>
+                <div className="dashboard-grid-3" style={{ marginBottom: '0.75rem' }}>
                   <div 
                     className="glass-panel" 
                     onClick={() => setActiveTab('MEMBERS')}
-                    style={{ padding: '1.25rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    style={{ padding: '0.75rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
                     title="Click to view assigned accounts"
                   >
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Direct Members</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.25rem 0', color: 'var(--accent-blue)' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Direct Members</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.15rem 0', color: 'var(--accent-blue)' }}>
                       {membersLoading ? (data?.members?.length || '...') : resolvedMemberList.length}
                     </div>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)' }}>Assigned Accounts (Click to view)</span>
@@ -795,11 +795,11 @@ export default function InvestigationWorkspace({
                   <div 
                     className="glass-panel" 
                     onClick={() => setActiveTab('HIERARCHY')}
-                    style={{ padding: '1.25rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    style={{ padding: '0.75rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
                     title="Click to view role hierarchy"
                   >
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Child Duty Roles</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.25rem 0' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Child Duty Roles</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.15rem 0' }}>
                       {hierarchyLoading ? (
                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>...</span>
                       ) : (
@@ -812,10 +812,10 @@ export default function InvestigationWorkspace({
                   <div 
                     className="glass-panel" 
                     onClick={() => setActiveTab('PRIVILEGES')}
-                    style={{ 
-                      padding: '1.25rem 1rem', 
-                      textAlign: 'center', 
-                      border: '1px solid var(--border-color)', 
+                    style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'center',
+                      border: '1px solid var(--border-color)',
                       backgroundColor: 'var(--bg-tertiary)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
@@ -827,7 +827,7 @@ export default function InvestigationWorkspace({
                       <span>Functional Privileges</span>
                       <ArrowRight size={13} style={{ color: 'var(--accent-green)' }} />
                     </div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.25rem 0', color: 'var(--accent-green)', minHeight: '2.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.15rem 0', color: 'var(--accent-green)', minHeight: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {privilegeLoading ? (
                         <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <RefreshCw size={14} className="animate-spin" />
