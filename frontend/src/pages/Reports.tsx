@@ -38,7 +38,7 @@ import {
   Columns,
   AlignLeft
 } from 'lucide-react';
-import { api } from '../services/api';
+import { api, clearClientApiCache } from '../services/api';
 import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { ReportSelectorDropdown } from '../components/ReportSelectorDropdown';
 import ReportsList from '../components/ReportsList';
@@ -369,6 +369,7 @@ export default function Reports({
   // 4. ROLE HIERARCHY REPORT STATE
   // -------------------------------------------------------------
   const [hierarchyData, setHierarchyData] = useState<any[]>([]);
+  const [rhSummaryData, setRhSummaryData] = useState<any[]>([]);
   const [hierarchyLoading, setHierarchyLoading] = useState<boolean>(false);
   const [hierarchyError, setHierarchyError] = useState<string>('');
   const [hierarchyIntegrationNotice, setHierarchyIntegrationNotice] = useState<string>('');
@@ -379,6 +380,17 @@ export default function Reports({
   const [rhTreeData, setRhTreeData] = useState<any | null>(null);
   const [rhTreeLoading, setRhTreeLoading] = useState<boolean>(false);
   const [rhTreeModalOpen, setRhTreeModalOpen] = useState<boolean>(false);
+  const [rhSummarySortField, setRhSummarySortField] = useState<string>('roleName');
+  const [rhSummarySortOrder, setRhSummarySortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedRolePrivilegeCode, setSelectedRolePrivilegeCode] = useState<string | null>(null);
+  const [selectedRolePrivilegeName, setSelectedRolePrivilegeName] = useState<string>('');
+  const [rhPrivilegeDetailData, setRhPrivilegeDetailData] = useState<any>(null);
+  const [rhPrivilegeDetailLoading, setRhPrivilegeDetailLoading] = useState<boolean>(false);
+  const [rhPrivilegeDetailError, setRhPrivilegeDetailError] = useState<string>('');
+  const [rhPrivilegeDetailTab, setRhPrivilegeDetailTab] = useState<'direct' | 'indirect'>('direct');
+  const [rolePrivilegeDetailSearch, setRolePrivilegeDetailSearch] = useState<string>('');
+  const [rolePrivilegeDetailPage, setRolePrivilegeDetailPage] = useState<number>(1);
+  const [rolePrivilegeDetailPageSize, setRolePrivilegeDetailPageSize] = useState<number>(25);
   const [rhExpandedNodes, setRhExpandedNodes] = useState<Set<string>>(new Set());
   const [rhExpandedPrivileges, setRhExpandedPrivileges] = useState<Set<string>>(new Set());
   const [rhSyncing, setRhSyncing] = useState<boolean>(false);
@@ -796,13 +808,68 @@ export default function Reports({
     }
   };
 
-  // Loader 4: Role Hierarchy
+  // Loader 4: Role Hierarchy & Privilege Summary
+  const loadRolePrivilegeSummary = async (forceRefresh = false) => {
+    setHierarchyLoading(true);
+    setHierarchyError('');
+    if (forceRefresh) clearClientApiCache();
+    try {
+      const res = await api.getRolePrivilegeSummary(forceRefresh);
+      if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+        setRhSummaryData(res.items);
+      }
+    } catch (err: any) {
+      console.error('Failed to load role privilege summary:', err);
+    } finally {
+      setHierarchyLoading(false);
+    }
+  };
+
   const loadRoleHierarchy = async (forceRefresh = false) => {
     setHierarchyLoading(true);
     setHierarchyError('');
     setHierarchyIntegrationNotice('');
+    if (forceRefresh) clearClientApiCache();
     try {
-      const res = await api.getRoleHierarchyReport(forceRefresh);
+      const [res, summaryRes] = await Promise.all([
+        api.getRoleHierarchyReport(forceRefresh).catch((e) => {
+          console.warn('[Reports] Role hierarchy fetch notice:', e);
+          return null;
+        }),
+        api.getRolePrivilegeSummary(forceRefresh).catch((e) => {
+          console.warn('[Reports] Role privilege summary fetch notice:', e);
+          return null;
+        })
+      ]);
+
+      let summaryList: any[] = [];
+      if (summaryRes?.items && Array.isArray(summaryRes.items) && summaryRes.items.length > 0) {
+        summaryList = summaryRes.items;
+      } else if (res?.summaryItems && Array.isArray(res.summaryItems) && res.summaryItems.length > 0) {
+        summaryList = res.summaryItems;
+      } else if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+        // Fallback: extract distinct roles directly from hierarchy items
+        const roleMap = new Map<string, any>();
+        for (const item of res.items) {
+          const code = String(item.roleCode || item.childRole || '').trim();
+          if (code && !roleMap.has(code.toLowerCase())) {
+            const count = Array.isArray(item.privileges) ? item.privileges.length : (item.privilegeCount || 0);
+            roleMap.set(code.toLowerCase(), {
+              roleCode: code,
+              roleName: item.roleName || item.childRoleName || code,
+              directCount: 0,
+              indirectCount: count,
+              totalCount: count
+            });
+          }
+        }
+        summaryList = Array.from(roleMap.values());
+      }
+
+      if (summaryList.length > 0) {
+        setRhSummaryData(summaryList);
+      }
+
       if (res?.items && Array.isArray(res.items)) {
         setHierarchyData(res.items);
         if (res.items.length > 0 && !rhSelectedRoleForTree) {
@@ -873,6 +940,62 @@ export default function Reports({
   const handleOpenTreeModal = (roleName: string) => {
     setRhTreeModalOpen(true);
     loadRoleTree(roleName);
+  };
+
+  const handleBackToSummary = () => {
+    setSelectedRolePrivilegeCode(null);
+    setRhPrivilegeDetailData(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('roleCode');
+      window.history.pushState({}, '', url.toString());
+    } catch (_) {}
+  };
+
+  const loadPrivilegeDetail = async (roleCode: string, roleName?: string, forceRefresh = false) => {
+    const cleanCode = String(roleCode || '').trim();
+    if (!cleanCode) return;
+    setSelectedRolePrivilegeCode(cleanCode);
+    setSelectedRolePrivilegeName(roleName || cleanCode);
+    setRhPrivilegeDetailLoading(true);
+    setRhPrivilegeDetailError('');
+    setRhPrivilegeDetailData(null);
+    setRhPrivilegeDetailTab('direct');
+    setRolePrivilegeDetailSearch('');
+    setRolePrivilegeDetailPage(1);
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('roleCode', cleanCode);
+      window.history.pushState({}, '', url.toString());
+    } catch (_) {}
+
+    try {
+      const res = await api.getCompletePrivilegeCount(cleanCode, forceRefresh);
+      if (res && res.success) {
+        setRhPrivilegeDetailData(res);
+        if (res.roleName) setSelectedRolePrivilegeName(res.roleName);
+        setRhSummaryData(prev => prev.map(item => {
+          if (item.roleCode.toLowerCase() === cleanCode.toLowerCase()) {
+            return {
+              ...item,
+              roleName: res.roleName || item.roleName,
+              directCount: res.directCount,
+              indirectCount: res.indirectCount,
+              totalCount: res.totalCount
+            };
+          }
+          return item;
+        }));
+      } else {
+        setRhPrivilegeDetailError(res?.error || 'Unable to fetch privilege details.');
+      }
+    } catch (err: any) {
+      console.error('Failed to load privilege detail:', err);
+      setRhPrivilegeDetailError('Unable to fetch privilege details from Oracle Fusion.');
+    } finally {
+      setRhPrivilegeDetailLoading(false);
+    }
   };
 
   const handleSyncHierarchyLive = async () => {
@@ -1014,6 +1137,16 @@ export default function Reports({
               title="Focus this role in tree"
             >
               <GitFork size={12} /> Focus
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadPrivilegeDetail(node.code || node.name, node.name)}
+              className="btn btn-primary"
+              style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              title="View live privilege details"
+            >
+              <Key size={12} /> Privileges
             </button>
           </div>
         </div>
@@ -1254,11 +1387,21 @@ export default function Reports({
       loadRiskIncidents('ALL', false, 1, pageSize, '', 'ALL', 'ALL', incidentsDomain);
     } else if (activeReportId === 'USER_ROLE_MAPPING' && userRoleData.length === 0 && !userRoleLoading) {
       loadUserRoleMappings();
-    } else if (activeReportId === 'ROLE_HIERARCHY' && hierarchyData.length === 0 && !hierarchyLoading) {
+    } else if (activeReportId === 'ROLE_HIERARCHY' && rhSummaryData.length === 0 && !hierarchyLoading) {
       loadRoleHierarchy();
     } else if (activeReportId === 'AUDIT_HISTORY' && auditLogs.length === 0 && !auditLoading) {
       loadAuditHistory();
     }
+  }, [activeReportId]);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlRoleCode = params.get('roleCode');
+      if (urlRoleCode && activeReportId === 'ROLE_HIERARCHY' && !selectedRolePrivilegeCode) {
+        loadPrivilegeDetail(urlRoleCode);
+      }
+    } catch (_) {}
   }, [activeReportId]);
 
   const switchIncidentsDomain = (nextDomain: 'ACCESS' | 'TRANSACTION', initialStatus = 'ALL') => {
@@ -1414,7 +1557,50 @@ export default function Reports({
     });
   }, [userRoleData, urmSearch, urmStatusFilter, urmCategoryFilter]);
 
-  // 4. Role Hierarchy Filtered
+  // 4. Role Hierarchy Summary Filtered
+  const filteredRhSummaryData = useMemo(() => {
+    let list = rhSummaryData;
+    if (rhSearch.trim()) {
+      const q = rhSearch.toLowerCase().trim();
+      list = list.filter(item =>
+        (item.roleCode && item.roleCode.toLowerCase().includes(q)) ||
+        (item.roleName && item.roleName.toLowerCase().includes(q))
+      );
+    }
+    return [...list].sort((a, b) => {
+      let vA = (a as any)[rhSummarySortField];
+      let vB = (b as any)[rhSummarySortField];
+      if (typeof vA === 'string') {
+        return rhSummarySortOrder === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA);
+      }
+      vA = Number(vA) || 0;
+      vB = Number(vB) || 0;
+      return rhSummarySortOrder === 'asc' ? vA - vB : vB - vA;
+    });
+  }, [rhSummaryData, rhSearch, rhSummarySortField, rhSummarySortOrder]);
+
+  // 4b. Role Privilege Detail Privileges Filtered
+  const activeDetails = useMemo(() => {
+    if (!rhPrivilegeDetailData?.details) return [];
+    let items = rhPrivilegeDetailData.details.filter((d: any) =>
+      rhPrivilegeDetailTab === 'direct' ? d.type === 'DIRECT' : d.type === 'INDIRECT'
+    );
+    if (rolePrivilegeDetailSearch.trim()) {
+      const q = rolePrivilegeDetailSearch.toLowerCase().trim();
+      items = items.filter((d: any) =>
+        (d.privilegeCode && d.privilegeCode.toLowerCase().includes(q)) ||
+        (d.privilegeName && d.privilegeName.toLowerCase().includes(q)) ||
+        (d.sourceRoles && d.sourceRoles.toLowerCase().includes(q))
+      );
+    }
+    return items;
+  }, [rhPrivilegeDetailData, rhPrivilegeDetailTab, rolePrivilegeDetailSearch]);
+
+  const paginatedDetailsSlice = useMemo(() => {
+    const start = (rolePrivilegeDetailPage - 1) * rolePrivilegeDetailPageSize;
+    return activeDetails.slice(start, start + rolePrivilegeDetailPageSize);
+  }, [activeDetails, rolePrivilegeDetailPage, rolePrivilegeDetailPageSize]);
+
   const filteredHierarchyData = useMemo(() => {
     return hierarchyData.filter(item => {
       const q = rhSearch.toLowerCase().trim();
@@ -1432,7 +1618,7 @@ export default function Reports({
     });
   }, [hierarchyData, rhSearch, rhCategoryFilter]);
 
-  // 4b. Role Privileges Modal Filtered
+  // 4c. Role Privileges Modal Filtered
   const filteredRolePrivileges = useMemo(() => {
     if (!rhSelectedPrivItem || !Array.isArray(rhSelectedPrivItem.privileges)) return [];
     if (!rhPrivSearch.trim()) return rhSelectedPrivItem.privileges;
@@ -1455,11 +1641,11 @@ export default function Reports({
       case 'CONTROL_SUMMARY': return filteredControls;
       case 'INCIDENTS_DETAILED': return filteredIncidents;
       case 'USER_ROLE_MAPPING': return filteredUserRoleData;
-      case 'ROLE_HIERARCHY': return filteredHierarchyData;
+      case 'ROLE_HIERARCHY': return filteredRhSummaryData;
       case 'AUDIT_HISTORY': return filteredAuditLogs;
       default: return [];
     }
-  }, [activeReportId, filteredControls, filteredIncidents, filteredUserRoleData, filteredHierarchyData, filteredAuditLogs]);
+  }, [activeReportId, filteredControls, filteredIncidents, filteredUserRoleData, filteredRhSummaryData, filteredAuditLogs]);
 
   // Active pagination slice (server-driven for ALL-controls incidents)
   const isIncidentsServerPaging = activeReportId === 'INCIDENTS_DETAILED' && selectedIncidentsControlId === 'ALL';
@@ -1827,44 +2013,29 @@ export default function Reports({
               />
             )}
 
-            {activeReportId === 'ROLE_HIERARCHY' && (
+            {activeReportId === 'ROLE_HIERARCHY' && !selectedRolePrivilegeCode && (
               <EnterpriseExportControl
-                filename="roles_hierarchy"
-                sheetName="Role Hierarchy"
-                reportTitle="Oracle Fusion Role Hierarchy & Inheritance Report"
-                dataSource="Oracle Fusion Security Cloud"
-                entityName="Relationships"
+                filename="roles_privilege_summary"
+                sheetName="Role Privilege Summary"
+                reportTitle="Oracle Fusion Role Privilege Summary Report"
+                dataSource="Oracle Fusion Security Cloud (BIP: sharedfolders/custom/privilege Count check Report.xdo)"
+                entityName="Roles"
                 buttonText="Export Excel"
                 currentPageData={paginatedSlice}
-                filteredCount={filteredHierarchyData.length}
-                totalCount={hierarchyData.length}
-                appliedFilters={rhActiveFilters}
+                filteredCount={filteredRhSummaryData.length}
+                totalCount={rhSummaryData.length}
+                appliedFilters={[]}
                 availableColumns={[
-                  { key: 'roleName', label: 'Role', defaultSelected: true },
                   { key: 'roleCode', label: 'Role Code', defaultSelected: true },
-                  { key: 'category', label: 'Category', defaultSelected: true },
-                  { key: 'parentRole', label: 'Parent Role', defaultSelected: true },
-                  { key: 'childRole', label: 'Child Role', defaultSelected: true },
-                  { key: 'relationshipType', label: 'Relationship Type', defaultSelected: true },
-                  {
-                    key: 'privilegeCount',
-                    label: 'Privilege Count',
-                    defaultSelected: false,
-                    getValue: (item) => Array.isArray(item.privileges) ? item.privileges.length : (item.privilegeCount || 0)
-                  },
-                  {
-                    key: 'privileges',
-                    label: 'Functional Privileges',
-                    defaultSelected: false,
-                    getValue: (item) => Array.isArray(item.privileges) && item.privileges.length > 0
-                      ? item.privileges.map((p: any) => typeof p === 'string' ? p : (p.name || p.code || '')).filter(Boolean).join('; ')
-                      : '—'
-                  }
+                  { key: 'roleName', label: 'Role Name', defaultSelected: true },
+                  { key: 'directCount', label: 'Direct', defaultSelected: true },
+                  { key: 'indirectCount', label: 'Indirect', defaultSelected: true },
+                  { key: 'totalCount', label: 'Total', defaultSelected: true },
                 ]}
                 onFetchScopeData={async (scope) => {
                   if (scope === 'PAGE') return paginatedSlice;
-                  if (scope === 'FILTERED') return filteredHierarchyData;
-                  return hierarchyData;
+                  if (scope === 'FILTERED') return filteredRhSummaryData;
+                  return rhSummaryData;
                 }}
               />
             )}
@@ -2586,7 +2757,7 @@ export default function Reports({
         {/* -------------------------------------------------------------
             REPORT 4: ROLE HIERARCHY FILTERS
             ------------------------------------------------------------- */}
-        {activeReportId === 'ROLE_HIERARCHY' && (
+        {activeReportId === 'ROLE_HIERARCHY' && !selectedRolePrivilegeCode && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
               {/* View Mode Toggle */}
@@ -2609,7 +2780,7 @@ export default function Reports({
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <Layers size={14} /> Parent-Child Table
+                  <Layers size={14} /> Role Privilege Summary
                 </button>
                 <button
                   type="button"
@@ -2640,10 +2811,13 @@ export default function Reports({
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Total Roles: <strong style={{ color: 'var(--text-primary)' }}>{filteredRhSummaryData.length.toLocaleString()}</strong>
+                </span>
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => loadRoleHierarchy(false)}
+                  onClick={() => loadRoleHierarchy(true)}
                   disabled={hierarchyLoading || rhSyncing}
                   style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                   title="Reload role hierarchy records"
@@ -2673,39 +2847,15 @@ export default function Reports({
                 <input
                   type="text"
                   className="form-input"
-                  placeholder={rhViewMode === 'TABLE' ? 'Search parent role, child role, or relation type...' : 'Type to search role tree...'}
+                  placeholder="Search by Role Code or Role Name..."
                   value={rhSearch}
                   onChange={(e) => {
                     setRhSearch(e.target.value);
                     setCurrentPage(1);
-                    if (rhViewMode === 'TREE' && e.target.value.length > 2) {
-                      const match = hierarchyData.find((h: any) =>
-                        h.roleName.toLowerCase().includes(e.target.value.toLowerCase()) ||
-                        h.childRole.toLowerCase().includes(e.target.value.toLowerCase()) ||
-                        h.parentRole.toLowerCase().includes(e.target.value.toLowerCase())
-                      );
-                      if (match) {
-                        loadRoleTree(match.roleName || match.childRole);
-                      }
-                    }
                   }}
                   style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
                 />
               </div>
-
-              <select
-                className="form-select"
-                value={rhCategoryFilter}
-                onChange={(e) => { setRhCategoryFilter(e.target.value); setCurrentPage(1); }}
-                style={{ width: '160px', fontSize: '0.84rem' }}
-              >
-                <option value="ALL">Category: All</option>
-                <option value="Job">Job Roles</option>
-                <option value="Duty">Duty Roles</option>
-                <option value="Abstract">Abstract Roles</option>
-                <option value="Data">Data Roles</option>
-                <option value="GRC">GRC Roles</option>
-              </select>
 
               {rhViewMode === 'TREE' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -3287,42 +3437,347 @@ export default function Reports({
             </div>
           )}
 
-          {/* Table 4: Role Hierarchy */}
+          {/* Table 4: Role Hierarchy & Role Privilege Detail */}
           {activeReportId === 'ROLE_HIERARCHY' && (
-            rhViewMode === 'TREE' ? (
+            selectedRolePrivilegeCode ? (
+              <div className="role-privilege-detail-page" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Top Action / Navigation Bar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+                  <button
+                    type="button"
+                    onClick={handleBackToSummary}
+                    className="btn btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.84rem', fontWeight: 600, padding: '0.4rem 0.9rem' }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Role Hierarchy Summary</span>
+                  </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => loadPrivilegeDetail(selectedRolePrivilegeCode, selectedRolePrivilegeName, true)}
+                      disabled={rhPrivilegeDetailLoading}
+                      className="btn btn-secondary"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+                      title="Sync live from Oracle Fusion BIP"
+                    >
+                      <RefreshCw size={14} className={rhPrivilegeDetailLoading ? 'animate-spin' : ''} />
+                      <span>{rhPrivilegeDetailLoading ? 'Querying Oracle...' : 'Refresh Live (BIP)'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Role Privilege Detail Card & Metadata */}
+                <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.25rem 1.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent-blue)' }}>
+                      Role Privilege Detail
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Role Code:</span>
+                      <code style={{ fontSize: '0.9rem', color: 'var(--accent-blue)', backgroundColor: 'var(--bg-tertiary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                        {selectedRolePrivilegeCode}
+                      </code>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Role Name:</span>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {selectedRolePrivilegeName || selectedRolePrivilegeCode}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Summary Counts Banner */}
+                  <div style={{
+                    marginTop: '1.25rem',
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-around',
+                    flexWrap: 'wrap',
+                    gap: '1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 600
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Direct:</span>
+                      <span className="badge badge-primary" style={{ fontSize: '0.85rem', padding: '3px 10px' }}>
+                        {rhPrivilegeDetailLoading ? '…' : (rhPrivilegeDetailData?.directCount ?? 0)}
+                      </span>
+                    </div>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)' }}></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Indirect:</span>
+                      <span className="badge badge-purple" style={{ fontSize: '0.85rem', padding: '3px 10px' }}>
+                        {rhPrivilegeDetailLoading ? '…' : (rhPrivilegeDetailData?.indirectCount ?? 0)}
+                      </span>
+                    </div>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)' }}></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Total:</span>
+                      <span className="badge badge-neutral" style={{ fontSize: '0.85rem', padding: '3px 10px' }}>
+                        {rhPrivilegeDetailLoading ? '…' : (rhPrivilegeDetailData?.totalCount ?? 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tab Switchers & Search Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.4rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border-color)' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setRhPrivilegeDetailTab('direct'); setRolePrivilegeDetailPage(1); }}
+                      className={rhPrivilegeDetailTab === 'direct' ? 'btn btn-primary' : 'btn btn-secondary'}
+                      style={{
+                        padding: '0.35rem 0.95rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: rhPrivilegeDetailTab === 'direct' ? 'var(--accent-blue)' : 'transparent',
+                        color: rhPrivilegeDetailTab === 'direct' ? '#ffffff' : 'var(--text-secondary)'
+                      }}
+                    >
+                      Direct ({rhPrivilegeDetailData?.directCount ?? 0})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setRhPrivilegeDetailTab('indirect'); setRolePrivilegeDetailPage(1); }}
+                      className={rhPrivilegeDetailTab === 'indirect' ? 'btn btn-primary' : 'btn btn-secondary'}
+                      style={{
+                        padding: '0.35rem 0.95rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: rhPrivilegeDetailTab === 'indirect' ? 'var(--accent-blue)' : 'transparent',
+                        color: rhPrivilegeDetailTab === 'indirect' ? '#ffffff' : 'var(--text-secondary)'
+                      }}
+                    >
+                      Indirect ({rhPrivilegeDetailData?.indirectCount ?? 0})
+                    </button>
+                  </div>
+
+                  <div style={{ position: 'relative', width: '320px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Search by privilege code, name, source..."
+                      value={rolePrivilegeDetailSearch}
+                      onChange={(e) => {
+                        setRolePrivilegeDetailSearch(e.target.value);
+                        setRolePrivilegeDetailPage(1);
+                      }}
+                      style={{ paddingLeft: '2rem', fontSize: '0.82rem', height: '34px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Detail Table */}
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <table className="enterprise-table" style={{ width: '100%', margin: 0 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '22%' }}>Role Code</th>
+                        <th style={{ width: '22%' }}>Role Name</th>
+                        <th style={{ width: '10%' }}>Type</th>
+                        <th style={{ width: '18%' }}>Privilege Code</th>
+                        <th style={{ width: '18%' }}>Privilege Name</th>
+                        <th style={{ width: '10%' }}>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rhPrivilegeDetailLoading ? (
+                        Array.from({ length: 6 }).map((_, idx) => (
+                          <tr key={`p-skel-${idx}`} className="animate-pulse">
+                            <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                            <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                            <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                            <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                            <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                            <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          </tr>
+                        ))
+                      ) : rhPrivilegeDetailError ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                            <AlertCircle size={28} style={{ color: 'var(--accent-red)', marginBottom: '0.5rem' }} />
+                            <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--accent-red)' }}>{rhPrivilegeDetailError}</div>
+                            <button
+                              type="button"
+                              onClick={() => loadPrivilegeDetail(selectedRolePrivilegeCode, selectedRolePrivilegeName, true)}
+                              className="btn btn-secondary"
+                              style={{ marginTop: '0.75rem', fontSize: '0.78rem' }}
+                            >
+                              Retry Fetching from Oracle
+                            </button>
+                          </td>
+                        </tr>
+                      ) : activeDetails.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                            No {rhPrivilegeDetailTab} privileges found for this role.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedDetailsSlice.map((d: any, idx: number) => (
+                          <tr key={`${d.privilegeCode}-${idx}`}>
+                            <td>
+                              <code style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{selectedRolePrivilegeCode}</code>
+                            </td>
+                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {selectedRolePrivilegeName}
+                            </td>
+                            <td>
+                              <span className={`badge ${d.type === 'DIRECT' ? 'badge-primary' : 'badge-purple'}`} style={{ fontSize: '0.68rem', fontWeight: 700 }}>
+                                {d.type}
+                              </span>
+                            </td>
+                            <td>
+                              <code style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>{d.privilegeCode}</code>
+                            </td>
+                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {d.privilegeName}
+                            </td>
+                            <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '280px', wordBreak: 'break-word', lineHeight: 1.4 }}>
+                              {d.sourceRoles || selectedRolePrivilegeCode}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Detail View Pagination */}
+                {activeDetails.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Showing {(rolePrivilegeDetailPage - 1) * rolePrivilegeDetailPageSize + 1} to {Math.min(rolePrivilegeDetailPage * rolePrivilegeDetailPageSize, activeDetails.length)} of <strong>{activeDetails.length.toLocaleString()}</strong> {rhPrivilegeDetailTab} privileges
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setRolePrivilegeDetailPage(prev => Math.max(1, prev - 1))}
+                        disabled={rolePrivilegeDetailPage === 1}
+                        style={{ padding: '0.2rem 0.6rem', height: '28px' }}
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', padding: '0 0.35rem' }}>
+                        Page {rolePrivilegeDetailPage} of {Math.max(1, Math.ceil(activeDetails.length / rolePrivilegeDetailPageSize))}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setRolePrivilegeDetailPage(prev => Math.min(Math.ceil(activeDetails.length / rolePrivilegeDetailPageSize), prev + 1))}
+                        disabled={rolePrivilegeDetailPage >= Math.ceil(activeDetails.length / rolePrivilegeDetailPageSize)}
+                        style={{ padding: '0.2rem 0.6rem', height: '28px' }}
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : rhViewMode === 'TREE' ? (
               renderHierarchyTreeContent(false)
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="enterprise-table">
                   <thead>
                     <tr>
-                      <th>Role</th>
-                      <th>Role Code</th>
-                      <th>Category</th>
-                      <th>Parent Role</th>
-                      <th>Child Role</th>
-                      <th>Relationship Type</th>
-                      <th>Functional Privileges</th>
-                      <th style={{ textAlign: 'right' }}>Hierarchy Action</th>
+                      <th
+                        onClick={() => {
+                          if (rhSummarySortField === 'roleCode') {
+                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRhSummarySortField('roleCode');
+                            setRhSummarySortOrder('asc');
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        Role Code {rhSummarySortField === 'roleCode' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th
+                        onClick={() => {
+                          if (rhSummarySortField === 'roleName') {
+                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRhSummarySortField('roleName');
+                            setRhSummarySortOrder('asc');
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        Role Name {rhSummarySortField === 'roleName' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th
+                        onClick={() => {
+                          if (rhSummarySortField === 'directCount') {
+                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRhSummarySortField('directCount');
+                            setRhSummarySortOrder('desc');
+                          }
+                        }}
+                        style={{ cursor: 'pointer', textAlign: 'center', width: '120px' }}
+                      >
+                        Direct {rhSummarySortField === 'directCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th
+                        onClick={() => {
+                          if (rhSummarySortField === 'indirectCount') {
+                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRhSummarySortField('indirectCount');
+                            setRhSummarySortOrder('desc');
+                          }
+                        }}
+                        style={{ cursor: 'pointer', textAlign: 'center', width: '120px' }}
+                      >
+                        Indirect {rhSummarySortField === 'indirectCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th
+                        onClick={() => {
+                          if (rhSummarySortField === 'totalCount') {
+                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRhSummarySortField('totalCount');
+                            setRhSummarySortOrder('desc');
+                          }
+                        }}
+                        style={{ cursor: 'pointer', textAlign: 'center', width: '120px' }}
+                      >
+                        Total {rhSummarySortField === 'totalCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {hierarchyLoading ? (
                       Array.from({ length: 8 }).map((_, idx) => (
                         <tr key={`rh-skel-${idx}`} className="animate-pulse">
-                          <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                          <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                          <td><div style={{ height: '18px', width: '50px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                          <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                          <td><div style={{ height: '14px', width: '130px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                          <td><div style={{ height: '18px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                          <td><div style={{ height: '18px', width: '90px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
-                          <td><div style={{ height: '24px', width: '70px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
+                          <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td><div style={{ height: '14px', width: '220px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td style={{ textAlign: 'center' }}><div style={{ height: '18px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', margin: '0 auto' }}></div></td>
+                          <td style={{ textAlign: 'center' }}><div style={{ height: '18px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', margin: '0 auto' }}></div></td>
+                          <td style={{ textAlign: 'center' }}><div style={{ height: '18px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', margin: '0 auto' }}></div></td>
                         </tr>
                       ))
                     ) : hierarchyIntegrationNotice ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
                           <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                             <AlertCircle size={28} style={{ color: 'var(--accent-gold)', marginBottom: '0.5rem' }} />
                             <div style={{ fontWeight: 600, fontSize: '0.92rem', marginBottom: '0.25rem' }}>Hierarchy Tree Information</div>
@@ -3332,90 +3787,43 @@ export default function Reports({
                       </tr>
                     ) : paginatedSlice.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                          No hierarchy relationships found.
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                          No roles found matching the search criteria.
                         </td>
                       </tr>
                     ) : (
                       paginatedSlice.map((item: any) => (
-                        <tr key={item.id}>
-                          <td style={{ fontWeight: 600 }}>
-                            <span
-                              style={{ color: 'var(--accent-blue)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                              onClick={() => handleOpenTreeModal(item.roleName)}
-                              title="Click to view hierarchy tree"
-                            >
-                              <Shield size={13} style={{ flexShrink: 0 }} />
+                        <tr
+                          key={item.roleCode}
+                          onClick={() => loadPrivilegeDetail(item.roleCode, item.roleName)}
+                          style={{ cursor: 'pointer' }}
+                          title="Click to view Role Privilege Detail"
+                        >
+                          <td>
+                            <code style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                              {item.roleCode}
+                            </code>
+                          </td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <Shield size={13} style={{ flexShrink: 0, color: 'var(--accent-blue)' }} />
                               {item.roleName}
                             </span>
                           </td>
-                          <td><code style={{ fontSize: '0.78rem' }}>{item.roleCode}</code></td>
-                          <td>
-                            <span className={`badge ${item.category === 'Job' ? 'badge-primary' : item.category === 'Duty' ? 'badge-gold' : 'badge-neutral'}`} style={{ fontSize: '0.68rem' }}>
-                              {item.category}
+                          <td style={{ textAlign: 'center' }}>
+                            <span className="badge badge-primary" style={{ fontSize: '0.74rem', fontWeight: 600, minWidth: '32px', display: 'inline-block' }}>
+                              {item.directCount}
                             </span>
                           </td>
-                          <td>
-                            <span
-                              style={{ cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline dotted', textUnderlineOffset: '3px' }}
-                              onClick={() => handleOpenTreeModal(item.parentRole)}
-                              title="Click to inspect parent role tree"
-                            >
-                              {item.parentRole}
+                          <td style={{ textAlign: 'center' }}>
+                            <span className="badge badge-purple" style={{ fontSize: '0.74rem', fontWeight: 600, minWidth: '32px', display: 'inline-block' }}>
+                              {item.indirectCount}
                             </span>
                           </td>
-                          <td>
-                            <span
-                              style={{ cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline dotted', textUnderlineOffset: '3px' }}
-                              onClick={() => handleOpenTreeModal(item.childRole)}
-                              title="Click to inspect child role tree"
-                            >
-                              {item.childRole}
+                          <td style={{ textAlign: 'center' }}>
+                            <span className="badge badge-neutral" style={{ fontSize: '0.74rem', fontWeight: 700, minWidth: '32px', display: 'inline-block' }}>
+                              {item.totalCount}
                             </span>
-                          </td>
-                          <td><span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>{item.relationshipType}</span></td>
-                          <td>
-                            {item.privileges && item.privileges.length > 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRhSelectedPrivItem(item);
-                                  setRhPrivSearch('');
-                                  setRhPrivModalOpen(true);
-                                }}
-                                className="badge badge-blue"
-                                style={{
-                                  fontSize: '0.7rem',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.3rem',
-                                  border: '1px solid rgba(37, 99, 235, 0.25)',
-                                  backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                                  color: 'var(--accent-blue)',
-                                  padding: '3px 8px',
-                                  borderRadius: '6px'
-                                }}
-                                title="Click to view all privileges and descriptions"
-                              >
-                                <Key size={11} style={{ flexShrink: 0 }} />
-                                <span>{item.privileges.length} Privileges</span>
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>—</span>
-                            )}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              onClick={() => handleOpenTreeModal(item.roleName || item.childRole)}
-                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                              title="Open interactive hierarchy tree"
-                            >
-                              <FolderTree size={12} />
-                              <span>View Tree</span>
-                            </button>
                           </td>
                         </tr>
                       ))
@@ -3507,7 +3915,7 @@ export default function Reports({
         {/* -------------------------------------------------------------
             5. PAGINATION & DATASET FOOTER
             ------------------------------------------------------------- */}
-        {activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' ? (
+        {activeReportId === 'ROLE_HIERARCHY' && selectedRolePrivilegeCode ? null : activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1.1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
               Tree View Mode: Inspecting <strong>{rhSelectedRoleForTree || 'Selected Role'}</strong> across live Oracle Fusion inheritance trees (17,255 distinct role relationships).

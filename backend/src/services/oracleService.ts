@@ -2846,6 +2846,19 @@ class OracleService {
     }
   }
 
+  async getCompletePrivilegeCount(roleNameOrCode: string, forceRefresh = false) {
+    let roleCode = roleNameOrCode;
+    try {
+      const tree = await roleHierarchyService.getRoleHierarchyTree(roleNameOrCode);
+      if (tree?.roleCode) roleCode = tree.roleCode;
+    } catch (_) {}
+    return roleHierarchyService.getCompletePrivilegeCount(roleCode, forceRefresh);
+  }
+
+  async getRolePrivilegeSummary(forceRefresh = false) {
+    return roleHierarchyService.getRolePrivilegeSummary(forceRefresh);
+  }
+
   async getRoleHierarchyReport(forceRefresh = false, compact = false) {
     if (this.isDemoMode()) {
       const rows: Array<{

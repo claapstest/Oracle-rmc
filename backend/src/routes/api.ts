@@ -1837,7 +1837,7 @@ apiRouter.get('/reports/:id/download', requireReportsDashboard, async (req: Requ
 apiRouter.get('/reports/:id', requireReportsDashboard, async (req: Request, res: Response, next: () => void) => {
   const reportId = req.params.id;
   // If id is a reserved keyword for other routes, pass through
-  if (['dashboard', 'metrics', 'db', 'user-access', 'role-hierarchy'].includes(reportId)) {
+  if (['dashboard', 'metrics', 'db', 'user-access', 'role-hierarchy', 'role-privilege-summary'].includes(reportId)) {
     return next();
   }
 
@@ -2436,7 +2436,12 @@ apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_R
     const forceRefresh = req.query.refresh === 'true';
     const compact = req.query.format !== 'full';
     const result = await oracleService.getRoleHierarchyReport(forceRefresh, compact);
-    res.json(result);
+    let summaryItems: any[] = [];
+    try {
+      const summary = await oracleService.getRolePrivilegeSummary(false);
+      summaryItems = summary.items || [];
+    } catch (_) {}
+    res.json({ ...result, summaryItems });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
@@ -2490,6 +2495,26 @@ apiRouter.get('/roles/:name/hierarchy', requirePrivilege(['ROLES_CATALOG', 'ROLE
 apiRouter.get('/roles/:name/privileges', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ']), async (req: Request, res: Response) => {
   try {
     const result = await oracleService.getPrivilegesForRole(req.params.name);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+apiRouter.get('/reports/role-privilege-summary', requirePrivilege(['REPORTS', 'REPORTS_READ', 'ROLES_CATALOG', 'ROLE_READ']), async (req: Request, res: Response) => {
+  try {
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await oracleService.getRolePrivilegeSummary(forceRefresh);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+apiRouter.get('/roles/:name/privilege-count', requirePrivilege(['ROLES_CATALOG', 'ROLE_READ', 'REPORTS', 'REPORTS_READ']), async (req: Request, res: Response) => {
+  try {
+    const forceRefresh = req.query.refresh === 'true';
+    const result = await oracleService.getCompletePrivilegeCount(req.params.name, forceRefresh);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

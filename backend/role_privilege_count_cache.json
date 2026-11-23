@@ -1,0 +1,4540 @@
+{
+  "aaa_ap_accounts_payable_invoice_copy": {
+    "success": true,
+    "roleCode": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy",
+    "roleName": "AAA Accounts Payable Invoice",
+    "directCount": 7,
+    "indirectCount": 211,
+    "totalCount": 218,
+    "details": [
+      {
+        "type": "DIRECT",
+        "privilegeCode": "AP_VIEW_PAYABLES_PAYMENT_PRIV",
+        "privilegeName": "View Payables Payment",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ATK_CUSTOMIZE_REPORTING_PANE_PRIV",
+        "privilegeName": "Maintain Reports and Analytics Region",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "FND_MANAGE_FILE_IMPORT_AND_EXPORT_PRIV",
+        "privilegeName": "Manage File Import and Export",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy, ORA_FUN_FSCM_LOAD_INTERFACE_ADMIN_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "POZ_ACCESS_SUPPLIER_WORKAREA_OVERVIEW_PRIV",
+        "privilegeName": "Access Suppliers Work Area Overview",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "POZ_SEARCH_SUPPLIERS_PRIV",
+        "privilegeName": "Search Supplier",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy, ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PO_VIEW_PURCHASE_ORDER_PRIV",
+        "privilegeName": "View Purchase Order",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy, ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PO_VIEW_PURCHASING_DOC_LOV_REST_SERVICE_PRIV",
+        "privilegeName": "View Purchasing Document List of Values using REST Service",
+        "sourceRoles": "AAA_AP_ACCOUNTS_PAYABLE_INVOICE_Copy"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ACA_GET_PD_CONFIGURATIONS_REST_PRIV",
+        "privilegeName": "Access Product Development Configurations Using a REST Service",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_APPLY_OR_UNAPPLY_PAYABLES_PREPAYMENTS_PRIV",
+        "privilegeName": "Apply or Unapply Payables Prepayments",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_CANCEL_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Cancel Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_CORRECT_PAYABLES_IMPORT_VALIDATION_ERRORS_PRIV",
+        "privilegeName": "Correct Payables Import Validation Errors",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_CREATE_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Create Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_CREATE_UNITED_STATES_1099_FORMS_COMMA_DELIMITED_FORMAT_PRIV",
+        "privilegeName": "Create United States 1099 Forms - Comma Delimited Format",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_DELETE_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Delete Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_EDIT_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Edit Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_HOLD_INVOICE_FROM_APPROVAL_TASK_FLOW_PRIV",
+        "privilegeName": "Hold Invoice from Approval Task Flow",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_IMPORT_FC_STATEMENT_PRIV",
+        "privilegeName": "Import Funding Card Statement to Payables",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_IMPORT_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Import Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_IMPORT_PAYABLES_PAYMENT_REQUEST_PRIV",
+        "privilegeName": "Import Payables Payment Request",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_INITIATE_PAYABLES_INVOICE_APPROVAL_TASK_FLOW_PRIV",
+        "privilegeName": "Initiate Payables Invoice Approval Task Flow",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_INV_CREATE_WEB_SERVICE_PRIV",
+        "privilegeName": "Create Payables Invoice by Web Service",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_INV_VIEW_WEB_SERVICE_PRIV",
+        "privilegeName": "View Payables Invoice by Web Service",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_MANAGE_PAYABLES_INVOICES_ACTIVITIES_PRIV",
+        "privilegeName": "Manage Payables Invoices Activities",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_MANAGE_PAYABLES_INVOICES_PRIV",
+        "privilegeName": "Manage Payables Invoices",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_INQUIRY_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_MANAGE_PAYABLES_INVOICE_LIST_ACTIVITIES_PRIV",
+        "privilegeName": "Manage Payables Invoice List Activities",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_INQUIRY_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_MANAGE_PAYABLES_PAYMENTS_PRIV",
+        "privilegeName": "Manage Payables Payments",
+        "sourceRoles": "ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_MODIFY_PAYABLES_INVOICE_TAX_DRIVERS_PRIV",
+        "privilegeName": "Modify Payables Invoice Tax Drivers",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_PLACE_HOLD_ON_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Place Hold on Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_RELEASE_HOLD_ON_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Release Hold on Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_RELEASE_LOCK_ON_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Release Lock on Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_RELEASE_VIOLATION_ON_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Release Violation on Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_MASS_ADDITIONS_CREATION_PROGRAM_PRIV",
+        "privilegeName": "Submit Mass Additions Creation Program",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_AUTORATE_PROGRAM_PRIV",
+        "privilegeName": "Submit Payables AutoRate Program",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_CREDIT_MEMO_MATCHING_REPORT_PRIV",
+        "privilegeName": "Submit Payables Credit Memo Matching Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_INVOICE_AGING_REPORT_PRIV",
+        "privilegeName": "Submit Payables Invoice Aging Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_INVOICE_REGISTER_PRIV",
+        "privilegeName": "Submit Payables Invoice Register",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_INVOICE_VALIDATION_REPORT_PRIV",
+        "privilegeName": "Submit Payables Invoice Validation Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_MATCHED_AND_MODIFIED_RECEIPTS_REPORT_PRIV",
+        "privilegeName": "Submit Payables Matched and Modified Receipts Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_MATCHING_DETAIL_REPORT_PRIV",
+        "privilegeName": "Submit Payables Matching Detail Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_MATCHING_HOLD_DETAIL_REPORT_PRIV",
+        "privilegeName": "Submit Payables Matching Hold Detail Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_PREPAYMENTS_STATUS_REPORT_PRIV",
+        "privilegeName": "Submit Payables Prepayments Status Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_PREPAYMENT_REMITTANCE_NOTICE_PRIV",
+        "privilegeName": "Submit Payables Prepayment Remittance Notice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_WITHHOLDING_TAX_BY_INVOICE_REPORT_PRIV",
+        "privilegeName": "Submit Payables Withholding Tax By Invoice Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_WITHHOLDING_TAX_BY_PAYMENT_REPORT_PRIV",
+        "privilegeName": "Submit Payables Withholding Tax By Payment Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_WITHHOLDING_TAX_BY_SUPPLIER_REPORT_PRIV",
+        "privilegeName": "Submit Payables Withholding Tax By Supplier Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_WITHHOLDING_TAX_BY_TAX_AUTHORITY_REPORT_PRIV",
+        "privilegeName": "Submit Payables Withholding Tax By Tax Authority Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_PAYABLES_WITHHOLDING_TAX_LETTER_PRIV",
+        "privilegeName": "Submit Payables Withholding Tax Letter",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_UNITED_STATES_1096_REPORTS_PRIV",
+        "privilegeName": "Submit United States 1096 Reports",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_UNITED_STATES_1099_ELECTRONIC_MEDIA_PRIV",
+        "privilegeName": "Submit United States 1099 Electronic Media",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_UNITED_STATES_1099_INVOICE_EXCEPTIONS_REPORT_PRIV",
+        "privilegeName": "Submit United States 1099 Invoice Exceptions Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_UNITED_STATES_1099_PAYMENTS_REPORT_PRIV",
+        "privilegeName": "Submit United States 1099 Payments Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_UNITED_STATES_1099_REPORTS_PRIV",
+        "privilegeName": "Submit United States 1099 Reports",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_SUBMIT_UNITED_STATES_1099_SUPPLIER_EXCEPTIONS_REPORT_PRIV",
+        "privilegeName": "Submit United States 1099 Supplier Exceptions Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_TRANSFER_COSTS_TO_COST_MGMT_PRIV",
+        "privilegeName": "Transfer Costs to Cost Management",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_TRANSFER_SUPPLIER_INFORMATION_TO_IDR_PRIV",
+        "privilegeName": "Transfer Supplier Information to Intelligent Document Recognition",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_UPDATE_PAYABLES_INCOME_TAX_DETAILS_UTILITY_AND_REPORT_PRIV",
+        "privilegeName": "Update Payables Income Tax Details Utility and Report",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_VALIDATE_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "Validate Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_VIEW_HOLDS_RESOLUTION_AND_NEGOTIATION_HISTORY_PRIV",
+        "privilegeName": "View Holds Resolution and Negotiation History",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_VIEW_PAYABLES_INVOICE_HOLDS_PRIV",
+        "privilegeName": "View Payables Invoice Holds",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_INQUIRY_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_VIEW_PAYABLES_INVOICE_INSTALLMENTS_PRIV",
+        "privilegeName": "View Payables Invoice Installments",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_VIEW_PAYABLES_INVOICE_PRIV",
+        "privilegeName": "View Payables Invoice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_INQUIRY_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AP_VIEW_SCANNED_PAYABLES_INVOICES_PRIV",
+        "privilegeName": "View Scanned Payables Invoices",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "AR_SET_UP_RECEIVABLES_PAYMENT_TERM_PRIV",
+        "privilegeName": "Set Up Receivables Payment Terms",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CML_CAPTURE_CHARGE_REFERENCES_PRIV",
+        "privilegeName": "Capture Charge References",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CML_VIEW_CHARGE_REFERENCES_PRIV",
+        "privilegeName": "View Charge References",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CMR_PAYABLES_INTERFACE_PRIV",
+        "privilegeName": "Provide Payables Interface Service",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_GET_PM_INDEX_REST_PRIV",
+        "privilegeName": "GET Product Management Index REST",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_GET_PM_ITEM_AVAIL_REST_PRIV",
+        "privilegeName": "Get Item Index Available Attributes REST",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_GET_REDWOOD_SETTINGS_REST_PRIV",
+        "privilegeName": "Get Redwood Settings REST",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_GET_SEARCH_VIEW_REST_PRIV",
+        "privilegeName": "Get Search View REST",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_ITEM_ATTACHMENT_PRIV",
+        "privilegeName": "Manage Item Attachment",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_ITEM_CATALOG_PRIV",
+        "privilegeName": "Manage Item Catalog",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_ITEM_GLOBAL_SEARCH_PRIV",
+        "privilegeName": "Manage Item Global Search",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_PRODUCT_MGT_SEARCH_PRIV",
+        "privilegeName": "Manage Product Management Search",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_SEARCH_CONS_REST_PRIV",
+        "privilegeName": "Manage Search Consumer Applications Rest",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_SEARCH_VIEW_REST_PRIV",
+        "privilegeName": "Manage Search View REST",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_MANAGE_TRADING_PARTNER_ITEM_REFERENCE_PRIV",
+        "privilegeName": "Manage Trading Partner Item Reference",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_ADV_TPI_SEARCH_PRIV",
+        "privilegeName": "View Advanced Trading Partner Item Search",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_ITEM_CONTEXT_HISTORY_REPORT_PRIV",
+        "privilegeName": "View Item Context History Report",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_ITEM_ORGANIZATION_ASSOCIATION_PRIV",
+        "privilegeName": "View Item Organization Association",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_ITEM_PRIV",
+        "privilegeName": "View Item",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_ITEM_RELATIONSHIP_PRIV",
+        "privilegeName": "View Item Relationship",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_PRODUCT_MGT_SEARCH_PRIV",
+        "privilegeName": "View Product Management Search",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY, ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_ASSOCIATION_PRIV",
+        "privilegeName": "View Item Redwood Associations",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_ATTACHMENT_PRIV",
+        "privilegeName": "View Item Redwood Attachments",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_CATEGORIES_PRIV",
+        "privilegeName": "View Item Redwood Item Categories",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_CHANGE_PRIV",
+        "privilegeName": "View Item Redwood Changes",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_PRIV",
+        "privilegeName": "View Item Redwood Items",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_QUALITY_PRIV",
+        "privilegeName": "View Item Redwood Quality",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_RELATIONSHIP_PRIV",
+        "privilegeName": "View Item Redwood Relationships",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_STRUCTURE_PRIV",
+        "privilegeName": "View Item Redwood Structures",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_ITEM_SUPPLIER_ASSOCIATION_REST_PRIV",
+        "privilegeName": "View Redwood Item Supplier Assoiciation Rest",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "EGP_VIEW_REDWOOD_REVISION_REST_PRIV",
+        "privilegeName": "View Redwood Revision Rest",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_FSCM_FILE_TO_INTERFACE_PRIV",
+        "privilegeName": "Load File to Interface",
+        "sourceRoles": "ORA_FUN_FSCM_LOAD_INTERFACE_ADMIN_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_FSCM_LOAD_INTERFACES_PRIV",
+        "privilegeName": "Load Interface File for Import",
+        "sourceRoles": "ORA_FUN_FSCM_LOAD_INTERFACE_ADMIN_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_FSCM_REST_SERVICE_ACCESS_INTEGRATION_PRIV",
+        "privilegeName": "Access FSCM Integration Rest Service",
+        "sourceRoles": "ORA_FUN_FSCM_LOAD_INTERFACE_ADMIN_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_FSCM_TRANSFER_FILE_PRIV",
+        "privilegeName": "Transfer  File",
+        "sourceRoles": "ORA_FUN_FSCM_LOAD_INTERFACE_ADMIN_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GL_POST_JOURNAL_PRIV",
+        "privilegeName": "Post Journal",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GL_REVIEW_ACCOUNTING_PERIOD_STATUS_PRIV",
+        "privilegeName": "Review Accounting Period Status",
+        "sourceRoles": "ORA_GL_ACCOUNTS_PAYABLE_PERIOD_STATUS_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GL_RUN_IMPORT_JOURNALS_VIA_PROGRAM_CALL_PRIV",
+        "privilegeName": "Run Import Journals By Program Call",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+        "privilegeName": "Access Intelligent Agent Chat",
+        "sourceRoles": "ORA_FUN_FIN_AI_AGENT_RUNTIME_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+        "privilegeName": "Access HCM Common Components",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_MANAGE_SYSTEM_SEARCHES_PRIV",
+        "privilegeName": "Manage System Searches",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_REST_SERVICE_ACCESS_SAVED_SEARCHES_PRIV",
+        "privilegeName": "Use REST Service - Saved Searches",
+        "sourceRoles": "ORA_EGI_PRODUCT_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_ENTER_TRADING_COMMUNITY_IMPORT_BATCH_INFORMATION_PRIV",
+        "privilegeName": "Enter Trading Community Import Batch Information",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_ENTER_TRADING_COMMUNITY_IMPORT_BATCH_PROCESS_INFORMATION_PRIV",
+        "privilegeName": "Enter Trading Community Import Batch Process Information",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_ENTER_TRADING_COMMUNITY_ORGANIZATION_INFORMATION_PRIV",
+        "privilegeName": "Enter Trading Community Organization Information",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_EXPORT_CUSTOMER_ACCOUNT_PRIV",
+        "privilegeName": "Export Customer Account",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_EXPORT_CUSTOMER_ACCOUNT_RELATIONSHIP_PRIV",
+        "privilegeName": "Export Customer Account Relationship",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_MODIFY_TRADING_COMMUNITY_IMPORT_BATCH_PROCESS_INFORMATION_PRIV",
+        "privilegeName": "Modify Trading Community Import Batch Process Information",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_PURGE_TRADING_COMMUNITY_IMPORT_BATCH_PRIV",
+        "privilegeName": "Purge Trading Community Import Batch",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_RUN_TRADING_COMMUNITY_IMPORT_BATCH_ERROR_REPORT_PRIV",
+        "privilegeName": "Run Trading Community Import Batch Error Report",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_RUN_TRADING_COMMUNITY_IMPORT_BATCH_PROCESS_PRIV",
+        "privilegeName": "Run Trading Community Import Batch Process",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_CUSTOMER_ACCOUNT_RELATIONSHIPS_PRIV",
+        "privilegeName": "Search Customer Account Relationships",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_CUSTOMER_ACCOUNT_SITE_PRIV",
+        "privilegeName": "Search Customer Account Site",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_TRADING_COMMUNITY_ORGANIZATION_ADDITIONAL_IDENTIFIER_PRIV",
+        "privilegeName": "Search Trading Community Organization Additional Identifier",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_TRADING_COMMUNITY_ORGANIZATION_ADDITIONAL_NAME_PRIV",
+        "privilegeName": "Search Trading Community Organization Additional Name",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_TRADING_COMMUNITY_ORGANIZATION_ADDRESS_PRIV",
+        "privilegeName": "Search Trading Community Organization Address",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_TRADING_COMMUNITY_ORGANIZATION_CLASSIFICATION_CODE_ASSIGNMENT_PRIV",
+        "privilegeName": "Search Trading Community Organization Classification Code Assignment",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_TRADING_COMMUNITY_ORGANIZATION_CONTACT_POINT_PRIV",
+        "privilegeName": "Search Trading Community Organization Contact Point",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_SEARCH_TRADING_COMMUNITY_ORGANIZATION_PRIV",
+        "privilegeName": "Search Trading Community Organization",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_UPDATE_TRADING_COMMUNITY_ORGANIZATION_PRIV",
+        "privilegeName": "Update Trading Community Organization",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_CUSTOMER_ACCOUNT_INFORMATION_PRIV",
+        "privilegeName": "View Customer Account Information",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_CUSTOMER_ACCOUNT_PRIV",
+        "privilegeName": "View Customer Account",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY_CRM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_CUSTOMER_ACCOUNT_RELATIONSHIPS_PRIV",
+        "privilegeName": "View Customer Account Relationships",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_CUSTOMER_ACCOUNT_RELATIONSHIP_PRIV",
+        "privilegeName": "View Customer Account Relationship",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_CUSTOMER_ACCOUNT_SITE_PRIV",
+        "privilegeName": "View Customer Account Site",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_CUSTOMER_ACCOUNT_SITE_USE_PRIV",
+        "privilegeName": "View Customer Account Site Use",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_IMPORT_BATCH_DETAILS_AND_STATISTICS_PRIV",
+        "privilegeName": "View Trading Community Import Batch Details and Statistics",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_IMPORT_BATCH_ERRORS_AND_DETAILS_PRIV",
+        "privilegeName": "View Trading Community Import Batch Errors and Details",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_IMPORT_BATCH_INFORMATION_PRIV",
+        "privilegeName": "View Trading Community Import Batch Information",
+        "sourceRoles": "ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_BATCH_DUTY_FSCM, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY, ORA_MANAGE_TRADING_COMMUNITY_IMPORT_PROCESS_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_ADDITIONAL_IDENTIFIER_PRIV",
+        "privilegeName": "View Trading Community Organization Additional Identifier",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_ADDITIONAL_NAME_PRIV",
+        "privilegeName": "View Trading Community Organization Additional Name",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_ADDRESS_PRIV",
+        "privilegeName": "View Trading Community Organization Address",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY_CRM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_ADDRESS_USE_PRIV",
+        "privilegeName": "View Trading Community Organization Address Use",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_CLASSIFICATION_CODE_ASSIGNMENT_PRIV",
+        "privilegeName": "View Trading Community Organization Classification Code Assignment",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_CONTACT_POINT_PRIV",
+        "privilegeName": "View Trading Community Organization Contact Point",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_CONTACT_PREFERENCE_PRIV",
+        "privilegeName": "View Trading Community Organization Contact Preference",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_PRIV",
+        "privilegeName": "View Trading Community Organization",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY, ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY_CRM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_SOURCE_SYSTEM_MAPPING_PRIV",
+        "privilegeName": "View Trading Community Organization Source System Mapping",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_ORGANIZATION_USAGE_ASSIGNMENT_PRIV",
+        "privilegeName": "View Trading Community Organization Usage Assignment",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_PERSON_PRIV",
+        "privilegeName": "View Trading Community Person",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_MANAGE_EXTERNAL_PAYEE_PAYMENT_DETAILS_PRIV",
+        "privilegeName": "Manage External Payee Payment Details",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_MANAGE_PAYMENT_INSTRUMENT_ASSIGNMENT_PRIV",
+        "privilegeName": "Manage Payment Instrument Assignment",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_MANAGE_THIRD_PARTY_BANK_ACCOUNT_PRIV",
+        "privilegeName": "Manage Third Party Bank Account",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_VIEW_THIRD_PARTY_BANK_ACCOUNT_PRIV",
+        "privilegeName": "View Third Party Bank Account",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "INV_MANAGE_UNIT_OF_MEASURE_PRIV",
+        "privilegeName": "Manage Unit of Measure",
+        "sourceRoles": "ORA_EGP_ITEM_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "INV_VIEW_INVENTORY_CONSUMPTION_ADVICE_PRIV",
+        "privilegeName": "Review Inventory Consumption Advice",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "JE_RUN_GLOBAL_JOURNALS_AND_THIRD_PARTY_REPORT_PRIV",
+        "privilegeName": "Run Global Journals and Third Party Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "JE_RUN_GLOBAL_SUBLEDGER_DETAIL_JOURNAL_REPORT_PRIV",
+        "privilegeName": "Run Global Subledger Detail Journal Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "JE_RUN_GLOBAL_THIRD_PARTY_ACCOUNT_BALANCE_REPORT_PRIV",
+        "privilegeName": "Run Global Third Party Account Balance Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "JE_RUN_GLOBAL_THIRD_PARTY_BALANCES_SUMMARY_REPORT_PRIV",
+        "privilegeName": "Run Global Third Party Balances Summary Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "JE_RUN_GLOBAL_THIRD_PARTY_DETAIL_AND_BALANCES_REPORT_PRIV",
+        "privilegeName": "Run Global Third Party Detail and Balances Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POQ_SEARCH_SUPPLIER_ASSESSMENT_PRIV",
+        "privilegeName": "Search Supplier Assessment",
+        "sourceRoles": "ORA_POQ_SUPPLIER_QUALIFICATION_VIEWING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POQ_SEARCH_SUPPLIER_QUALIFICATION_PRIV",
+        "privilegeName": "Search Supplier Qualification",
+        "sourceRoles": "ORA_POQ_SUPPLIER_QUALIFICATION_VIEWING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POQ_VIEW_SUPPLIER_ASSESSMENT_PRIV",
+        "privilegeName": "View Supplier Assessment",
+        "sourceRoles": "ORA_POQ_SUPPLIER_QUALIFICATION_VIEWING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POQ_VIEW_SUPPLIER_QUALIFICATION_INITIATIVE_PRIV",
+        "privilegeName": "View Supplier Qualification Initiative",
+        "sourceRoles": "ORA_POQ_SUPPLIER_QUALIFICATION_VIEWING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POQ_VIEW_SUPPLIER_QUALIFICATION_PRIV",
+        "privilegeName": "View Supplier Qualification",
+        "sourceRoles": "ORA_POQ_SUPPLIER_QUALIFICATION_VIEWING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POQ_VIEW_SUPPLIER_QUALIFICATION_QUESTION_PRIV",
+        "privilegeName": "View Supplier Qualification Question",
+        "sourceRoles": "ORA_POQ_SUPPLIER_QUALIFICATION_VIEWING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_BACKGROUND_SCHEDULER_JOB_PRIV",
+        "privilegeName": "Run Supplier Background Scheduler",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_ADDRESS_PRIV",
+        "privilegeName": "View Supplier Address",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_ATTACHMENT_PRIV",
+        "privilegeName": "View Supplier Attachment",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_BUSINESS_CLASSIFICATION_PRIV",
+        "privilegeName": "View Supplier Business Classification",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_CONTACT_CHANGE_REQUEST_PRIV",
+        "privilegeName": "View Supplier Contact Change Request",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_CONTACT_PRIV",
+        "privilegeName": "View Supplier Contact",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_CONTACT_USER_ACCOUNT_PRIV",
+        "privilegeName": "View Supplier Contact User Account",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_INCOME_TAX_PRIV",
+        "privilegeName": "View Supplier Income Tax",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_INVOICING_INFORMATION_PRIV",
+        "privilegeName": "View Supplier Site Invoicing Information",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_LOV_REST_SERVICE_PRIV",
+        "privilegeName": "View Supplier List of Values Using REST Service",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_PAYMENT_PRIV",
+        "privilegeName": "View Supplier Payment",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_PRIV",
+        "privilegeName": "View Supplier",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_PRODUCT_AND_SERVICE_CLASSIFICATION_PRIV",
+        "privilegeName": "View Supplier Products and Services Categories",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_PROFILE_CHANGE_REQUEST_PRIV",
+        "privilegeName": "View Supplier Profile Change Request",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_PROFILE_REST_SERVICE_PRIV",
+        "privilegeName": "View Supplier Profile by REST Service",
+        "sourceRoles": "ORA_POZ_USE_REST_SERVICE_VIEW_SUPPLIER_PROFILE"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_PURCHASING_INFORMATION_PRIV",
+        "privilegeName": "View Supplier Site Purchasing Information",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_RECEIVING_INFORMATION_PRIV",
+        "privilegeName": "View Supplier Site Receiving Information",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_REGISTRATION_BANK_ACCOUNT_PRIV",
+        "privilegeName": "View Supplier Registration Bank Account",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_REGISTRATION_REQUEST_PRIV",
+        "privilegeName": "View Supplier Registration Request",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_SITES_PRIV",
+        "privilegeName": "View Supplier Site",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_SITE_ASSIGNMENTS_PRIV",
+        "privilegeName": "View Supplier Site Assignment",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "POZ_VIEW_SUPPLIER_TRANSACTION_TAX_PRIV",
+        "privilegeName": "View Supplier Transaction Tax",
+        "sourceRoles": "ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_CARRIERS_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Carriers List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_DEFAULT_EXPENDITURE_TYPES_WEB_SERVICE_PRIV",
+        "privilegeName": "View Default Expenditure Types by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_INV_ORG_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Inventory Organizations List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_INV_ORG_PARAM_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Inventory Organization Parameters List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_PLANT_ORG_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Plant Organizations List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_PLANT_ORG_PARAM_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Plant Parameters List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_PROJECT_ATTRIBUTE_DEFAULTS_WEB_SERVICE_PRIV",
+        "privilegeName": "View Project Attribute Defaults by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_PROJECT_TYPE_COST_EXCLUSIONS_WEB_SERVICE_PRIV",
+        "privilegeName": "View Project Type Cost Exclusions by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_SCHEDULES_WEB_SERVICE_PRIV",
+        "privilegeName": "View Schedules by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_TRANSIT_TIMES_WEB_SERVICE_PRIV",
+        "privilegeName": "View Transit Times by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_UNITS_OF_MEASURE_CONVERSION_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Unit Of Measure Conversion List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_UNITS_OF_MEASURE_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Units Of Measure List of Values by Web Service",
+        "sourceRoles": "ORA_RCS_SCM_COMMON_VIEW_WEB_SERVICE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCV_REVIEW_RECEIVING_RECEIPT_SUMMARY_PRIV",
+        "privilegeName": "Review Receiving Receipt Summary",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY, ORA_AP_PAYABLES_TRANSACTION_REVIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCV_REVIEW_RECEIVING_TRANSACTION_WEB_SERVICE_PRIV",
+        "privilegeName": "Review Receiving Transaction by Web Service",
+        "sourceRoles": "ORA_AP_PAYABLES_INVOICE_CREATION_DUTY, ORA_AP_PAYABLES_INVOICE_PROCESSING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_CREATE_JOURNAL_ENTRIES_REPORTING_SEQUENCE_NUMBER_PRIV",
+        "privilegeName": "Create Journal Entries Reporting Sequence Number",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_CREATE_SUBLEDGER_JOURNAL_ENTRY_BATCH_PRIV",
+        "privilegeName": "Create Subledger Journal Entry Batch",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_CREATE_SUBLEDGER_JOURNAL_ENTRY_FOR_THIRD_PARTY_MERGE_PRIV",
+        "privilegeName": "Create Subledger Journal Entry for Third Party Merge",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_CREATE_SUBLEDGER_JOURNAL_ENTRY_ONLINE_PRIV",
+        "privilegeName": "Create Subledger Journal Entry Online",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_CREATE_SUBLEDGER_MULTIPERIOD_AND_ACCRUAL_REVERSAL_ENTRY_PRIV",
+        "privilegeName": "Create Subledger Multiperiod and Accrual Reversal Entry",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_MANAGE_SUBLEDGER_JOURNAL_ENTRY_MANUALLY_PRIV",
+        "privilegeName": "Manage Subledger Journal Entry Manually",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_OVERRIDE_SUBLEDGER_JOURNAL_ENTRY_PRIV",
+        "privilegeName": "Override Subledger Journal Entry",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_POST_SUBLEDGER_JOURNAL_ENTRY_TO_GENERAL_LEDGER_PRIV",
+        "privilegeName": "Post Subledger Journal Entry to General Ledger",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_PURGE_ACCOUNTING_EVENT_DIAGNOSTIC_DATA_PRIV",
+        "privilegeName": "Purge Accounting Event Diagnostic Data",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_REVIEW_SUBLEDGER_JOURNAL_ENTRY_PRIV",
+        "privilegeName": "Review Subledger Journal Entry",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY, ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_SUBMIT_ACCOUNTING_EVENT_DIAGNOSTIC_REPORT_PRIV",
+        "privilegeName": "Submit Accounting Event Diagnostic Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_SUBMIT_ACCOUNT_ANALYSIS_REPORT_PRIV",
+        "privilegeName": "Submit Account Analysis Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY, ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_SUBMIT_JOURNAL_ENTRIES_REPORT_PRIV",
+        "privilegeName": "Submit Journal Entries Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY, ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_SUBMIT_SUBLEDGER_PERIOD_CLOSE_EXCEPTIONS_REPORT_PRIV",
+        "privilegeName": "Submit Subledger Period Close Exceptions Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY, ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_SUBMIT_THIRD_PARTY_BALANCES_REPORT_PRIV",
+        "privilegeName": "Submit Third Party Balances Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY, ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_TRADING_PARTNER_SUMMARY_REPORT_PRIV",
+        "privilegeName": "Submit Trading Partner Summary Report",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY, ORA_XLA_SUBLEDGER_ACCOUNTING_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_TRANSFER_ONLINE_JOURNAL_ENTRY_TO_GENERAL_LEDGER_PRIV",
+        "privilegeName": "Transfer Online Journal Entry to General Ledger",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XLA_UPDATE_SUBLEDGER_ACCOUNTING_BALANCE_PRIV",
+        "privilegeName": "Update Subledger Accounting Balance",
+        "sourceRoles": "ORA_XLA_SUBLEDGER_ACCOUNTING_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZX_VERIFY_TAX_CONFIGURATION_PRIV",
+        "privilegeName": "Verify Tax Configuration",
+        "sourceRoles": "ORA_EGP_REDWOOD_VIEW_ITEM_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZX_VIEW_LOCATION_DISCHARGE_PRIV",
+        "privilegeName": "View Location of Final Discharge",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZX_VIEW_PARTY_FISCAL_CLASSIFICATION_PRIV",
+        "privilegeName": "View Party Fiscal Classification",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZX_VIEW_THIRD_PARTY_SITE_TAX_PROFILE_PRIV",
+        "privilegeName": "View Third-Party Site Tax Profile",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZX_VIEW_THIRD_PARTY_TAX_PROFILE_PRIV",
+        "privilegeName": "View Third-Party Tax Profile",
+        "sourceRoles": "ORA_FUN_CUSTOMER_ACCOUNT_INQUIRY_DUTY, ORA_POZ_SUPPLIER_PROFILE_INQUIRY_DUTY"
+      }
+    ],
+    "cachedAt": "2026-11-23T11:23:59.592Z"
+  },
+  "ora_fnd_it_security_manager_job": {
+    "success": true,
+    "roleCode": "ORA_FND_IT_SECURITY_MANAGER_JOB",
+    "roleName": "IT Security Manager",
+    "directCount": 69,
+    "indirectCount": 197,
+    "totalCount": 266,
+    "details": [
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ASE_MANAGE_ACTIVE_DIRECTORY_INTEGRATION_PRIV",
+        "privilegeName": "Manage Active Directory Integration",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ASE_REST_SERVICE_ACCESS_IDENTITY_INTEGRATION_PRIV",
+        "privilegeName": "Use REST Service - Identity Integration",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "FND_SEARCH_FWK_MGR_PRIV",
+        "privilegeName": "Grant Search Framework Manager Permissions",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "FUN_MANAGE_DATA_ACCESS_FOR_USERS_PRIV",
+        "privilegeName": "Manage Data Access for Users",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "FUN_RUN_USERS_BY_SERVICE_REPORT_PRIV",
+        "privilegeName": "Run Users by Service Report",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GL_ASSIGN_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+        "privilegeName": "Assign Oracle Fusion General Ledger Data Access Set Definition",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GL_RUN_DATA_ACCESS_SET_LISTING_REPORT_PRIV",
+        "privilegeName": "Run Data Access Set Listing Report",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GL_SET_UP_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+        "privilegeName": "Define Oracle Fusion General Ledger Data Access Set",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GL_VIEW_GENERAL_LEDGER_DATA_ACCESS_SET_DEFINITION_PRIV",
+        "privilegeName": "View Oracle Fusion General Ledger Data Access Set Definition",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_ADMINISTER_PROXY_GROUP_PRIV",
+        "privilegeName": "Administer Student Group",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_DELETE_SCHEDULED_PROCESS_TRACKER_PRIV",
+        "privilegeName": "Delete Scheduled Process Tracker",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_APPLICATION_PAGES_SECURITY_PRIV",
+        "privilegeName": "Manage Application Pages Security",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_DATA_SECURITY_GRANTS_PRIV",
+        "privilegeName": "Manage Data Security Grants",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_DATA_SECURITY_PROFILES_PRIV",
+        "privilegeName": "Manage Data Security Profiles",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_PAGE_PERMISSIONS_SECURITY_PRIV",
+        "privilegeName": "Manage Page Permissions Security",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_PROXY_GROUP_CONFIGURATIONS_PRIV",
+        "privilegeName": "Manage Student Group Configurations",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_SECURITY_ROLES_PRIV",
+        "privilegeName": "Manage Security Roles",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_MANAGE_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+        "privilegeName": "Manage Student Management Home Page Setups",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_APPLICATION_PAGES_SECURITY_PRIV",
+        "privilegeName": "View Application Pages Security",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_BUSINESS_OBJECTS_PRIV",
+        "privilegeName": "View Business Objects",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_DATA_SECURITY_GRANTS_PRIV",
+        "privilegeName": "View Data Security Grants",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_DATA_SECURITY_PROFILES_PRIV",
+        "privilegeName": "View Data Security Profiles",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_SCHEDULED_PROCESS_TRACKER_PRIV",
+        "privilegeName": "View Scheduled Process Tracker",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_STUDENT_MANAGEMENT_HOME_PAGE_SETUPS_PRIV",
+        "privilegeName": "View Student Management Home Page Setups",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HEY_VIEW_USER_ACCOUNTS_PRIV",
+        "privilegeName": "View User Accounts",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HRC_CONFIGURE_HR_INTERFACE_PRIV",
+        "privilegeName": "Configure Interface",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HRC_LOAD_HR_BATCH_DATA_PRIV",
+        "privilegeName": "Load Batch Data",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HRC_MANAGE_HR_RUN_RESULTS_PRIV",
+        "privilegeName": "Manage Run Results",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HRC_MONITOR_HR_BATCH_LOAD_PROCESS_PRIV",
+        "privilegeName": "Monitor Batch Load Process",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HRC_RUN_HR_BATCH_LOAD_JOB_SET_PRIV",
+        "privilegeName": "Run Batch Load Job Set",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HRM_MANAGE_TALENT_POOL_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Talent Pool Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HZ_REST_SERVICE_ACCESS_FOR_HCM_URP_PRIV",
+        "privilegeName": "Use Trading Community REST Services for HCM User Role Provisioning",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "HZ_SYNC_EXTERNAL_USERS_TO_LDAP_PRIV",
+        "privilegeName": "Sync External Users To LDAP",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "INV_SYNCHRONIZE_SCM_JOB_ROLES_PRIV",
+        "privilegeName": "Synchronize SCM Job Roles",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "IRC_MANAGE_CANDIDATE_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Candidate Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "IRC_MANAGE_JOB_REQUISITION_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Job Requisition Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PAY_MANAGE_PAYROLL_ELEMENT_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Payroll Element Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PAY_MANAGE_PAYROLL_FLOW_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Payroll Flow Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PAY_MANAGE_PAYROLL_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Payroll Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_APPLY_HCM_ROLE_PROVISIONING_RULES_PRIV",
+        "privilegeName": "Apply HCM Role Provisioning Rules",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_CONFIGURE_PUBLIC_WORKER_ACCESS_PRIV",
+        "privilegeName": "Configure Public Worker Access",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_IMPORT_WORKERS_PRIV",
+        "privilegeName": "Import Workers",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_COUNTRY_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Country Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_DOCUMENT_TYPE_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Document Type Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_HCM_DATA_ROLE_PRIV",
+        "privilegeName": "Manage HCM Data Role",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_HCM_EXCLUSION_RULES_PRIV",
+        "privilegeName": "Manage HCM Exclusion Rules",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_HCM_LDAP_USER_ACCOUNT_OPTIONS_PRIV",
+        "privilegeName": "Manage HCM LDAP User Account Options",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_HCM_ROLE_PROVISIONING_RULES_PRIV",
+        "privilegeName": "Manage HCM Role Provisioning Rules",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_HCM_SEARCH_ACL_EXCLUSION_RULES_PRIV",
+        "privilegeName": "Manage Oracle Search ACL Exclusion Rules for HCM",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_LEGISLATIVE_DATA_GROUP_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Legislative Data Group Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_ORGANIZATION_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Organization Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_AND_ASSIGNMENT_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Person and Assignment Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Person Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_POSITION_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Position Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_TRANSACTION_SECURITY_PROFILE_PRIV",
+        "privilegeName": "Manage Transaction Security Profile",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MANAGE_WORKFORCE_STRUCTURES_WORK_AREA_PRIV",
+        "privilegeName": "Manage Workforce Structures Work Area",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_MAP_AND_SYNCHRONIZE_USER_ACCOUNT_DETAILS_PRIV",
+        "privilegeName": "Run Retrieve Latest LDAP Changes Process",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_PREVIEW_HCM_DATA_SECURITY_PRIV",
+        "privilegeName": "Preview HCM Data Security",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_PROCESS_USERS_ROLES_REQUESTS_PROCESS_PRIV",
+        "privilegeName": "Run Regenerate HCM Data Security Grants Process",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_REQ_ENTERPRISE_ROLE_PRIV",
+        "privilegeName": "Request Enterprise Role",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_RESET_PASSWORD_PRIV",
+        "privilegeName": "Reset Password",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB, ORA_PER_USER_ROLE_MANAGEMENT_DUTY_FSCM"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+        "privilegeName": "Use REST Service - Users and Roles Lists of Values",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "PER_SYNCHRONIZE_USERS_ROLES_PROCESS_PRIV",
+        "privilegeName": "Run Send Pending LDAP Requests Process",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "POZ_MANAGE_SUPPLIER_USER_ROLES_PRIV",
+        "privilegeName": "Manage Supplier User Roles",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ZCA_DELETE_ACCESS_GROUP_PRIV",
+        "privilegeName": "Delete Access Group",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ZCA_ENABLE_DISABLE_ACCESS_GROUPS_PRIV",
+        "privilegeName": "Enable and Disable Access Groups",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ZCA_MANAGE_GROUP_ACCESS_PRIV",
+        "privilegeName": "Manage Group Access",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ZCA_MANAGE_SALES_AND_SERVICE_ACCESS_PRIV",
+        "privilegeName": "Manage Sales and Service Access",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ZCA_VIEW_ACCESS_EXPLORER_PRIV",
+        "privilegeName": "View Access Explorer",
+        "sourceRoles": "ORA_FND_IT_SECURITY_MANAGER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ADMINISTER_API_AUTHENTICATION_PRIV",
+        "privilegeName": "Administer API Authentication",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ADMINISTER_APP_EXTENSIONS_PRIV",
+        "privilegeName": "Administer App Extensions",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ADMINISTER_SSO_PRIV",
+        "privilegeName": "Administer SSO",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ADMINSTER_SECURITY_PRIV",
+        "privilegeName": "Administer Security",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ANALYZE_SECURITY_PRIV",
+        "privilegeName": "Analyze Security",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY, ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_CREATE_ROLE_PRIV",
+        "privilegeName": "Create Role",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_CREATE_USER_ACCOUNT_PRIV",
+        "privilegeName": "Create User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_DELETE_USER_ACCOUNT_PRIV",
+        "privilegeName": "Delete User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_EDIT_ROLE_PRIV",
+        "privilegeName": "Edit Role",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_EDIT_USER_ACCOUNT_PRIV",
+        "privilegeName": "Edit User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ENABLE_2FA_FOR_USER_PRIV",
+        "privilegeName": "Enable Two-Factor Authentication for User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_ENABLE_DATABASE_RESOURCE_MGMT_PRIV",
+        "privilegeName": "Enable Database Resource Management",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_EXPORT_CERTIFICATE_PRIV",
+        "privilegeName": "Export Certificate",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_GENERATE_CERTIFICATE_PRIV",
+        "privilegeName": "Generate Certificate",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_IMPORT_CERTIFICATE_PRIV",
+        "privilegeName": "Import Certificate",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_IMPORT_USERS_AND_ROLES_PRIV",
+        "privilegeName": "Import Users and Roles",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_IMPORT_USER_LOGIN_HISTORY_PRIV",
+        "privilegeName": "Import User Login History",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_LOCK_UNLOCK_USER_PRIV",
+        "privilegeName": "Lock and Unlock User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_PASSWORD_EXPIRY_ESS_JOB_PRIV",
+        "privilegeName": "Run Password Expiry Job",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_RESET_MFA_FACTORS_PRIV",
+        "privilegeName": "Reset MFA Factors",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_RUN_INACTIVE_USERS_REPORT_PRIV",
+        "privilegeName": "Run Inactive Users Report",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_RUN_PRIVILEGE_DISCOVERER_REPORT_PRIV",
+        "privilegeName": "Run Privilege Discoverer Report",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_RUN_ROLE_HIER_OPTIMIZATION_REPORT_PRIV",
+        "privilegeName": "Run Role Hierarchy Optimization Report",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_RUN_USER_ACCESS_AUDIT_REPORT_PRIV",
+        "privilegeName": "Run User Access Audit Report",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_RUN_USER_ROLE_MEMBERSHIP_REPORT_PRIV",
+        "privilegeName": "Run User Role Membership Report",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_UPDATE_PASSWORD_FOR_USER_PRIV",
+        "privilegeName": "Update Password for User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_USER_PASSWORD_CHANGES_AUDIT_REPORT_PRIV",
+        "privilegeName": "Run User Password Changes Audit Report",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_VIEW_APP_EXTENSIONS_PRIV",
+        "privilegeName": "View App Extensions",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_VIEW_CERTIFICATE_PRIV",
+        "privilegeName": "View Certificate",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_VIEW_ROLE_PRIV",
+        "privilegeName": "View Role",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY, ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASE_VIEW_USER_ACCOUNT_PRIV",
+        "privilegeName": "View User Account",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY, ORA_ASE_SECURITY_REPORTING_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASM_EXECUTE_TASKS_PRIV",
+        "privilegeName": "Execute Setup Tasks",
+        "sourceRoles": "ORA_ASM_FUNCTIONAL_SETUPS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASM_REVIEW_APPLICATIONS_OFFERINGS_PRIV",
+        "privilegeName": "Review Applications Offering",
+        "sourceRoles": "ORA_ASM_FUNCTIONAL_SETUPS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASM_REVIEW_TL_OVERVIEW_PAGE_PRIV",
+        "privilegeName": "Review Setups Functional User Overview",
+        "sourceRoles": "ORA_ASM_FUNCTIONAL_SETUPS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ASM_SETUP_AND_MAINTENANCE_PRIV",
+        "privilegeName": "Setup and Maintain Applications",
+        "sourceRoles": "ORA_ASM_FUNCTIONAL_SETUPS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+        "privilegeName": "Manage Reports and Analytics",
+        "sourceRoles": "ORA_ASE_SECURITY_REPORTING_DUTY, ORA_ASE_SECURITY_REPORTING_DUTY_CRM, ORA_ASE_SECURITY_REPORTING_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CSO_FAI_CONNECTORS_PRIV",
+        "privilegeName": "Use AI Agent Connectors",
+        "sourceRoles": "ORA_CSO_CONNECTORS_AI_AGENT_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CST_MANAGE_PAC_COST_ADJ_PRIV",
+        "privilegeName": "Manage Periodic Average Cost Adjustment",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FA_VIEW_FIXED_ASSET_BOOKS_PRIV",
+        "privilegeName": "View Fixed Asset Books",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_ADMINISTER_SANDBOX_PRIV",
+        "privilegeName": "Administer Sandbox",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_ALL_PROFILE_VALUES_PRIV",
+        "privilegeName": "Manage All Application Profile Values",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY, ORA_ASE_SECURITY_MANAGEMENT_DUTY_CRM, ORA_ASE_SECURITY_MANAGEMENT_DUTY_FSCM, ORA_ASE_SECURITY_REPORTING_DUTY, ORA_ASE_SECURITY_REPORTING_DUTY_CRM, ORA_ASE_SECURITY_REPORTING_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_DESCRIPTIVE_FLEXFIELD_PRIV",
+        "privilegeName": "Manage Application Descriptive Flexfield",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_FLEXFIELD_VALUE_SET_PRIV",
+        "privilegeName": "Manage Application Flexfield Value Set",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_STANDARD_LOOKUP_PRIV",
+        "privilegeName": "Manage Application Standard Lookup",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+        "privilegeName": "Manage Scheduled Processes",
+        "sourceRoles": "ORA_ASE_SECURITY_MANAGEMENT_DUTY, ORA_ASE_SECURITY_MANAGEMENT_DUTY_FSCM, ORA_ASE_SECURITY_REPORTING_DUTY, ORA_ASE_SECURITY_REPORTING_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_VIEW_ADMIN_LINK_PRIV",
+        "privilegeName": "View Administration Link",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_CUSTOMIZE_FINANCIAL_UI_PRIV",
+        "privilegeName": "Personalize Financial UI",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_GET_ENTERPRISE_STRUCTURES_REST_SERVICE_PRIV",
+        "privilegeName": "Get Enterprise Structures Using REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_GET_INTERCOMPANY_SETUPS_USING_REST_SERVICE_PRIV",
+        "privilegeName": "Get Intercompany Setups Using REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GL_GET_GENERAL_LEDGER_SETUPS_USING_REST_SERVICE_PRIV",
+        "privilegeName": "Get General Ledger Setups Using REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GMS_MANAGE_AWARD_SERVICE_PRIV",
+        "privilegeName": "Manage Award Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_ADMINISTER_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "Administer Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CANCEL_JOB_PRIV",
+        "privilegeName": "Cancel Job",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ACCESS_CERTIFICATION_CAMPAIGN_PRIV",
+        "privilegeName": "Create Access Certification Campaign",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ACCESS_CONTROL_AND_ASSIGN_RESULT_AND_CONTROL_USERS_PRIV",
+        "privilegeName": "Create Access Control and Assign Result and Control Users",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ACCESS_ENTITLEMENT_PRIV",
+        "privilegeName": "Create Access Entitlement",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ALGORITHMS_PRIV",
+        "privilegeName": "Create Algorithms",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ALGORITHM_FILTERS_PRIV",
+        "privilegeName": "Create Algorithm Filters",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_EDIT_BUSINESS_OBJECT_SECURITY_PRIV",
+        "privilegeName": "Create and Edit Business Object Security",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_EDIT_USER_ASSIGNMENT_GROUPS_PRIV",
+        "privilegeName": "Create User Assignment Groups and Assign Users",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_MANAGE_RECOMMENDATION_ENGINE_ANALYSES_PRIV",
+        "privilegeName": "Create and Manage Risk Snapshot Report",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_MANAGE_RISK_SNAPSHOT_REPORT_PRIV",
+        "privilegeName": "Create Risk Snapshot Report",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_IMPORT_TEMPLATE_PRIV",
+        "privilegeName": "Create Import Template",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_INTERNAL_CONTROL_CERTIFICATION_CAMPAIGN_PRIV",
+        "privilegeName": "Create Internal Control Certification Campaign",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_INTERNAL_CONTROL_PRIV",
+        "privilegeName": "Create Internal Control",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_INTERNAL_CONTROL_RECORD_CONFIGURATION_PRIV",
+        "privilegeName": "Create Internal Control Record Configuration",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "Create Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_RISK_REFERENCE_DATA_PRIV",
+        "privilegeName": "Create Risk Reference Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_TRANSACTION_CONTROL_AND_ASSIGN_RESULT_AND_CONTROL_USERS_PRIV",
+        "privilegeName": "Create Transaction Control and Assign Result and Control Users",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_USER_DEFINED_ACCESS_POINTS_PRIV",
+        "privilegeName": "Create User-Defined Access Points",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CUSTOMIZE_RISK_MANAGEMENT_UI_PRIV",
+        "privilegeName": "Personalize Risk Management UI",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_DELETE_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "Delete Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "Edit Access Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_CERTIFICATION_TASKS_PRIV",
+        "privilegeName": "Edit Access Certification Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_CONTROLS_PRIV",
+        "privilegeName": "Edit Access Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "Edit Access Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_POINTS_ON_ENTITLEMENT_PRIV",
+        "privilegeName": "Edit Access Points on Entitlement",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ALGORITHMS_PRIV",
+        "privilegeName": "Edit Algorithms",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ALGORITHM_FILTERS_PRIV",
+        "privilegeName": "Edit Algorithm Filters",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ALGORITHM_TASKS_PRIV",
+        "privilegeName": "Edit Algorithm Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_APPLICATION_CONFIGURATION_PRIV",
+        "privilegeName": "Edit Access Performance Configuration",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_CURRENCY_CONVERSION_CONFIGURATION_PRIV",
+        "privilegeName": "Edit Currency Conversion Configuration",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_EMAIL_ALERT_AND_NOTIFICATION_SETTINGS_PRIV",
+        "privilegeName": "Edit Email Alert and Notification Settings",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROLS_PRIV",
+        "privilegeName": "Edit Internal Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROL_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "Edit Internal Control Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROL_CERTIFICATION_TASKS_PRIV",
+        "privilegeName": "Edit Internal Control Certification Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROL_RECORD_CONFIGURATIONS_PRIV",
+        "privilegeName": "Edit Internal Control Record Configurations",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_OBJECT_CONFIGURATION_FOR_A_MODULE_PRIV",
+        "privilegeName": "Edit Risk Management Configuration Options",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_PERSPECTIVES_FOR_A_MODULE_PRIV",
+        "privilegeName": "Manage Perspectives for a Module",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "Edit Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_RISK_REFERENCE_DATA_DEFAULT_PROCESS_OWNER_PRIV",
+        "privilegeName": "Edit Risk Reference Data Default Process Owner",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_RISK_REFERENCE_DATA_PRIV",
+        "privilegeName": "Edit Risk Reference Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_SCHEDULE_PRIV",
+        "privilegeName": "Edit Schedule",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_TRANSACTION_CONTROLS_PRIV",
+        "privilegeName": "Edit Transaction Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_TRANSACTION_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "Edit Transaction Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_USER_ASSIGNMENT_GROUPS_PRIV",
+        "privilegeName": "Edit User Assignment Groups",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_USER_DEFINED_ACCESS_POINTS_PRIV",
+        "privilegeName": "Edit User-Defined Access Points",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EXPORT_ACCESS_POINT_DATA_PRIV",
+        "privilegeName": "Export Access Point Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EXPORT_CONTINUOUS_CONTROLS_PRIV",
+        "privilegeName": "Export Advanced Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_GLOBAL_USER_CONFIGURATION_VIEW_IN_APPLICATION_CONFIGURATIONS_PRIV",
+        "privilegeName": "View Global User Configuration in Application Configurations",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_IMPORT_ACCESS_POINT_DATA_PRIV",
+        "privilegeName": "Import Access Point Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_IMPORT_DATA_FILE_PRIV",
+        "privilegeName": "Import Data File",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_ACCESS_ENTITLEMENTS_PRIV",
+        "privilegeName": "View Access Entitlements",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_ADDITIONAL_RISK_MANAGEMENT_DATA_SOURCES_PRIV",
+        "privilegeName": "Manage Additional Advanced Control Data Sources",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_APPLICATION_CONFIGURATION_PRIV",
+        "privilegeName": "View Advanced Controls Configuration",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_ASSESSMENT_RESULTS_PRIV",
+        "privilegeName": "View Assessment Results",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_DATA_INTEGRATION_PRIV",
+        "privilegeName": "Manage Data Integration",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_GLOBAL_USER_CONFIGURATION_IN_APPLICATION_CONFIGURATIONS_PRIV",
+        "privilegeName": "Edit Global User Configuration in Application Configurations",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_JOBS_PRIV",
+        "privilegeName": "View Monitor Jobs",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_VIEWER_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_LOOKUP_TABLES_PRIV",
+        "privilegeName": "Manage Lookup Tables",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_RISKS_AND_CONTROLS_SCHEDULES_PRIV",
+        "privilegeName": "View Scheduling",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_RISK_MANAGEMENT_DATA_INTEGRATION_CONFIGURATIONS_PRIV",
+        "privilegeName": "Manage Risk Management Data Integration Configurations",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MASS_EDIT_SECURITY_ASSIGNMENTS_PRIV",
+        "privilegeName": "Mass Edit Security Assignments",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_PERFORM_MANUAL_ACCESS_REMOVALS_PRIV",
+        "privilegeName": "Perform Manual Access Removals",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_PURGE_CCM_JOBS_PRIV",
+        "privilegeName": "Purge Advanced Control Results",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_PURGE_JOBS_PRIV",
+        "privilegeName": "Purge Jobs",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_REBUILD_GRAPH_PRIV",
+        "privilegeName": "Rebuild Graph",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_REST_SERVICE_ACCESS_ADVANCED_ACCESS_CONTROL_ROLE_ANALYSIS_PRIV",
+        "privilegeName": "Use REST Service for Advanced Access Control Role Analysis",
+        "sourceRoles": "ORA_GTG_SEGREGATION_OF_DUTIES_ROLE_ANALYSIS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_REVIEW_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "Review Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_RUN_AND_SCHEDULE_GLOBAL_USERS_PRIV",
+        "privilegeName": "Run and Schedule Global Users",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_RUN_CONTINUOUS_CONTROL_ANALYSIS_PRIV",
+        "privilegeName": "Run Advanced Control Analysis",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_RUN_SCHEDULED_JOB_NOW_PRIV",
+        "privilegeName": "Run Scheduled Job Now",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SAVE_ACCESS_ENTITLEMENTS_PRIV",
+        "privilegeName": "Edit Access Entitlements",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SCHEDULE_CONTINUOUS_CONTROL_ANALYSIS_PRIV",
+        "privilegeName": "Schedule Advanced Control Analysis",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SCHEDULE_SYNCHRONIZATIONS_PRIV",
+        "privilegeName": "Schedule Synchronizations",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SYNCHRONIZE_TRANSACTION_DATASOURCE_PRIV",
+        "privilegeName": "Synchronize Transaction Data Source",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_ALGORITHM_RESULT_VISUALIZATION_PRIV",
+        "privilegeName": "View Access Algorithm Result Visualization",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "View Access Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_CONTROLS_PRIV",
+        "privilegeName": "View Access Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "View Access Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_PROVISIONING_RULES_PRIV",
+        "privilegeName": "View Access Provisioning Rules",
+        "sourceRoles": "ORA_GTG_SEGREGATION_OF_DUTIES_ROLE_ANALYSIS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_REMOVALS_PRIV",
+        "privilegeName": "View Access Removals",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "View Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ADDITIONAL_RISK_MANAGEMENT_DATA_SOURCES_PRIV",
+        "privilegeName": "View Additional Advanced Control Data Sources",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ALGORITHMS_PRIV",
+        "privilegeName": "View Algorithms",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ALGORITHM_FILTERS_PRIV",
+        "privilegeName": "View Algorithm Filters",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ALGORITHM_TASKS_PRIV",
+        "privilegeName": "View Algorithm Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_AND_EDIT_RISK_SNAPSHOT_REPORT_PRIV",
+        "privilegeName": "View and Edit Risk Snapshot Report",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_BUSINESS_OBJECT_SECURITY_PRIV",
+        "privilegeName": "View Business Object Security",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_VIEWER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_EMAIL_ALERT_AND_NOTIFICATION_SETTINGS_PRIV",
+        "privilegeName": "View Email Alert and Notification Settings",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_INTERNAL_CONTROLS_PRIV",
+        "privilegeName": "View Internal Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_INTERNAL_CONTROL_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "View Internal Control Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_INTERNAL_CONTROL_RECORD_CONFIGURATIONS_PRIV",
+        "privilegeName": "View Internal Control Record Configurations",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_OBJECT_CONFIGURATION_FOR_A_MODULE_PRIV",
+        "privilegeName": "View Risk Management Configuration Options",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_PERSPECTIVES_FOR_A_MODULE_PRIV",
+        "privilegeName": "View Perspectives for a Module",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "View Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+        "privilegeName": "View Risk Management Dashboard",
+        "sourceRoles": "ORA_GTG_RISK_ADMINISTRATOR_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_RISK_REFERENCE_DATA_PRIV",
+        "privilegeName": "View Risk Reference Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_SECURITY_CHECKUP_PRIV",
+        "privilegeName": "View Security Checkup",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_TRANSACTION_CONTROLS_PRIV",
+        "privilegeName": "View Transaction Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_TRANSACTION_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "View Transaction Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_USER_ASSIGNMENT_GROUPS_PRIV",
+        "privilegeName": "View User Assignment Groups",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_VIEWER_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_USER_DEFINED_ACCESS_POINT_DETAILS_PRIV",
+        "privilegeName": "View User-Defined Access Point Details",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HEY_VIEW_PAGE_PERMISSIONS_SECURITY_PRIV",
+        "privilegeName": "View Page Permissions Security",
+        "sourceRoles": "ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HEY_VIEW_SECURITY_ROLES_PRIV",
+        "privilegeName": "View Security Roles",
+        "sourceRoles": "ORA_HEY_SECURITY_CONFIGURATOR_DUTY, ORA_HEY_SECURITY_INFORMATION_VIEWER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_MANAGE_AI_AGENT_PRIV",
+        "privilegeName": "Manage Intelligent Agent",
+        "sourceRoles": "ORA_GTG_MANAGE_RISK_AI_AGENT_DUTY_HCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_TEST_AI_AGENT_PRIV",
+        "privilegeName": "Test Intelligent Agent",
+        "sourceRoles": "ORA_GTG_MANAGE_RISK_AI_AGENT_DUTY_HCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_CONFIGURE_QUESTIONNAIRES_PRIV",
+        "privilegeName": "Configure Questionnaires",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_CONFIGURE_QUESTIONS_PRIV",
+        "privilegeName": "Configure Questions",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_REST_SERVICE_ACCESS_QUESTIONNAIRES_PRIV",
+        "privilegeName": "Use REST Service - Questionnaires",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_REST_SERVICE_ACCESS_QUESTIONNAIRE_INSTRUCTIONS_RO_PRIV",
+        "privilegeName": "Use REST Service - Questionnaire Instructions Read Only",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_REST_SERVICE_ACCESS_QUESTIONS_PRIV",
+        "privilegeName": "Use REST Service - Questions",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+        "privilegeName": "Use REST Service - Questionnaire Lists of Values",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_MANAGE_SYSTEM_SECURITY_OPTIONS_PRIV",
+        "privilegeName": "Manage System Security Options",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_MANAGE_WALLET_PRIV",
+        "privilegeName": "Manage Wallet",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_CREDIT_CARD_DECRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Credit Card Decryption Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_CREDIT_CARD_DETOKENIZE_PROCESS_PRIV",
+        "privilegeName": "Submit Credit Card Detokenization Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_CREDIT_CARD_ENCRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Credit Card Encryption Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_CREDIT_CARD_MASKING_PROCESS_PRIV",
+        "privilegeName": "Submit Credit Card Masking Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_CREDIT_CARD_TOKENIZE_PROCESS_PRIV",
+        "privilegeName": "Submit Credit Card Tokenization Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_IMPORT_CREDENTIAL_PROCESS_PRIV",
+        "privilegeName": "Submit Import Credential Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_SENSITIVE_DATA_DECRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Payments Sensitive Data Decryption",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_SENSITIVE_DATA_ENCRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Payments Sensitive Data Encryption",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_THIRD_PARTY_BANK_ACCOUNT_DECRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Third Party Bank Account Decryption Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_THIRD_PARTY_BANK_ACCOUNT_ENCRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Third Party Bank Account Encryption Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_THIRD_PARTY_BANK_ACCOUNT_MASKING_PROCESS_PRIV",
+        "privilegeName": "Submit Third Party Bank Account Masking Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "IBY_SUBMIT_TRANSACTION_ENCRYPTION_PROCESS_PRIV",
+        "privilegeName": "Submit Transaction Encryption Process",
+        "sourceRoles": "ORA_IBY_PAYMENTS_DATA_SECURITY_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "MOW_RUN_BATCH_ASSIGN_PROCESS_PRIV",
+        "privilegeName": "Run Purge Batch Assignment Information Process",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ORA_GTG_ADMINISTER_RISK_UPGRADE_PRIV",
+        "privilegeName": "Administer Risk Upgrade",
+        "sourceRoles": "ORA_GTG_RISK_ADMINISTRATOR_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_USER_DETAILS_PRIV",
+        "privilegeName": "Manage User Details",
+        "sourceRoles": "ORA_PER_MANAGE_USER_AND_ROLES_DUTY, ORA_PER_MANAGE_USER_AND_ROLES_DUTY_FSCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_PERSON_ACCOUNT_DETAILS_PRIV",
+        "privilegeName": "View Person Account Details",
+        "sourceRoles": "ORA_PER_USER_ROLE_ACCOUNT_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PJS_MANAGE_PROJECT_PROGRAM_PRIV",
+        "privilegeName": "Manage Project Program",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PO_MANAGE_PRC_AGENT_WEB_SERVICE_PRIV",
+        "privilegeName": "Manage Procurement Agent by REST Service",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PO_SEARCH_PRC_AGENT_WEB_SERVICE_PRIV",
+        "privilegeName": "Search Procurement Agent by REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_INV_ORG_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Inventory Organizations List of Values by Web Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XCC_MANAGE_CONTROL_BUDGETS_PRIV",
+        "privilegeName": "Manage Control Budgets",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_ASSIGN_PARTNER_ACCOUNT_PRIV",
+        "privilegeName": "Assign Partner Account",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_CREATE_PARTNER_MEMBER_PRIV",
+        "privilegeName": "Create Partner Member",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_CREATE_PARTNER_PRIV",
+        "privilegeName": "Create Partner",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_CREATE_PARTNER_USER_PRIV",
+        "privilegeName": "Create Partner User",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_EDIT_PARTNER_PROFILE_PRIV",
+        "privilegeName": "Update Partner Profile",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_IMPORT_PARTNER_PRIV",
+        "privilegeName": "Import Partner",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_MANAGE_PARTNER_ACCOUNT_TEAM_PRIV",
+        "privilegeName": "Manage Partner Account Team",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_UPDATE_PARTNER_MEMBER_PRIV",
+        "privilegeName": "Update Partner Member",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_VIEW_PARTNER_CONTRACT_PRIV",
+        "privilegeName": "View Partner Contract",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "ZPM_VIEW_PARTNER_PRIV",
+        "privilegeName": "View Partner",
+        "sourceRoles": "ORA_ZPM_PARTNER_ACCOUNT_ADMINISTRATION_DUTY"
+      }
+    ],
+    "cachedAt": "2026-11-23T12:22:39.609Z"
+  },
+  "claaps_gtg_risk_administrator_job_job": {
+    "success": true,
+    "roleCode": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB",
+    "roleName": "Claaps Risk Administrator",
+    "directCount": 4,
+    "indirectCount": 125,
+    "totalCount": 129,
+    "details": [
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GTG_EXPORT_ACCESS_POINT_DATA_PRIV",
+        "privilegeName": "Export Access Point Data",
+        "sourceRoles": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GTG_IMPORT_ACCESS_POINT_DATA_PRIV",
+        "privilegeName": "Import Access Point Data",
+        "sourceRoles": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "GTG_VIEW_RISK_MANAGEMENT_DASHBOARD_PRIV",
+        "privilegeName": "View Risk Management Dashboard",
+        "sourceRoles": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB"
+      },
+      {
+        "type": "DIRECT",
+        "privilegeCode": "ORA_GTG_ADMINISTER_RISK_UPGRADE_PRIV",
+        "privilegeName": "Administer Risk Upgrade",
+        "sourceRoles": "CLAAPS_GTG_RISK_ADMINISTRATOR_JOB_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CSO_FAI_CONNECTORS_PRIV",
+        "privilegeName": "Use AI Agent Connectors",
+        "sourceRoles": "ORA_CSO_CONNECTORS_AI_AGENT_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CST_MANAGE_PAC_COST_ADJ_PRIV",
+        "privilegeName": "Manage Periodic Average Cost Adjustment",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FA_VIEW_FIXED_ASSET_BOOKS_PRIV",
+        "privilegeName": "View Fixed Asset Books",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_ADMINISTER_SANDBOX_PRIV",
+        "privilegeName": "Administer Sandbox",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_DESCRIPTIVE_FLEXFIELD_PRIV",
+        "privilegeName": "Manage Application Descriptive Flexfield",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_FLEXFIELD_VALUE_SET_PRIV",
+        "privilegeName": "Manage Application Flexfield Value Set",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_APP_MANAGE_STANDARD_LOOKUP_PRIV",
+        "privilegeName": "Manage Application Standard Lookup",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FND_VIEW_ADMIN_LINK_PRIV",
+        "privilegeName": "View Administration Link",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_CUSTOMIZE_FINANCIAL_UI_PRIV",
+        "privilegeName": "Personalize Financial UI",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_GET_ENTERPRISE_STRUCTURES_REST_SERVICE_PRIV",
+        "privilegeName": "Get Enterprise Structures Using REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_GET_INTERCOMPANY_SETUPS_USING_REST_SERVICE_PRIV",
+        "privilegeName": "Get Intercompany Setups Using REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "FUN_MANAGE_DATA_ACCESS_FOR_USERS_PRIV",
+        "privilegeName": "Manage Data Access for Users",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GL_GET_GENERAL_LEDGER_SETUPS_USING_REST_SERVICE_PRIV",
+        "privilegeName": "Get General Ledger Setups Using REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GMS_MANAGE_AWARD_SERVICE_PRIV",
+        "privilegeName": "Manage Award Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_ADMINISTER_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "Administer Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CANCEL_JOB_PRIV",
+        "privilegeName": "Cancel Job",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ACCESS_CERTIFICATION_CAMPAIGN_PRIV",
+        "privilegeName": "Create Access Certification Campaign",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ACCESS_CONTROL_AND_ASSIGN_RESULT_AND_CONTROL_USERS_PRIV",
+        "privilegeName": "Create Access Control and Assign Result and Control Users",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ACCESS_ENTITLEMENT_PRIV",
+        "privilegeName": "Create Access Entitlement",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ALGORITHMS_PRIV",
+        "privilegeName": "Create Algorithms",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_ALGORITHM_FILTERS_PRIV",
+        "privilegeName": "Create Algorithm Filters",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_EDIT_BUSINESS_OBJECT_SECURITY_PRIV",
+        "privilegeName": "Create and Edit Business Object Security",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_EDIT_USER_ASSIGNMENT_GROUPS_PRIV",
+        "privilegeName": "Create User Assignment Groups and Assign Users",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_MANAGE_RECOMMENDATION_ENGINE_ANALYSES_PRIV",
+        "privilegeName": "Create and Manage Risk Snapshot Report",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_AND_MANAGE_RISK_SNAPSHOT_REPORT_PRIV",
+        "privilegeName": "Create Risk Snapshot Report",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_IMPORT_TEMPLATE_PRIV",
+        "privilegeName": "Create Import Template",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_INTERNAL_CONTROL_CERTIFICATION_CAMPAIGN_PRIV",
+        "privilegeName": "Create Internal Control Certification Campaign",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_INTERNAL_CONTROL_PRIV",
+        "privilegeName": "Create Internal Control",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_INTERNAL_CONTROL_RECORD_CONFIGURATION_PRIV",
+        "privilegeName": "Create Internal Control Record Configuration",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "Create Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_RISK_REFERENCE_DATA_PRIV",
+        "privilegeName": "Create Risk Reference Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_TRANSACTION_CONTROL_AND_ASSIGN_RESULT_AND_CONTROL_USERS_PRIV",
+        "privilegeName": "Create Transaction Control and Assign Result and Control Users",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CREATE_USER_DEFINED_ACCESS_POINTS_PRIV",
+        "privilegeName": "Create User-Defined Access Points",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_CUSTOMIZE_RISK_MANAGEMENT_UI_PRIV",
+        "privilegeName": "Personalize Risk Management UI",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_DELETE_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "Delete Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "Edit Access Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_CERTIFICATION_TASKS_PRIV",
+        "privilegeName": "Edit Access Certification Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_CONTROLS_PRIV",
+        "privilegeName": "Edit Access Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "Edit Access Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ACCESS_POINTS_ON_ENTITLEMENT_PRIV",
+        "privilegeName": "Edit Access Points on Entitlement",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ALGORITHMS_PRIV",
+        "privilegeName": "Edit Algorithms",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ALGORITHM_FILTERS_PRIV",
+        "privilegeName": "Edit Algorithm Filters",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_ALGORITHM_TASKS_PRIV",
+        "privilegeName": "Edit Algorithm Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_APPLICATION_CONFIGURATION_PRIV",
+        "privilegeName": "Edit Access Performance Configuration",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_CURRENCY_CONVERSION_CONFIGURATION_PRIV",
+        "privilegeName": "Edit Currency Conversion Configuration",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_EMAIL_ALERT_AND_NOTIFICATION_SETTINGS_PRIV",
+        "privilegeName": "Edit Email Alert and Notification Settings",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROLS_PRIV",
+        "privilegeName": "Edit Internal Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROL_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "Edit Internal Control Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROL_CERTIFICATION_TASKS_PRIV",
+        "privilegeName": "Edit Internal Control Certification Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_INTERNAL_CONTROL_RECORD_CONFIGURATIONS_PRIV",
+        "privilegeName": "Edit Internal Control Record Configurations",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_OBJECT_CONFIGURATION_FOR_A_MODULE_PRIV",
+        "privilegeName": "Edit Risk Management Configuration Options",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_PERSPECTIVES_FOR_A_MODULE_PRIV",
+        "privilegeName": "Manage Perspectives for a Module",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "Edit Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_RISK_REFERENCE_DATA_DEFAULT_PROCESS_OWNER_PRIV",
+        "privilegeName": "Edit Risk Reference Data Default Process Owner",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_RISK_REFERENCE_DATA_PRIV",
+        "privilegeName": "Edit Risk Reference Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_SCHEDULE_PRIV",
+        "privilegeName": "Edit Schedule",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_TRANSACTION_CONTROLS_PRIV",
+        "privilegeName": "Edit Transaction Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_TRANSACTION_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "Edit Transaction Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_USER_ASSIGNMENT_GROUPS_PRIV",
+        "privilegeName": "Edit User Assignment Groups",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EDIT_USER_DEFINED_ACCESS_POINTS_PRIV",
+        "privilegeName": "Edit User-Defined Access Points",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_EXPORT_CONTINUOUS_CONTROLS_PRIV",
+        "privilegeName": "Export Advanced Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_GLOBAL_USER_CONFIGURATION_VIEW_IN_APPLICATION_CONFIGURATIONS_PRIV",
+        "privilegeName": "View Global User Configuration in Application Configurations",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_IMPORT_DATA_FILE_PRIV",
+        "privilegeName": "Import Data File",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_ACCESS_ENTITLEMENTS_PRIV",
+        "privilegeName": "View Access Entitlements",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_ADDITIONAL_RISK_MANAGEMENT_DATA_SOURCES_PRIV",
+        "privilegeName": "Manage Additional Advanced Control Data Sources",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_APPLICATION_CONFIGURATION_PRIV",
+        "privilegeName": "View Advanced Controls Configuration",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_ASSESSMENT_RESULTS_PRIV",
+        "privilegeName": "View Assessment Results",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_DATA_INTEGRATION_PRIV",
+        "privilegeName": "Manage Data Integration",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_GLOBAL_USER_CONFIGURATION_IN_APPLICATION_CONFIGURATIONS_PRIV",
+        "privilegeName": "Edit Global User Configuration in Application Configurations",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_JOBS_PRIV",
+        "privilegeName": "View Monitor Jobs",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_VIEWER_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_LOOKUP_TABLES_PRIV",
+        "privilegeName": "Manage Lookup Tables",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_RISKS_AND_CONTROLS_SCHEDULES_PRIV",
+        "privilegeName": "View Scheduling",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MANAGE_RISK_MANAGEMENT_DATA_INTEGRATION_CONFIGURATIONS_PRIV",
+        "privilegeName": "Manage Risk Management Data Integration Configurations",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_MASS_EDIT_SECURITY_ASSIGNMENTS_PRIV",
+        "privilegeName": "Mass Edit Security Assignments",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_PERFORM_MANUAL_ACCESS_REMOVALS_PRIV",
+        "privilegeName": "Perform Manual Access Removals",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_PURGE_CCM_JOBS_PRIV",
+        "privilegeName": "Purge Advanced Control Results",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_PURGE_JOBS_PRIV",
+        "privilegeName": "Purge Jobs",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_REBUILD_GRAPH_PRIV",
+        "privilegeName": "Rebuild Graph",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_REVIEW_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "Review Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_RUN_AND_SCHEDULE_GLOBAL_USERS_PRIV",
+        "privilegeName": "Run and Schedule Global Users",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_RUN_CONTINUOUS_CONTROL_ANALYSIS_PRIV",
+        "privilegeName": "Run Advanced Control Analysis",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_RUN_SCHEDULED_JOB_NOW_PRIV",
+        "privilegeName": "Run Scheduled Job Now",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY, ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SAVE_ACCESS_ENTITLEMENTS_PRIV",
+        "privilegeName": "Edit Access Entitlements",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SCHEDULE_CONTINUOUS_CONTROL_ANALYSIS_PRIV",
+        "privilegeName": "Schedule Advanced Control Analysis",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SCHEDULE_SYNCHRONIZATIONS_PRIV",
+        "privilegeName": "Schedule Synchronizations",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_SYNCHRONIZE_TRANSACTION_DATASOURCE_PRIV",
+        "privilegeName": "Synchronize Transaction Data Source",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_ALGORITHM_RESULT_VISUALIZATION_PRIV",
+        "privilegeName": "View Access Algorithm Result Visualization",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "View Access Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_CONTROLS_PRIV",
+        "privilegeName": "View Access Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "View Access Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_REMOVALS_PRIV",
+        "privilegeName": "View Access Removals",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ACCESS_REQUESTS_PRIV",
+        "privilegeName": "View Access Requests",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ADDITIONAL_RISK_MANAGEMENT_DATA_SOURCES_PRIV",
+        "privilegeName": "View Additional Advanced Control Data Sources",
+        "sourceRoles": "ORA_GTG_ADVANCED_CONTROLS_ADMINISTRATOR_DUTY, ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ALGORITHMS_PRIV",
+        "privilegeName": "View Algorithms",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ALGORITHM_FILTERS_PRIV",
+        "privilegeName": "View Algorithm Filters",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_ALGORITHM_TASKS_PRIV",
+        "privilegeName": "View Algorithm Tasks",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_AND_EDIT_RISK_SNAPSHOT_REPORT_PRIV",
+        "privilegeName": "View and Edit Risk Snapshot Report",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_BUSINESS_OBJECT_SECURITY_PRIV",
+        "privilegeName": "View Business Object Security",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_VIEWER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_EMAIL_ALERT_AND_NOTIFICATION_SETTINGS_PRIV",
+        "privilegeName": "View Email Alert and Notification Settings",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_INTERNAL_CONTROLS_PRIV",
+        "privilegeName": "View Internal Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_INTERNAL_CONTROL_CERTIFICATION_CAMPAIGNS_PRIV",
+        "privilegeName": "View Internal Control Certification Campaigns",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_INTERNAL_CONTROL_RECORD_CONFIGURATIONS_PRIV",
+        "privilegeName": "View Internal Control Record Configurations",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_OBJECT_CONFIGURATION_FOR_A_MODULE_PRIV",
+        "privilegeName": "View Risk Management Configuration Options",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_PERSPECTIVES_FOR_A_MODULE_PRIV",
+        "privilegeName": "View Perspectives for a Module",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_PERSPECTIVE_HIERARCHY_PRIV",
+        "privilegeName": "View Perspectives",
+        "sourceRoles": "ORA_GTG_PERSPECTIVE_MANAGER_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_RISK_REFERENCE_DATA_PRIV",
+        "privilegeName": "View Risk Reference Data",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_SECURITY_CHECKUP_PRIV",
+        "privilegeName": "View Security Checkup",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_TRANSACTION_CONTROLS_PRIV",
+        "privilegeName": "View Transaction Controls",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_TRANSACTION_INCIDENT_RESULTS_PRIV",
+        "privilegeName": "View Transaction Incident Results",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_USER_ASSIGNMENT_GROUPS_PRIV",
+        "privilegeName": "View User Assignment Groups",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_VIEWER_DUTY, ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "GTG_VIEW_USER_DEFINED_ACCESS_POINT_DETAILS_PRIV",
+        "privilegeName": "View User-Defined Access Point Details",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_MANAGE_AI_AGENT_PRIV",
+        "privilegeName": "Manage Intelligent Agent",
+        "sourceRoles": "ORA_GTG_MANAGE_RISK_AI_AGENT_DUTY_HCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_TEST_AI_AGENT_PRIV",
+        "privilegeName": "Test Intelligent Agent",
+        "sourceRoles": "ORA_GTG_MANAGE_RISK_AI_AGENT_DUTY_HCM"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_CONFIGURE_QUESTIONNAIRES_PRIV",
+        "privilegeName": "Configure Questionnaires",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_CONFIGURE_QUESTIONS_PRIV",
+        "privilegeName": "Configure Questions",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_REST_SERVICE_ACCESS_QUESTIONNAIRES_PRIV",
+        "privilegeName": "Use REST Service - Questionnaires",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_REST_SERVICE_ACCESS_QUESTIONNAIRE_INSTRUCTIONS_RO_PRIV",
+        "privilegeName": "Use REST Service - Questionnaire Instructions Read Only",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRQ_REST_SERVICE_ACCESS_QUESTIONS_PRIV",
+        "privilegeName": "Use REST Service - Questions",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+        "privilegeName": "Use REST Service - Questionnaire Lists of Values",
+        "sourceRoles": "ORA_GTG_RISK_POWER_USER_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PJS_MANAGE_PROJECT_PROGRAM_PRIV",
+        "privilegeName": "Manage Project Program",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PO_MANAGE_PRC_AGENT_WEB_SERVICE_PRIV",
+        "privilegeName": "Manage Procurement Agent by REST Service",
+        "sourceRoles": "ORA_GTG_RISK_MANAGEMENT_SECURITY_ADMINISTRATOR_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PO_SEARCH_PRC_AGENT_WEB_SERVICE_PRIV",
+        "privilegeName": "Search Procurement Agent by REST Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "RCS_VIEW_INV_ORG_LOV_WEB_SERVICE_PRIV",
+        "privilegeName": "View Inventory Organizations List of Values by Web Service",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "XCC_MANAGE_CONTROL_BUDGETS_PRIV",
+        "privilegeName": "Manage Control Budgets",
+        "sourceRoles": "ORA_GTG_ALGORITHM_DATA_SYNCHRONIZATION_DUTY"
+      }
+    ],
+    "cachedAt": "2026-11-23T12:23:28.170Z"
+  },
+  "(do_not_use)benefits_specialist_data": {
+    "success": true,
+    "roleCode": "(DO_NOT_USE)BENEFITS_SPECIALIST_DATA",
+    "roleName": "(DO NOT USE)BENEFITS SPECIALIST",
+    "directCount": 0,
+    "indirectCount": 136,
+    "totalCount": 136,
+    "details": [
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_ACCESS_BENEFITS_COMMAND_CENTER_PRIV",
+        "privilegeName": "Access Benefits Command Center",
+        "sourceRoles": "ORA_BEN_BENEFITS_COMMAND_CENTER_ACCESS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_ADMIN_ACCESS_PRIV",
+        "privilegeName": "Benefits Administrator Access",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_EMPLOYEE_SELECTIONS_PRIV",
+        "privilegeName": "Make Employee Selections",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MAINTAIN_DESIGNEE_ELIGIBILITY_PRIV",
+        "privilegeName": "Maintain Designee Eligibility",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MAINTAIN_INDIVIDUAL_ELIGIBILITY_EXCEPTIONS_PRIV",
+        "privilegeName": "Maintain Individual Eligibility Exceptions",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MAINTAIN_INDIVIDUAL_OVERRIDES_PRIV",
+        "privilegeName": "Maintain Individual Overrides",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MAINTAIN_PARTICIPANT_ELIGIBILITY_PRIV",
+        "privilegeName": "Maintain Participant Eligibility",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MAKE_ANYTIME_SELECTIONS_PRIV",
+        "privilegeName": "Make Anytime Selections",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ABSENCE_ENTITLEMENT_BAND_PRIV",
+        "privilegeName": "Manage Absence Entitlement Band",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ABSENCE_PLANS_PRIV",
+        "privilegeName": "Define Absence Plans",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ACTION_ITMES_PRIV",
+        "privilegeName": "Manage Action Items",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ADDITIONAL_PERSON_INFO_PRIV",
+        "privilegeName": "Manage Benefits Additional Person Info",
+        "sourceRoles": "ORA_BEN_MANAGE_ADDITIONAL_PERSON_INFO"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ANYTIME_ACTION_ITEMS_PRIV",
+        "privilegeName": "Manage Anytime Action Items",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFICIARY_ORGANIZATION_DETAILS_PRIV",
+        "privilegeName": "Manage Beneficiary Organization Details",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFITS_EXTRACT_PROCESS_PRIV",
+        "privilegeName": "Manage Benefit Extract Process",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_BALANCE_PRIV",
+        "privilegeName": "Manage Benefit Balance",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_CARRIERS_PRIV",
+        "privilegeName": "Manage Benefit Carriers",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_CONTACTS_PRIV",
+        "privilegeName": "Manage Benefit Contacts",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_COURT_ORDERS_PRIV",
+        "privilegeName": "Manage Benefit Court Orders",
+        "sourceRoles": "ORA_BEN_MANAGE_PER_BENEFIT_COURT_ORDERS"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_COVERAGE_CHARGES_PRIV",
+        "privilegeName": "Manage Person Benefits Billing",
+        "sourceRoles": "ORA_BEN_MANAGE_PER_BILLING"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_EARNINGS_PRIV",
+        "privilegeName": "Manage Benefit Earnings",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_ELECTABLE_CHOICE_PRIV",
+        "privilegeName": "Manage Benefit Electable Choice",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_ELIGIBLE_DEPENDANGT_PRIV",
+        "privilegeName": "Manage Benefit Eligible Dependent",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_ELIGIBLE_PERSON_PRIV",
+        "privilegeName": "Manage Benefit Eligible Person",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_ELIGIBLITY_PROFILE_PRIV",
+        "privilegeName": "Manage Benefit Eligibility Profile",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_MAINTENANCE_BATCH_REPORTING_PRIV",
+        "privilegeName": "Manage Benefit Maintenance Batch Reporting",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_NOTE_PRIV",
+        "privilegeName": "Manage Benefit Note",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_OPTION_PRIV",
+        "privilegeName": "Manage Benefit Option",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_PARTICIPANT_ENROLLMENT_CERTIFICATION_PRIV",
+        "privilegeName": "Manage Benefit Participant Enrollment Certification",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_PARTICIPANT_ENROLLMENT_RESULT_OVERRIDE_PRIV",
+        "privilegeName": "Manage Benefit Participant Enrollment Result Override",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_PERSON_HABITS_PRIV",
+        "privilegeName": "Manage Benefit Person Habits",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_BENEFIT_RELATION_PRIV",
+        "privilegeName": "Manage Benefit Relation",
+        "sourceRoles": "ORA_BEN_MANAGE_PER_BNFT_RELATION"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ELIGIBLITY_FACTORS_PRIV",
+        "privilegeName": "Manage Eligibility Factors",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_ENRT_RSLT_BY_ADMIN_PRIV",
+        "privilegeName": "Manage Benefit Participant Enrollment Result by Administrator",
+        "sourceRoles": "ORA_BEN_MANAGE_ENROLLMENT_RESULT_BY_ADMIN"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_LEGAL_ENTITY_INFORMATION_PRIV",
+        "privilegeName": "Manage Legal Entity Information",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_LIFE_EVENT_REASON_PRIV",
+        "privilegeName": "Manage Life Event Reason",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_OPEN_ENROLLMENT_WINDOW_PRIV",
+        "privilegeName": "Manage Open enrollment window",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PERSON_BENEFITS_BALANCE_PRIV",
+        "privilegeName": "Manage Person Benefits Balance",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PERSON_BENEFIT_GROUP_PRIV",
+        "privilegeName": "Manage Benefit Person Benefit Group",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PERSON_ELIGIBILITY_DERIVED_FACTOR_PRIV",
+        "privilegeName": "Manage Person Eligibility Derived Factor",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PERSON_LIFE_EVENT_PRIV",
+        "privilegeName": "Manage Person Life Event",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PERSON_POTENTIAL_LIFE_EVENT_PRIV",
+        "privilegeName": "Manage Benefit Person Potential Life Event",
+        "sourceRoles": "ORA_BEN_MANAGE_PERSON_POTENTIAL_LIFE_EVENT"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PER_BNF_ORG_PRIV",
+        "privilegeName": "Manage Person Beneficiary Organizations",
+        "sourceRoles": "ORA_BEN_MANAGE_PER_BNF_ORG"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_PLAN_BENEFICIARY_DESIGNATION_PRIV",
+        "privilegeName": "Manage Plan Beneficiary Designation",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_QUESTIONNAIRE_RESPONSES_BY_ADMIN_PRIV",
+        "privilegeName": "Manage Benefits Questionnaire Responses By Administrator",
+        "sourceRoles": "ORA_BEN_MANAGE_QUESTIONNAIRE_RESPONSES_BY_ADMIN"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_REGULATORY_BODIES_PRIV",
+        "privilegeName": "Manage Regulatory Bodies",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_REOPEN_LIFE_EVENTS_PRIV",
+        "privilegeName": "Manage Reopen Life Events",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_MANAGE_THIRD_PARTY_ADMINISTRATORS_PRIV",
+        "privilegeName": "Manage Third-Party Administrators",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_PREPARE_BENEFIT_PARTICIPANT_POTENTIAL_LIFE_EVENT_PRIV",
+        "privilegeName": "Prepare Benefit Participant Potential Life Event",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_PURGE_BACKED_OUT_OR_VOIDED_LIFE_EVENT_DATA_PRIV",
+        "privilegeName": "Purge Backed-Out or Voided Life Event Data",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_PURGE_PARTICIPATION_EVALUATION_AUDIT_DATA_PRIV",
+        "privilegeName": "Purge Participation Evaluation Audit Data",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RECORD_BENEFIT_COVERAGE_PAYMENTS_PRIV",
+        "privilegeName": "Record Benefit Coverage Payments",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RESTART_ACTION_ITEM_CLOSURE_PRIV",
+        "privilegeName": "Restart Action Item Closure",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RESTART_DEFAULT_BENEFITS_ENROLLMENT_PRIV",
+        "privilegeName": "Restart Default Benefits Enrollment",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RESTART_ENROLLMENT_CLOSURE_PRIV",
+        "privilegeName": "Restart Enrollment Closure",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RESTART_PARTICIPATION_EVALUATION_PRIV",
+        "privilegeName": "Restart Participation Evaluation",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REST_SERVICE_ACCESS_BENEFITS_GROUP_LOV_PRIV",
+        "privilegeName": "Use REST Service - Benefits Group List of Values",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REST_SERVICE_ACCESS_BENEFIT_BALANCES_LOV_PRIV",
+        "privilegeName": "Use REST Service - Benefit Balances List of Values",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REST_SERVICE_ACCESS_BENEFIT_PERSON_INFORMATION_PRIV",
+        "privilegeName": "Use REST Service - Benefit Person Information",
+        "sourceRoles": "ORA_BEN_REST_SERVICE_ACCESS_BENEFIT_PERSON_INFORMATION"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REST_SERVICE_ACCESS_BENEFIT_PLAN_LOVS_PRIV",
+        "privilegeName": "Use REST Service - Benefit Plan Lists of Values",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REST_SERVICE_ACCESS_BENEFIT_RELATIONS_LOV_PRIV",
+        "privilegeName": "Use REST Service - Benefit Relations List of Values",
+        "sourceRoles": "ORA_BEN_REST_SERVICE_ACCESS_BENEFIT_RELATIONS_LOV"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REST_SERVICE_ACCESS_PERSON_BENEFIT_BALANCES_PRIV",
+        "privilegeName": "Use REST Service - Person Benefit Balances",
+        "sourceRoles": "ORA_BEN_REST_SERVICE_ACCESS_PERSON_BENEFIT_BALANCES"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_REVIEW_BENEFIT_PARTICIPANT_ENROLLMENT_RESULT_PRIV",
+        "privilegeName": "Review Benefit Participant Enrollment Result",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_ASSIGN_LIFE_PROCESS_PRIV_PRIV",
+        "privilegeName": "Run Assign Corrective Potential Life Event",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_BACKOUT_LIFE_EVENTS_PROCESS_PRIV",
+        "privilegeName": "Run Backout Life Event Process",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_BENEFIT_BILLING_PROCESSES_PRIV",
+        "privilegeName": "Run Benefit Billing Processes",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_CLOSE_ENROLLMENTS_PROCESS_PRIV",
+        "privilegeName": "Run Close Enrollments Process",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_DEFAULT_ENROLLMENT_PROCESS_PRIV",
+        "privilegeName": "Run Default Enrollment Process",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_LIFE_EVENT_PARTICIPATION_PRIV",
+        "privilegeName": "Run Life Event Participation",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_ONLINE_ANYTIME_OPEN_PRIV",
+        "privilegeName": "Run Online Anytime Open",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_ONLINE_LIFE_EVENT_PRIV",
+        "privilegeName": "Run Online Life Events",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_ONLINE_OPEN_ENROLLMENT_PRIV",
+        "privilegeName": "Run Online Open Enrollment",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_ABSENCE_PRIV",
+        "privilegeName": "Run Participation Process Absence",
+        "sourceRoles": "ORA_BEN_ABSENCE_IMPLEMENTATION_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_LIFE_EVENT_PRIV",
+        "privilegeName": "Run Participation Process Life Event",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_SCHEDULED_PRIV",
+        "privilegeName": "Run Participation Process Scheduled",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_SELECTION_PRIV",
+        "privilegeName": "Run Participation Process Selection",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_TEMPORAL_PRIV",
+        "privilegeName": "Run Participation Process Temporal",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_UNRESTRICTED_PRIV",
+        "privilegeName": "Run Participation Process Unrestricted",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_RUN_PARTICIPATION_PROCESS_UNRESTRICTED_RECALCULATE_PRIV",
+        "privilegeName": "Run Participation Process - Unrestricted Recalculate",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_SEARCH_BENEFIT_PERSON_PRIV",
+        "privilegeName": "Search Benefit Person",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_SUBMIT_ELECTIONS_PRIV",
+        "privilegeName": "Submit Elections",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_ADDITIONAL_PERSON_INFO_PRIV",
+        "privilegeName": "View Benefits Additional Person Info",
+        "sourceRoles": "ORA_BEN_VIEW_ADDITIONAL_PERSON_INFO"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_BENEFITS_AND_WELLNESS_PRIV",
+        "privilegeName": "Access Benefits and Wellness",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_BENEFITS_SELF_SERVICE_CONFIGURATION_PRIV",
+        "privilegeName": "View Benefits Self Service Configuration",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_BENEFIT_COURT_ORDERS_PRIV",
+        "privilegeName": "View Benefit Court Orders",
+        "sourceRoles": "ORA_BEN_VIEW_PER_BENEFIT_COURT_ORDERS"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_BENEFIT_EXTRAT_RESULTS_PRIV",
+        "privilegeName": "Close Action Items",
+        "sourceRoles": "ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_BENEFIT_RELATION_PRIV",
+        "privilegeName": "View Benefit Relation",
+        "sourceRoles": "ORA_BEN_VIEW_PER_BNFT_RELATION"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_ENRT_RSLT_BY_ADMIN_PRIV",
+        "privilegeName": "View Benefit Participant Enrollment Result by Administrator",
+        "sourceRoles": "ORA_BEN_VIEW_ENROLLMENT_RESULT_BY_ADMIN"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_PERSON_LIFE_EVENT_PRIV",
+        "privilegeName": "View Person Life Event",
+        "sourceRoles": "ORA_BEN_BENEFITS_ELECTIONS_DUTY, ORA_BEN_BENEFITS_ENROLLMENT_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_PERSON_POTENTIAL_LIFE_EVENT_PRIV",
+        "privilegeName": "View Benefit Person Potential Life Event",
+        "sourceRoles": "ORA_BEN_VIEW_PERSON_POTENTIAL_LIFE_EVENT"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_PER_BILLING_PRIV",
+        "privilegeName": "View Person Benefits Billing",
+        "sourceRoles": "ORA_BEN_VIEW_PER_BILLING"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_PER_BNF_ORG_PRIV",
+        "privilegeName": "View Person Beneficiary Organizations",
+        "sourceRoles": "ORA_BEN_VIEW_PER_BNF_ORG"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "BEN_VIEW_QUESTIONNAIRE_RESPONSES_BY_ADMIN_PRIV",
+        "privilegeName": "View Benefits Questionnaire Responses By Administrator",
+        "sourceRoles": "ORA_BEN_VIEW_QUESTIONNAIRE_RESPONSES_BY_ADMIN"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CMP_REST_SERVICE_ACCESS_SALARIES_RO_PRIV",
+        "privilegeName": "Use REST Service - Salaries Read Only",
+        "sourceRoles": "ORA_CMP_PORTRAIT_COMPENSATION_DUTY, ORA_CMP_REST_SERVICE_ACCESS_SALARIES_WITH_ANALYTICS_RO"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "CMP_VIEW_COMPENSATION_CARD_PRIV",
+        "privilegeName": "View Compensation Card",
+        "sourceRoles": "ORA_CMP_PORTRAIT_COMPENSATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+        "privilegeName": "Access HCM Common Components",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+        "privilegeName": "View Trading Community Common Setup",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PAY_MANAGE_HCM_BUSINESS_RULE_PRIV",
+        "privilegeName": "Manage Fast Formula",
+        "sourceRoles": "ORA_PAY_FAST_FORMULA_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PAY_MANAGE_PAYROLL_ELEMENT_ENTRY_PRIV",
+        "privilegeName": "Manage Payroll Element Entry",
+        "sourceRoles": "ORA_PAY_ELEMENT_ENTRY_VIEW_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PAY_REST_SERVICE_ACCESS_ELEMENT_ENTRIES_RO_PRIV",
+        "privilegeName": "Use REST Service - Element Entries Read Only",
+        "sourceRoles": "ORA_CMP_PORTRAIT_COMPENSATION_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+        "privilegeName": "Access Person Spotlight",
+        "sourceRoles": "ORA_PER_ACCESS_PERSON_SPOTLIGHT_ADVANCED_SEARCH"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_ADD_PERSON_WORK_AREA_PRIV",
+        "privilegeName": "New Person Work Area",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_CHANGE_PERSON_ADDRESS_PRIV",
+        "privilegeName": "Change Person Address",
+        "sourceRoles": "ORA_PER_MANAGE_PEOPLE_TO_COVER, ORA_PER_VIEW_PEOPLE_TO_COVER"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_CHANGE_PERSON_MARITAL_STATUS_PRIV",
+        "privilegeName": "Change Person Marital Status",
+        "sourceRoles": "ORA_PER_PERSON_MARITAL_STATUS_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_ENABLE_WORKER_SEARCHES_USING_EFFECTIVE_DATES_PRIV",
+        "privilegeName": "Enable worker searches using effective dates",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_EXTRACTS_WORK_AREA_PRIV",
+        "privilegeName": "Manage Extracts Work Area",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_BIOGRAPHICAL_INFORMATION_PRIV",
+        "privilegeName": "Manage Person Biographical Information",
+        "sourceRoles": "ORA_PER_MANAGE_PEOPLE_TO_COVER, ORA_PER_VIEW_PEOPLE_TO_COVER"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_COMMUNICATION_METHOD_PRIV",
+        "privilegeName": "Manage Person Communication Method",
+        "sourceRoles": "ORA_PER_CONTACT_PERSON_PII_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_DOCUMENTATION_PRIV",
+        "privilegeName": "Manage Person Documentation",
+        "sourceRoles": "ORA_PER_DOCUMENT_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_EMAIL_PRIV",
+        "privilegeName": "Manage Person Email",
+        "sourceRoles": "ORA_PER_CONTACT_PERSON_PII_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_LEGISLATVIVE_PRIV",
+        "privilegeName": "Manage Person Legislative",
+        "sourceRoles": "ORA_PER_MANAGE_PEOPLE_TO_COVER, ORA_PER_VIEW_PEOPLE_TO_COVER"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_NAME_PRIV",
+        "privilegeName": "Manage Person Name",
+        "sourceRoles": "ORA_PER_MANAGE_PEOPLE_TO_COVER, ORA_PER_VIEW_PEOPLE_TO_COVER"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_NATIONAL_IDENTIFIER_PRIV",
+        "privilegeName": "Manage Person National Identifier",
+        "sourceRoles": "ORA_PER_MANAGE_PEOPLE_TO_COVER, ORA_PER_PERSON_NATIONAL_IDENTIFIER_VIEW_DUTY, ORA_PER_VIEW_PEOPLE_TO_COVER"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_PHONE_PRIV",
+        "privilegeName": "Manage Person Phone",
+        "sourceRoles": "ORA_PER_CONTACT_PERSON_PII_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_PRIV",
+        "privilegeName": "Manage Person",
+        "sourceRoles": "ORA_PER_PERSON_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_PERSON_WORK_AREA_PRIV",
+        "privilegeName": "Manage Person Work Area",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_WORKFORCE_STRUCTURES_WORK_AREA_PRIV",
+        "privilegeName": "Manage Workforce Structures Work Area",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_MANAGE_WORK_RELATIONSHIP_PRIV",
+        "privilegeName": "Manage Work Relationship",
+        "sourceRoles": "ORA_PER_WORKER_WORK_RELATIONSHIP_MAINTENANCE_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+        "privilegeName": "Use REST Service - Address Lists of Values",
+        "sourceRoles": "ORA_BEN_BENEFITS_SPECIALIST_JOB"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_CONTACTS_LOV_PRIV",
+        "privilegeName": "Use REST Service - Contacts List of Values",
+        "sourceRoles": "ORA_PER_REST_SERVICE_ACCESS_CONTACTS_LOV"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_DOCUMENT_RECORDS_PRIV",
+        "privilegeName": "Use REST Service - Document Records",
+        "sourceRoles": "ORA_PER_DOCUMENT_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_DOCUMENT_RECORDS_RO_PRIV",
+        "privilegeName": "Use REST Service - Document Records Read Only",
+        "sourceRoles": "ORA_PER_VIEW_PERSON_DOCUMENTATION"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_GUIDED_JOURNEYS_RO_PRIV",
+        "privilegeName": "Use REST Service - Guided Journeys Read Only",
+        "sourceRoles": "ORA_PER_REST_SERVICE_ACCESS_GUIDED_JOURNEYS_RO"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_GUIDED_JOURNEY_RESPONSES_PRIV",
+        "privilegeName": "Use REST Service - Guided Journey Responses",
+        "sourceRoles": "ORA_PER_REST_SERVICE_ACCESS_GUIDED_JOURNEY_RESPONSES"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_HCM_COUNTRIES_LOV_PRIV",
+        "privilegeName": "Use REST Service - HCM Countries List of Values",
+        "sourceRoles": "ORA_PER_REST_SERVICE_ACCESS_HCM_COUNTRIES_LOV"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_WORKER_ASSIGNMENTS_LOV_PRIV",
+        "privilegeName": "Use REST Service - Worker Assignments List of Values",
+        "sourceRoles": "ORA_PER_REST_SERVICE_ACCESS_WORKER_ASSIGNMENTS_LOV"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_REST_SERVICE_ACCESS_WORKER_SEARCHES_V2_PRIV",
+        "privilegeName": "Use REST Service - Worker Searches V2",
+        "sourceRoles": "ORA_PER_REST_SERVICE_ACCESS_WORKER_SEARCHES_V2"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_SEARCH_PERSON_DOCUMENT_OF_RECORD_PRIV",
+        "privilegeName": "Search Person Documentation",
+        "sourceRoles": "ORA_PER_DOCUMENT_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_SEARCH_PERSON_PRIV",
+        "privilegeName": "Search Person",
+        "sourceRoles": "ORA_PER_ACCESS_PERSON_SPOTLIGHT_ADVANCED_SEARCH, ORA_PER_PERSON_MANAGEMENT_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_SEARCH_WORKER_PRIV",
+        "privilegeName": "Search Worker",
+        "sourceRoles": "ORA_PER_WORKER_GALLERY_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_EMPLOYMENT_INFORMATION_SUMMARY_PRIV",
+        "privilegeName": "View Employment Information Summary",
+        "sourceRoles": "ORA_PER_VIEW_EMPLOYMENT_INFORMATION_SUMMARY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_NONWORKER_PORTRAIT_PRIV",
+        "privilegeName": "View Nonworker Portrait",
+        "sourceRoles": "ORA_PER_WORKER_GALLERY_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_PEOPLE_TO_COVER_PRIV",
+        "privilegeName": "View People to Cover",
+        "sourceRoles": "ORA_PER_MANAGE_PEOPLE_TO_COVER, ORA_PER_VIEW_PEOPLE_TO_COVER"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_PERSON_DOCUMENTATION_PRIV",
+        "privilegeName": "View Person Documentation",
+        "sourceRoles": "ORA_PER_VIEW_PERSON_DOCUMENTATION"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_PERSON_GALLERY_PORTRAIT_PRIV",
+        "privilegeName": "View Person Gallery Work Area",
+        "sourceRoles": "ORA_PER_WORKER_GALLERY_SEARCH_DUTY"
+      },
+      {
+        "type": "INDIRECT",
+        "privilegeCode": "PER_VIEW_WORKER_PORTRAIT_PRIV",
+        "privilegeName": "View Worker Portrait",
+        "sourceRoles": "ORA_PER_WORKER_GALLERY_SEARCH_DUTY"
+      }
+    ],
+    "cachedAt": "2026-11-23T12:24:53.502Z"
+  }
+}
