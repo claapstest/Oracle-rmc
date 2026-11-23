@@ -506,16 +506,16 @@ export class ControlCatalogService {
               if (result.status === 'fulfilled' && result.value.count !== null) {
                 const freshCount = result.value.count;
                 const prevCount = ctrl.incidentCount ?? 0;
-                ctrl.incidentCount = freshCount;
-                if (result.value.assigned !== undefined) {
-                  ctrl.incidentBreakdown = {
-                    assigned: result.value.assigned,
-                    accepted: result.value.accepted ?? 0,
-                    remediate: result.value.remediate ?? 0,
-                    resolved: result.value.resolved ?? 0,
-                  };
+                if (freshCount !== prevCount) {
+                  ctrl.incidentCount = freshCount;
+                  if (ctrl.incidentBreakdown) {
+                    const breakdownSum = (ctrl.incidentBreakdown.assigned || 0) + (ctrl.incidentBreakdown.accepted || 0) + (ctrl.incidentBreakdown.remediate || 0) + (ctrl.incidentBreakdown.resolved || 0);
+                    if (freshCount > breakdownSum && breakdownSum > 0) {
+                      ctrl.incidentBreakdown.assigned = Math.max(0, freshCount - ((ctrl.incidentBreakdown.accepted || 0) + (ctrl.incidentBreakdown.remediate || 0) + (ctrl.incidentBreakdown.resolved || 0)));
+                    }
+                  }
+                  console.log(`[Control Catalog] Control ${ctrl.id}: updated count ${prevCount} → ${freshCount}`);
                 }
-                console.log(`[Control Catalog] Control ${ctrl.id}: updated count ${prevCount} → ${freshCount}`);
               }
             }
           }
