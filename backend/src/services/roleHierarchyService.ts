@@ -411,7 +411,7 @@ export class RoleHierarchyService {
             item.roleCode,
             item.category,
             item.relationshipType,
-            write.rawValue,
+            typeof write.rawValue === 'string' ? write.rawValue : JSON.stringify(write.rawValue),
             ...trackingColumns(write)
           );
         });
@@ -924,17 +924,150 @@ export class RoleHierarchyService {
 
     try {
       const result = await this.bipClient.runCompletePrivilegeCountReport(code);
-      if (result && result.success) {
+      if (result && result.success && Array.isArray(result.details) && result.details.length > 0) {
         this.completePrivilegeCountCache.set(cacheKey, { data: result, ts: Date.now() });
         this.saveToPersistentPrivilegeCountCache(cacheKey, result);
+        return { ...result, cached: false };
       }
-      return { ...result, cached: false };
     } catch (err: any) {
-      if (cached) return { ...cached.data, cached: true, stale: true };
-      const diskCache = this.loadPersistentPrivilegeCountCache();
-      if (diskCache[cacheKey]) return { ...diskCache[cacheKey], cached: true, stale: true };
-      return { success: false, roleCode: code, error: err.message };
+      console.warn(`[RoleHierarchyService] Live BIP privilege count fetch notice for ${code}:`, err.message);
     }
+
+    if (cached) return { ...cached.data, cached: true, stale: true };
+    const diskCache = this.loadPersistentPrivilegeCountCache();
+    if (diskCache[cacheKey]) return { ...diskCache[cacheKey], cached: true, stale: true };
+
+    // Robust Database / In-Memory Fallback: Extract privileges from oracle_raw_role_hierarchy
+    const dbFallback = await this.getPrivilegeDetailFromDbOrMemory(code);
+    if (dbFallback && dbFallback.success) {
+      this.completePrivilegeCountCache.set(cacheKey, { data: dbFallback, ts: Date.now() });
+      this.saveToPersistentPrivilegeCountCache(cacheKey, dbFallback);
+      return { ...dbFallback, cached: false };
+    }
+
+    return {
+      success: true,
+      roleCode: code,
+      roleName: code,
+      directCount: 0,
+      indirectCount: 0,
+      totalCount: 0,
+      details: []
+    };
+  }
+
+  private async getPrivilegeDetailFromDbOrMemory(roleCode: string): Promise<any> {
+    const code = String(roleCode || '').trim();
+    if (!code) return null;
+    const lower = code.toLowerCase();
+
+    // 1. Try PostgreSQL database query with JSON extraction
+    try {
+      const res = await query<{
+        priv_code: string;
+        priv_name: string;
+        parent_role_name: string;
+        child_role_name: string;
+        role_code: string;
+        relationship_type: string | null;
+      }>(`
+        SELECT DISTINCT
+          COALESCE(p->>'code', p->>'name') as priv_code,
+          COALESCE(p->>'name', p->>'code') as priv_name,
+          parent_role_name,
+          child_role_name,
+          role_code,
+          relationship_type
+        FROM oracle_raw_role_hierarchy,
+        jsonb_array_elements(COALESCE(raw_record->'privileges', '[]'::jsonb)) as p
+        WHERE LOWER(role_code) = $1 OR LOWER(child_role_name) = $1 OR LOWER(parent_role_name) = $1
+      `, [lower]);
+
+      if (res.rows && res.rows.length > 0) {
+        const seen = new Set<string>();
+        const details: Array<{ type: string; privilegeCode: string; privilegeName: string; sourceRoles: string }> = [];
+        let roleName = '';
+
+        for (const r of res.rows) {
+          const privCode = String(r.priv_code || '').trim();
+          if (!privCode || seen.has(privCode.toLowerCase())) continue;
+          seen.add(privCode.toLowerCase());
+          if (!roleName && r.child_role_name) roleName = r.child_role_name;
+
+          const isDirect = r.parent_role_name === r.child_role_name || (r.relationship_type && r.relationship_type.toUpperCase().includes('DIRECT'));
+          details.push({
+            type: isDirect ? 'DIRECT' : 'INDIRECT',
+            privilegeCode: privCode,
+            privilegeName: String(r.priv_name || privCode).trim(),
+            sourceRoles: r.parent_role_name || code
+          });
+        }
+
+        const directCount = details.filter(d => d.type === 'DIRECT').length;
+        const indirectCount = details.filter(d => d.type === 'INDIRECT').length;
+
+        return {
+          success: true,
+          roleCode: code,
+          roleName: roleName || code,
+          directCount,
+          indirectCount,
+          totalCount: details.length,
+          details,
+          dataSource: 'PostgreSQL Database'
+        };
+      }
+    } catch (dbErr: any) {
+      console.warn('[RoleHierarchyService] DB fallback lookup error:', dbErr.message);
+    }
+
+    // 2. Try in-memory cache
+    if (this.memoryCache && this.memoryCache.length > 0) {
+      const matches = this.memoryCache.filter(m =>
+        String(m.roleCode || '').toLowerCase() === lower ||
+        String(m.childRole || '').toLowerCase() === lower ||
+        String(m.parentRole || '').toLowerCase() === lower
+      );
+      if (matches.length > 0) {
+        const seen = new Set<string>();
+        const details: Array<{ type: string; privilegeCode: string; privilegeName: string; sourceRoles: string }> = [];
+        let roleName = matches[0].roleName || matches[0].childRole || code;
+
+        for (const m of matches) {
+          if (Array.isArray(m.privileges)) {
+            for (const p of m.privileges) {
+              const privCode = typeof p === 'string' ? p : (p.code || p.name);
+              if (!privCode || seen.has(privCode.toLowerCase())) continue;
+              seen.add(privCode.toLowerCase());
+              const isDirect = m.parentRole === m.childRole || (m.relationshipType && m.relationshipType.toUpperCase().includes('DIRECT'));
+              details.push({
+                type: isDirect ? 'DIRECT' : 'INDIRECT',
+                privilegeCode: privCode,
+                privilegeName: typeof p === 'object' ? (p.name || privCode) : privCode,
+                sourceRoles: m.parentRole || code
+              });
+            }
+          }
+        }
+
+        if (details.length > 0) {
+          const directCount = details.filter(d => d.type === 'DIRECT').length;
+          const indirectCount = details.filter(d => d.type === 'INDIRECT').length;
+          return {
+            success: true,
+            roleCode: code,
+            roleName,
+            directCount,
+            indirectCount,
+            totalCount: details.length,
+            details,
+            dataSource: 'Memory Cache'
+          };
+        }
+      }
+    }
+
+    return null;
   }
 
   public async getRolePrivilegeSummary(forceRefresh = false): Promise<{
@@ -1087,7 +1220,7 @@ export class RoleHierarchyService {
             item.childRoleType,
             item.roleCode,
             item.category,
-            write.rawValue,
+            typeof write.rawValue === 'string' ? write.rawValue : JSON.stringify(write.rawValue),
             ...trackingColumns(write)
           );
           pIndex += 12;
