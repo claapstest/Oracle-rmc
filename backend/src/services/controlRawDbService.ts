@@ -242,7 +242,17 @@ export class ControlRawDbService {
         updated_at = NOW()
     `;
 
-    await query(sql, [host, cleanId, name, state, status, lastRunDate, lastUpdateDate, write.rawValue, ...trackingColumns(write)]);
+    await query(sql, [
+      host,
+      cleanId,
+      name,
+      state,
+      status,
+      lastRunDate,
+      lastUpdateDate,
+      typeof write.rawValue === 'string' ? write.rawValue : JSON.stringify(write.rawValue),
+      ...trackingColumns(write)
+    ]);
   }
 
   /**
@@ -451,7 +461,7 @@ export class ControlRawDbService {
       controlName || null,
       total,
       maxDate,
-      write.rawValue,
+      typeof write.rawValue === 'string' ? write.rawValue : JSON.stringify(write.rawValue),
       breakdown.assigned,
       breakdown.accepted,
       breakdown.remediate,
@@ -644,7 +654,7 @@ export class ControlRawDbService {
         pick(el, ['CreatedBy', 'createdBy']),
         pick(el, ['ResultInvestigator', 'Investigator', 'resultInvestigator', 'investigator']),
         pick(el, ['LastUpdatedBy', 'lastUpdatedBy']),
-        write.rawValue,
+        typeof write.rawValue === 'string' ? write.rawValue : JSON.stringify(write.rawValue),
         ...trackingColumns(write)
       );
     }
