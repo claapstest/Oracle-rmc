@@ -160,7 +160,7 @@ export interface UserDetailsBipRow {
 
 export class BipClient {
   private axiosInstance: AxiosInstance;
-  public reportPath = '/Custom/Claaps Access Certification Review Report.xdo';
+  public reportPath = '/shared/Custom/Access certification summary report.xdo';
   public reviewReportPath = '/shared/Custom/Access certification worksheet.xdo';
   /**
    * Priority candidates for the main Access Certification Campaign List report.
@@ -168,6 +168,10 @@ export class BipClient {
   public readonly accessCertReportPaths = [
     process.env.BIP_REPORT_PATH,
     process.env.BIP_CERTIFICATION_REPORT_PATH,
+    '/shared/Custom/Access certification summary report.xdo',
+    '/shared/Custom/Access certification summary report',
+    '/Custom/Access certification summary report.xdo',
+    '/Custom/Access certification summary report',
     '/Custom/Claaps Access Certification Review Report.xdo',
     '/Custom/Claaps Access Certification Review.xdo',
     '/Custom/Claaps Access Certification review.xdo',
@@ -484,7 +488,7 @@ export class BipClient {
     for (const item of items) {
       const type = String(item?.type || '');
       const absPath = String(item?.absolutePath || '');
-      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.*cert.*review|claaps.*review|cert.*review|access.*cert.*report)/i.test(absPath)) {
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.*cert.*summary|cert.*summary|access.*cert.*review|claaps.*review|cert.*review|access.*cert.*report)/i.test(absPath)) {
         if (await this.isReportExist(absPath)) return absPath;
       }
     }
@@ -687,12 +691,16 @@ export class BipClient {
       // Robust Header Detection: Find the row containing the expected business headers
       let headerRowIndex = -1;
       const expectedKeywords = [
+        'certification id',
+        'cert id',
+        'campaign id',
         'creation date',
         'status',
         'type',
         'certification percent',
         'percent complete',
         'certification name',
+        'campaign name',
         'due date'
       ];
 
@@ -778,7 +786,8 @@ export class BipClient {
         const rawDue = String(record.dueDate || '').trim();
         const rawStatus = String(record.status || '').trim();
 
-        let canonicalId: number | string = rawId ? Number(rawId) || rawId : '';
+        // Directly prioritize real rawId primary key from the report if present
+        let canonicalId: number | string = rawId ? (isNaN(Number(rawId)) ? rawId : Number(rawId)) : '';
         let canonicalName = rawName;
 
         const nameToCanonicalId: Record<string, number> = {
@@ -786,9 +795,14 @@ export class BipClient {
           'CLPS_Access_Certification2': 36006,
           'FY26_QTR3_Claaps Access certification': 36007,
           'CLPS_Access_Certification3': 35007,
+          'FY26_QTR3_ Claaps Advanced Access control Certification': 35006,
+          'FY26_QTR3_CLAAPS IT Security Manager Certification': 36006,
+          'FY26_QTR3_CLAAPS Accounts Payable Manager Certification': 35007,
+          'FY26_QTR3_ CLAAPS Accounts Receivables Manager': 36007,
         };
 
-        if ((!canonicalId || [1, 2, 3, 4].includes(Number(canonicalId))) && nameToCanonicalId[rawName]) {
+        // Fallback to name map ONLY if report did not provide a primary key ID
+        if (!canonicalId && nameToCanonicalId[rawName]) {
           canonicalId = nameToCanonicalId[rawName];
         }
 
@@ -1942,15 +1956,18 @@ export class BipClient {
   public normalizeHeader(rawHeader: string): string {
     const cleaned = rawHeader.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    if (cleaned.includes('certificationid') || cleaned.includes('certid') || cleaned === 'id') return 'certificationId';
+    if (cleaned.includes('certificationid') || cleaned.includes('certid') || cleaned.includes('campaignid') || cleaned === 'id') return 'certificationId';
     if (cleaned.includes('creationdate')) return 'creationDate';
     if (cleaned === 'status') return 'status';
     if (cleaned === 'type') return 'type';
     if (cleaned.includes('percentcomplete') || cleaned.includes('percent') || cleaned.includes('pctcomplete')) {
       return 'certificationPercentComplete';
     }
-    if (cleaned.includes('certificationname') || cleaned.includes('certname')) return 'certificationName';
+    if (cleaned.includes('certificationname') || cleaned.includes('certname') || cleaned.includes('campaignname')) return 'certificationName';
     if (cleaned.includes('duedate')) return 'dueDate';
+    if (cleaned.includes('ownername') || cleaned === 'owner') return 'ownerName';
+    if (cleaned.includes('managername') || cleaned === 'manager') return 'managerName';
+    if (cleaned.includes('certifiername') || cleaned === 'certifier') return 'certifierName';
 
     // Fallback camelCase
     return rawHeader.trim().replace(/(?:^\w|[A-Z]|\b\w)/g, (letter, index) =>
