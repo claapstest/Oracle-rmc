@@ -105,9 +105,19 @@ export default function InvestigationWorkspace({
   const [hierarchyLoading, setHierarchyLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
 
+  // Complete Privilege & Hierarchy Data (Direct & Indirect)
+  const [completePrivilegeResult, setCompletePrivilegeResult] = useState<{
+    directCount: number;
+    indirectCount: number;
+    totalCount: number;
+    roleCode?: string;
+    roleName?: string;
+    details: any[];
+  } | null>(null);
+
   // Functional Privileges Filtering and Pagination States
   const [privilegeSearch, setPrivilegeSearch] = useState('');
-  const [privilegeTypeFilter, setPrivilegeTypeFilter] = useState<'ALL' | 'FUNCTION' | 'DATA'>('ALL');
+  const [privilegeInheritanceFilter, setPrivilegeInheritanceFilter] = useState<'ALL' | 'DIRECT' | 'INDIRECT'>('ALL');
   const [privilegePage, setPrivilegePage] = useState(1);
   const [privilegePageSize, setPrivilegePageSize] = useState(25);
 
@@ -146,10 +156,12 @@ export default function InvestigationWorkspace({
       setError('');
       setHierarchyData(null);
       setPrivilegeData(null);
+      setCompletePrivilegeResult(null);
       setPrivilegeError('');
       setAuditData([]);
       setPrivilegePage(1);
       setPrivilegeSearch('');
+      setPrivilegeInheritanceFilter('ALL');
       setMembersData(null);
       setMembersLoading(false);
       setMembersSearch('');
@@ -228,12 +240,43 @@ export default function InvestigationWorkspace({
           .catch(err => console.warn('Hierarchy fetch error:', err))
           .finally(() => { if (isMounted) setHierarchyLoading(false); });
 
-        // Parallel Independent Task 3: Functional Privileges & Role Briefing (12s timeout, decoupled)
+        // Parallel Independent Task 3: Complete Privileges & Hierarchy Inheritance (Direct & Indirect)
         setPrivilegeLoading(true);
-        api.getRolePrivileges(entity.name)
-          .then(privs => {
+        const targetCode = entity.id || entity.name;
+        api.getCompletePrivilegeCount(targetCode)
+          .then(res => {
             if (!isMounted) return;
-            setPrivilegeData(privs);
+            if (res && res.success && Array.isArray(res.details)) {
+              setCompletePrivilegeResult({
+                directCount: res.directCount ?? 0,
+                indirectCount: res.indirectCount ?? 0,
+                totalCount: res.totalCount ?? res.details.length,
+                roleCode: res.roleCode || targetCode,
+                roleName: res.roleName || entity.name,
+                details: res.details
+              });
+              setPrivilegeData({
+                success: true,
+                roleCode: res.roleCode || targetCode,
+                roleName: res.roleName || entity.name,
+                privileges: res.details.map((d: any) => ({
+                  code: d.privilegeCode,
+                  name: d.privilegeName || d.privilegeCode,
+                  type: d.type || 'DIRECT',
+                  inheritedFrom: d.sourceRoles || targetCode,
+                  roleCode: res.roleCode || targetCode,
+                  roleName: res.roleName || entity.name
+                }))
+              });
+            } else {
+              // Fallback to legacy getRolePrivileges if needed
+              api.getRolePrivileges(entity.name)
+                .then(privs => {
+                  if (!isMounted) return;
+                  setPrivilegeData(privs);
+                })
+                .catch(() => {});
+            }
           })
           .catch(err => {
             if (!isMounted) return;
@@ -267,7 +310,9 @@ export default function InvestigationWorkspace({
 
     loadWorkspaceData();
     const initTab = (entity as any).initialTab;
-    if (!isRole && (initTab === 'PRIVILEGES' || initTab === 'AUDIT' || initTab === 'MEMBERS' || initTab === 'HIERARCHY')) {
+    if (initTab === 'HIERARCHY') {
+      setActiveTab('PRIVILEGES');
+    } else if (!isRole && (initTab === 'PRIVILEGES' || initTab === 'AUDIT' || initTab === 'MEMBERS' || initTab === 'HIERARCHY')) {
       setActiveTab('OVERVIEW');
     } else {
       setActiveTab(initTab || 'OVERVIEW');
@@ -383,22 +428,42 @@ export default function InvestigationWorkspace({
   const roleCategory = data?.category || 'Job';
 
   // Memoized Functional Privileges filtering & pagination (Must precede any conditional early returns)
-  const allPrivileges: any[] = privilegeData?.privileges || [];
-  
-  const functionPrivilegesCount = useMemo(() => {
-    return allPrivileges.filter((p: any) => (p.type || 'Function').toLowerCase() !== 'data').length;
-  }, [allPrivileges]);
+  const allPrivileges: any[] = useMemo(() => {
+    if (completePrivilegeResult?.details && completePrivilegeResult.details.length > 0) {
+      return completePrivilegeResult.details.map((d: any) => ({
+        code: d.privilegeCode,
+        name: d.privilegeName || d.privilegeCode,
+        description: '',
+        type: d.type || 'DIRECT',
+        inheritedFrom: d.sourceRoles || entity.id || entity.name,
+        roleCode: completePrivilegeResult.roleCode || entity.id || entity.name,
+        roleName: completePrivilegeResult.roleName || entity.name
+      }));
+    }
+    return privilegeData?.privileges || [];
+  }, [completePrivilegeResult, privilegeData, entity]);
 
-  const dataPrivilegesCount = useMemo(() => {
-    return allPrivileges.filter((p: any) => (p.type || '').toLowerCase() === 'data').length;
-  }, [allPrivileges]);
+  const directPrivilegesCount = useMemo(() => {
+    if (completePrivilegeResult) return completePrivilegeResult.directCount;
+    return allPrivileges.filter((p: any) => p.type === 'DIRECT').length;
+  }, [completePrivilegeResult, allPrivileges]);
+
+  const indirectPrivilegesCount = useMemo(() => {
+    if (completePrivilegeResult) return completePrivilegeResult.indirectCount;
+    return allPrivileges.filter((p: any) => p.type === 'INDIRECT').length;
+  }, [completePrivilegeResult, allPrivileges]);
+
+  const totalPrivilegesCount = useMemo(() => {
+    if (completePrivilegeResult) return completePrivilegeResult.totalCount;
+    return allPrivileges.length;
+  }, [completePrivilegeResult, allPrivileges]);
 
   const filteredPrivileges = useMemo(() => {
     let list = allPrivileges;
-    if (privilegeTypeFilter === 'FUNCTION') {
-      list = list.filter((p: any) => (p.type || 'Function').toLowerCase() !== 'data');
-    } else if (privilegeTypeFilter === 'DATA') {
-      list = list.filter((p: any) => (p.type || '').toLowerCase() === 'data');
+    if (privilegeInheritanceFilter === 'DIRECT') {
+      list = list.filter((p: any) => p.type === 'DIRECT');
+    } else if (privilegeInheritanceFilter === 'INDIRECT') {
+      list = list.filter((p: any) => p.type === 'INDIRECT');
     }
     if (privilegeSearch.trim()) {
       const term = privilegeSearch.trim().toLowerCase();
@@ -406,11 +471,13 @@ export default function InvestigationWorkspace({
         (p.name && p.name.toLowerCase().includes(term)) ||
         (p.code && p.code.toLowerCase().includes(term)) ||
         (p.description && p.description.toLowerCase().includes(term)) ||
-        (p.inheritedFrom && p.inheritedFrom.toLowerCase().includes(term))
+        (p.inheritedFrom && p.inheritedFrom.toLowerCase().includes(term)) ||
+        (p.roleCode && p.roleCode.toLowerCase().includes(term)) ||
+        (p.roleName && p.roleName.toLowerCase().includes(term))
       );
     }
     return list;
-  }, [allPrivileges, privilegeSearch, privilegeTypeFilter]);
+  }, [allPrivileges, privilegeSearch, privilegeInheritanceFilter]);
 
   const totalPages = privilegePageSize === -1 ? 1 : Math.max(1, Math.ceil(filteredPrivileges.length / privilegePageSize));
   const startIndex = privilegePageSize === -1 ? 0 : (privilegePage - 1) * privilegePageSize;
@@ -720,11 +787,10 @@ export default function InvestigationWorkspace({
               show: isRole 
             },
             { id: 'ROLES', label: 'Assigned Roles', show: !isRole },
-            { id: 'HIERARCHY', label: 'Role Hierarchy', show: isRole },
             { 
               id: 'PRIVILEGES', 
               label: isRole 
-                ? `Privileges Matrix (${privilegeLoading ? '...' : (privilegeData?.privileges?.length || hierarchyData?.privileges?.length || 0)})`
+                ? `Privileges & Inheritance (${privilegeLoading ? '...' : totalPrivilegesCount})`
                 : 'Privileges Matrix', 
               show: isRole 
             },
@@ -778,15 +844,15 @@ export default function InvestigationWorkspace({
               </h3>
 
               {isRole ? (
-                <div className="dashboard-grid-3" style={{ marginBottom: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   <div 
                     className="glass-panel" 
                     onClick={() => setActiveTab('MEMBERS')}
-                    style={{ padding: '0.75rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    style={{ padding: '0.85rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease', borderRadius: '8px' }}
                     title="Click to view assigned accounts"
                   >
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Direct Members</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.15rem 0', color: 'var(--accent-blue)' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Assigned Members</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0.2rem 0', color: 'var(--accent-blue)' }}>
                       {membersLoading ? (data?.members?.length || '...') : resolvedMemberList.length}
                     </div>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)' }}>Assigned Accounts (Click to view)</span>
@@ -794,51 +860,69 @@ export default function InvestigationWorkspace({
 
                   <div 
                     className="glass-panel" 
-                    onClick={() => setActiveTab('HIERARCHY')}
-                    style={{ padding: '0.75rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                    title="Click to view role hierarchy"
+                    onClick={() => { setPrivilegeInheritanceFilter('DIRECT'); setActiveTab('PRIVILEGES'); }}
+                    style={{ padding: '0.85rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease', borderRadius: '8px' }}
+                    title="Click to view direct privileges"
                   >
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Child Duty Roles</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.15rem 0' }}>
-                      {hierarchyLoading ? (
-                        <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>...</span>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Direct Privileges</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0.2rem 0', color: 'var(--accent-blue)' }}>
+                      {privilegeLoading ? (
+                        <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>...</span>
                       ) : (
-                        hierarchyData?.hierarchy?.children?.length ?? hierarchyData?.childrenTree?.length ?? 0
+                        directPrivilegesCount
                       )}
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Direct Inheritances</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Directly Assigned</span>
                   </div>
 
                   <div 
                     className="glass-panel" 
-                    onClick={() => setActiveTab('PRIVILEGES')}
+                    onClick={() => { setPrivilegeInheritanceFilter('INDIRECT'); setActiveTab('PRIVILEGES'); }}
+                    style={{ padding: '0.85rem 1rem', textAlign: 'center', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s ease', borderRadius: '8px' }}
+                    title="Click to view indirect privileges"
+                  >
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Indirect Privileges</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0.2rem 0', color: '#8B5CF6' }}>
+                      {privilegeLoading ? (
+                        <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>...</span>
+                      ) : (
+                        indirectPrivilegesCount
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Inherited from Duty Roles</span>
+                  </div>
+
+                  <div 
+                    className="glass-panel" 
+                    onClick={() => { setPrivilegeInheritanceFilter('ALL'); setActiveTab('PRIVILEGES'); }}
                     style={{
-                      padding: '0.75rem 1rem',
+                      padding: '0.85rem 1rem',
                       textAlign: 'center',
                       border: '1px solid var(--border-color)',
                       backgroundColor: 'var(--bg-tertiary)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      boxShadow: 'var(--shadow-sm)'
+                      boxShadow: 'var(--shadow-sm)',
+                      borderRadius: '8px'
                     }}
-                    title="Click to view complete searchable privileges list"
+                    title="Click to view all privileges"
                   >
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-                      <span>Functional Privileges</span>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                      <span>Total Privileges</span>
                       <ArrowRight size={13} style={{ color: 'var(--accent-green)' }} />
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.15rem 0', color: 'var(--accent-green)', minHeight: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0.2rem 0', color: 'var(--accent-green)', minHeight: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {privilegeLoading ? (
                         <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <RefreshCw size={14} className="animate-spin" />
                           <span>Loading...</span>
                         </span>
                       ) : (
-                        privilegeData?.privileges?.length || (isRole ? (hierarchyData?.privileges?.length || 0) : 0)
+                        totalPrivilegesCount
                       )}
                     </div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                      {privilegeLoading ? 'Loading from database...' : `View all ${privilegeData?.privileges?.length || hierarchyData?.privileges?.length || 0} permissions →`}
+                      {privilegeLoading ? 'Loading from database...' : `View all ${totalPrivilegesCount} permissions →`}
                     </span>
                   </div>
                 </div>
@@ -1419,53 +1503,8 @@ export default function InvestigationWorkspace({
             </div>
           )}
 
-          {/* Tab 4: Role Hierarchy */}
-          {activeTab === 'HIERARCHY' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Inherited Role Hierarchy Tree</h3>
-              </div>
-
-              {hierarchyData?.integrationRequired ? (
-                <div style={{
-                  padding: '1.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'rgba(217, 119, 6, 0.04)',
-                  border: '1px dashed var(--accent-gold)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    <AlertTriangle size={18} />
-                    <span>Oracle Integration Required</span>
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    {hierarchyData.message}
-                  </p>
-                  <button className="btn btn-secondary" style={{ marginTop: '1rem', fontSize: '0.8rem' }}>
-                    Learn More About Custom BI publisher Integration
-                  </button>
-                </div>
-              ) : hierarchyData?.hierarchy ? (
-                <div style={{ 
-                  padding: '1rem', 
-                  backgroundColor: 'var(--bg-tertiary)', 
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    <Award size={16} style={{ color: 'var(--accent-blue)' }} />
-                    <span>{hierarchyData.hierarchy.name}</span>
-                    <code style={{ fontSize: '0.75rem' }}>({hierarchyData.hierarchy.code})</code>
-                  </div>
-                  {hierarchyData.hierarchy.children?.map((child: any) => renderHierarchyNode(child, 1))}
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Hierarchy data not available.</p>
-              )}
-            </div>
-          )}
-
-          {/* Tab 5: Privileges Matrix */}
-          {activeTab === 'PRIVILEGES' && isRole && (
+          {/* Tab: Privileges & Inheritance */}
+          {(activeTab === 'PRIVILEGES' || activeTab === 'HIERARCHY') && isRole && (
             <div>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -1473,29 +1512,26 @@ export default function InvestigationWorkspace({
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <KeyRound size={18} style={{ color: 'var(--accent-green)' }} />
                     <span>
-                      {isRole 
-                        ? `Functional Privileges — ${privilegeLoading && allPrivileges.length === 0 ? 'Loading...' : allPrivileges.length}`
-                        : 'Permissions Inherited by User'}
+                      Privileges &amp; Inheritance — {privilegeLoading && allPrivileges.length === 0 ? 'Loading...' : totalPrivilegesCount}
                     </span>
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                     <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                      {isRole 
-                        ? `Complete security permission catalog authorized for role ${entity.name}`
-                        : `Permissions aggregated across active duty hierarchies for ${entity.name}`}
+                      Complete authoritative security permissions and parent-child duty role grants for {entity.name}
                     </p>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <TableExportControl
-                    filename={`${entity.id}_functional_privileges`}
+                    filename={`${entity.id}_privileges_and_inheritance`}
                     data={(filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges).map(p => ({
+                      'Role Name': p.roleName || entity.name,
+                      'Role Code': p.roleCode || entity.id,
+                      'Type': p.type || 'DIRECT',
+                      'Inherited from role code': p.inheritedFrom || p.sourceRoles || p.roleCode || entity.id,
                       'Privilege Name': p.name || '',
-                      'Permission Code': p.code || '',
-                      'Role Code': p.roleCode || p.role_code || privilegeData?.roleCode || data?.roleCode || entity.id || '',
-                      'Type': p.type || 'Function',
-                      'Description': p.description || ''
+                      'Privilege Code': p.code || '',
                     }))}
                     totalCount={(filteredPrivileges.length > 0 ? filteredPrivileges : allPrivileges).length}
                   />
@@ -1508,10 +1544,10 @@ export default function InvestigationWorkspace({
                   <RefreshCw size={18} className="animate-spin" style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Loading Privileges from Database...
+                      Loading Privileges &amp; Hierarchy from Database...
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Retrieving functional permissions from database role hierarchy report.
+                      Retrieving authoritative direct &amp; indirect functional permissions.
                     </div>
                   </div>
                 </div>
@@ -1524,194 +1560,167 @@ export default function InvestigationWorkspace({
                 </div>
               )}
 
-              {!isRole && environmentMode === 'ORACLE_FUSION' ? (
-                <div style={{
-                  padding: '1.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'rgba(217, 119, 6, 0.04)',
-                  border: '1px dashed var(--accent-gold)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    <AlertTriangle size={18} />
-                    <span>Oracle Integration Required</span>
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Live user privileges tracing requires active GRC or custom SOAP web service access to traverse the security console.
-                  </p>
-                </div>
-              ) : isRole && privilegeData?.integrationRequired ? (
-                <div style={{
-                  padding: '1.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'rgba(217, 119, 6, 0.04)',
-                  border: '1px dashed var(--accent-gold)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    <AlertTriangle size={18} />
-                    <span>Oracle Integration Required</span>
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    {privilegeData.message}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Search, Category Filter, and Page Size Toolbar */}
-                  {isRole && allPrivileges.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* Live Search Input */}
-                        <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-                          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                          <input 
-                            type="text"
-                            placeholder={`Search ${allPrivileges.length} privileges by name, code, description...`}
-                            value={privilegeSearch}
-                            onChange={(e) => {
-                              setPrivilegeSearch(e.target.value);
-                              setPrivilegePage(1);
-                            }}
-                            className="form-input"
-                            style={{ paddingLeft: '2.2rem', fontSize: '0.82rem', height: '36px', width: '100%' }}
-                          />
-                          {privilegeSearch && (
-                            <button
-                              onClick={() => { setPrivilegeSearch(''); setPrivilegePage(1); }}
-                              style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.2rem' }}
-                            >
-                              <X size={14} />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Filter Pills */}
-                        <div style={{ display: 'flex', gap: '0.35rem' }}>
-                          <button
-                            onClick={() => { setPrivilegeTypeFilter('ALL'); setPrivilegePage(1); }}
-                            className={`btn ${privilegeTypeFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}
-                          >
-                            All ({allPrivileges.length})
-                          </button>
-                          <button
-                            onClick={() => { setPrivilegeTypeFilter('FUNCTION'); setPrivilegePage(1); }}
-                            className={`btn ${privilegeTypeFilter === 'FUNCTION' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}
-                          >
-                            Function ({functionPrivilegesCount})
-                          </button>
-                          {dataPrivilegesCount > 0 && (
-                            <button
-                              onClick={() => { setPrivilegeTypeFilter('DATA'); setPrivilegePage(1); }}
-                              className={`btn ${privilegeTypeFilter === 'DATA' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}
-                            >
-                              Data ({dataPrivilegesCount})
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Page Size Selector */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          <span>Rows:</span>
-                          {[25, 50, 100].map(sz => (
-                            <button
-                              key={sz}
-                              onClick={() => { setPrivilegePageSize(sz); setPrivilegePage(1); }}
-                              className={`btn ${privilegePageSize === sz ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                            >
-                              {sz}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => { setPrivilegePageSize(-1); setPrivilegePage(1); }}
-                            className={`btn ${privilegePageSize === -1 ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          >
-                            All
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Filter / Count Summary */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        <span>
-                          Showing <strong>{filteredPrivileges.length === 0 ? 0 : startIndex + 1}–{endIndex}</strong> of <strong>{filteredPrivileges.length}</strong> privileges
-                          {filteredPrivileges.length !== allPrivileges.length && ` (filtered from ${allPrivileges.length} total)`}
-                        </span>
+              <>
+                {/* Search, Inheritance Filter, and Page Size Toolbar */}
+                {isRole && allPrivileges.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {/* Live Search Input */}
+                      <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                        <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input 
+                          type="text"
+                          placeholder={`Search ${allPrivileges.length} privileges by name, code, inherited role...`}
+                          value={privilegeSearch}
+                          onChange={(e) => {
+                            setPrivilegeSearch(e.target.value);
+                            setPrivilegePage(1);
+                          }}
+                          className="form-input"
+                          style={{ paddingLeft: '2.2rem', fontSize: '0.82rem', height: '36px', width: '100%' }}
+                        />
                         {privilegeSearch && (
-                          <button 
-                            onClick={() => { setPrivilegeSearch(''); setPrivilegeTypeFilter('ALL'); setPrivilegePage(1); }}
-                            style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                          <button
+                            onClick={() => { setPrivilegeSearch(''); setPrivilegePage(1); }}
+                            style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.2rem' }}
                           >
-                            Clear search
+                            <X size={14} />
                           </button>
                         )}
                       </div>
-                    </div>
-                  )}
 
-                  {/* Table */}
-                  <div className="table-container" style={{ margin: 0 }}>
-                    <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
-                      <thead>
-                        <tr>
-                          <th style={{ width: '38%' }}>Privilege Name & Description</th>
-                          <th style={{ width: '26%' }}>Permission Code</th>
-                          <th style={{ width: '24%' }}>Role Code</th>
-                          <th style={{ width: '12%' }}>Type</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {isRole ? (
-                          currentPrivileges && currentPrivileges.length > 0 ? (
-                            currentPrivileges.map((p: any, idx: number) => {
-                              const roleCode = p.roleCode || p.role_code || privilegeData?.roleCode || data?.roleCode || entity.id;
-                              return (
-                                <tr key={p.code || idx}>
-                                  <td>
-                                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</div>
-                                    {p.description && (
-                                      <div style={{ 
-                                        fontSize: '0.73rem', 
-                                        color: 'var(--text-muted)', 
-                                        marginTop: '0.15rem',
-                                        lineHeight: '1.4'
-                                      }}>
-                                        {p.description}
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td><code>{p.code}</code></td>
-                                  <td><code style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{roleCode}</code></td>
-                                  <td>
-                                    <span className={`badge ${p.type === 'Data' ? 'badge-gold' : 'badge-blue'}`}>
-                                      {p.type || 'Function'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          ) : (
-                            privilegeLoading ? (
-                              <TableLoadingState
-                                colSpan={4}
-                                title="Extracting Functional Privileges from Oracle Fusion..."
-                                subtitle="Querying permissions from security database role hierarchy..."
-                                skeletonRows={4}
-                              />
-                            ) : (
-                              <tr>
-                                <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                                  {privilegeSearch 
-                                    ? `No privileges match the search query "${privilegeSearch}".`
-                                    : 'No privileges mapped to this role.'}
+                      {/* Filter Pills */}
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          onClick={() => { setPrivilegeInheritanceFilter('ALL'); setPrivilegePage(1); }}
+                          className={`btn ${privilegeInheritanceFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', borderRadius: '6px' }}
+                        >
+                          All ({totalPrivilegesCount})
+                        </button>
+                        <button
+                          onClick={() => { setPrivilegeInheritanceFilter('DIRECT'); setPrivilegePage(1); }}
+                          className={`btn ${privilegeInheritanceFilter === 'DIRECT' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', borderRadius: '6px' }}
+                        >
+                          Direct ({directPrivilegesCount})
+                        </button>
+                        <button
+                          onClick={() => { setPrivilegeInheritanceFilter('INDIRECT'); setPrivilegePage(1); }}
+                          className={`btn ${privilegeInheritanceFilter === 'INDIRECT' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', borderRadius: '6px' }}
+                        >
+                          Indirect ({indirectPrivilegesCount})
+                        </button>
+                      </div>
+
+                      {/* Page Size Selector */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span>Rows:</span>
+                        {[25, 50, 100].map(sz => (
+                          <button
+                            key={sz}
+                            onClick={() => { setPrivilegePageSize(sz); setPrivilegePage(1); }}
+                            className={`btn ${privilegePageSize === sz ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => { setPrivilegePageSize(-1); setPrivilegePage(1); }}
+                          className={`btn ${privilegePageSize === -1 ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Filter / Count Summary */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      <span>
+                        Showing <strong>{filteredPrivileges.length === 0 ? 0 : startIndex + 1}–{endIndex}</strong> of <strong>{filteredPrivileges.length}</strong> privileges
+                        {filteredPrivileges.length !== allPrivileges.length && ` (filtered from ${allPrivileges.length} total)`}
+                      </span>
+                      {privilegeSearch && (
+                        <button 
+                          onClick={() => { setPrivilegeSearch(''); setPrivilegeInheritanceFilter('ALL'); setPrivilegePage(1); }}
+                          style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                        >
+                          Clear search
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Table */}
+                <div className="table-container" style={{ margin: 0 }}>
+                  <table className="enterprise-table" style={{ fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '22%' }}>Role Name</th>
+                        <th style={{ width: '20%' }}>Role Code</th>
+                        <th style={{ width: '10%' }}>Type</th>
+                        <th style={{ width: '20%' }}>Inherited from role code</th>
+                        <th style={{ width: '18%' }}>Privilege Name</th>
+                        <th style={{ width: '10%' }}>Privilege Code</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isRole ? (
+                        currentPrivileges && currentPrivileges.length > 0 ? (
+                          currentPrivileges.map((p: any, idx: number) => {
+                            const roleCode = p.roleCode || entity.id;
+                            const roleName = p.roleName || entity.name;
+                            const inheritedFrom = p.inheritedFrom || p.sourceRoles || (p.type === 'DIRECT' ? roleCode : '—');
+                            return (
+                              <tr key={`${p.code || idx}_${p.type}_${idx}`}>
+                                <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                  {roleName}
+                                </td>
+                                <td>
+                                  <code style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>{roleCode}</code>
+                                </td>
+                                <td>
+                                  <span className={`badge ${p.type === 'DIRECT' ? 'badge-blue' : 'badge-purple'}`} style={{ fontSize: '0.72rem', padding: '2px 8px', fontWeight: 600 }}>
+                                    {p.type || 'DIRECT'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <code style={{ fontSize: '0.78rem', color: p.type === 'INDIRECT' ? 'var(--accent-purple)' : 'var(--text-muted)' }}>
+                                    {inheritedFrom}
+                                  </code>
+                                </td>
+                                <td>
+                                  <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{p.name}</div>
+                                </td>
+                                <td>
+                                  <code style={{ fontSize: '0.78rem' }}>{p.code}</code>
                                 </td>
                               </tr>
-                            )
-                          )
+                            );
+                          })
                         ) : (
+                          privilegeLoading ? (
+                            <TableLoadingState
+                              colSpan={6}
+                              title="Extracting Privileges & Hierarchy from Oracle Fusion..."
+                              subtitle="Querying authoritative permissions and duty grants from database..."
+                              skeletonRows={4}
+                            />
+                          ) : (
+                            <tr>
+                              <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                                {privilegeSearch 
+                                  ? `No privileges match the search query "${privilegeSearch}".`
+                                  : 'No privileges mapped to this role.'}
+                              </td>
+                            </tr>
+                          )
+                        )
+                      ) : (
                           // User identity fallback (retains standard view)
                           entity.id === 'JSMITH' ? (
                             <>
@@ -1812,7 +1821,6 @@ export default function InvestigationWorkspace({
                     </div>
                   )}
                 </>
-              )}
             </div>
           )}
 
