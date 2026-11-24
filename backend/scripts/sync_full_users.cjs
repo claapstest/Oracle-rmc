@@ -1,9 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+require('dotenv').config({ path: path.resolve(__dirname, '../../database/.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/veyra_db';
+const isRemote = Boolean(connectionString && !connectionString.includes('127.0.0.1') && !connectionString.includes('localhost'));
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/veyra_db'
+  connectionString,
+  ssl: isRemote ? { rejectUnauthorized: false } : undefined
 });
 
 async function syncFullUsers() {
@@ -32,40 +38,56 @@ async function syncFullUsers() {
       usersMap.get(u).assignedRoles.push({ roleName: r.roleName, roleCode: r.roleCode });
     }
   }
-  console.log('Unique users to sync:', usersMap.size);
+  const usersList = Array.from(usersMap.values());
+  console.log('Unique users to sync:', usersList.length);
 
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    const CHUNK_SIZE = 200;
     let inserted = 0;
-    for (const [_, u] of usersMap) {
-      const rawUser = {
-        userName: u.username,
-        displayName: u.displayName,
-        email: u.email,
-        active: u.active,
-        userCategory: u.userCategory,
-        department: u.department,
-        assignedRoles: u.assignedRoles
-      };
-      await client.query(`
-        INSERT INTO oracle_raw_users (environment_host, username, display_name, email, is_active, user_category, raw_user, updated_at)
-        VALUES ('eiiv-dev14.fa.us6.oraclecloud.com', $1, $2, $3, $4, $5, $6, NOW())
-        ON CONFLICT (environment_host, username)
-        DO UPDATE SET
-          display_name = EXCLUDED.display_name,
-          email = EXCLUDED.email,
-          is_active = EXCLUDED.is_active,
-          user_category = EXCLUDED.user_category,
-          raw_user = EXCLUDED.raw_user,
-          updated_at = NOW();
-      `, [u.username, u.displayName, u.email, u.active, u.userCategory, JSON.stringify(rawUser)]);
-      inserted++;
+    const host = 'eiiv-dev14.fa.us6.oraclecloud.com';
+
+    for (let i = 0; i < usersList.length; i += CHUNK_SIZE) {
+      const chunk = usersList.slice(i, i + CHUNK_SIZE);
+      const values = [];
+      const valueClauses = [];
+
+      chunk.forEach((u) => {
+        const rawUser = {
+          userName: u.username,
+          displayName: u.displayName,
+          email: u.email,
+          active: u.active,
+          userCategory: u.userCategory,
+          department: u.department,
+          assignedRoles: u.assignedRoles
+        };
+        const idx = values.length + 1;
+        valueClauses.push(
+          `($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, $${idx + 4}, $${idx + 5}, $${idx + 6}, NOW())`
+        );
+        values.push(host, u.username, u.displayName, u.email, u.active, u.userCategory, JSON.stringify(rawUser));
+      });
+
+      if (valueClauses.length > 0) {
+        const sql = `
+          INSERT INTO oracle_raw_users (environment_host, username, display_name, email, is_active, user_category, raw_user, updated_at)
+          VALUES ${valueClauses.join(', ')}
+          ON CONFLICT (environment_host, username)
+          DO UPDATE SET
+            display_name = EXCLUDED.display_name,
+            email = EXCLUDED.email,
+            is_active = EXCLUDED.is_active,
+            user_category = EXCLUDED.user_category,
+            raw_user = EXCLUDED.raw_user,
+            updated_at = NOW();
+        `;
+        await client.query(sql, values);
+        inserted += chunk.length;
+      }
     }
-    await client.query('COMMIT');
-    console.log('Successfully synced users into oracle_raw_users:', inserted);
+    console.log('Successfully batched synced users into oracle_raw_users:', inserted);
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('Sync failed:', err);
   } finally {
     client.release();

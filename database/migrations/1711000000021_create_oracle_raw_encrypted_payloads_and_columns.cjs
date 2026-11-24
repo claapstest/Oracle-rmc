@@ -24,6 +24,29 @@ const RAW_TABLES = [
 ];
 
 exports.up = (pgm) => {
+  // 0. Ensure oracle_raw_audit_records exists if not yet created
+  pgm.sql(`
+    CREATE TABLE IF NOT EXISTS oracle_raw_audit_records (
+      id BIGSERIAL PRIMARY KEY,
+      environment_host VARCHAR(255) NOT NULL,
+      product VARCHAR(150) NOT NULL,
+      business_object VARCHAR(255) NOT NULL,
+      record_unique_hash VARCHAR(64) NOT NULL,
+      event_timestamp TIMESTAMPTZ,
+      username VARCHAR(150),
+      event_type VARCHAR(100),
+      raw_payload JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT uq_raw_audit UNIQUE(environment_host, product, business_object, record_unique_hash)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_raw_audit_lookup 
+    ON oracle_raw_audit_records(environment_host, product, business_object, event_timestamp DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_raw_audit_user
+    ON oracle_raw_audit_records(environment_host, username);
+  `);
+
   // 1. Add raw_payload JSONB column to oracle_raw_user_access if not present
   pgm.sql(`
     ALTER TABLE oracle_raw_user_access

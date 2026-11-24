@@ -375,7 +375,6 @@ export default function Reports({
   const [hierarchyIntegrationNotice, setHierarchyIntegrationNotice] = useState<string>('');
   const [rhSearch, setRhSearch] = useState<string>('');
   const [rhCategoryFilter, setRhCategoryFilter] = useState<string>('ALL');
-  const [rhViewMode, setRhViewMode] = useState<'TABLE' | 'TREE'>('TABLE');
   const [rhSelectedRoleForTree, setRhSelectedRoleForTree] = useState<string>('');
   const [rhTreeData, setRhTreeData] = useState<any | null>(null);
   const [rhTreeLoading, setRhTreeLoading] = useState<boolean>(false);
@@ -1277,19 +1276,6 @@ export default function Reports({
             >
               Collapse All
             </button>
-            {isModal && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  setRhTreeModalOpen(false);
-                  setRhViewMode('TREE');
-                }}
-                style={{ fontSize: '0.76rem', padding: '0.3rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <ExternalLink size={12} /> Open in Page
-              </button>
-            )}
           </div>
         </div>
 
@@ -1442,12 +1428,6 @@ export default function Reports({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incidentsSearch]);
 
-  // Load role tree when tree view mode is active
-  useEffect(() => {
-    if (activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' && rhSelectedRoleForTree && !rhTreeData && !rhTreeLoading) {
-      loadRoleTree(rhSelectedRoleForTree);
-    }
-  }, [activeReportId, rhViewMode, rhSelectedRoleForTree]);
 
   // Audit Product Catalog loads lazily: only when the Audit History report is opened
   useEffect(() => {
@@ -2758,120 +2738,51 @@ export default function Reports({
             REPORT 4: ROLE HIERARCHY FILTERS
             ------------------------------------------------------------- */}
         {activeReportId === 'ROLE_HIERARCHY' && !selectedRolePrivilegeCode && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-              {/* View Mode Toggle */}
-              <div style={{ display: 'flex', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', padding: '3px', border: '1px solid var(--border-color)', gap: '0.25rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setRhViewMode('TABLE')}
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    backgroundColor: rhViewMode === 'TABLE' ? 'var(--accent-blue)' : 'transparent',
-                    color: rhViewMode === 'TABLE' ? '#ffffff' : 'var(--text-secondary)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Layers size={14} /> Role Privilege Summary
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRhViewMode('TREE');
-                    if (rhSelectedRoleForTree && !rhTreeData) {
-                      loadRoleTree(rhSelectedRoleForTree);
-                    }
-                  }}
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    backgroundColor: rhViewMode === 'TREE' ? 'var(--accent-blue)' : 'transparent',
-                    color: rhViewMode === 'TREE' ? '#ffffff' : 'var(--text-secondary)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <FolderTree size={14} /> Interactive Tree View
-                </button>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Total Roles: <strong style={{ color: 'var(--text-primary)' }}>{filteredRhSummaryData.length.toLocaleString()}</strong>
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => loadRoleHierarchy(true)}
-                  disabled={hierarchyLoading || rhSyncing}
-                  style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  title="Reload role hierarchy records"
-                >
-                  <RefreshCw size={14} className={hierarchyLoading ? 'animate-spin' : ''} />
-                  <span>Refresh</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSyncHierarchyLive}
-                  disabled={hierarchyLoading || rhSyncing}
-                  style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
-                  title="Re-run live BIP query against Oracle Fusion"
-                >
-                  <Database size={14} className={rhSyncing ? 'animate-spin' : ''} />
-                  <span>{rhSyncing ? 'Syncing BIP Live...' : 'Sync Oracle Fusion BIP'}</span>
-                </button>
-              </div>
+          <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Filter controls */}
+            <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Search by Role Code or Role Name..."
+                value={rhSearch}
+                onChange={(e) => {
+                  setRhSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
+              />
             </div>
 
-            {/* Filter controls row */}
-            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Search by Role Code or Role Name..."
-                  value={rhSearch}
-                  onChange={(e) => {
-                    setRhSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  style={{ paddingLeft: '2.1rem', fontSize: '0.84rem' }}
-                />
-              </div>
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Total Roles: <strong style={{ color: 'var(--text-primary)' }}>{filteredRhSummaryData.length.toLocaleString()}</strong>
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => loadRoleHierarchy(true)}
+                disabled={hierarchyLoading || rhSyncing}
+                style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                title="Reload role hierarchy records"
+              >
+                <RefreshCw size={14} className={hierarchyLoading ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
 
-              {rhViewMode === 'TREE' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Focus Role:</span>
-                  <select
-                    className="form-select"
-                    value={rhSelectedRoleForTree}
-                    onChange={(e) => loadRoleTree(e.target.value)}
-                    style={{ maxWidth: '240px', fontSize: '0.84rem', fontWeight: 600 }}
-                  >
-                    {Array.from(new Set(filteredHierarchyData.slice(0, 100).map((h: any) => h.roleName))).map((name: any) => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSyncHierarchyLive}
+                disabled={hierarchyLoading || rhSyncing}
+                style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                title="Re-run live BIP query against Oracle Fusion"
+              >
+                <Database size={14} className={rhSyncing ? 'animate-spin' : ''} />
+                <span>{rhSyncing ? 'Syncing BIP Live...' : 'Sync Oracle Fusion BIP'}</span>
+              </button>
             </div>
           </div>
         )}
@@ -3690,8 +3601,6 @@ export default function Reports({
                   </div>
                 )}
               </div>
-            ) : rhViewMode === 'TREE' ? (
-              renderHierarchyTreeContent(false)
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="enterprise-table">
@@ -3915,23 +3824,7 @@ export default function Reports({
         {/* -------------------------------------------------------------
             5. PAGINATION & DATASET FOOTER
             ------------------------------------------------------------- */}
-        {activeReportId === 'ROLE_HIERARCHY' && selectedRolePrivilegeCode ? null : activeReportId === 'ROLE_HIERARCHY' && rhViewMode === 'TREE' ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1.1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Tree View Mode: Inspecting <strong>{rhSelectedRoleForTree || 'Selected Role'}</strong> across live Oracle Fusion inheritance trees (17,255 distinct role relationships).
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setRhViewMode('TABLE')}
-                style={{ fontSize: '0.76rem', padding: '0.3rem 0.65rem' }}
-              >
-                Switch to Table View
-              </button>
-            </div>
-          </div>
-        ) : (
+        {activeReportId === 'ROLE_HIERARCHY' && selectedRolePrivilegeCode ? null : (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
               Showing {totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalRows)} of <strong>{totalRows.toLocaleString()}</strong> applicable records
