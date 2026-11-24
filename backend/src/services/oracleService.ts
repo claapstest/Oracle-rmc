@@ -3834,7 +3834,8 @@ class OracleService {
     if (!forceRefresh) {
       try {
         const dbCerts = await accessCertRawDbService.getCertifications();
-        if (dbCerts && dbCerts.length > 0) {
+        const hasOnlyLegacyDummyIds = dbCerts && dbCerts.length > 0 && dbCerts.every((c: any) => [1, 2, 3, 4, '1', '2', '3', '4'].includes(c.id || c.certificationId));
+        if (dbCerts && dbCerts.length > 0 && !hasOnlyLegacyDummyIds) {
           return {
             success: true,
             data: dbCerts,
