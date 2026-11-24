@@ -35,12 +35,12 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { RankedBars, RankingDrilldownModal, useIncidentRankings, type RankingSelection } from './IncidentRankingPanels';
-import { EnterpriseExportControl, type EnterpriseExportColumn } from './EnterpriseExportControl';
-import { 
-  isAccessControl, 
-  isTransactionControl, 
-  formatControlTypeName, 
-  formatSecondaryTypeBadge 
+import { EnterpriseExportControl, type EnterpriseExportColumn, type ExportScope } from './EnterpriseExportControl';
+import {
+  isAccessControl,
+  isTransactionControl,
+  formatControlTypeName,
+  formatSecondaryTypeBadge
 } from '../utils/controlTypeMapping';
 import { ContentLoadingState, TableLoadingState } from './TableLoadingState';
 import {
@@ -64,10 +64,13 @@ export interface AdvancedControlRecord {
   type: string | number | null;
   lastRunDate: string | null;
   lastUpdateDate: string | null;
+  latestJobId?: number | string | null;
   createdBy: string | null;
+  creationDate?: string | null;
   status: string;
   state: string;
   lastUpdatedBy: string | null;
+  scheduledBy?: string | null;
   incidentCount?: number;
   incidentBreakdown?: {
     assigned: number;
@@ -117,13 +120,12 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'priority', label: 'Priority', defaultVisible: true, minWidth: '95px' },
   { key: 'type', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
   { key: 'status', label: 'Status', defaultVisible: true, minWidth: '110px' },
-  { key: 'statusId', label: 'Status ID', defaultVisible: false, minWidth: '95px' },
   { key: 'state', label: 'State', defaultVisible: true, minWidth: '110px' },
-  { key: 'stateCode', label: 'State Code', defaultVisible: false, minWidth: '110px' },
   { key: 'incidentCount', label: 'Count of Incidents', defaultVisible: true, minWidth: '140px' },
   { key: 'lastRunDate', label: 'Last Run Date', defaultVisible: true, minWidth: '130px' },
   { key: 'lastUpdateDate', label: 'Last Updated Date', defaultVisible: true, minWidth: '140px' },
   { key: 'createdBy', label: 'Created By', defaultVisible: false, minWidth: '140px' },
+  { key: 'creationDate', label: 'Creation Date', defaultVisible: false, minWidth: '130px' },
   { key: 'lastUpdatedBy', label: 'Last Updated By', defaultVisible: false, minWidth: '140px' },
 ];
 
@@ -514,16 +516,16 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       const hasCachedBreakdown = typeof cachedAssigned === 'number' && (cachedAssigned > 0 || ((cached as any)?.accepted || 0) + ((cached as any)?.remediate || 0) + ((cached as any)?.resolved || 0) > 0);
       const breakdown = hasCachedBreakdown
         ? {
-            assigned: cachedAssigned > 0 ? cachedAssigned : Math.max(0, countVal - (((cached as any)?.accepted || 0) + ((cached as any)?.remediate || 0) + ((cached as any)?.resolved || 0))),
-            accepted: (cached as any)?.accepted ?? 0,
-            remediate: (cached as any)?.remediate ?? 0,
-            resolved: (cached as any)?.resolved ?? 0
-          }
+          assigned: cachedAssigned > 0 ? cachedAssigned : Math.max(0, countVal - (((cached as any)?.accepted || 0) + ((cached as any)?.remediate || 0) + ((cached as any)?.resolved || 0))),
+          accepted: (cached as any)?.accepted ?? 0,
+          remediate: (cached as any)?.remediate ?? 0,
+          resolved: (cached as any)?.resolved ?? 0
+        }
         : (c.incidentBreakdown && ((c.incidentBreakdown.assigned || 0) + (c.incidentBreakdown.accepted || 0) + (c.incidentBreakdown.remediate || 0) + (c.incidentBreakdown.resolved || 0) > 0)
-            ? c.incidentBreakdown
-            : (countVal > 0
-                ? { assigned: countVal, accepted: 0, remediate: 0, resolved: 0 }
-                : { assigned: 0, accepted: 0, remediate: 0, resolved: 0 }));
+          ? c.incidentBreakdown
+          : (countVal > 0
+            ? { assigned: countVal, accepted: 0, remediate: 0, resolved: 0 }
+            : { assigned: 0, accepted: 0, remediate: 0, resolved: 0 }));
       return {
         ...c,
         incidentCount: count,
@@ -591,29 +593,29 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       icon: any;
       description: string;
     }> = [
-      {
-        key: 'ACTIVE',
-        label: 'Active Controls',
-        count: active,
-        pct: total > 0 ? (active / total) * 100 : 0,
-        color: '#10B981', // Emerald
-        bg: 'rgba(16, 185, 129, 0.08)',
-        border: 'rgba(16, 185, 129, 0.25)',
-        icon: CheckCircle2,
-        description: 'Active continuous monitoring'
-      },
-      {
-        key: 'INACTIVE',
-        label: 'Inactive Controls',
-        count: inactive,
-        pct: total > 0 ? (inactive / total) * 100 : 0,
-        color: '#EF4444', // Red/Coral
-        bg: 'rgba(239, 68, 68, 0.08)',
-        border: 'rgba(239, 68, 68, 0.25)',
-        icon: XCircle,
-        description: 'Disabled or pending activation'
-      }
-    ];
+        {
+          key: 'ACTIVE',
+          label: 'Active Controls',
+          count: active,
+          pct: total > 0 ? (active / total) * 100 : 0,
+          color: '#10B981', // Emerald
+          bg: 'rgba(16, 185, 129, 0.08)',
+          border: 'rgba(16, 185, 129, 0.25)',
+          icon: CheckCircle2,
+          description: 'Active continuous monitoring'
+        },
+        {
+          key: 'INACTIVE',
+          label: 'Inactive Controls',
+          count: inactive,
+          pct: total > 0 ? (inactive / total) * 100 : 0,
+          color: '#EF4444', // Red/Coral
+          bg: 'rgba(239, 68, 68, 0.08)',
+          border: 'rgba(239, 68, 68, 0.25)',
+          icon: XCircle,
+          description: 'Disabled or pending activation'
+        }
+      ];
 
     // Support any other dynamic statuses returned from Oracle
     Object.keys(otherCounts).forEach(key => {
@@ -638,7 +640,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       items
     };
   }, [activeSubsectionControls]);
-  
+
   // Incident statistics for selected subsection (with honest update status)
   const controlsWithKnownIncidents = activeSubsectionControls.filter(c => typeof c.incidentCount === 'number');
   const knownCountTotal = controlsWithKnownIncidents.length;
@@ -788,8 +790,9 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         const matchesId = ctrl.id && String(ctrl.id).toLowerCase().includes(q);
         const matchesName = ctrl.name && ctrl.name.toLowerCase().includes(q);
         const matchesDesc = ctrl.description && ctrl.description.toLowerCase().includes(q);
+        const matchesScheduled = ctrl.scheduledBy && ctrl.scheduledBy.toLowerCase().includes(q);
         const matchesCreated = ctrl.createdBy && ctrl.createdBy.toLowerCase().includes(q);
-        if (!matchesId && !matchesName && !matchesDesc && !matchesCreated) {
+        if (!matchesId && !matchesName && !matchesDesc && !matchesScheduled && !matchesCreated) {
           return false;
         }
       }
@@ -956,8 +959,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return parsed.expenseTypeId;
       }
       case 'incidentVersion':
-        return (inc.incidentVersion !== undefined && inc.incidentVersion !== null) 
-          ? String(inc.incidentVersion) 
+        return (inc.incidentVersion !== undefined && inc.incidentVersion !== null)
+          ? String(inc.incidentVersion)
           : (raw.IncidentVersion !== undefined && raw.IncidentVersion !== null ? String(raw.IncidentVersion) : null);
       case 'revisionDate':
         return inc.revisionDate || raw.RevisionDate || raw.revisionDate || null;
@@ -977,8 +980,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (occ !== undefined && occ !== null && occ !== '') ? String(occ) : null;
       }
       case 'globalUserId':
-        return (inc.globalUserId !== undefined && inc.globalUserId !== null) 
-          ? String(inc.globalUserId) 
+        return (inc.globalUserId !== undefined && inc.globalUserId !== null)
+          ? String(inc.globalUserId)
           : (raw.GlobalUserId !== undefined && raw.GlobalUserId !== null ? String(raw.GlobalUserId) : null);
       case 'dataSource':
         return inc.dataSource || raw.DataSource || raw.dataSource || 'Oracle Cloud';
@@ -1013,20 +1016,20 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
   // Helper to extract Person Name cleanly from IncidentInformation if formatted as "Person.Full Name: <name>"
   const renderPersonOrInfo = (val: string | null) => {
-    if (!val) return renderIncidentFieldVal(null);
+    if (!val) return renderFieldVal(null);
     const match = val.match(/^Person\.Full Name:\s*(.+)$/i);
     if (match) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <span 
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              width: '22px', 
-              height: '22px', 
-              borderRadius: '50%', 
-              backgroundColor: 'rgba(59, 130, 246, 0.15)', 
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(59, 130, 246, 0.15)',
               color: '#60A5FA',
               flexShrink: 0
             }}
@@ -1037,14 +1040,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         </div>
       );
     }
-    return renderIncidentFieldVal(val);
-  };
-
-  const renderIncidentFieldVal = (val: any) => {
-    if (val === null || val === undefined || val === '') {
-      return <span style={{ color: 'var(--text-muted)' }}>None</span>;
-    }
-    return String(val);
+    return renderFieldVal(val);
   };
 
   // Helper to render dynamic table cell based on column key matching current schema (Access vs Transaction)
@@ -1056,7 +1052,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'resultId': {
         const isSticky = Boolean(currentIncidentColumns.find(c => c.key === colKey)?.stickyLeft);
         return (
-          <td 
+          <td
             key={colKey}
             style={isSticky
               ? { position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)', whiteSpace: 'nowrap' }
@@ -1095,8 +1091,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
         return (
           <td key={colKey}>
-            <span 
-              className="badge" 
+            <span
+              className="badge"
               style={{
                 fontSize: '0.74rem',
                 fontWeight: 600,
@@ -1122,7 +1118,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <span style={{ color: 'var(--accent-gold)' }}>
                 {displayVal}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
       }
@@ -1134,7 +1130,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
                 {rawVal}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
 
@@ -1142,83 +1138,83 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (
           <td key={colKey} style={{ fontSize: '0.85rem' }}>
             {rawVal ? (
-              <span 
-                className="badge" 
-                style={{ 
-                  fontSize: '0.72rem', 
-                  fontWeight: 700, 
-                  backgroundColor: 'rgba(59, 130, 246, 0.12)', 
-                  color: '#60A5FA', 
-                  border: '1px solid rgba(59, 130, 246, 0.3)' 
+              <span
+                className="badge"
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  color: '#60A5FA',
+                  border: '1px solid rgba(59, 130, 246, 0.3)'
                 }}
               >
                 {String(rawVal).toUpperCase()}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
 
       case 'txPersonId':
         return (
           <td key={colKey} style={{ fontSize: '0.82rem' }}>
-            <code>{renderIncidentFieldVal(rawVal)}</code>
+            <code>{renderFieldVal(rawVal)}</code>
           </td>
         );
 
       case 'txExpenseTypeId':
         return (
           <td key={colKey} style={{ fontSize: '0.82rem' }}>
-            <code>{renderIncidentFieldVal(rawVal)}</code>
+            <code>{renderFieldVal(rawVal)}</code>
           </td>
         );
 
       case 'groupingValue':
         return (
-          <td 
+          <td
             key={colKey}
-            style={{ 
-              fontSize: '0.82rem', 
-              minWidth: '320px', 
-              maxWidth: isWrap ? '650px' : '340px', 
-              overflow: isWrap ? 'visible' : 'hidden', 
-              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+            style={{
+              fontSize: '0.82rem',
+              minWidth: '320px',
+              maxWidth: isWrap ? '650px' : '340px',
+              overflow: isWrap ? 'visible' : 'hidden',
+              textOverflow: isWrap ? 'clip' : 'ellipsis',
               whiteSpace: isWrap ? 'normal' : 'nowrap',
               wordBreak: 'break-all',
               lineHeight: 1.45
-            }} 
+            }}
             title={String(rawVal || '')}
           >
             {rawVal ? (
               <code style={{ fontSize: '0.76rem', backgroundColor: 'rgba(59, 130, 246, 0.08)', padding: '0.2rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--text-primary)' }}>
                 {rawVal}
               </code>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
 
       case 'incidentInformation':
         return (
-          <td 
+          <td
             key={colKey}
-            style={{ 
-              fontSize: '0.85rem', 
-              minWidth: '220px', 
-              maxWidth: isWrap ? '520px' : '260px', 
-              overflow: isWrap ? 'visible' : 'hidden', 
-              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+            style={{
+              fontSize: '0.85rem',
+              minWidth: '220px',
+              maxWidth: isWrap ? '520px' : '260px',
+              overflow: isWrap ? 'visible' : 'hidden',
+              textOverflow: isWrap ? 'clip' : 'ellipsis',
               whiteSpace: isWrap ? 'normal' : 'nowrap',
               wordBreak: 'break-word',
               lineHeight: 1.45
-            }} 
+            }}
             title={String(rawVal || '')}
           >
-            {renderIncidentFieldVal(rawVal)}
+            {renderPersonOrInfo(rawVal)}
           </td>
         );
 
       case 'group':
         return (
-          <td 
+          <td
             key={colKey}
             style={{ 
               fontSize: '0.85rem', 
@@ -1232,7 +1228,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             title={String(rawVal || '')}
           >
             {rawVal ? (
-              <span 
+              <span
                 style={{
                   fontSize: '0.74rem',
                   fontWeight: 600,
@@ -1257,7 +1253,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {rawVal}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
 
@@ -1274,29 +1270,29 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (
           <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center' }}>
             <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-              {renderIncidentFieldVal(rawVal)}
+              {renderFieldVal(rawVal)}
             </span>
           </td>
         );
 
       case 'controlName':
         return (
-          <td 
+          <td
             key={colKey}
-            style={{ 
-              fontSize: '0.85rem', 
-              minWidth: '320px', 
-              maxWidth: isWrap ? '550px' : '340px', 
-              overflow: isWrap ? 'visible' : 'hidden', 
-              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+            style={{
+              fontSize: '0.85rem',
+              minWidth: '320px',
+              maxWidth: isWrap ? '550px' : '340px',
+              overflow: isWrap ? 'visible' : 'hidden',
+              textOverflow: isWrap ? 'clip' : 'ellipsis',
               whiteSpace: isWrap ? 'normal' : 'nowrap',
               wordBreak: 'break-word',
               lineHeight: 1.45
-            }} 
+            }}
             title={String(rawVal || '')}
           >
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              {renderIncidentFieldVal(rawVal)}
+              {renderFieldVal(rawVal)}
             </span>
           </td>
         );
@@ -1304,7 +1300,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'investigator':
         return (
           <td key={colKey} style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-            {renderIncidentFieldVal(rawVal)}
+            {renderFieldVal(rawVal)}
           </td>
         );
 
@@ -1312,7 +1308,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (
           <td key={colKey} style={{ fontSize: '0.85rem', textAlign: 'center' }}>
             <span className="badge" style={{ fontSize: '0.72rem' }}>
-              v{renderIncidentFieldVal(rawVal)}
+              v{renderFieldVal(rawVal)}
             </span>
           </td>
         );
@@ -1321,8 +1317,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         return (
           <td key={colKey} style={{ fontSize: '0.85rem' }}>
             {rawVal ? (
-              <span 
-                className="badge" 
+              <span
+                className="badge"
                 style={{
                   fontSize: '0.72rem',
                   fontWeight: 600,
@@ -1333,7 +1329,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {rawVal}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
 
@@ -1342,48 +1338,48 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       case 'accessPoint':
       case 'conflictingRoles':
         return (
-          <td 
+          <td
             key={colKey}
-            style={{ 
-              fontSize: '0.85rem', 
-              minWidth: '220px', 
-              maxWidth: isWrap ? '400px' : '220px', 
-              overflow: isWrap ? 'visible' : 'hidden', 
-              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+            style={{
+              fontSize: '0.85rem',
+              minWidth: '220px',
+              maxWidth: isWrap ? '400px' : '220px',
+              overflow: isWrap ? 'visible' : 'hidden',
+              textOverflow: isWrap ? 'clip' : 'ellipsis',
               whiteSpace: isWrap ? 'normal' : 'nowrap',
               wordBreak: 'break-word',
               lineHeight: 1.4
-            }} 
+            }}
             title={String(rawVal || '')}
           >
-            {renderIncidentFieldVal(rawVal)}
+            {renderFieldVal(rawVal)}
           </td>
         );
 
       case 'globalUserId':
         return (
           <td key={colKey} style={{ fontSize: '0.85rem' }}>
-            <code>{renderIncidentFieldVal(rawVal)}</code>
+            <code>{renderFieldVal(rawVal)}</code>
           </td>
         );
 
       case 'incidentInformationCodes':
         return (
-          <td 
+          <td
             key={colKey}
-            style={{ 
-              fontSize: '0.85rem', 
-              minWidth: '260px', 
-              maxWidth: isWrap ? '460px' : '260px', 
-              overflow: isWrap ? 'visible' : 'hidden', 
-              textOverflow: isWrap ? 'clip' : 'ellipsis', 
+            style={{
+              fontSize: '0.85rem',
+              minWidth: '260px',
+              maxWidth: isWrap ? '460px' : '260px',
+              overflow: isWrap ? 'visible' : 'hidden',
+              textOverflow: isWrap ? 'clip' : 'ellipsis',
               whiteSpace: isWrap ? 'normal' : 'nowrap',
               wordBreak: 'break-all',
               lineHeight: 1.4
-            }} 
+            }}
             title={String(rawVal || '')}
           >
-            <code>{renderIncidentFieldVal(rawVal)}</code>
+            <code>{renderFieldVal(rawVal)}</code>
           </td>
         );
 
@@ -1406,7 +1402,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               >
                 {typeText}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
       }
@@ -1418,7 +1414,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
                 {rawVal}
               </span>
-            ) : renderIncidentFieldVal(null)}
+            ) : renderFieldVal(null)}
           </td>
         );
 
@@ -1436,7 +1432,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       default:
         return (
           <td key={colKey} style={{ fontSize: '0.85rem' }}>
-            {renderIncidentFieldVal(rawVal)}
+            {renderFieldVal(rawVal)}
           </td>
         );
     }
@@ -1878,11 +1874,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
           onClick={() => handleIncidentPageChange(incidentPage - 1)}
           disabled={!canPrev}
           className="btn btn-secondary"
-          style={{ 
-            padding: '0.35rem 0.65rem', 
-            fontSize: '0.78rem', 
-            display: 'inline-flex', 
-            alignItems: 'center', 
+          style={{
+            padding: '0.35rem 0.65rem',
+            fontSize: '0.78rem',
+            display: 'inline-flex',
+            alignItems: 'center',
             gap: '0.3rem',
             cursor: !canPrev ? 'not-allowed' : 'pointer',
             opacity: !canPrev ? 0.5 : 1
@@ -1903,11 +1899,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
           onClick={() => handleIncidentPageChange(incidentPage + 1)}
           disabled={!canNext}
           className="btn btn-secondary"
-          style={{ 
-            padding: '0.35rem 0.65rem', 
-            fontSize: '0.78rem', 
-            display: 'inline-flex', 
-            alignItems: 'center', 
+          style={{
+            padding: '0.35rem 0.65rem',
+            fontSize: '0.78rem',
+            display: 'inline-flex',
+            alignItems: 'center',
             gap: '0.3rem',
             cursor: !canNext ? 'not-allowed' : 'pointer',
             opacity: !canNext ? 0.5 : 1
@@ -2088,10 +2084,82 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'lastUpdateDate', label: 'Last Updated Date', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
       { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
       { key: 'enforcementType', label: 'Priority', defaultSelected: false, getValue: c => c.enforcementType || '' },
+      { key: 'latestJobId', label: 'Job ID', defaultSelected: false, getValue: c => c.latestJobId || '' },
       { key: 'createdBy', label: 'Created By', defaultSelected: false, getValue: c => c.createdBy || '' },
+      { key: 'creationDate', label: 'Creation Date', defaultSelected: false, getValue: c => c.creationDate || '' },
       { key: 'lastUpdatedBy', label: 'Last Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
+      { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: c => c.scheduledBy || '' },
     ];
   }, []);
+
+  // Build columns definition for EnterpriseExportControl for Incidents
+  const incidentExportColumns: EnterpriseExportColumn<any>[] = useMemo(() => {
+    return currentIncidentColumns.map(col => ({
+      key: col.key,
+      label: col.label,
+      defaultSelected: col.defaultVisible,
+      getValue: (inc: any) => {
+        const val = getIncidentAttr(inc, col.key);
+        if (col.key === 'lastRunDate' || col.key === 'creationDate' || col.key === 'lastUpdatedDate' || col.key === 'closedDate' || col.key === 'revisionDate') {
+          return formatOracleDate(val);
+        }
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') return JSON.stringify(val);
+        return String(val);
+      }
+    }));
+  }, [currentIncidentColumns]);
+
+  const incidentAppliedFiltersList = useMemo(() => {
+    const list: { label: string; value: string }[] = [];
+    if (incidentStatusFilter !== 'ALL') {
+      list.push({ label: 'Status', value: incidentStatusFilter });
+    }
+    if (appliedFilters) {
+      Object.entries(appliedFilters).forEach(([k, v]) => {
+        if (v) {
+          if (Array.isArray(v) && v.length > 0) {
+            list.push({ label: k, value: v.join(', ') });
+          } else if (typeof v === 'string' && v.trim() && v.toUpperCase() !== 'ALL') {
+            list.push({ label: k, value: v.trim() });
+          }
+        }
+      });
+    }
+    return list;
+  }, [incidentStatusFilter, appliedFilters]);
+
+  const handleFetchIncidentExportData = async (scope: ExportScope): Promise<any[]> => {
+    if (scope === 'PAGE' || !selectedControlDetail) {
+      return incidentsList;
+    }
+    try {
+      const targetCount = scope === 'FILTERED'
+        ? (filteredTotalCount ?? incidentsTotalCount ?? 1000)
+        : (incidentsTotalCount ?? 1000);
+      const maxFetch = Math.min(Math.max(targetCount, 25), 5000);
+
+      const hasFilters = countActiveIncidentFilters(appliedFilters) > 0 || incidentStatusFilter !== 'ALL';
+      const effectiveFilters = {
+        ...appliedFilters,
+        ...(incidentStatusFilter !== 'ALL' ? { statuses: [incidentStatusFilter] } : {})
+      };
+
+      const res = await api.getControlIncidents(selectedControlDetail.id, {
+        page: 1,
+        limit: maxFetch,
+        filters: (scope === 'FILTERED' && hasFilters) ? effectiveFilters : undefined
+      });
+
+      if (res && res.success && Array.isArray(res.items)) {
+        return res.items;
+      }
+      return incidentsList;
+    } catch (err) {
+      console.error('[Incident Export] Error fetching scope data:', err);
+      return incidentsList;
+    }
+  };
 
   return (
     <div className="advanced-controls-module animate-fade-in">
@@ -2100,22 +2168,173 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       {embedded ? (
         <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
           {!hideSectionHeader && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: 'var(--font-header)', margin: 0, letterSpacing: '-0.01em' }}>
+                  Advanced Controls
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0.3rem 0 0 0' }}>
+                  Monitor access and transaction controls configured in Oracle Fusion.
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <button
+                  id="btn-sync-catalog"
+                  onClick={onRefreshControls}
+                  disabled={controlsRefreshing}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', padding: '0.45rem 0.95rem', borderRadius: '6px', cursor: controlsRefreshing ? 'not-allowed' : 'pointer', fontWeight: 700 }}
+                  title="Fetch latest controls from Oracle Fusion"
+                >
+                  <RefreshCw size={14} className={controlsRefreshing ? 'animate-spin' : ''} />
+                  {controlsRefreshing ? 'Syncing...' : 'Sync Catalog'}
+                </button>
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div role="tablist" aria-label="Advanced Controls views" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                id="tab-access-controls"
+                role="tab"
+                aria-selected={activeSubSection === 'ACCESS'}
+                onClick={() => handleSwitchSubSection('ACCESS')}
+                style={{
+                  background: activeSubSection === 'ACCESS' ? 'var(--accent-blue)' : 'var(--bg-tertiary)',
+                  border: activeSubSection === 'ACCESS' ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  padding: '0.55rem 1.1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  color: activeSubSection === 'ACCESS' ? '#ffffff' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.55rem',
+                  boxShadow: activeSubSection === 'ACCESS' ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none'
+                }}
+              >
+                <Shield size={16} />
+                <span>Access Controls</span>
+                <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '9999px', backgroundColor: activeSubSection === 'ACCESS' ? 'rgba(255,255,255,0.22)' : '#DBEAFE', color: activeSubSection === 'ACCESS' ? '#ffffff' : '#1D4ED8', fontWeight: 800 }}>
+                  {accessControls.length}
+                </span>
+              </button>
+              <button
+                id="tab-transaction-controls"
+                role="tab"
+                aria-selected={activeSubSection === 'TRANSACTION'}
+                onClick={() => handleSwitchSubSection('TRANSACTION')}
+                style={{
+                  background: activeSubSection === 'TRANSACTION' ? '#047857' : 'var(--bg-tertiary)',
+                  border: activeSubSection === 'TRANSACTION' ? '1px solid #047857' : '1px solid var(--border-color)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  padding: '0.55rem 1.1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  color: activeSubSection === 'TRANSACTION' ? '#ffffff' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.55rem',
+                  boxShadow: activeSubSection === 'TRANSACTION' ? '0 2px 8px rgba(4, 120, 87, 0.3)' : 'none'
+                }}
+              >
+                <Zap size={16} />
+                <span>Transaction Controls</span>
+                <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '9999px', backgroundColor: activeSubSection === 'TRANSACTION' ? 'rgba(255,255,255,0.22)' : '#D1FAE5', color: activeSubSection === 'TRANSACTION' ? '#ffffff' : '#047857', fontWeight: 800 }}>
+                  {transactionControls.length}
+                </span>
+              </button>
+            </div>
+            {hideSectionHeader && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <button
+                  id="btn-sync-catalog"
+                  onClick={onRefreshControls}
+                  disabled={controlsRefreshing}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', padding: '0.45rem 0.95rem', borderRadius: '6px', cursor: controlsRefreshing ? 'not-allowed' : 'pointer', fontWeight: 700 }}
+                  title="Fetch latest controls from Oracle Fusion"
+                >
+                  <RefreshCw size={14} className={controlsRefreshing ? 'animate-spin' : ''} />
+                  {controlsRefreshing ? 'Syncing...' : 'Sync Catalog'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* 1. Integrated Enterprise Header Banner with Docked Domain Tabs */
+        <div
+          className="page-header-banner"
+          style={{
+            background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 55%, #3B82F6 100%)',
+            position: 'relative',
+            padding: '1.75rem 2rem 0 2rem',
+            borderRadius: '12px',
+            marginBottom: '1.5rem',
+            boxShadow: '0 8px 24px -4px rgba(30, 58, 138, 0.25)',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Subtle Wave Curve overlay */}
+          <svg
+            viewBox="0 0 1440 240"
+            preserveAspectRatio="none"
+            style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, opacity: 0.85 }}
+          >
+            <path fill="rgba(255, 255, 255, 0.08)" d="M0,120 C320,190,480,50,800,130 C1120,210,1280,80,1440,120 L1440,240 L0,240 Z" />
+            <path fill="rgba(96, 165, 250, 0.16)" d="M0,170 C360,90,600,210,960,140 C1200,90,1360,180,1440,150 L1440,240 L0,240 Z" />
+          </svg>
+
+          {/* Top Header Row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: 'var(--font-header)', margin: 0, letterSpacing: '-0.01em' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+                <span style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '9999px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase'
+                }}>
+                  Oracle Fusion Risk Management Cloud
+                </span>
+              </div>
+              <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', margin: 0, letterSpacing: '-0.02em', color: '#ffffff' }}>
                 Advanced Controls
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0.3rem 0 0 0' }}>
+              </h1>
+              <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: '0.3rem 0 0 0' }}>
                 Monitor access and transaction controls configured in Oracle Fusion.
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
               <button
                 id="btn-sync-catalog"
                 onClick={onRefreshControls}
                 disabled={controlsRefreshing}
-                className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', padding: '0.45rem 0.95rem', borderRadius: '6px', cursor: controlsRefreshing ? 'not-allowed' : 'pointer', fontWeight: 700 }}
+                className="btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.82rem',
+                  padding: '0.45rem 0.95rem',
+                  borderRadius: '6px',
+                  backgroundColor: '#ffffff',
+                  color: '#1E3A8A',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: controlsRefreshing ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                }}
                 title="Fetch latest controls from Oracle Fusion"
               >
                 <RefreshCw size={14} className={controlsRefreshing ? 'animate-spin' : ''} />
@@ -2123,244 +2342,93 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               </button>
             </div>
           </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div role="tablist" aria-label="Advanced Controls views" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+
+          {/* Docked Subsections Tabs Row (Requirement 17 Mockup) */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              position: 'relative',
+              zIndex: 2,
+              borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+              paddingTop: '0.75rem'
+            }}
+          >
+            {/* Tab 1: Access Controls (Oracle Type 173) */}
             <button
               id="tab-access-controls"
-              role="tab"
-              aria-selected={activeSubSection === 'ACCESS'}
               onClick={() => handleSwitchSubSection('ACCESS')}
               style={{
-                background: activeSubSection === 'ACCESS' ? 'var(--accent-blue)' : 'var(--bg-tertiary)',
-                border: activeSubSection === 'ACCESS' ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
+                background: activeSubSection === 'ACCESS' ? '#ffffff' : 'rgba(255, 255, 255, 0.12)',
+                border: 'none',
                 outline: 'none',
                 cursor: 'pointer',
-                padding: '0.55rem 1.1rem',
-                borderRadius: '8px',
-                fontSize: '0.88rem',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '8px 8px 0 0',
+                fontSize: '0.92rem',
                 fontWeight: 700,
-                color: activeSubSection === 'ACCESS' ? '#ffffff' : 'var(--text-secondary)',
+                color: activeSubSection === 'ACCESS' ? '#1E3A8A' : '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.55rem',
-                boxShadow: activeSubSection === 'ACCESS' ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none'
+                gap: '0.65rem',
+                transition: 'all 0.15s ease',
+                boxShadow: activeSubSection === 'ACCESS' ? '0 -2px 10px rgba(0,0,0,0.1)' : 'none'
               }}
             >
-              <Shield size={16} />
+              <Shield size={17} style={{ color: activeSubSection === 'ACCESS' ? '#2563EB' : 'rgba(255, 255, 255, 0.8)' }} />
               <span>Access Controls</span>
-              <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '9999px', backgroundColor: activeSubSection === 'ACCESS' ? 'rgba(255,255,255,0.22)' : '#DBEAFE', color: activeSubSection === 'ACCESS' ? '#ffffff' : '#1D4ED8', fontWeight: 800 }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.12rem 0.55rem',
+                  borderRadius: '9999px',
+                  backgroundColor: activeSubSection === 'ACCESS' ? '#DBEAFE' : 'rgba(255, 255, 255, 0.25)',
+                  color: activeSubSection === 'ACCESS' ? '#1D4ED8' : '#ffffff',
+                  fontWeight: 800
+                }}
+              >
                 {accessControls.length}
               </span>
             </button>
+
+            {/* Tab 2: Transaction Controls (Oracle Type 174) */}
             <button
               id="tab-transaction-controls"
-              role="tab"
-              aria-selected={activeSubSection === 'TRANSACTION'}
               onClick={() => handleSwitchSubSection('TRANSACTION')}
               style={{
-                background: activeSubSection === 'TRANSACTION' ? '#047857' : 'var(--bg-tertiary)',
-                border: activeSubSection === 'TRANSACTION' ? '1px solid #047857' : '1px solid var(--border-color)',
+                background: activeSubSection === 'TRANSACTION' ? '#ffffff' : 'rgba(255, 255, 255, 0.12)',
+                border: 'none',
                 outline: 'none',
                 cursor: 'pointer',
-                padding: '0.55rem 1.1rem',
-                borderRadius: '8px',
-                fontSize: '0.88rem',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '8px 8px 0 0',
+                fontSize: '0.92rem',
                 fontWeight: 700,
-                color: activeSubSection === 'TRANSACTION' ? '#ffffff' : 'var(--text-secondary)',
+                color: activeSubSection === 'TRANSACTION' ? '#065F46' : '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.55rem',
-                boxShadow: activeSubSection === 'TRANSACTION' ? '0 2px 8px rgba(4, 120, 87, 0.3)' : 'none'
+                gap: '0.65rem',
+                transition: 'all 0.15s ease',
+                boxShadow: activeSubSection === 'TRANSACTION' ? '0 -2px 10px rgba(0,0,0,0.1)' : 'none'
               }}
             >
-              <Zap size={16} />
+              <Zap size={17} style={{ color: activeSubSection === 'TRANSACTION' ? '#10B981' : 'rgba(255, 255, 255, 0.8)' }} />
               <span>Transaction Controls</span>
-              <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '9999px', backgroundColor: activeSubSection === 'TRANSACTION' ? 'rgba(255,255,255,0.22)' : '#D1FAE5', color: activeSubSection === 'TRANSACTION' ? '#ffffff' : '#047857', fontWeight: 800 }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.12rem 0.55rem',
+                  borderRadius: '9999px',
+                  backgroundColor: activeSubSection === 'TRANSACTION' ? '#D1FAE5' : 'rgba(255, 255, 255, 0.25)',
+                  color: activeSubSection === 'TRANSACTION' ? '#047857' : '#ffffff',
+                  fontWeight: 800
+                }}
+              >
                 {transactionControls.length}
               </span>
             </button>
           </div>
-          {hideSectionHeader && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <button
-                id="btn-sync-catalog"
-                onClick={onRefreshControls}
-                disabled={controlsRefreshing}
-                className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', padding: '0.45rem 0.95rem', borderRadius: '6px', cursor: controlsRefreshing ? 'not-allowed' : 'pointer', fontWeight: 700 }}
-                title="Fetch latest controls from Oracle Fusion"
-              >
-                <RefreshCw size={14} className={controlsRefreshing ? 'animate-spin' : ''} />
-                {controlsRefreshing ? 'Syncing...' : 'Sync Catalog'}
-              </button>
-            </div>
-          )}
-          </div>
         </div>
-      ) : (
-      /* 1. Integrated Enterprise Header Banner with Docked Domain Tabs */
-      <div
-        className="page-header-banner"
-        style={{
-          background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 55%, #3B82F6 100%)',
-          position: 'relative',
-          padding: '1.75rem 2rem 0 2rem',
-          borderRadius: '12px',
-          marginBottom: '1.5rem',
-          boxShadow: '0 8px 24px -4px rgba(30, 58, 138, 0.25)',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Subtle Wave Curve overlay */}
-        <svg
-          viewBox="0 0 1440 240"
-          preserveAspectRatio="none"
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, opacity: 0.85 }}
-        >
-          <path fill="rgba(255, 255, 255, 0.08)" d="M0,120 C320,190,480,50,800,130 C1120,210,1280,80,1440,120 L1440,240 L0,240 Z" />
-          <path fill="rgba(96, 165, 250, 0.16)" d="M0,170 C360,90,600,210,960,140 C1200,90,1360,180,1440,150 L1440,240 L0,240 Z" />
-        </svg>
-
-        {/* Top Header Row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-              <span style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: '#ffffff',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '0.2rem 0.6rem',
-                borderRadius: '9999px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                Oracle Fusion Risk Management Cloud
-              </span>
-            </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'var(--font-header)', margin: 0, letterSpacing: '-0.02em', color: '#ffffff' }}>
-              Advanced Controls
-            </h1>
-            <p style={{ color: '#E0E7FF', fontSize: '0.92rem', margin: '0.3rem 0 0 0' }}>
-              Monitor access and transaction controls configured in Oracle Fusion.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-            <button
-              id="btn-sync-catalog"
-              onClick={onRefreshControls}
-              disabled={controlsRefreshing}
-              className="btn"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontSize: '0.82rem',
-                padding: '0.45rem 0.95rem',
-                borderRadius: '6px',
-                backgroundColor: '#ffffff',
-                color: '#1E3A8A',
-                fontWeight: 700,
-                border: 'none',
-                cursor: controlsRefreshing ? 'not-allowed' : 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
-              }}
-              title="Fetch latest controls from Oracle Fusion"
-            >
-              <RefreshCw size={14} className={controlsRefreshing ? 'animate-spin' : ''} />
-              {controlsRefreshing ? 'Syncing...' : 'Sync Catalog'}
-            </button>
-          </div>
-        </div>
-
-        {/* Docked Subsections Tabs Row (Requirement 17 Mockup) */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '1rem',
-            position: 'relative',
-            zIndex: 2,
-            borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-            paddingTop: '0.75rem'
-          }}
-        >
-          {/* Tab 1: Access Controls (Oracle Type 173) */}
-          <button
-            id="tab-access-controls"
-            onClick={() => handleSwitchSubSection('ACCESS')}
-            style={{
-              background: activeSubSection === 'ACCESS' ? '#ffffff' : 'rgba(255, 255, 255, 0.12)',
-              border: 'none',
-              outline: 'none',
-              cursor: 'pointer',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '8px 8px 0 0',
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              color: activeSubSection === 'ACCESS' ? '#1E3A8A' : '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.65rem',
-              transition: 'all 0.15s ease',
-              boxShadow: activeSubSection === 'ACCESS' ? '0 -2px 10px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <Shield size={17} style={{ color: activeSubSection === 'ACCESS' ? '#2563EB' : 'rgba(255, 255, 255, 0.8)' }} />
-            <span>Access Controls</span>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                padding: '0.12rem 0.55rem',
-                borderRadius: '9999px',
-                backgroundColor: activeSubSection === 'ACCESS' ? '#DBEAFE' : 'rgba(255, 255, 255, 0.25)',
-                color: activeSubSection === 'ACCESS' ? '#1D4ED8' : '#ffffff',
-                fontWeight: 800
-              }}
-            >
-              {accessControls.length}
-            </span>
-          </button>
-
-          {/* Tab 2: Transaction Controls (Oracle Type 174) */}
-          <button
-            id="tab-transaction-controls"
-            onClick={() => handleSwitchSubSection('TRANSACTION')}
-            style={{
-              background: activeSubSection === 'TRANSACTION' ? '#ffffff' : 'rgba(255, 255, 255, 0.12)',
-              border: 'none',
-              outline: 'none',
-              cursor: 'pointer',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '8px 8px 0 0',
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              color: activeSubSection === 'TRANSACTION' ? '#065F46' : '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.65rem',
-              transition: 'all 0.15s ease',
-              boxShadow: activeSubSection === 'TRANSACTION' ? '0 -2px 10px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <Zap size={17} style={{ color: activeSubSection === 'TRANSACTION' ? '#10B981' : 'rgba(255, 255, 255, 0.8)' }} />
-            <span>Transaction Controls</span>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                padding: '0.12rem 0.55rem',
-                borderRadius: '9999px',
-                backgroundColor: activeSubSection === 'TRANSACTION' ? '#D1FAE5' : 'rgba(255, 255, 255, 0.25)',
-                color: activeSubSection === 'TRANSACTION' ? '#047857' : '#ffffff',
-                fontWeight: 800
-              }}
-            >
-              {transactionControls.length}
-            </span>
-          </button>
-        </div>
-      </div>
       )}
 
       {/* Detail Modal / Screen Override */}
@@ -2411,18 +2479,18 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Continuous Incidents</span>
-                    <span style={{ 
-                      fontSize: '1.6rem', 
-                      fontWeight: 800, 
-                      color: (incidentsTotalCount !== undefined && incidentsTotalCount !== null ? incidentsTotalCount : (selectedControlDetail.incidentCount ?? 0)) > 0 ? 'var(--accent-red)' : 'var(--accent-green)' 
+                    <span style={{
+                      fontSize: '1.6rem',
+                      fontWeight: 800,
+                      color: (incidentsTotalCount !== undefined && incidentsTotalCount !== null ? incidentsTotalCount : (selectedControlDetail.incidentCount ?? 0)) > 0 ? 'var(--accent-red)' : 'var(--accent-green)'
                     }}>
                       {incidentsTotalCount !== undefined && incidentsTotalCount !== null
-                        ? Number(incidentsTotalCount).toLocaleString() 
-                        : (incidentsCountLoading 
-                            ? 'Calculating...' 
-                            : (selectedControlDetail.incidentCount !== undefined && selectedControlDetail.incidentCount !== null
-                                ? Number(selectedControlDetail.incidentCount).toLocaleString() 
-                                : 'Calculating...'))}
+                        ? Number(incidentsTotalCount).toLocaleString()
+                        : (incidentsCountLoading
+                          ? 'Calculating...'
+                          : (selectedControlDetail.incidentCount !== undefined && selectedControlDetail.incidentCount !== null
+                            ? Number(selectedControlDetail.incidentCount).toLocaleString()
+                            : 'Calculating...'))}
                     </span>
                     {incidentsCountLoading && (
                       <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem', marginTop: '0.2rem' }}>
@@ -2493,13 +2561,27 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Created By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.createdBy)}</span>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Latest Job ID</span>
+                      <code style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{renderFieldVal(selectedControlDetail.latestJobId)}</code>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Created By</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.createdBy)}</span>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Creation Date</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{formatOracleDate(selectedControlDetail.creationDate)}</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Last Updated By</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.lastUpdatedBy)}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Scheduled By</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{renderFieldVal(selectedControlDetail.scheduledBy)}</span>
                   </div>
                 </div>
               </div>
@@ -2513,11 +2595,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       <AlertCircle size={18} style={{ color: 'var(--accent-red)' }} />
                       Continuous Monitoring Incidents
                     </h3>
-                    <span 
-                      className="badge" 
-                      style={{ 
-                        fontSize: '0.75rem', 
-                        backgroundColor: isServerFiltered ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-secondary)', 
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.75rem',
+                        backgroundColor: isServerFiltered ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-secondary)',
                         border: isServerFiltered ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid var(--border-color)',
                         color: isServerFiltered ? '#60A5FA' : 'var(--text-secondary)'
                       }}
@@ -2737,28 +2819,24 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                       )}
                     </div>
 
-                    <EnterpriseExportControl
-                      filename={`${selectedControlDetail?.id || 'control'}_${isTxControl ? 'transaction' : 'access'}_incidents`}
-                      sheetName={isTxControl ? 'Transaction Incidents' : 'Access Incidents'}
-                      reportTitle={`${selectedControlDetail?.name || 'Control'} — ${isTxControl ? 'Transaction' : 'Access'} Incidents`}
-                      dataSource="Oracle Fusion Risk Management Cloud"
-                      entityName="Incidents"
-                      buttonText="Export Excel"
-                      size="sm"
-                      currentPageData={incidentsList}
-                      filteredCount={filteredTotalCount ?? incidentsList.length}
-                      totalCount={incidentsTotalCount ?? incidentsList.length}
-                      availableColumns={currentIncidentColumns.map(col => ({
-                        key: col.key,
-                        label: col.label,
-                        defaultSelected: visibleIncidentKeys.has(col.key),
-                        getValue: (item: any) => item[col.key] ?? ''
-                      }))}
-                      onFetchScopeData={async (scope) => {
-                        if (scope === 'PAGE') return incidentsList;
-                        return incidentsList;
-                      }}
-                    />
+                    {/* Incidents Enterprise Export Control */}
+                    <div id="export-incidents-container">
+                      <EnterpriseExportControl
+                        filename={`${isTxControl ? 'transaction_control' : 'access_control'}_${selectedControlDetail.id}_incidents`}
+                        sheetName="Incidents"
+                        reportTitle={`${selectedControlDetail.name} (${selectedControlDetail.id}) - Continuous Monitoring Incidents`}
+                        dataSource={dataSource || (environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data')}
+                        entityName="Incidents"
+                        categoryLabel={isTxControl ? 'Transaction Control Incidents' : 'Access Control Incidents'}
+                        buttonText="Export Excel"
+                        currentPageData={incidentsList}
+                        filteredCount={filteredTotalCount ?? (isServerFiltered ? incidentsList.length : (incidentsTotalCount ?? incidentsList.length))}
+                        totalCount={incidentsTotalCount ?? incidentsList.length}
+                        availableColumns={incidentExportColumns}
+                        appliedFilters={incidentAppliedFiltersList}
+                        onFetchScopeData={handleFetchIncidentExportData}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -2826,443 +2904,440 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     {/* Incident Analytics & Table Workspace (stays visible for 0-match filtered results) */}
                     {(incidentsList.length > 0 || isServerFiltered || (isFilterPanelOpen && !incidentsError)) && (
                       <div>
-                    {/* 1. Incident Status Analytics (Donut Pie Chart & Bar Graph Toggle) */}
-                    <div 
-                      className="glass-panel" 
-                      style={{ 
-                        padding: '1.25rem 1.5rem', 
-                        marginBottom: '1.25rem',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-secondary)',
-                        borderRadius: '10px'
-                      }}
-                    >
-                      {/* Top Header Row with Chart Title, Subtitle and Pie/Bar Toggle */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <PieChart size={17} style={{ color: 'var(--accent-blue)' }} />
-                            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                              Incident Status Distribution
-                            </h4>
-                          </div>
-                          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            Continuous monitoring breakdown across the 4 standard Oracle incident lifecycle statuses. Click any status to filter the table.
-                          </p>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {/* Active Filter Clear Pill */}
-                          {incidentStatusFilter !== 'ALL' && (
-                            <button
-                              type="button"
-                              onClick={() => setIncidentStatusFilter('ALL')}
-                              className="btn btn-secondary"
-                              style={{ 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '0.35rem', 
-                                fontSize: '0.75rem', 
-                                padding: '0.25rem 0.6rem',
-                                color: 'var(--accent-gold)',
-                                borderColor: 'var(--accent-gold)'
-                              }}
-                              title="Clear status filter and show all records"
-                            >
-                              <X size={12} /> Clear Filter ({incidentStatusFilter})
-                            </button>
-                          )}
-
-                        </div>
-                      </div>
-
-                      {/* Donut Pie Chart with 4 Lifecycle Status Cards */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.75rem' }}>
-                        {/* Left: Interactive SVG Donut Chart */}
-                        {(() => {
-                          const radius = 45;
-                          const circumference = 2 * Math.PI * radius; // ~282.743
-                          let accOffset = 0;
-                          const activeHoveredItem = hoveredStatusKey ? incidentStatusStats.items.find(i => i.key === hoveredStatusKey) : null;
-
-                          return (
-                            <div style={{ position: 'relative', width: '150px', height: '150px', flexShrink: 0, margin: '0 auto' }}>
-                              <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
-                                {/* Background neutral track */}
-                                <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
-                                
-                                {/* Status Segments */}
-                                {incidentStatusStats.items.map(seg => {
-                                  if (seg.pct <= 0) return null;
-                                  const dash = (seg.pct / 100) * circumference;
-                                  const offset = -accOffset;
-                                  accOffset += dash;
-                                  const isHovered = hoveredStatusKey === seg.key;
-                                  const isFiltered = appliedFilters.statuses.includes(seg.key);
-
-                                  return (
-                                    <circle
-                                      key={seg.key}
-                                      cx="60"
-                                      cy="60"
-                                      r={radius}
-                                      fill="none"
-                                      stroke={seg.color}
-                                      strokeWidth={isHovered ? 16 : 13}
-                                      strokeDasharray={`${dash} ${circumference - dash}`}
-                                      strokeDashoffset={offset}
-                                      style={{
-                                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        cursor: 'pointer',
-                                        filter: isHovered 
-                                          ? `drop-shadow(0 0 6px ${seg.color})` 
-                                          : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
-                                        opacity: hoveredStatusKey !== null 
-                                          ? (isHovered ? 1 : 0.4) 
-                                          : (appliedFilters.statuses.length > 0 ? (isFiltered ? 1 : 0.45) : 1)
-                                      }}
-                                      onMouseEnter={() => setHoveredStatusKey(seg.key)}
-                                      onMouseLeave={() => setHoveredStatusKey(null)}
-                                      onClick={() => handleToggleStatusCard(seg.key)}
-                                    />
-                                  );
-                                })}
-                              </svg>
-
-                              {/* Center Total & Lifecycle Label */}
-                              <div 
-                                style={{
-                                  position: 'absolute',
-                                  inset: 0,
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  pointerEvents: 'none',
-                                  textAlign: 'center'
-                                }}
-                              >
-                                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHoveredItem ? activeHoveredItem.color : 'var(--text-primary)', lineHeight: 1.1 }}>
-                                  {activeHoveredItem ? activeHoveredItem.count.toLocaleString() : incidentStatusStats.total.toLocaleString()}
-                                </span>
-                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem' }}>
-                                  {activeHoveredItem ? activeHoveredItem.label : 'Incidents'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Right: 4 Interactive Lifecycle Status Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', flex: 1 }}>
-                          {incidentStatusStats.items.map(st => {
-                            const isSelected = appliedFilters.statuses.includes(st.key);
-                            const isHovered = hoveredStatusKey === st.key;
-                            const IconComponent = st.icon;
-
-                            return (
-                              <div
-                                key={st.key}
-                                onClick={() => handleToggleStatusCard(st.key)}
-                                onMouseEnter={() => setHoveredStatusKey(st.key)}
-                                onMouseLeave={() => setHoveredStatusKey(null)}
-                                style={{
-                                  padding: '0.85rem 1rem',
-                                  backgroundColor: isSelected ? st.bg : (isHovered ? 'var(--bg-primary)' : 'var(--bg-primary)'),
-                                  border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
-                                  borderRadius: '8px',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s ease',
-                                  boxShadow: isSelected ? `0 0 12px ${st.color}35` : 'none',
-                                  position: 'relative'
-                                }}
-                                title={`${st.description} - Click to filter across all incidents`}
-                              >
-                                {/* Status Name + Icon + Pill */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                    <IconComponent size={14} style={{ color: st.color }} />
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                      {st.label}
-                                    </span>
-                                  </div>
-                                  <span 
-                                    className="badge" 
-                                    style={{ 
-                                      fontSize: '0.7rem', 
-                                      fontWeight: 600,
-                                      backgroundColor: st.bg, 
-                                      color: st.color, 
-                                      border: `1px solid ${st.border}` 
-                                    }}
-                                  >
-                                    {st.pct.toFixed(1)}%
-                                  </span>
-                                </div>
-
-                                {/* Big Count */}
-                                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                                  <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                                    {st.count.toLocaleString()}
-                                  </span>
-                                  {isSelected && (
-                                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: st.color }}>
-                                      ACTIVE FILTER
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Mini Progress Bar Indicator */}
-                                <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.55rem', overflow: 'hidden' }}>
-                                  <div 
-                                    style={{ 
-                                      height: '100%', 
-                                      width: `${Math.max(st.pct, st.count > 0 ? 3 : 0)}%`, 
-                                      backgroundColor: st.color,
-                                      borderRadius: '2px',
-                                      transition: 'width 0.4s ease'
-                                    }} 
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Active PostgreSQL Filter Summary & Chips */}
-                      {isServerFiltered && activeIncidentChips.length > 0 && (
+                        {/* 1. Incident Status Analytics (Donut Pie Chart & Bar Graph Toggle) */}
                         <div
+                          className="glass-panel"
                           style={{
-                            marginTop: '1rem',
-                            padding: '0.65rem 0.9rem',
-                            backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                            border: '1px solid rgba(59, 130, 246, 0.25)',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: '0.6rem',
-                            fontSize: '0.8rem',
-                            color: 'var(--text-primary)'
+                            padding: '1.25rem 1.5rem',
+                            marginBottom: '1.25rem',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            borderRadius: '10px'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem' }}>
-                            <Filter size={13} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-                            <span style={{ color: 'var(--text-secondary)', marginRight: '0.2rem' }}>
-                              Matching <strong>{(filteredTotalCount ?? incidentsList.length).toLocaleString()}</strong>
-                              {incidentsTotalCount !== undefined ? ` of ${incidentsTotalCount.toLocaleString()}` : ''}:
-                            </span>
-                            {activeIncidentChips.map((chip) => (
-                              <span
-                                key={`${chip.key}-${chip.valueLabel}`}
+                          {/* Top Header Row with Chart Title, Subtitle and Pie/Bar Toggle */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <PieChart size={17} style={{ color: 'var(--accent-blue)' }} />
+                                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                                  Incident Status Distribution
+                                </h4>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {/* Active Filter Clear Pill */}
+                              {incidentStatusFilter !== 'ALL' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIncidentStatusFilter('ALL')}
+                                  className="btn btn-secondary"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    fontSize: '0.75rem',
+                                    padding: '0.25rem 0.6rem',
+                                    color: 'var(--accent-gold)',
+                                    borderColor: 'var(--accent-gold)'
+                                  }}
+                                  title="Clear status filter and show all records"
+                                >
+                                  <X size={12} /> Clear Filter ({incidentStatusFilter})
+                                </button>
+                              )}
+
+                            </div>
+                          </div>
+
+                          {/* Donut Pie Chart with 4 Lifecycle Status Cards */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.75rem' }}>
+                            {/* Left: Interactive SVG Donut Chart */}
+                            {(() => {
+                              const radius = 45;
+                              const circumference = 2 * Math.PI * radius; // ~282.743
+                              let accOffset = 0;
+                              const activeHoveredItem = hoveredStatusKey ? incidentStatusStats.items.find(i => i.key === hoveredStatusKey) : null;
+
+                              return (
+                                <div style={{ position: 'relative', width: '150px', height: '150px', flexShrink: 0, margin: '0 auto' }}>
+                                  <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
+                                    {/* Background neutral track */}
+                                    <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
+
+                                    {/* Status Segments */}
+                                    {incidentStatusStats.items.map(seg => {
+                                      if (seg.pct <= 0) return null;
+                                      const dash = (seg.pct / 100) * circumference;
+                                      const offset = -accOffset;
+                                      accOffset += dash;
+                                      const isHovered = hoveredStatusKey === seg.key;
+                                      const isFiltered = appliedFilters.statuses.includes(seg.key);
+
+                                      return (
+                                        <circle
+                                          key={seg.key}
+                                          cx="60"
+                                          cy="60"
+                                          r={radius}
+                                          fill="none"
+                                          stroke={seg.color}
+                                          strokeWidth={isHovered ? 16 : 13}
+                                          strokeDasharray={`${dash} ${circumference - dash}`}
+                                          strokeDashoffset={offset}
+                                          style={{
+                                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            cursor: 'pointer',
+                                            filter: isHovered
+                                              ? `drop-shadow(0 0 6px ${seg.color})`
+                                              : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
+                                            opacity: hoveredStatusKey !== null
+                                              ? (isHovered ? 1 : 0.4)
+                                              : (appliedFilters.statuses.length > 0 ? (isFiltered ? 1 : 0.45) : 1)
+                                          }}
+                                          onMouseEnter={() => setHoveredStatusKey(seg.key)}
+                                          onMouseLeave={() => setHoveredStatusKey(null)}
+                                          onClick={() => handleToggleStatusCard(seg.key)}
+                                        />
+                                      );
+                                    })}
+                                  </svg>
+
+                                  {/* Center Total & Lifecycle Label */}
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      inset: 0,
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      pointerEvents: 'none',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHoveredItem ? activeHoveredItem.color : 'var(--text-primary)', lineHeight: 1.1 }}>
+                                      {activeHoveredItem ? activeHoveredItem.count.toLocaleString() : incidentStatusStats.total.toLocaleString()}
+                                    </span>
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem' }}>
+                                      {activeHoveredItem ? activeHoveredItem.label : 'Incidents'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Right: 4 Interactive Lifecycle Status Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', flex: 1 }}>
+                              {incidentStatusStats.items.map(st => {
+                                const isSelected = appliedFilters.statuses.includes(st.key);
+                                const isHovered = hoveredStatusKey === st.key;
+                                const IconComponent = st.icon;
+
+                                return (
+                                  <div
+                                    key={st.key}
+                                    onClick={() => handleToggleStatusCard(st.key)}
+                                    onMouseEnter={() => setHoveredStatusKey(st.key)}
+                                    onMouseLeave={() => setHoveredStatusKey(null)}
+                                    style={{
+                                      padding: '0.85rem 1rem',
+                                      backgroundColor: isSelected ? st.bg : (isHovered ? 'var(--bg-primary)' : 'var(--bg-primary)'),
+                                      border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
+                                      borderRadius: '8px',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s ease',
+                                      boxShadow: isSelected ? `0 0 12px ${st.color}35` : 'none',
+                                      position: 'relative'
+                                    }}
+                                    title={`${st.description} - Click to filter across all incidents`}
+                                  >
+                                    {/* Status Name + Icon + Pill */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <IconComponent size={14} style={{ color: st.color }} />
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                          {st.label}
+                                        </span>
+                                      </div>
+                                      <span
+                                        className="badge"
+                                        style={{
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          backgroundColor: st.bg,
+                                          color: st.color,
+                                          border: `1px solid ${st.border}`
+                                        }}
+                                      >
+                                        {st.pct.toFixed(1)}%
+                                      </span>
+                                    </div>
+
+                                    {/* Big Count */}
+                                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                      <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                                        {st.count.toLocaleString()}
+                                      </span>
+                                      {isSelected && (
+                                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: st.color }}>
+                                          ACTIVE FILTER
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Mini Progress Bar Indicator */}
+                                    <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.55rem', overflow: 'hidden' }}>
+                                      <div
+                                        style={{
+                                          height: '100%',
+                                          width: `${Math.max(st.pct, st.count > 0 ? 3 : 0)}%`,
+                                          backgroundColor: st.color,
+                                          borderRadius: '2px',
+                                          transition: 'width 0.4s ease'
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Active PostgreSQL Filter Summary & Chips */}
+                          {isServerFiltered && activeIncidentChips.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: '1rem',
+                                padding: '0.65rem 0.9rem',
+                                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                border: '1px solid rgba(59, 130, 246, 0.25)',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.6rem',
+                                fontSize: '0.8rem',
+                                color: 'var(--text-primary)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem' }}>
+                                <Filter size={13} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                                <span style={{ color: 'var(--text-secondary)', marginRight: '0.2rem' }}>
+                                  Matching <strong>{(filteredTotalCount ?? incidentsList.length).toLocaleString()}</strong>
+                                  {incidentsTotalCount !== undefined ? ` of ${incidentsTotalCount.toLocaleString()}` : ''}:
+                                </span>
+                                {activeIncidentChips.map((chip) => (
+                                  <span
+                                    key={`${chip.key}-${chip.valueLabel}`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.35rem',
+                                      padding: '0.18rem 0.55rem',
+                                      borderRadius: '999px',
+                                      backgroundColor: 'rgba(59, 130, 246, 0.16)',
+                                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                                      fontSize: '0.74rem',
+                                      color: 'var(--text-primary)'
+                                    }}
+                                  >
+                                    <span style={{ color: 'var(--text-muted)' }}>{chip.label}:</span>
+                                    <strong>{chip.valueLabel}</strong>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveSingleFilterChip(chip)}
+                                      title={`Remove ${chip.label} filter`}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        padding: 0,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        color: 'var(--text-secondary)',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleRemoveAllIncidentFilters}
+                                className="btn btn-secondary"
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '0.35rem',
-                                  padding: '0.18rem 0.55rem',
-                                  borderRadius: '999px',
-                                  backgroundColor: 'rgba(59, 130, 246, 0.16)',
-                                  border: '1px solid rgba(59, 130, 246, 0.35)',
-                                  fontSize: '0.74rem',
-                                  color: 'var(--text-primary)'
+                                  fontSize: '0.75rem',
+                                  padding: '0.25rem 0.65rem',
+                                  borderColor: 'rgba(245, 158, 11, 0.45)',
+                                  color: '#FBBF24'
                                 }}
                               >
-                                <span style={{ color: 'var(--text-muted)' }}>{chip.label}:</span>
-                                <strong>{chip.valueLabel}</strong>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveSingleFilterChip(chip)}
-                                  title={`Remove ${chip.label} filter`}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: 0,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    color: 'var(--text-secondary)',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleRemoveAllIncidentFilters}
-                            className="btn btn-secondary"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              fontSize: '0.75rem',
-                              padding: '0.25rem 0.65rem',
-                              borderColor: 'rgba(245, 158, 11, 0.45)',
-                              color: '#FBBF24'
-                            }}
-                          >
-                            <RotateCcw size={12} />
-                            <span>
-                              Remove Filters
-                              {preFilterSnapshot ? ` (Return to Page ${preFilterSnapshot.page})` : ''}
-                            </span>
-                          </button>
+                                <RotateCcw size={12} />
+                                <span>
+                                  Remove Filters
+                                  {preFilterSnapshot ? ` (Return to Page ${preFilterSnapshot.page})` : ''}
+                                </span>
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Non-horizontally-scrolling wrapper so loader & zero-match state remain centered */}
-                    <div style={{ position: 'relative' }}>
-                      {incidentsLoading && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            backgroundColor: 'rgba(10, 15, 29, 0.72)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10,
-                            backdropFilter: 'blur(2px)',
-                            borderRadius: '8px',
-                            minHeight: '200px'
-                          }}
-                        >
-                          <ContentLoadingState
-                            title={
-                              isServerFiltered
-                                ? `Filtering incidents (Page ${incidentPage})...`
-                                : `Loading page ${incidentPage} (${incidentPageSize} rows)...`
-                            }
-                            subtitle="Loading incident records"
-                          />
-                        </div>
-                      )}
+                        {/* Non-horizontally-scrolling wrapper so loader & zero-match state remain centered */}
+                        <div style={{ position: 'relative' }}>
+                          {incidentsLoading && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundColor: 'rgba(10, 15, 29, 0.72)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 10,
+                                backdropFilter: 'blur(2px)',
+                                borderRadius: '8px',
+                                minHeight: '200px'
+                              }}
+                            >
+                              <ContentLoadingState
+                                title={
+                                  isServerFiltered
+                                    ? `Filtering incidents (Page ${incidentPage})...`
+                                    : `Loading page ${incidentPage} (${incidentPageSize} rows)...`
+                                }
+                                subtitle="Loading incident records"
+                              />
+                            </div>
+                          )}
 
-                      {!incidentsLoading && filteredIncidents.length === 0 ? (
-                        <div
-                          style={{
-                            textAlign: 'center',
-                            padding: '3rem 1.5rem',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            color: 'var(--text-muted)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
-                            <AlertCircle size={26} style={{ color: 'var(--accent-gold)' }} />
-                            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              No incidents match the selected filters.
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '460px' }}>
-                              Try adjusting your search criteria in the filter panel or remove filters to restore your previous page.
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                              {isServerFiltered && (
-                                <button
-                                  type="button"
-                                  onClick={handleRemoveAllIncidentFilters}
-                                  className="btn btn-primary"
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
-                                >
-                                  <RotateCcw size={13} />
-                                  <span>
-                                    Remove Filters
-                                    {preFilterSnapshot ? ` (Return to Page ${preFilterSnapshot.page})` : ''}
-                                  </span>
-                                </button>
-                              )}
-                              {!isFilterPanelOpen && (
-                                <button
-                                  type="button"
-                                  onClick={handleToggleFilterPanel}
-                                  className="btn btn-secondary"
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
-                                >
-                                  <Filter size={13} />
-                                  <span>Open Search &amp; Filters</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="table-container" style={{ margin: 0, overflowX: 'auto', position: 'relative' }}>
-                          <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2200px' : '100%' }}>
-                            <thead>
-                              <tr>
-                                {currentIncidentColumns.filter(c => showInc(c.key)).map(c => (
-                                  <th
-                                    key={c.key}
-                                    style={c.stickyLeft
-                                      ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth, boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }
-                                      : { minWidth: c.minWidth, ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
-                                  >
-                                    {c.label.toUpperCase()}
-                                  </th>
-                                ))}
-                                <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '95px', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredIncidents.map((inc: any, idx: number) => (
-                                <tr key={inc.id || idx}>
-                                  {currentIncidentColumns
-                                    .filter(c => showInc(c.key))
-                                    .map(col => renderIncidentCell(inc, col.key))}
-                                  <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>
+                          {!incidentsLoading && filteredIncidents.length === 0 ? (
+                            <div
+                              style={{
+                                textAlign: 'center',
+                                padding: '3rem 1.5rem',
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                color: 'var(--text-muted)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                                <AlertCircle size={26} style={{ color: 'var(--accent-gold)' }} />
+                                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                  No incidents match the selected filters.
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '460px' }}>
+                                  Try adjusting your search criteria in the filter panel or remove filters to restore your previous page.
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                  {isServerFiltered && (
                                     <button
-                                      onClick={() => setViewingIncident(inc)}
-                                      className="btn btn-secondary"
-                                      style={{ 
-                                        display: 'inline-flex', 
-                                        alignItems: 'center', 
-                                        gap: '0.35rem', 
-                                        fontSize: '0.75rem', 
-                                        padding: '0.3rem 0.65rem' 
-                                      }}
-                                      title="View complete Oracle incident record"
+                                      type="button"
+                                      onClick={handleRemoveAllIncidentFilters}
+                                      className="btn btn-primary"
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
                                     >
-                                      <Eye size={13} /> View
+                                      <RotateCcw size={13} />
+                                      <span>
+                                        Remove Filters
+                                        {preFilterSnapshot ? ` (Return to Page ${preFilterSnapshot.page})` : ''}
+                                      </span>
                                     </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                                  )}
+                                  {!isFilterPanelOpen && (
+                                    <button
+                                      type="button"
+                                      onClick={handleToggleFilterPanel}
+                                      className="btn btn-secondary"
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+                                    >
+                                      <Filter size={13} />
+                                      <span>Open Search &amp; Filters</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="table-container" style={{ margin: 0, overflowX: 'auto', position: 'relative' }}>
+                              <table className="enterprise-table" style={{ width: '100%', minWidth: visibleIncidentKeys.size > 10 ? '2200px' : '100%' }}>
+                                <thead>
+                                  <tr>
+                                    {currentIncidentColumns.filter(c => showInc(c.key)).map(c => (
+                                      <th
+                                        key={c.key}
+                                        style={c.stickyLeft
+                                          ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth, boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }
+                                          : { minWidth: c.minWidth, ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
+                                      >
+                                        {c.label.toUpperCase()}
+                                      </th>
+                                    ))}
+                                    <th style={{ position: 'sticky', right: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: '95px', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {filteredIncidents.map((inc: any, idx: number) => (
+                                    <tr key={inc.id || idx}>
+                                      {currentIncidentColumns
+                                        .filter(c => showInc(c.key))
+                                        .map(col => renderIncidentCell(inc, col.key))}
+                                      <td style={{ position: 'sticky', right: 0, zIndex: 2, backgroundColor: 'var(--bg-primary)', textAlign: 'center', boxShadow: '-2px 0 5px rgba(0,0,0,0.1)' }}>
+                                        <button
+                                          onClick={() => setViewingIncident(inc)}
+                                          className="btn btn-secondary"
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.35rem',
+                                            fontSize: '0.75rem',
+                                            padding: '0.3rem 0.65rem'
+                                          }}
+                                          title="View complete Oracle incident record"
+                                        >
+                                          <Eye size={13} /> View
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Bottom Pagination Bar */}
-                    <div 
-                      style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        flexWrap: 'wrap', 
-                        gap: '1rem', 
-                        marginTop: '1.25rem', 
-                        paddingTop: '1rem', 
-                        borderTop: '1px solid var(--border-color)' 
-                      }}
-                    >
-                      {renderIncidentPageSizeSelect('bottom')}
-                      {renderIncidentPaginationButtons()}
-                    </div>
-                  </div>
-                )}
+                        {/* Bottom Pagination Bar */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem',
+                            marginTop: '1.25rem',
+                            paddingTop: '1rem',
+                            borderTop: '1px solid var(--border-color)'
+                          }}
+                        >
+                          {renderIncidentPageSizeSelect('bottom')}
+                          {renderIncidentPaginationButtons()}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Incident Details Modal (Drawer/Modal View) */}
               {viewingIncident && (
-                <div 
+                <div
                   style={{
                     position: 'fixed',
                     inset: 0,
@@ -3276,7 +3351,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   }}
                   onClick={() => setViewingIncident(null)}
                 >
-                  <div 
+                  <div
                     className="glass-panel"
                     style={{
                       maxWidth: '780px',
@@ -3314,11 +3389,11 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <span className="badge badge-gold" style={{ fontSize: '0.72rem' }}>
                                   {stateVal}
                                 </span>
-                                <span 
-                                  className="badge" 
-                                  style={{ 
-                                    fontSize: '0.72rem', 
-                                    backgroundColor: isViewingTx ? 'rgba(16, 185, 129, 0.12)' : 'rgba(139, 92, 246, 0.12)', 
+                                <span
+                                  className="badge"
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    backgroundColor: isViewingTx ? 'rgba(16, 185, 129, 0.12)' : 'rgba(139, 92, 246, 0.12)',
                                     color: isViewingTx ? '#34D399' : '#A78BFA',
                                     border: isViewingTx ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)',
                                     fontWeight: 600
@@ -3331,7 +3406,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 Oracle Fusion Incident Details
                               </h3>
                             </div>
-                            <button 
+                            <button
                               onClick={() => setViewingIncident(null)}
                               className="btn btn-secondary"
                               style={{ padding: '0.35rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -3352,12 +3427,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Person / Subject</span>
-                                    <div>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}</div>
+                                    <div>{renderPersonOrInfo(getIncidentAttr(viewingIncident, 'incidentInformation'))}</div>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Grouping Value (Expression)</span>
                                     <div style={{ backgroundColor: 'rgba(0,0,0,0.25)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                      {renderIncidentFieldVal(viewingGroupingRaw)}
+                                      {renderFieldVal(viewingGroupingRaw)}
                                     </div>
                                   </div>
                                   {(parsedGrouping.amount || parsedGrouping.date || parsedGrouping.currency || parsedGrouping.personId || parsedGrouping.expenseTypeId) && (
@@ -3402,37 +3477,37 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Group (Result Group)</span>
                                     <strong style={{ fontSize: '0.88rem', color: '#34D399' }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'group'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
                                     </strong>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Type</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(formatControlTypeName(getIncidentAttr(viewingIncident, 'controlType')))}
+                                      {renderFieldVal(formatControlTypeName(getIncidentAttr(viewingIncident, 'controlType')))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Priority</span>
                                     <span className="badge" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Number of Occurrences</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'numberOfOccurrences'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'numberOfOccurrences'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Investigator</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Control Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
                                     </span>
                                   </div>
                                 </div>
@@ -3445,6 +3520,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Version</span>
+                                    <span className="badge" style={{ fontSize: '0.75rem' }}>
+                                      v{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentVersion'))}
+                                    </span>
+                                  </div>
+                                  <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Creation Date</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                                       {formatOracleDate(getIncidentAttr(viewingIncident, 'creationDate'))}
@@ -3453,7 +3534,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3465,7 +3546,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3489,19 +3570,19 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
                                     </span>
                                   </div>
                                 </div>
@@ -3519,25 +3600,25 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User</span>
                                     <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'globalUser'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'globalUser'))}
                                     </strong>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User First Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'userFirstName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>User Last Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'userLastName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Global User ID</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                                      <code>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
+                                      <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'globalUserId'))}</code>
                                     </span>
                                   </div>
                                 </div>
@@ -3552,43 +3633,43 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Role</span>
                                     <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'role'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'role'))}
                                     </strong>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Entitlement</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessEntitlement'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPoint'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Access Point Type</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'accessPointType'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformation'))}
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Incident Information Codes</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--accent-blue)', fontWeight: 600, wordBreak: 'break-all' }}>
-                                      <code>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
+                                      <code>{renderFieldVal(getIncidentAttr(viewingIncident, 'incidentInformationCodes'))}</code>
                                     </span>
                                   </div>
                                   <div style={{ gridColumn: '1 / -1' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Conflicting Roles</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'conflictingRoles'))}
                                     </span>
                                   </div>
                                 </div>
@@ -3602,48 +3683,48 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Result ID</span>
-                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
+                                    <code style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(viewingIncident, 'resultId'))}</code>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Name</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlName'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Control Type</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'controlType'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Priority</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'priority'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'group'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'group'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Investigator</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'investigator'))}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Comments</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'comments') || 'None')}
                                     </span>
                                   </div>
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
                                     <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'attachments') || 'None')}
                                     </span>
                                   </div>
                                 </div>
@@ -3664,7 +3745,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Created By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'createdBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3682,7 +3763,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Last Updated By</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'lastUpdatedBy'))}
                                     </span>
                                   </div>
                                   <div>
@@ -3694,7 +3775,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                                   <div>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Data Source</span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                      {renderIncidentFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
+                                      {renderFieldVal(getIncidentAttr(viewingIncident, 'dataSource'))}
                                     </span>
                                   </div>
                                 </div>
@@ -3707,7 +3788,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                     {/* Modal Footer */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-                      <button 
+                      <button
                         onClick={() => setViewingIncident(null)}
                         className="btn btn-secondary"
                         style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem' }}
@@ -3726,13 +3807,13 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
         <div>
 
           {/* Subsection Description Header Banner */}
-          <div 
-            className="glass-panel" 
-            style={{ 
-              padding: '0.85rem 1.25rem', 
-              marginBottom: '1.5rem', 
-              display: 'flex', 
-              justifyContent: 'space-between', 
+          <div
+            className="glass-panel"
+            style={{
+              padding: '0.85rem 1.25rem',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'center',
               borderLeft: activeSubSection === 'ACCESS' ? '4px solid #3B82F6' : '4px solid #10B981',
               backgroundColor: 'var(--bg-secondary)'
@@ -3743,8 +3824,8 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                 {activeSubSection === 'ACCESS' ? 'Access Controls Domain (Oracle Type 173)' : 'Transaction Controls Domain (Oracle Type 174)'}
               </span>
               <div style={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontWeight: 500, marginTop: '0.15rem' }}>
-                {activeSubSection === 'ACCESS' 
-                  ? 'Controls that govern access to functions, data, roles, and privileges.' 
+                {activeSubSection === 'ACCESS'
+                  ? 'Controls that govern access to functions, data, roles, and privileges.'
                   : 'Controls that monitor sensitive or conflicting business transactions.'}
               </div>
             </div>
@@ -3791,604 +3872,604 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               )}
             </div>
           </div>          {/* 3. Dual Analytics Cards: Left = Controls Posture (Active vs Inactive Donut & KPI Cards), Right = Incident Lifecycle (Donut & Status Cards) */}
-          <div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))', 
-              gap: '1.25rem', 
-              marginBottom: '1.75rem' 
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+              gap: '1.25rem',
+              marginBottom: '1.75rem'
             }}
           >
-          {domainChartView === 'ANALYTICS' ? (
-            <>
-            {/* Analytics Card: Top 10 Users (replaces Posture donut) */}
-            <div
-              className="glass-panel"
-              style={{
-                padding: '1.25rem 1.4rem',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={17} style={{ color: '#1D4ED8' }} />
-                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                  {activeSubSection === 'TRANSACTION' ? 'Top 10 Users / Persons with Most Incidents' : 'Top 10 Users with Most Incidents'}
-                </h4>
-                <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(29, 78, 216, 0.1)', color: '#1D4ED8', border: '1px solid rgba(29, 78, 216, 0.25)', fontWeight: 600 }}>
-                  Top Violators
-                </span>
-              </div>
-              <p style={{ margin: '0.2rem 0 1rem 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Ranked by incident count · {domainScopeCaption}.
-              </p>
-              {domainRankings.loading ? (
-                <div style={{ height: '300px', borderRadius: '10px' }} className="skeleton" />
-              ) : domainRankings.error || !domainRankings.users ? (
-                <div role="alert" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>
-                    {domainRankings.error || 'No data.'}
-                  </p>
-                  <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.4rem 1rem' }} onClick={domainRankings.retry}>
-                    Retry
-                  </button>
-                </div>
-              ) : (
-                <RankedBars bare title={activeSubSection === 'TRANSACTION' ? 'Top 10 Users / Persons with Most Incidents' : 'Top 10 Users with Most Incidents'} subtitle="" items={domainRankings.users} color="#1D4ED8" onSelect={(item) => setRankingSelection({ kind: 'user', item })} selectedLabel={rankingSelection?.kind === 'user' ? rankingSelection.item.label : null} />
-              )}
-            </div>
-            {/* Analytics Card: Top 10 Roles (replaces Incident Status donut) */}
-            <div
-              className="glass-panel"
-              style={{
-                padding: '1.25rem 1.4rem',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Key size={17} style={{ color: '#7C3AED' }} />
-                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                  {activeSubSection === 'TRANSACTION' ? 'Top 10 Incident & Role Types with Most Incidents' : 'Top 10 Roles with Most Incidents'}
-                </h4>
-                <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(124, 58, 237, 0.1)', color: '#7C3AED', border: '1px solid rgba(124, 58, 237, 0.25)', fontWeight: 600 }}>
-                  Top Violators
-                </span>
-              </div>
-              <p style={{ margin: '0.2rem 0 1rem 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Ranked by incident count · {domainScopeCaption}.
-              </p>
-              {domainRankings.loading ? (
-                <div style={{ height: '300px', borderRadius: '10px' }} className="skeleton" />
-              ) : domainRankings.error || !domainRankings.roles ? (
-                <div role="alert" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>
-                    {domainRankings.error || 'No data.'}
-                  </p>
-                  <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.4rem 1rem' }} onClick={domainRankings.retry}>
-                    Retry
-                  </button>
-                </div>
-              ) : (
-                <RankedBars bare title={activeSubSection === 'TRANSACTION' ? 'Top 10 Incident & Role Types with Most Incidents' : 'Top 10 Roles with Most Incidents'} subtitle="" items={domainRankings.roles} color="#7C3AED" onSelect={(item) => setRankingSelection({ kind: 'role', item })} selectedLabel={rankingSelection?.kind === 'role' ? rankingSelection.item.label : null} />
-              )}
-            </div>
-            {rankingSelection && (
-              <RankingDrilldownModal
-                selection={rankingSelection}
-                controlIds={activeSubsectionControls.map((c) => c.id)}
-                scopeCaption={domainScopeCaption}
-                onClose={() => setRankingSelection(null)}
-              />
-            )}
-            </>
-          ) : (
-            <>
-            {/* Left Card: Controls Posture (Active vs Inactive Controls) */}
-            <div 
-              className="glass-panel" 
-              style={{ 
-                padding: '1.25rem 1.4rem', 
-                border: '1px solid var(--border-color)', 
-                backgroundColor: 'var(--bg-secondary)', 
-                borderRadius: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}
-            >
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
-                <div>
+            {domainChartView === 'ANALYTICS' ? (
+              <>
+                {/* Analytics Card: Top 10 Users (replaces Posture donut) */}
+                <div
+                  className="glass-panel"
+                  style={{
+                    padding: '1.25rem 1.4rem',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '10px'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ShieldCheck size={17} style={{ color: '#10B981' }} />
+                    <Users size={17} style={{ color: '#1D4ED8' }} />
                     <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                      {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Posture
+                      {activeSubSection === 'TRANSACTION' ? 'Top 10 Users / Persons with Most Incidents' : 'Top 10 Users with Most Incidents'}
                     </h4>
-                    <span 
-                      className="badge" 
-                      style={{ 
-                        fontSize: '0.72rem', 
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)', 
-                        color: '#10B981', 
-                        border: '1px solid rgba(16, 185, 129, 0.25)', 
-                        fontWeight: 600 
-                      }}
-                    >
-                      Controls Status
+                    <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(29, 78, 216, 0.1)', color: '#1D4ED8', border: '1px solid rgba(29, 78, 216, 0.25)', fontWeight: 600 }}>
+                      Top Violators
                     </span>
                   </div>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                    Active enforcement vs inactive governance controls in domain.
+                  <p style={{ margin: '0.2rem 0 1rem 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Ranked by incident count · {domainScopeCaption}.
                   </p>
-                </div>
-
-                {statusFilter !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter('ALL')}
-                    className="btn btn-secondary"
-                    style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '0.35rem', 
-                      fontSize: '0.74rem', 
-                      padding: '0.22rem 0.55rem',
-                      color: 'var(--accent-gold)',
-                      borderColor: 'var(--accent-gold)'
-                    }}
-                    title="Clear control status filter"
-                  >
-                    <X size={12} /> Clear Filter ({statusFilter})
-                  </button>
-                )}
-              </div>
-
-              {/* Controls Donut + Status Cards */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
-                {/* SVG Donut Chart for Active vs Inactive */}
-                {(() => {
-                  const radius = 45;
-                  const circumference = 2 * Math.PI * radius;
-                  let accOffset = 0;
-                  const activeHovered = hoveredControlStatusKey ? controlStatusStats.items.find(i => i.key === hoveredControlStatusKey) : null;
-
-                  return (
-                    <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
-                      <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
-                        <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
-                        {controlStatusStats.items.map(seg => {
-                          if (seg.pct <= 0) return null;
-                          const dash = (seg.pct / 100) * circumference;
-                          const offset = -accOffset;
-                          accOffset += dash;
-                          const isHovered = hoveredControlStatusKey === seg.key;
-                          const isFiltered = statusFilter === seg.key;
-
-                          return (
-                            <circle
-                              key={seg.key}
-                              cx="60"
-                              cy="60"
-                              r={radius}
-                              fill="none"
-                              stroke={seg.color}
-                              strokeWidth={isHovered ? 16 : 13}
-                              strokeDasharray={`${dash} ${circumference - dash}`}
-                              strokeDashoffset={offset}
-                              style={{
-                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                cursor: 'pointer',
-                                filter: isHovered 
-                                  ? `drop-shadow(0 0 6px ${seg.color})` 
-                                  : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
-                                opacity: hoveredControlStatusKey !== null
-                                  ? (isHovered ? 1 : 0.4)
-                                  : (statusFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
-                              }}
-                              onMouseEnter={() => setHoveredControlStatusKey(seg.key)}
-                              onMouseLeave={() => setHoveredControlStatusKey(null)}
-                              onClick={() => setStatusFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
-                            />
-                          );
-                        })}
-                      </svg>
-
-                      {/* Center Text */}
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          pointerEvents: 'none',
-                          textAlign: 'center'
-                        }}
-                      >
-                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHovered ? activeHovered.color : 'var(--text-primary)', lineHeight: 1.1, transition: 'color 0.2s ease' }}>
-                          {activeHovered ? activeHovered.count : controlStatusStats.total}
-                        </span>
-                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem' }}>
-                          {activeHovered ? activeHovered.label.replace(' Controls', '') : 'Controls'}
-                        </span>
-                      </div>
+                  {domainRankings.loading ? (
+                    <div style={{ height: '300px', borderRadius: '10px' }} className="skeleton" />
+                  ) : domainRankings.error || !domainRankings.users ? (
+                    <div role="alert" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>
+                        {domainRankings.error || 'No data.'}
+                      </p>
+                      <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.4rem 1rem' }} onClick={domainRankings.retry}>
+                        Retry
+                      </button>
                     </div>
-                  );
-                })()}
-
-                {/* Right Column: Active and Inactive Control Tiles */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', flex: 1, minWidth: '220px' }}>
-                  {controlStatusStats.items.map(item => {
-                    const isSelected = statusFilter === item.key;
-                    const isHovered = hoveredControlStatusKey === item.key;
-                    const IconComponent = item.icon;
-
-                    return (
-                      <div
-                        key={item.key}
-                        onClick={() => setStatusFilter(prev => prev === item.key ? 'ALL' : item.key)}
-                        onMouseEnter={() => setHoveredControlStatusKey(item.key)}
-                        onMouseLeave={() => setHoveredControlStatusKey(null)}
-                        style={{
-                          padding: '0.7rem 0.9rem',
-                          backgroundColor: isSelected ? item.bg : (isHovered ? item.bg : 'var(--bg-primary)'),
-                          border: isSelected ? `2px solid ${item.color}` : (isHovered ? `1px solid ${item.color}` : '1px solid var(--border-color)'),
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          boxShadow: isSelected ? `0 0 10px ${item.color}35` : (isHovered ? `0 0 8px ${item.color}30` : 'none')
-                        }}
-                        title={`${item.description} - Click to filter controls`}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <IconComponent size={14} style={{ color: item.color }} />
-                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {item.label}
-                            </span>
-                          </div>
-                          <span 
-                            className="badge" 
-                            style={{ 
-                              fontSize: '0.68rem', 
-                              fontWeight: 600,
-                              backgroundColor: item.bg, 
-                              color: item.color, 
-                              border: `1px solid ${item.border}` 
-                            }}
-                          >
-                            {item.pct.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                            {item.count}
-                          </span>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            {item.description}
-                          </span>
-                        </div>
-
-                        <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.45rem', overflow: 'hidden' }}>
-                          <div 
-                            style={{ 
-                              height: '100%', 
-                              width: `${Math.max(item.pct, item.count > 0 ? 4 : 0)}%`, 
-                              backgroundColor: item.color,
-                              borderRadius: '2px',
-                              transition: 'width 0.4s ease'
-                            }} 
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                  ) : (
+                    <RankedBars bare title={activeSubSection === 'TRANSACTION' ? 'Top 10 Users / Persons with Most Incidents' : 'Top 10 Users with Most Incidents'} subtitle="" items={domainRankings.users} color="#1D4ED8" onSelect={(item) => setRankingSelection({ kind: 'user', item })} selectedLabel={rankingSelection?.kind === 'user' ? rankingSelection.item.label : null} />
+                  )}
                 </div>
-              </div>
-
-              {/* Status Filter Banner */}
-              {statusFilter !== 'ALL' && (
-                <div 
-                  style={{ 
-                    marginTop: '0.85rem', 
-                    padding: '0.45rem 0.75rem', 
-                    backgroundColor: 'rgba(16, 185, 129, 0.08)', 
-                    border: '1px solid rgba(16, 185, 129, 0.25)', 
-                    borderRadius: '6px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    fontSize: '0.78rem', 
-                    color: 'var(--text-primary)' 
+                {/* Analytics Card: Top 10 Roles (replaces Incident Status donut) */}
+                <div
+                  className="glass-panel"
+                  style={{
+                    padding: '1.25rem 1.4rem',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '10px'
                   }}
                 >
-                  <span>
-                    Filtering by control status: <strong>{statusFilter}</strong> ({filteredControls.length} controls)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter('ALL')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#10B981',
-                      textDecoration: 'underline',
-                      fontSize: '0.76rem',
-                      cursor: 'pointer',
-                      fontWeight: 600
-                    }}
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Right Card: Incident Status Analytics & KPI Cards (Donut Pie Chart on Incident Lifecycle: Assigned, Accepted, Remediate, Resolved) */}
-            <div 
-              className="glass-panel" 
-              style={{ 
-                padding: '1.25rem 1.4rem', 
-                border: '1px solid var(--border-color)', 
-                backgroundColor: 'var(--bg-secondary)', 
-                borderRadius: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}
-            >
-              {/* Top Header Row with Chart Title, Subtitle and Clear Filter action */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
-                <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <PieChart size={17} style={{ color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981' }} />
+                    <Key size={17} style={{ color: '#7C3AED' }} />
                     <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                      {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Incident Status
+                      {activeSubSection === 'TRANSACTION' ? 'Top 10 Incident & Role Types with Most Incidents' : 'Top 10 Roles with Most Incidents'}
                     </h4>
+                    <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'rgba(124, 58, 237, 0.1)', color: '#7C3AED', border: '1px solid rgba(124, 58, 237, 0.25)', fontWeight: 600 }}>
+                      Top Violators
+                    </span>
                   </div>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                    Continuous monitoring breakdown across 4 standard lifecycle statuses.
+                  <p style={{ margin: '0.2rem 0 1rem 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Ranked by incident count · {domainScopeCaption}.
                   </p>
-                </div>
-
-                {domainIncidentLifecycleFilter !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setDomainIncidentLifecycleFilter('ALL')}
-                    className="btn btn-secondary"
-                    style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '0.35rem', 
-                      fontSize: '0.74rem', 
-                      padding: '0.22rem 0.55rem',
-                      color: 'var(--accent-gold)',
-                      borderColor: 'var(--accent-gold)'
-                    }}
-                    title="Clear incident status filter"
-                  >
-                    <X size={12} /> Clear Filter ({domainIncidentLifecycleFilter})
-                  </button>
-                )}
-              </div>
-
-              {/* Donut Pie Chart + 4 Lifecycle Status Cards */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
-                {/* Interactive SVG Donut Chart */}
-                {(() => {
-                  const radius = 45;
-                  const circumference = 2 * Math.PI * radius;
-                  let accOffset = 0;
-                  const activeHoveredItem = hoveredDomainLifecycleKey ? domainIncidentStatusStats.items.find(i => i.key === hoveredDomainLifecycleKey) : null;
-
-                  return (
-                    <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
-                      <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
-                        <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
-                        
-                        {domainIncidentStatusStats.items.map(seg => {
-                          if (seg.pct <= 0) return null;
-                          const dash = (seg.pct / 100) * circumference;
-                          const offset = -accOffset;
-                          accOffset += dash;
-                          const isHovered = hoveredDomainLifecycleKey === seg.key;
-                          const isFiltered = domainIncidentLifecycleFilter === seg.key;
-
-                          return (
-                            <circle
-                              key={seg.key}
-                              cx="60"
-                              cy="60"
-                              r={radius}
-                              fill="none"
-                              stroke={seg.color}
-                              strokeWidth={isHovered ? 16 : 13}
-                              strokeDasharray={`${dash} ${circumference - dash}`}
-                              strokeDashoffset={offset}
-                              style={{
-                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                cursor: 'pointer',
-                                filter: isHovered 
-                                  ? `drop-shadow(0 0 6px ${seg.color})` 
-                                  : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
-                                opacity: hoveredDomainLifecycleKey !== null
-                                  ? (isHovered ? 1 : 0.4) 
-                                  : (domainIncidentLifecycleFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
-                              }}
-                              onMouseEnter={() => setHoveredDomainLifecycleKey(seg.key)}
-                              onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
-                              onClick={() => setDomainIncidentLifecycleFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
-                            />
-                          );
-                        })}
-                      </svg>
-
-                      {/* Center Total & Status Label */}
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          pointerEvents: 'none',
-                          textAlign: 'center'
-                        }}
-                      >
-                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHoveredItem ? activeHoveredItem.color : 'var(--text-primary)', lineHeight: 1.1, transition: 'color 0.2s ease' }}>
-                          {activeHoveredItem ? activeHoveredItem.count.toLocaleString() : domainIncidentStatusStats.total.toLocaleString()}
-                        </span>
-                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem', transition: 'color 0.2s ease' }}>
-                          {activeHoveredItem ? activeHoveredItem.label : 'Incidents'}
-                        </span>
-                      </div>
+                  {domainRankings.loading ? (
+                    <div style={{ height: '300px', borderRadius: '10px' }} className="skeleton" />
+                  ) : domainRankings.error || !domainRankings.roles ? (
+                    <div role="alert" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem', fontWeight: 700, margin: '0 0 0.6rem 0' }}>
+                        {domainRankings.error || 'No data.'}
+                      </p>
+                      <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.4rem 1rem' }} onClick={domainRankings.retry}>
+                        Retry
+                      </button>
                     </div>
-                  );
-                })()}
-
-                {/* 4 Lifecycle Status Cards in 2x2 Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.65rem', flex: 1, minWidth: '240px' }}>
-                  {domainIncidentStatusStats.items.map(st => {
-                    const isSelected = domainIncidentLifecycleFilter === st.key;
-                    const isHovered = hoveredDomainLifecycleKey === st.key;
-                    const IconComponent = st.icon;
-
-                    return (
-                      <div
-                        key={st.key}
-                        onClick={() => setDomainIncidentLifecycleFilter(prev => prev === st.key ? 'ALL' : st.key)}
-                        onMouseEnter={() => setHoveredDomainLifecycleKey(st.key)}
-                        onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
-                        style={{
-                          padding: '0.65rem 0.8rem',
-                          backgroundColor: isSelected ? st.bg : (isHovered ? st.bg : 'var(--bg-primary)'),
-                          border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          boxShadow: isSelected ? `0 0 10px ${st.color}35` : (isHovered ? `0 0 8px ${st.color}30` : 'none')
-                        }}
-                        title={`${st.description} - Click to filter controls`}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <IconComponent size={13} style={{ color: st.color }} />
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {st.label}
-                            </span>
-                          </div>
-                          <span 
-                            className="badge" 
-                            style={{ 
-                              fontSize: '0.66rem', 
-                              fontWeight: 600,
-                              backgroundColor: st.bg, 
-                              color: st.color, 
-                              border: `1px solid ${st.border}` 
-                            }}
-                          >
-                            {st.pct.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
-                            {st.count.toLocaleString()}
-                          </span>
-                          {isSelected && (
-                            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: st.color }}>
-                              FILTERED
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ width: '100%', height: '3px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden' }}>
-                          <div 
-                            style={{ 
-                              height: '100%', 
-                              width: `${Math.max(st.pct, st.count > 0 ? 3 : 0)}%`, 
-                              backgroundColor: st.color,
-                              borderRadius: '2px',
-                              transition: 'width 0.4s ease'
-                            }} 
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                  ) : (
+                    <RankedBars bare title={activeSubSection === 'TRANSACTION' ? 'Top 10 Incident & Role Types with Most Incidents' : 'Top 10 Roles with Most Incidents'} subtitle="" items={domainRankings.roles} color="#7C3AED" onSelect={(item) => setRankingSelection({ kind: 'role', item })} selectedLabel={rankingSelection?.kind === 'role' ? rankingSelection.item.label : null} />
+                  )}
                 </div>
-              </div>
-
-              {/* Incident Filter Banner Indicator */}
-              {domainIncidentLifecycleFilter !== 'ALL' && (
-                <div 
-                  style={{ 
-                    marginTop: '0.85rem', 
-                    padding: '0.45rem 0.75rem', 
-                    backgroundColor: 'rgba(59, 130, 246, 0.08)', 
-                    border: '1px solid rgba(59, 130, 246, 0.25)', 
-                    borderRadius: '6px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    fontSize: '0.78rem', 
-                    color: 'var(--text-primary)' 
+                {rankingSelection && (
+                  <RankingDrilldownModal
+                    selection={rankingSelection}
+                    controlIds={activeSubsectionControls.map((c) => c.id)}
+                    scopeCaption={domainScopeCaption}
+                    onClose={() => setRankingSelection(null)}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                {/* Left Card: Controls Posture (Active vs Inactive Controls) */}
+                <div
+                  className="glass-panel"
+                  style={{
+                    padding: '1.25rem 1.4rem',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
                   }}
                 >
-                  <span>
-                    Filtering by incident status: <strong>{domainIncidentLifecycleFilter}</strong> ({filteredControls.length} controls)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setDomainIncidentLifecycleFilter('ALL')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--accent-blue)',
-                      textDecoration: 'underline',
-                      fontSize: '0.76rem',
-                      cursor: 'pointer',
-                      fontWeight: 600
-                    }}
-                  >
-                    Clear
-                  </button>
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ShieldCheck size={17} style={{ color: '#10B981' }} />
+                        <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                          {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Posture
+                        </h4>
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.72rem',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            color: '#10B981',
+                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                            fontWeight: 600
+                          }}
+                        >
+                          Controls Status
+                        </span>
+                      </div>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                        Active enforcement vs inactive governance controls in domain.
+                      </p>
+                    </div>
+
+                    {statusFilter !== 'ALL' && (
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('ALL')}
+                        className="btn btn-secondary"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontSize: '0.74rem',
+                          padding: '0.22rem 0.55rem',
+                          color: 'var(--accent-gold)',
+                          borderColor: 'var(--accent-gold)'
+                        }}
+                        title="Clear control status filter"
+                      >
+                        <X size={12} /> Clear Filter ({statusFilter})
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Controls Donut + Status Cards */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
+                    {/* SVG Donut Chart for Active vs Inactive */}
+                    {(() => {
+                      const radius = 45;
+                      const circumference = 2 * Math.PI * radius;
+                      let accOffset = 0;
+                      const activeHovered = hoveredControlStatusKey ? controlStatusStats.items.find(i => i.key === hoveredControlStatusKey) : null;
+
+                      return (
+                        <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
+                          <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
+                            <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
+                            {controlStatusStats.items.map(seg => {
+                              if (seg.pct <= 0) return null;
+                              const dash = (seg.pct / 100) * circumference;
+                              const offset = -accOffset;
+                              accOffset += dash;
+                              const isHovered = hoveredControlStatusKey === seg.key;
+                              const isFiltered = statusFilter === seg.key;
+
+                              return (
+                                <circle
+                                  key={seg.key}
+                                  cx="60"
+                                  cy="60"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={seg.color}
+                                  strokeWidth={isHovered ? 16 : 13}
+                                  strokeDasharray={`${dash} ${circumference - dash}`}
+                                  strokeDashoffset={offset}
+                                  style={{
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    cursor: 'pointer',
+                                    filter: isHovered
+                                      ? `drop-shadow(0 0 6px ${seg.color})`
+                                      : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
+                                    opacity: hoveredControlStatusKey !== null
+                                      ? (isHovered ? 1 : 0.4)
+                                      : (statusFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
+                                  }}
+                                  onMouseEnter={() => setHoveredControlStatusKey(seg.key)}
+                                  onMouseLeave={() => setHoveredControlStatusKey(null)}
+                                  onClick={() => setStatusFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
+                                />
+                              );
+                            })}
+                          </svg>
+
+                          {/* Center Text */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              pointerEvents: 'none',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHovered ? activeHovered.color : 'var(--text-primary)', lineHeight: 1.1, transition: 'color 0.2s ease' }}>
+                              {activeHovered ? activeHovered.count : controlStatusStats.total}
+                            </span>
+                            <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem' }}>
+                              {activeHovered ? activeHovered.label.replace(' Controls', '') : 'Controls'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Right Column: Active and Inactive Control Tiles */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', flex: 1, minWidth: '220px' }}>
+                      {controlStatusStats.items.map(item => {
+                        const isSelected = statusFilter === item.key;
+                        const isHovered = hoveredControlStatusKey === item.key;
+                        const IconComponent = item.icon;
+
+                        return (
+                          <div
+                            key={item.key}
+                            onClick={() => setStatusFilter(prev => prev === item.key ? 'ALL' : item.key)}
+                            onMouseEnter={() => setHoveredControlStatusKey(item.key)}
+                            onMouseLeave={() => setHoveredControlStatusKey(null)}
+                            style={{
+                              padding: '0.7rem 0.9rem',
+                              backgroundColor: isSelected ? item.bg : (isHovered ? item.bg : 'var(--bg-primary)'),
+                              border: isSelected ? `2px solid ${item.color}` : (isHovered ? `1px solid ${item.color}` : '1px solid var(--border-color)'),
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              boxShadow: isSelected ? `0 0 10px ${item.color}35` : (isHovered ? `0 0 8px ${item.color}30` : 'none')
+                            }}
+                            title={`${item.description} - Click to filter controls`}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <IconComponent size={14} style={{ color: item.color }} />
+                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                  {item.label}
+                                </span>
+                              </div>
+                              <span
+                                className="badge"
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  backgroundColor: item.bg,
+                                  color: item.color,
+                                  border: `1px solid ${item.border}`
+                                }}
+                              >
+                                {item.pct.toFixed(1)}%
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                                {item.count}
+                              </span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                {item.description}
+                              </span>
+                            </div>
+
+                            <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.45rem', overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  height: '100%',
+                                  width: `${Math.max(item.pct, item.count > 0 ? 4 : 0)}%`,
+                                  backgroundColor: item.color,
+                                  borderRadius: '2px',
+                                  transition: 'width 0.4s ease'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Status Filter Banner */}
+                  {statusFilter !== 'ALL' && (
+                    <div
+                      style={{
+                        marginTop: '0.85rem',
+                        padding: '0.45rem 0.75rem',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.78rem',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      <span>
+                        Filtering by control status: <strong>{statusFilter}</strong> ({filteredControls.length} controls)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('ALL')}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#10B981',
+                          textDecoration: 'underline',
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            </>
+
+                {/* Right Card: Incident Status Analytics & KPI Cards (Donut Pie Chart on Incident Lifecycle: Assigned, Accepted, Remediate, Resolved) */}
+                <div
+                  className="glass-panel"
+                  style={{
+                    padding: '1.25rem 1.4rem',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  {/* Top Header Row with Chart Title, Subtitle and Clear Filter action */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.15rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <PieChart size={17} style={{ color: activeSubSection === 'ACCESS' ? '#3B82F6' : '#10B981' }} />
+                        <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                          {activeSubSection === 'ACCESS' ? 'Access' : 'Transaction'} Controls Incident Status
+                        </h4>
+                      </div>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                        Continuous monitoring breakdown across 4 standard lifecycle statuses.
+                      </p>
+                    </div>
+
+                    {domainIncidentLifecycleFilter !== 'ALL' && (
+                      <button
+                        type="button"
+                        onClick={() => setDomainIncidentLifecycleFilter('ALL')}
+                        className="btn btn-secondary"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontSize: '0.74rem',
+                          padding: '0.22rem 0.55rem',
+                          color: 'var(--accent-gold)',
+                          borderColor: 'var(--accent-gold)'
+                        }}
+                        title="Clear incident status filter"
+                      >
+                        <X size={12} /> Clear Filter ({domainIncidentLifecycleFilter})
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Donut Pie Chart + 4 Lifecycle Status Cards */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }}>
+                    {/* Interactive SVG Donut Chart */}
+                    {(() => {
+                      const radius = 45;
+                      const circumference = 2 * Math.PI * radius;
+                      let accOffset = 0;
+                      const activeHoveredItem = hoveredDomainLifecycleKey ? domainIncidentStatusStats.items.find(i => i.key === hoveredDomainLifecycleKey) : null;
+
+                      return (
+                        <div style={{ position: 'relative', width: '135px', height: '135px', flexShrink: 0, margin: '0 auto' }}>
+                          <svg viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', overflow: 'visible' }}>
+                            <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border-color)" strokeWidth={13} opacity={0.5} />
+
+                            {domainIncidentStatusStats.items.map(seg => {
+                              if (seg.pct <= 0) return null;
+                              const dash = (seg.pct / 100) * circumference;
+                              const offset = -accOffset;
+                              accOffset += dash;
+                              const isHovered = hoveredDomainLifecycleKey === seg.key;
+                              const isFiltered = domainIncidentLifecycleFilter === seg.key;
+
+                              return (
+                                <circle
+                                  key={seg.key}
+                                  cx="60"
+                                  cy="60"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={seg.color}
+                                  strokeWidth={isHovered ? 16 : 13}
+                                  strokeDasharray={`${dash} ${circumference - dash}`}
+                                  strokeDashoffset={offset}
+                                  style={{
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    cursor: 'pointer',
+                                    filter: isHovered
+                                      ? `drop-shadow(0 0 6px ${seg.color})`
+                                      : isFiltered ? `drop-shadow(0 0 4px ${seg.color})` : 'none',
+                                    opacity: hoveredDomainLifecycleKey !== null
+                                      ? (isHovered ? 1 : 0.4)
+                                      : (domainIncidentLifecycleFilter !== 'ALL' ? (isFiltered ? 1 : 0.45) : 1)
+                                  }}
+                                  onMouseEnter={() => setHoveredDomainLifecycleKey(seg.key)}
+                                  onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
+                                  onClick={() => setDomainIncidentLifecycleFilter(prev => prev === seg.key ? 'ALL' : seg.key)}
+                                />
+                              );
+                            })}
+                          </svg>
+
+                          {/* Center Total & Status Label */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              pointerEvents: 'none',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: activeHoveredItem ? activeHoveredItem.color : 'var(--text-primary)', lineHeight: 1.1, transition: 'color 0.2s ease' }}>
+                              {activeHoveredItem ? activeHoveredItem.count.toLocaleString() : domainIncidentStatusStats.total.toLocaleString()}
+                            </span>
+                            <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem', transition: 'color 0.2s ease' }}>
+                              {activeHoveredItem ? activeHoveredItem.label : 'Incidents'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 4 Lifecycle Status Cards in 2x2 Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.65rem', flex: 1, minWidth: '240px' }}>
+                      {domainIncidentStatusStats.items.map(st => {
+                        const isSelected = domainIncidentLifecycleFilter === st.key;
+                        const isHovered = hoveredDomainLifecycleKey === st.key;
+                        const IconComponent = st.icon;
+
+                        return (
+                          <div
+                            key={st.key}
+                            onClick={() => setDomainIncidentLifecycleFilter(prev => prev === st.key ? 'ALL' : st.key)}
+                            onMouseEnter={() => setHoveredDomainLifecycleKey(st.key)}
+                            onMouseLeave={() => setHoveredDomainLifecycleKey(null)}
+                            style={{
+                              padding: '0.65rem 0.8rem',
+                              backgroundColor: isSelected ? st.bg : (isHovered ? st.bg : 'var(--bg-primary)'),
+                              border: isSelected ? `2px solid ${st.color}` : (isHovered ? `1px solid ${st.color}` : '1px solid var(--border-color)'),
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              boxShadow: isSelected ? `0 0 10px ${st.color}35` : (isHovered ? `0 0 8px ${st.color}30` : 'none')
+                            }}
+                            title={`${st.description} - Click to filter controls`}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <IconComponent size={13} style={{ color: st.color }} />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                  {st.label}
+                                </span>
+                              </div>
+                              <span
+                                className="badge"
+                                style={{
+                                  fontSize: '0.66rem',
+                                  fontWeight: 600,
+                                  backgroundColor: st.bg,
+                                  color: st.color,
+                                  border: `1px solid ${st.border}`
+                                }}
+                              >
+                                {st.pct.toFixed(1)}%
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-header)' }}>
+                                {st.count.toLocaleString()}
+                              </span>
+                              {isSelected && (
+                                <span style={{ fontSize: '0.62rem', fontWeight: 700, color: st.color }}>
+                                  FILTERED
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ width: '100%', height: '3px', backgroundColor: 'var(--border-color)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  height: '100%',
+                                  width: `${Math.max(st.pct, st.count > 0 ? 3 : 0)}%`,
+                                  backgroundColor: st.color,
+                                  borderRadius: '2px',
+                                  transition: 'width 0.4s ease'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Incident Filter Banner Indicator */}
+                  {domainIncidentLifecycleFilter !== 'ALL' && (
+                    <div
+                      style={{
+                        marginTop: '0.85rem',
+                        padding: '0.45rem 0.75rem',
+                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.78rem',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      <span>
+                        Filtering by incident status: <strong>{domainIncidentLifecycleFilter}</strong> ({filteredControls.length} controls)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDomainIncidentLifecycleFilter('ALL')}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--accent-blue)',
+                          textDecoration: 'underline',
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
           {/* 4. Toolbar: Search, Filters, Columns Customizer, Enterprise Export */}
-          <div 
-            className="glass-panel" 
-            style={{ 
-              padding: '1rem', 
-              marginBottom: '1.25rem', 
-              display: 'flex', 
-              gap: '0.85rem', 
-              flexWrap: 'wrap', 
-              alignItems: 'center' 
+          <div
+            className="glass-panel"
+            style={{
+              padding: '1rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              gap: '0.85rem',
+              flexWrap: 'wrap',
+              alignItems: 'center'
             }}
           >
             {/* Search Input - scoped strictly to selected subsection */}
             <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-              <Search 
-                size={16} 
-                style={{ 
-                  position: 'absolute', 
-                  left: '0.75rem', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  color: 'var(--text-muted)' 
-                }} 
+              <Search
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)'
+                }}
               />
               <input
                 id="control-search-input"
@@ -4739,10 +4820,10 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
           </div>
 
           {/* 5. Control Table with Horizontal Scroll Support */}
-          <div 
-            className="table-container" 
-            style={{ 
-              margin: 0, 
+          <div
+            className="table-container"
+            style={{
+              margin: 0,
               overflowX: 'auto',
               borderRadius: '8px',
               border: '1px solid var(--border-color)',
@@ -4753,7 +4834,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
               <thead>
                 <tr>
                   {visibleColumnKeys.has('id') && (
-                    <th 
+                    <th
                       style={{ width: '110px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('id')}
                       title="Sort by Control ID"
@@ -4766,7 +4847,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('name') && (
-                    <th 
+                    <th
                       style={{ minWidth: '280px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('name')}
                       title="Sort by Control Name"
@@ -4791,7 +4872,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('status') && (
-                    <th 
+                    <th
                       style={{ width: '110px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('status')}
                       title="Sort by Status"
@@ -4803,20 +4884,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                     </th>
                   )}
 
-                  {visibleColumnKeys.has('statusId') && (
-                    <th style={{ width: '95px', whiteSpace: 'nowrap' }}>Status ID</th>
-                  )}
-
                   {visibleColumnKeys.has('state') && (
                     <th style={{ width: '110px', whiteSpace: 'nowrap' }}>State</th>
                   )}
 
-                  {visibleColumnKeys.has('stateCode') && (
-                    <th style={{ width: '110px', whiteSpace: 'nowrap' }}>State Code</th>
-                  )}
-
                   {visibleColumnKeys.has('incidentCount') && (
-                    <th 
+                    <th
                       style={{ width: '140px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('incidentCount')}
                       title="Sort by Count of Incidents"
@@ -4829,7 +4902,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('lastRunDate') && (
-                    <th 
+                    <th
                       style={{ width: '130px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('lastRunDate')}
                       title="Sort by Last Run Date"
@@ -4842,7 +4915,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                   )}
 
                   {visibleColumnKeys.has('lastUpdateDate') && (
-                    <th 
+                    <th
                       style={{ width: '130px', whiteSpace: 'nowrap', cursor: 'pointer' }}
                       onClick={() => handleSortClick('lastUpdateDate')}
                       title="Sort by Last Update Date"
@@ -4856,6 +4929,10 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                   {visibleColumnKeys.has('createdBy') && (
                     <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Created By</th>
+                  )}
+
+                  {visibleColumnKeys.has('creationDate') && (
+                    <th style={{ width: '130px', whiteSpace: 'nowrap' }}>Creation Date</th>
                   )}
 
                   {visibleColumnKeys.has('lastUpdatedBy') && (
@@ -4896,9 +4973,9 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                         {visibleColumnKeys.has('name') && (
                           <td style={{ minWidth: '320px', maxWidth: controlWrapText ? '600px' : '400px' }}>
-                            <div 
-                              style={{ 
-                                fontWeight: 600, 
+                            <div
+                              style={{
+                                fontWeight: 600,
                                 color: 'var(--text-primary)',
                                 whiteSpace: controlWrapText ? 'normal' : 'nowrap',
                                 wordBreak: 'break-word',
@@ -4912,18 +4989,18 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                             </div>
                             {/* If description column is hidden, show hint under name with tooltip */}
                             {!visibleColumnKeys.has('description') && ctrl.description && (
-                              <div 
-                                style={{ 
-                                  fontSize: '0.75rem', 
-                                  color: 'var(--text-muted)', 
-                                  marginTop: '0.25rem', 
-                                  whiteSpace: controlWrapText ? 'normal' : 'nowrap', 
-                                  overflow: controlWrapText ? 'visible' : 'hidden', 
-                                  textOverflow: controlWrapText ? 'clip' : 'ellipsis', 
+                              <div
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color: 'var(--text-muted)',
+                                  marginTop: '0.25rem',
+                                  whiteSpace: controlWrapText ? 'normal' : 'nowrap',
+                                  overflow: controlWrapText ? 'visible' : 'hidden',
+                                  textOverflow: controlWrapText ? 'clip' : 'ellipsis',
                                   wordBreak: 'break-word',
                                   maxWidth: controlWrapText ? '580px' : '380px',
                                   lineHeight: 1.35
-                                }} 
+                                }}
                                 title={ctrl.description}
                               >
                                 {ctrl.description}
@@ -4933,21 +5010,21 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                         )}
 
                         {visibleColumnKeys.has('description') && (
-                          <td style={{ 
-                            fontSize: '0.8rem', 
-                            color: 'var(--text-secondary)', 
+                          <td style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
                             minWidth: '320px',
                             maxWidth: controlWrapText ? '600px' : '450px',
                             whiteSpace: controlWrapText ? 'normal' : 'nowrap'
                           }}>
-                            <div 
-                              style={{ 
-                                whiteSpace: controlWrapText ? 'normal' : 'nowrap', 
-                                overflow: controlWrapText ? 'visible' : 'hidden', 
-                                textOverflow: controlWrapText ? 'clip' : 'ellipsis', 
+                            <div
+                              style={{
+                                whiteSpace: controlWrapText ? 'normal' : 'nowrap',
+                                overflow: controlWrapText ? 'visible' : 'hidden',
+                                textOverflow: controlWrapText ? 'clip' : 'ellipsis',
                                 wordBreak: 'break-word',
                                 lineHeight: 1.45
-                              }} 
+                              }}
                               title={ctrl.description || ''}
                             >
                               {renderFieldVal(ctrl.description)}
@@ -4963,7 +5040,7 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                         {visibleColumnKeys.has('type') && (
                           <td style={{ whiteSpace: 'nowrap' }}>
-                            <span 
+                            <span
                               className="badge"
                               style={{
                                 fontSize: '0.72rem',
@@ -4985,18 +5062,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
 
                         {visibleColumnKeys.has('status') && (
                           <td style={{ whiteSpace: 'nowrap' }}>
-                            <span 
-                              className={`badge ${(ctrl.status || '').toUpperCase() === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`} 
+                            <span
+                              className={`badge ${(ctrl.status || '').toUpperCase() === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`}
                               style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}
                             >
                               {ctrl.status || 'ACTIVE'}
                             </span>
-                          </td>
-                        )}
-
-                        {visibleColumnKeys.has('statusId') && (
-                          <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                            {renderFieldVal(ctrl.statusId)}
                           </td>
                         )}
 
@@ -5008,21 +5079,15 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                           </td>
                         )}
 
-                        {visibleColumnKeys.has('stateCode') && (
-                          <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                            {renderFieldVal(ctrl.stateCode || ctrl.state)}
-                          </td>
-                        )}
-
                         {visibleColumnKeys.has('incidentCount') && (
                           <td style={{ whiteSpace: 'nowrap' }}>
                             {ctrl.incidentCount !== undefined && ctrl.incidentCount !== null ? (
-                              <span 
-                                style={{ 
-                                  fontWeight: 700, 
+                              <span
+                                style={{
+                                  fontWeight: 700,
                                   fontSize: '0.85rem',
                                   whiteSpace: 'nowrap',
-                                  color: ctrl.incidentCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)' 
+                                  color: ctrl.incidentCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)'
                                 }}
                               >
                                 {Number(ctrl.incidentCount).toLocaleString()}
@@ -5057,6 +5122,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                           </td>
                         )}
 
+                        {visibleColumnKeys.has('creationDate') && (
+                          <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {formatOracleDate(ctrl.creationDate)}
+                          </td>
+                        )}
+
                         {visibleColumnKeys.has('lastUpdatedBy') && (
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             {renderFieldVal(ctrl.lastUpdatedBy)}
@@ -5068,12 +5139,12 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
                             id={`btn-details-${ctrl.id}`}
                             onClick={() => handleOpenDetail(ctrl.id)}
                             className="btn btn-secondary"
-                            style={{ 
-                              padding: '0.3rem 0.65rem', 
-                              fontSize: '0.75rem', 
-                              display: 'inline-flex', 
-                              alignItems: 'center', 
-                              gap: '0.3rem' 
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              fontSize: '0.75rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
                             }}
                           >
                             <Eye size={13} />

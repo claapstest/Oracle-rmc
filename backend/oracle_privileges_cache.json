@@ -68586,16 +68586,16 @@
       },
       "message": "Security role \"DEL View Secured Custom HelpJOB\" with 89 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1795148774462
+    "timestamp": 1795415162000
   },
   "role_privileges:del_per_employee_agent_job": {
     "data": {
       "success": true,
       "dataSource": "Oracle Database (Role Hierarchy Report)",
-      "roleName": "DEL View Secured Custom HelpJOB",
+      "roleName": "Deloitte Employee Agent Test",
       "roleCode": "DEL_PER_EMPLOYEE_AGENT_JOB",
       "role": {
-        "name": "DEL View Secured Custom HelpJOB",
+        "name": "Deloitte Employee Agent Test",
         "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
         "category": "Job"
       },
@@ -68604,535 +68604,535 @@
           "name": "Absence Entry Using Calendar",
           "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
           "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access FUSE Directory Page",
           "code": "PER_FUSE_DIRECTORY_PRIV",
           "description": "Allows access to the FUSE directory page.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access FUSE Performance and Career Planning Page",
           "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
           "description": "Allows access to the FUSE performance and career planning page.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access FUSE Personal Information Page",
           "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
           "description": "Allows access to the FUSE personal information page.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access HCM Common Components",
           "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
           "description": "Allows access to HCM common components.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Intelligent Agent Chat",
           "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
           "description": "Allows access to the intelligent agent chat component.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Internal Candidate Experience",
           "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
           "description": "Allows to access internal career site.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Knowledge from HCM",
           "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
           "description": "Allows accessing knowledge articles from HCM pages.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Learner Self-Service Work Area",
           "code": "WLF_ACCESS_LEARNER_PRIV",
           "description": "Allows access to the My Learning tab in the learning self-service work area.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access My Career and Performance",
           "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
           "description": "Allows access to My Career and Performance page.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access My Communications",
           "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
           "description": "Allows to access the my communications area.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access My Pay",
           "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
           "description": "Allows access to My Pay page",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access My Time and Absences",
           "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
           "description": "Allows users to access the Time and Absences landing page under Me.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
           "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
           "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Oracle Taleo Recruiting Cloud Service",
           "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
           "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Person Spotlight",
           "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
           "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Quick Actions",
           "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
           "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access Tap Application",
           "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
           "description": "Allows access to Tap application.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Access What to Learn",
           "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
           "description": "Allows access to the What to Learn tab in learning self-service work area.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Align Performance Goals",
           "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
           "description": "Allows aligning of performance goals.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Approve Transactions",
           "code": "PER_APPROVE_TRANSACTIONS_PRIV",
           "description": "Allows ability to approve transactions",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Cancel Performance Goals",
           "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
           "description": "Allows performance goals to be cancelled.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Claim Shifts",
           "code": "HTS_CLAIM_SHIFTS_PRIV",
           "description": "Allows workers to view and claim open shifts",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Copy Development Goals",
           "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
           "description": "Allows copying of development goals.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Copy Performance Goals",
           "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
           "description": "Allows copying of performance goals.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Cover Shift",
           "code": "HTS_COVER_SHIFT_PRIV",
           "description": "Allows workers to request cover for their scheduled shifts",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Create Non-Catalog Learning Requests by Learner",
           "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
           "description": "Allows a non-catalog learning request to be initiated by learner",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Create Service Request from HCM",
           "code": "PER_CREATE_SR_FROM_HCM_PRIV",
           "description": "Allows the creation of service requests from HCM pages.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Delete Development Goals",
           "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
           "description": "Allow development goals to be deleted.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Delete Performance Goals",
           "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
           "description": "Allow performance goals to be deleted.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Download Desktop Integrator",
           "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
           "description": "Allows to download and install Desktop Integrator.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Drop Shift",
           "code": "HTS_DROP_SHIFT_PRIV",
           "description": "Allows workers to drop their scheduled shifts",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Extend Performance Goals",
           "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
           "description": "Allows performance goals to be extended to another goal plan.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Give Anytime Feedback",
           "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
           "description": "Allows a user to give anytime feedback.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Launch Oracle Social Network",
           "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
           "description": "Allows to launch the Oracle Social Network application.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Data Visualization Preference",
           "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
           "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Favorite Colleagues",
           "code": "HRG_MANAGE_COLLEAGUES_PRIV",
           "description": "Allows management of favorite colleagues identified by users for career guidance.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Goal Management Notifications",
           "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
           "description": "Manage Goal Management Notifications",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Mentorship",
           "code": "HWR_MENTORSHIP_EE_PRIV",
           "description": "Manage mentorship",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Contact Information Mobile",
           "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
           "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Documents Mobile",
           "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
           "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Personal Information Mobile",
           "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
           "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Portrait Work Area",
           "code": "PER_VIEW_MY_PORTRAIT_PRIV",
           "description": "Allows access to the My Portrait work area.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Welcome Tab",
           "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
           "description": "Allows management of Welcome page.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Wellness",
           "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
           "description": "Allows management of employee&apos;s own wellness.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage My Wellness Team",
           "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
           "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Own HCM Channel Messages",
           "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
           "description": "Allows a user to manage their own messages in HCM Channel Messages",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Person Allocated Checklist by Worker",
           "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
           "description": "Allows a worker to manage their own allocated checklists.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Reports and Analytics",
           "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
           "description": "Allows access to the Reports and Analytics from Navigator Menu.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Reputation Overview",
           "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
           "description": "Manage reputation overview",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Reputation Scores",
           "code": "HWR_REPUTATION_EE_PRIV",
           "description": "Manage reputation scores",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Scheduled Processes",
           "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
           "description": "Allows management of Scheduled Processes.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Social Roles",
           "code": "HWR_SOCIAL_ROLES_EE_PRIV",
           "description": "Manage social roles",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Volunteering",
           "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
           "description": "Allows employees to manage own volunteering activities",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Manage Webcenter Services",
           "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
           "description": "Allows management of Webcenter Services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Move Performance Goals",
           "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
           "description": "Allows performance goals to be moved to another goal plan.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Print Learning Completion Certificate",
           "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
           "description": "Allows access to learning completion certificate templates",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Record External Learning by Learner",
           "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
           "description": "Allows to record external learning completion by learner",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Record and View Issue",
           "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
           "description": "Allows recording of issues and viewing of information about the recordings.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Report Time by Web Clock",
           "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
           "description": "Allows the worker to report time within a web clock.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Request Deletion of Time Entries",
           "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
           "description": "Allows workers to request deletion of time entries.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Run Talent Profile Summary Report",
           "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
           "description": "Allows running of talent profile summary report.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Share Development Goals",
           "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
           "description": "Allows development goals to be shared with other workers.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Share Performance Goals",
           "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
           "description": "Allows performance goals to be shared with other workers.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Swap Shift",
           "code": "HTS_SWAP_SHIFT_PRIV",
           "description": "Allows workers to swap their scheduled shifts",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Activity Summaries",
           "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
           "description": "Allows users to manage wellness activities through Activity REST service",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Address Lists of Values",
           "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
           "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Content Items List of Values",
           "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
           "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Individual Compensation Lists of Values",
           "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
           "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Job Families List of Values",
           "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
           "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Model Profiles List of Values",
           "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
           "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Questionnaire Lists of Values",
           "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
           "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Scheduling Lists of Values",
           "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
           "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Time Card Lists of Values",
           "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
           "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Users and Roles Lists of Values",
           "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
           "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Volunteering Lists of Values",
           "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
           "description": "Allows access to Volunteering REST LOV services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Wellness Lists of Values",
           "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
           "description": "Allows access to Wellness REST LOV services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use REST Service - Workforce Reputation Lists of Values",
           "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
           "description": "Allows access to WorkforceReputation REST LOV services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Use Time Card Templates",
           "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
           "description": "Lets the worker use templates when entering their time cards.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Validate Project Time and Labor Time Card",
           "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
           "description": "Allows access to the web service that validates project attributes on time cards.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Calendar by Worker",
           "code": "HWM_FUSE_TIME_PRIV",
           "description": "Allows worker to view calendar.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Employee Common Setup Data",
           "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
           "description": "Allows viewing of common setup data by an employee.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Notification Details",
           "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
           "description": "Allows product specific notification details.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Search Results of Jobs Posted Internally",
           "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
           "description": "Allows to search for jobs posted internally and view search results.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Skill Recommendations",
           "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
           "description": "Allows the user to view and select application-generated skill recommendations.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Team Schedule by Worker",
           "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
           "description": "Allows worker to view team schedule.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Time by Calendar",
           "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
           "description": "Allows view of personal schedule in time calendar.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "View Trading Community Common Setup",
           "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
           "description": "Allows viewing of common setup data through web services.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         },
         {
           "name": "Workforce Reputation Subscription User",
           "code": "HWR_WRSA_USER_PRIV",
           "description": "Allows access to the Workforce Reputation Subscription Application features.",
-          "inheritedFrom": "DEL View Secured Custom HelpJOB"
+          "inheritedFrom": "Deloitte Employee Agent Test"
         }
       ],
       "inheritedPrivileges": [],
@@ -69143,13 +69143,13 @@
         "inheritedPrivileges": 0
       },
       "briefingRaw": {
-        "roleSummary": "Security role \"DEL View Secured Custom HelpJOB\" (DEL_PER_EMPLOYEE_AGENT_JOB) with 89 functional privileges retrieved from authoritative database role hierarchy.",
-        "roleUsage": "2 inherited child duty roles",
+        "roleSummary": "Security role \"Deloitte Employee Agent Test\" (DEL_PER_EMPLOYEE_AGENT_JOB) with 89 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "183 inherited child duty roles",
         "privileges": ""
       },
-      "message": "Security role \"DEL View Secured Custom HelpJOB\" with 89 functional privileges retrieved directly from database role hierarchy."
+      "message": "Security role \"Deloitte Employee Agent Test\" with 89 functional privileges retrieved directly from database role hierarchy."
     },
-    "timestamp": 1795148774503
+    "timestamp": 1795423089702
   },
   "role_privileges:application implementation consultant": {
     "data": {
@@ -70714,5 +70714,3407 @@
       "message": "Security role \"Claaps Risk Administrator\" with 4 functional privileges retrieved directly from database role hierarchy."
     },
     "timestamp": 1794826231071
+  },
+  "role_privileges:view secured custom help custom": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "View Secured Custom Help Custom",
+      "roleCode": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+      "role": {
+        "name": "View Secured Custom Help Custom",
+        "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 84,
+        "directPrivileges": 84,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"View Secured Custom Help Custom\" (AK_PER_EMPLOYEE_ABSTRACT_CUSTOM) with 84 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "3 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"View Secured Custom Help Custom\" with 84 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1795415171517
+  },
+  "role_privileges:ak_per_employee_abstract_custom": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "View Secured Custom Help Custom",
+      "roleCode": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+      "role": {
+        "name": "View Secured Custom Help Custom",
+        "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        },
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "View Secured Custom Help Custom"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 84,
+        "directPrivileges": 84,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"View Secured Custom Help Custom\" (AK_PER_EMPLOYEE_ABSTRACT_CUSTOM) with 84 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "3 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"View Secured Custom Help Custom\" with 84 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1795415171546
+  },
+  "role_privileges:del view secured help contentjob": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "DEL View Secured Help ContentJOB",
+      "roleCode": "DEL_PER_EMPLOYEE_AGENT_JOB",
+      "role": {
+        "name": "DEL View Secured Help ContentJOB",
+        "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access My Communications",
+          "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
+          "description": "Allows to access the my communications area.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+          "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
+          "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Request Deletion of Time Entries",
+          "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
+          "description": "Allows workers to request deletion of time entries.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Activity Summaries",
+          "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
+          "description": "Allows users to manage wellness activities through Activity REST service",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Employee Common Setup Data",
+          "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
+          "description": "Allows viewing of common setup data by an employee.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "DEL View Secured Help ContentJOB"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 89,
+        "directPrivileges": 89,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"DEL View Secured Help ContentJOB\" (DEL_PER_EMPLOYEE_AGENT_JOB) with 89 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "2 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"DEL View Secured Help ContentJOB\" with 89 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1795423076433
+  },
+  "role_privileges:deloitte employee agent test": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "Deloitte Employee Agent Test",
+      "roleCode": "DEL_PER_EMPLOYEE_AGENT_JOB",
+      "role": {
+        "name": "Deloitte Employee Agent Test",
+        "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Intelligent Agent Chat",
+          "code": "HRC_ACCESS_AI_AGENT_CHAT_PRIV",
+          "description": "Allows access to the intelligent agent chat component.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access My Communications",
+          "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
+          "description": "Allows to access the my communications area.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+          "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
+          "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Request Deletion of Time Entries",
+          "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
+          "description": "Allows workers to request deletion of time entries.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Activity Summaries",
+          "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
+          "description": "Allows users to manage wellness activities through Activity REST service",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Employee Common Setup Data",
+          "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
+          "description": "Allows viewing of common setup data by an employee.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "Deloitte Employee Agent Test"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 89,
+        "directPrivileges": 89,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"Deloitte Employee Agent Test\" (DEL_PER_EMPLOYEE_AGENT_JOB) with 89 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "183 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"Deloitte Employee Agent Test\" with 89 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1795423089677
+  },
+  "role_privileges:view secured custom help": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "View Secured Custom Help",
+      "roleCode": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+      "role": {
+        "name": "View Secured Custom Help",
+        "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Communications",
+          "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
+          "description": "Allows to access the my communications area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Request Deletion of Time Entries",
+          "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
+          "description": "Allows workers to request deletion of time entries.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+          "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
+          "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Activity Summaries",
+          "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
+          "description": "Allows users to manage wellness activities through Activity REST service",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Employee Common Setup Data",
+          "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
+          "description": "Allows viewing of common setup data by an employee.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Define Absence Plans",
+          "code": "BEN_MANAGE_ABSENCE_PLANS_PRIV",
+          "description": "Allows configuration and management of manage absence plans",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Absence Entitlement Band",
+          "code": "BEN_MANAGE_ABSENCE_ENTITLEMENT_BAND_PRIV",
+          "description": "Allows configuration and management of absence entitlement bands",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Absence Entries",
+          "code": "ANC_MANAGE_ABSENCE_ENTRIES_PRIV",
+          "description": "Allows creation, deletion, and updating of absence entries.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Benefit Eligibility Profile",
+          "code": "BEN_MANAGE_BENEFIT_ELIGIBLITY_PROFILE_PRIV",
+          "description": "Allows configuration and management of eligibility profiles.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Benefit Participant Enrollment Certification",
+          "code": "BEN_MANAGE_BENEFIT_PARTICIPANT_ENROLLMENT_CERTIFICATION_PRIV",
+          "description": "Allows management of benefit participant enrollment certification.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Life Event Reason",
+          "code": "BEN_MANAGE_LIFE_EVENT_REASON_PRIV",
+          "description": "Allows benefit professionals to manage benefit life events.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Person Eligibility Derived Factor",
+          "code": "BEN_MANAGE_PERSON_ELIGIBILITY_DERIVED_FACTOR_PRIV",
+          "description": "Allows benefit professionals to manage person derived eligibility factors.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Run Participation Process Absence",
+          "code": "BEN_RUN_PARTICIPATION_PROCESS_ABSENCE_PRIV",
+          "description": "Allows benefit professionals to evaluate absence events.",
+          "inheritedFrom": "View Secured Custom Help"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 96,
+        "directPrivileges": 96,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"View Secured Custom Help\" (ORA_PER_CONTINGENT_WORKER_ABSTRACT) with 96 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "7 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"View Secured Custom Help\" with 96 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1795423171892
+  },
+  "role_privileges:ora_per_contingent_worker_abstract": {
+    "data": {
+      "success": true,
+      "dataSource": "Oracle Database (Role Hierarchy Report)",
+      "roleName": "View Secured Custom Help",
+      "roleCode": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+      "role": {
+        "name": "View Secured Custom Help",
+        "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+        "category": "Job"
+      },
+      "privileges": [
+        {
+          "name": "Absence Entry Using Calendar",
+          "code": "ANC_ABSENCE_ENTRY_VIA_CALENDAR_PRIV",
+          "description": "Allows the button Schedule Absence in the TIME work area to be secured.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access FUSE Directory Page",
+          "code": "PER_FUSE_DIRECTORY_PRIV",
+          "description": "Allows access to the FUSE directory page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access FUSE Performance and Career Planning Page",
+          "code": "HRT_FUSE_PERFORMANCE_AND_CAREER_PLANNING_PRIV",
+          "description": "Allows access to the FUSE performance and career planning page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access FUSE Personal Information Page",
+          "code": "PER_FUSE_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows access to the FUSE personal information page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access HCM Common Components",
+          "code": "HRC_ACCESS_HCM_COMMON_COMPONENTS_PRIV",
+          "description": "Allows access to HCM common components.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Internal Candidate Experience",
+          "code": "IRC_ACCESS_INTERNAL_CANDIDATE_EXPERIENCE_PRIV",
+          "description": "Allows to access internal career site.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Knowledge from HCM",
+          "code": "PER_ACCESS_KM_FROM_HCM_PRIV",
+          "description": "Allows accessing knowledge articles from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Learner Self-Service Work Area",
+          "code": "WLF_ACCESS_LEARNER_PRIV",
+          "description": "Allows access to the My Learning tab in the learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Career and Performance",
+          "code": "HRT_ACCESS_MY_CAREER_AND_PERFORMANCE_PRIV",
+          "description": "Allows access to My Career and Performance page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Communications",
+          "code": "IRC_ACCESS_MY_COMMUNICATIONS_PRIV",
+          "description": "Allows to access the my communications area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Pay",
+          "code": "PAY_ACCESS_MY_PAYROLL_PRIV",
+          "description": "Allows access to My Pay page",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Time and Absences",
+          "code": "HWM_ACCESS_MY_TIME_AND_ABSENCES_PRIV",
+          "description": "Allows users to access the Time and Absences landing page under Me.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Person Spotlight",
+          "code": "PER_ACCESS_PERSON_SPOTLIGHT_PRIV",
+          "description": "Access the person spotlight to view details of your own or another person&apos;s HCM profile such as employment details.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Quick Actions",
+          "code": "PER_ACCESS_QUICK_ACTIONS_PRIV",
+          "description": "Provides function access to the Quick Actions page where users can easily see and initiate all actions available to them.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access What to Learn",
+          "code": "WLF_ACCESS_WHAT_TO_LEARN_PRIV",
+          "description": "Allows access to the What to Learn tab in learning self-service work area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Align Performance Goals",
+          "code": "HRG_ALIGN_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows aligning of performance goals.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Approve Transactions",
+          "code": "PER_APPROVE_TRANSACTIONS_PRIV",
+          "description": "Allows ability to approve transactions",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Cancel Performance Goals",
+          "code": "HRG_CANCEL_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be cancelled.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Claim Shifts",
+          "code": "HTS_CLAIM_SHIFTS_PRIV",
+          "description": "Allows workers to view and claim open shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Copy Development Goals",
+          "code": "HRG_COPY_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows copying of development goals.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Copy Performance Goals",
+          "code": "HRG_COPY_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows copying of performance goals.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Cover Shift",
+          "code": "HTS_COVER_SHIFT_PRIV",
+          "description": "Allows workers to request cover for their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Create Service Request from HCM",
+          "code": "PER_CREATE_SR_FROM_HCM_PRIV",
+          "description": "Allows the creation of service requests from HCM pages.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Delete Development Goals",
+          "code": "HRG_DELETE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allow development goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Delete Performance Goals",
+          "code": "HRG_DELETE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allow performance goals to be deleted.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Download Desktop Integrator",
+          "code": "ATK_DOWNLOAD_DESKTOP_INTEGRATOR_PRIV",
+          "description": "Allows to download and install Desktop Integrator.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Drop Shift",
+          "code": "HTS_DROP_SHIFT_PRIV",
+          "description": "Allows workers to drop their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Extend Performance Goals",
+          "code": "HRG_EXTEND_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be extended to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Give Anytime Feedback",
+          "code": "HRT_GIVE_ANYTIME_FEEDBACK_PRIV",
+          "description": "Allows a user to give anytime feedback.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Launch Oracle Social Network",
+          "code": "FND_LAUNCH_ORACLE_SOCIAL_NETWORK_PRIV",
+          "description": "Allows to launch the Oracle Social Network application.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Favorite Colleagues",
+          "code": "HRG_MANAGE_COLLEAGUES_PRIV",
+          "description": "Allows management of favorite colleagues identified by users for career guidance.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Goal Management Notifications",
+          "code": "HRG_GOAL_MANAGEMENT_NOTIFICATIONS_PRIV",
+          "description": "Manage Goal Management Notifications",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Mentorship",
+          "code": "HWR_MENTORSHIP_EE_PRIV",
+          "description": "Manage mentorship",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Portrait Work Area",
+          "code": "PER_VIEW_MY_PORTRAIT_PRIV",
+          "description": "Allows access to the My Portrait work area.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Welcome Tab",
+          "code": "ATK_MANAGE_MY_WELCOME_TAB_PRIV",
+          "description": "Allows management of Welcome page.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Own HCM Channel Messages",
+          "code": "HRT_MANAGE_OWN_HCM_CHANNEL_MESSAGES_PRIV",
+          "description": "Allows a user to manage their own messages in HCM Channel Messages",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Person Allocated Checklist by Worker",
+          "code": "PER_MANAGE_PERSON_ALLOCATED_CHECKLIST_BY_WORKER_PRIV",
+          "description": "Allows a worker to manage their own allocated checklists.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Reports and Analytics",
+          "code": "ATK_MANAGE_REPORTS_AND_ANALYTICS_PRIV",
+          "description": "Allows access to the Reports and Analytics from Navigator Menu.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Reputation Overview",
+          "code": "HWR_REPUTATION_DASHBOARD_EE_PRIV",
+          "description": "Manage reputation overview",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Reputation Scores",
+          "code": "HWR_REPUTATION_EE_PRIV",
+          "description": "Manage reputation scores",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Scheduled Processes",
+          "code": "FND_MANAGE_SCHEDULED_PROCESSES_PRIV",
+          "description": "Allows management of Scheduled Processes.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Social Roles",
+          "code": "HWR_SOCIAL_ROLES_EE_PRIV",
+          "description": "Manage social roles",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Webcenter Services",
+          "code": "FND_MANAGE_WEBCENTER_SERVICES_PRIV",
+          "description": "Allows management of Webcenter Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Move Performance Goals",
+          "code": "HRG_MOVE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be moved to another goal plan.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Report Time by Web Clock",
+          "code": "HXT_REPORT_TIME_BY_WEB_CLOCK_PRIV",
+          "description": "Allows the worker to report time within a web clock.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Request Deletion of Time Entries",
+          "code": "HXT_REQUEST_DELETION_OF_TIME_ENTRIES_PRIV",
+          "description": "Allows workers to request deletion of time entries.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Run Talent Profile Summary Report",
+          "code": "HRT_RUN_TALENT_PROFILE_SUMMARY_REPORT_PRIV",
+          "description": "Allows running of talent profile summary report.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Share Development Goals",
+          "code": "HRG_SHARE_DEVELOPMENT_GOALS_PRIV",
+          "description": "Allows development goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Share Performance Goals",
+          "code": "HRG_SHARE_PERFORMANCE_GOALS_PRIV",
+          "description": "Allows performance goals to be shared with other workers.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Swap Shift",
+          "code": "HTS_SWAP_SHIFT_PRIV",
+          "description": "Allows workers to swap their scheduled shifts",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Address Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_ADDRESS_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Address list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Content Items List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_CONTENT_ITEMS_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Content Items list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Individual Compensation Lists of Values",
+          "code": "CMP_REST_SERVICE_ACCESS_INDIVIDUAL_COMPENSATION_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Individual Compensation list of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Job Families List of Values",
+          "code": "PER_REST_SERVICE_ACCESS_JOB_FAMILIES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the job families list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Model Profiles List of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_MODEL_PROFILES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Model Profiles list of values REST Service.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Questionnaire Lists of Values",
+          "code": "HRT_REST_SERVICE_ACCESS_QUESTIONNAIRE_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the questionnaire lists of values REST services",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Scheduling Lists of Values",
+          "code": "HTS_REST_SERVICE_ACCESS_SCHEDULING_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Scheduling lists of values REST services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Time Card Lists of Values",
+          "code": "HXT_REST_SERVICE_ACCESS_TIME_CARD_FIELD_VALUES_LOV_PRIV",
+          "description": "Allows the user to call the GET method associated with the Time Card lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Users and Roles Lists of Values",
+          "code": "PER_REST_SERVICE_ACCESS_USERS_AND_ROLES_LOVS_PRIV",
+          "description": "Allows the user to call the GET method associated with the Users and Roles lists of values REST Services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Workforce Reputation Lists of Values",
+          "code": "HWR_REST_SERVICE_ACCESS_REPUTATION_LOVS_PRIV",
+          "description": "Allows access to WorkforceReputation REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use Time Card Templates",
+          "code": "HXT_USE_TIME_CARD_TEMPLATES_PRIV",
+          "description": "Lets the worker use templates when entering their time cards.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Validate Project Time and Labor Time Card",
+          "code": "PJC_VALIDATE_PROJECT_TIME_AND_LABOR_TIME_CARD_PRIV",
+          "description": "Allows access to the web service that validates project attributes on time cards.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Calendar by Worker",
+          "code": "HWM_FUSE_TIME_PRIV",
+          "description": "Allows worker to view calendar.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Notification Details",
+          "code": "PER_VIEW_NOTIFICATION_DETAILS_PRIV",
+          "description": "Allows product specific notification details.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Search Results of Jobs Posted Internally",
+          "code": "IRC_VIEW_SEARCH_RESULTS_OF_JOBS_POSTED_INTERNALLY_PRIV",
+          "description": "Allows to search for jobs posted internally and view search results.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Skill Recommendations",
+          "code": "HRT_VIEW_SKILL_RECOMMENDATIONS_PRIV",
+          "description": "Allows the user to view and select application-generated skill recommendations.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Team Schedule by Worker",
+          "code": "HTS_VIEW_TEAM_SCHEDULE_PRIV",
+          "description": "Allows worker to view team schedule.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Time by Calendar",
+          "code": "HTS_VIEW_TIME_BY_CALENDAR_PRIV",
+          "description": "Allows view of personal schedule in time calendar.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Trading Community Common Setup",
+          "code": "HZ_VIEW_TRADING_COMMUNITY_COMMON_SETUP_PRIV",
+          "description": "Allows viewing of common setup data through web services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Workforce Reputation Subscription User",
+          "code": "HWR_WRSA_USER_PRIV",
+          "description": "Allows access to the Workforce Reputation Subscription Application features.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+          "code": "HHR_CSR_EMPLOYEE_ACCESS_PRIV",
+          "description": "Allows employees to manage Wellness, Corporate Social Responsibility, and Personal Brand activities.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Oracle Taleo Recruiting Cloud Service",
+          "code": "PER_ACCESS_ORACLE_TALEO_RECRUITING_CLOUD_SERVICE_PRIV",
+          "description": "Allows access to Oracle Taleo Recruiting Cloud Service from Oracle Fusion.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Access Tap Application",
+          "code": "FTA_ACCESS_TAP_APPLICATION_PRIV",
+          "description": "Allows access to Tap application.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Create Non-Catalog Learning Requests by Learner",
+          "code": "WLF_CREATE_NON_CATALOG_LEARNING_REQUEST_BY_LEARNER_PRIV",
+          "description": "Allows a non-catalog learning request to be initiated by learner",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Data Visualization Preference",
+          "code": "ZCA_MANAGE_DATA_VISUALIZATION_PREFERENCE_PRIV",
+          "description": "Allows creation, modification and deletion of the user preferences for the data visualization configuration. For example, a user might prefer to view a data visualization configured initially as a horizontal Bar chart, to be displayed as a vertical Bar chart instead.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Contact Information Mobile",
+          "code": "FTA_MANAGE_MY_CONTACT_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as phone numbers and addresses in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Documents Mobile",
+          "code": "FTA_MANAGE_MY_DOCUMENTS_PRIV",
+          "description": "Allows management of personal documents such as passports, and driver&apos;s license in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Personal Information Mobile",
+          "code": "FTA_MANAGE_MY_PERSONAL_INFORMATION_PRIV",
+          "description": "Allows management of personal information such as name, and biographical information in HCM Cloud Mobile",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Wellness",
+          "code": "EHW_MANAGE_MY_WELLNESS_PRIV",
+          "description": "Allows management of employee&apos;s own wellness.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage My Wellness Team",
+          "code": "EHW_MANAGE_MY_WELLNESS_TEAM_PRIV",
+          "description": "Allows workers to create their own Wellness teams and manage Wellness team features.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Volunteering",
+          "code": "HHR_MANAGE_VOLUNTEERING_PRIV",
+          "description": "Allows employees to manage own volunteering activities",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Print Learning Completion Certificate",
+          "code": "WLF_PRINT_COMPLETION_CERTIFICATE_PRIV",
+          "description": "Allows access to learning completion certificate templates",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Record External Learning by Learner",
+          "code": "WLF_RECORD_EXTERNAL_LEARNING_BY_LEARNER_PRIV",
+          "description": "Allows to record external learning completion by learner",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Record and View Issue",
+          "code": "FND_RECORD_AND_VIEW_ISSUE_PRIV",
+          "description": "Allows recording of issues and viewing of information about the recordings.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Activity Summaries",
+          "code": "EHW_REST_SERVICE_ACCESS_ACTIVITY_SUMMARIES_PRIV",
+          "description": "Allows users to manage wellness activities through Activity REST service",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Volunteering Lists of Values",
+          "code": "HHR_REST_SERVICE_ACCESS_VOLUNTEERING_LOVS_PRIV",
+          "description": "Allows access to Volunteering REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Use REST Service - Wellness Lists of Values",
+          "code": "EHW_REST_SERVICE_ACCESS_WELLNESS_LOVS_PRIV",
+          "description": "Allows access to Wellness REST LOV services.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "View Employee Common Setup Data",
+          "code": "HEY_VIEW_EMPLOYEE_COMMON_SETUP_DATA_PRIV",
+          "description": "Allows viewing of common setup data by an employee.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Define Absence Plans",
+          "code": "BEN_MANAGE_ABSENCE_PLANS_PRIV",
+          "description": "Allows configuration and management of manage absence plans",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Absence Entitlement Band",
+          "code": "BEN_MANAGE_ABSENCE_ENTITLEMENT_BAND_PRIV",
+          "description": "Allows configuration and management of absence entitlement bands",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Absence Entries",
+          "code": "ANC_MANAGE_ABSENCE_ENTRIES_PRIV",
+          "description": "Allows creation, deletion, and updating of absence entries.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Benefit Eligibility Profile",
+          "code": "BEN_MANAGE_BENEFIT_ELIGIBLITY_PROFILE_PRIV",
+          "description": "Allows configuration and management of eligibility profiles.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Benefit Participant Enrollment Certification",
+          "code": "BEN_MANAGE_BENEFIT_PARTICIPANT_ENROLLMENT_CERTIFICATION_PRIV",
+          "description": "Allows management of benefit participant enrollment certification.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Life Event Reason",
+          "code": "BEN_MANAGE_LIFE_EVENT_REASON_PRIV",
+          "description": "Allows benefit professionals to manage benefit life events.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Manage Person Eligibility Derived Factor",
+          "code": "BEN_MANAGE_PERSON_ELIGIBILITY_DERIVED_FACTOR_PRIV",
+          "description": "Allows benefit professionals to manage person derived eligibility factors.",
+          "inheritedFrom": "View Secured Custom Help"
+        },
+        {
+          "name": "Run Participation Process Absence",
+          "code": "BEN_RUN_PARTICIPATION_PROCESS_ABSENCE_PRIV",
+          "description": "Allows benefit professionals to evaluate absence events.",
+          "inheritedFrom": "View Secured Custom Help"
+        }
+      ],
+      "inheritedPrivileges": [],
+      "entitlements": [],
+      "summary": {
+        "totalPrivileges": 96,
+        "directPrivileges": 96,
+        "inheritedPrivileges": 0
+      },
+      "briefingRaw": {
+        "roleSummary": "Security role \"View Secured Custom Help\" (ORA_PER_CONTINGENT_WORKER_ABSTRACT) with 96 functional privileges retrieved from authoritative database role hierarchy.",
+        "roleUsage": "7 inherited child duty roles",
+        "privileges": ""
+      },
+      "message": "Security role \"View Secured Custom Help\" with 96 functional privileges retrieved directly from database role hierarchy."
+    },
+    "timestamp": 1795423171922
   }
 }
