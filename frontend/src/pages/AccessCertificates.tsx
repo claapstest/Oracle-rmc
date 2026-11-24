@@ -36,17 +36,26 @@ interface WorksheetColumn {
 // Certifier worksheet columns (11). Matches the exact Oracle BI Publisher report layout
 // created for Claaps Access_certifier_worksheet.
 export const WORKSHEET_COLUMNS: WorksheetColumn[] = [
+  { header: 'CERTIFIER ID', keys: ['certifierId', 'Certifier ID', 'CERTIFIER_ID'] },
   { header: 'CERTIFICATION NAME', keys: ['certificationName', 'Certification Name', 'name', 'CERTIFICATION_NAME'] },
-  { header: 'JOB ROLE NAME', keys: ['jobRoleName', 'Job Role Name', 'roleName', 'Role Name', 'JOB_ROLE_NAME', 'ROLE_NAME'], icon: 'role' },
-  { header: 'ROLE CODE', keys: ['roleCode', 'Role Code', 'ROLE_CODE'] },
+  { header: 'ROLE NAME', keys: ['jobRoleName', 'Job Role Name', 'roleName', 'Role Name', 'JOB_ROLE_NAME', 'ROLE_NAME'], icon: 'role' },
   { header: 'USER NAME', keys: ['userName', 'User Name', 'ownerName', 'Owner Name', 'USER_NAME'] },
-  { header: 'COMMENT', keys: ['comment', 'Comment', 'comments', 'Comments', 'COMMENTS', 'COMMENT'] },
+  { header: 'DIRECT MANAGER', keys: ['userManagerName', 'User Manager Name', 'managerName', 'Manager Name', 'certifiedManager', 'Certified Manager', 'directManager', 'Direct Manager', 'USER_MANAGER_NAME', 'MANAGER_NAME'] },
   { header: 'ACTION', keys: ['action', 'Action', 'certificationAction', 'ACTION'] },
-  { header: 'USER BUSINESS UNIT', keys: ['userBusinessUnit', 'User Business Unit', 'USER_BUSINESS_UNIT', 'userRoleBusinessUnit', 'User-Role Business Unit', 'businessUnit', 'Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'BUSINESS_UNIT'] },
-  { header: 'USER POSITION NAME', keys: ['userPositionName', 'User Position Name', 'positionName', 'Position Name', 'USER_POSITION_NAME', 'POSITION_NAME'] },
-  { header: 'USER MANAGER NAME', keys: ['userManagerName', 'User Manager Name', 'managerName', 'Manager Name', 'certifiedManager', 'Certified Manager', 'directManager', 'Direct Manager', 'USER_MANAGER_NAME', 'MANAGER_NAME'] },
-  { header: 'USER JOB NAME', keys: ['userJobName', 'User Job Name', 'jobName', 'Job Name', 'USER_JOB_NAME', 'JOB_NAME'] },
-  { header: 'USER LOCATION', keys: ['userLocation', 'User Location', 'location', 'Location', 'USER_LOCATION', 'LOCATION'] }
+  { header: 'CREATION DATE', keys: ['creationDate', 'Creation Date', 'CREATION_DATE'] },
+  { header: 'CREATED BY', keys: ['createdBy', 'Created By', 'CREATED_BY'] },
+  { header: 'BUSINESS UNIT', keys: ['userBusinessUnit', 'User Business Unit', 'USER_BUSINESS_UNIT', 'userRoleBusinessUnit', 'User-Role Business Unit', 'businessUnit', 'Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'BUSINESS_UNIT'] },
+  { header: 'JOB NAME', keys: ['userJobName', 'User Job Name', 'jobName', 'Job Name', 'USER_JOB_NAME', 'JOB_NAME'] },
+  { header: 'USER LOCATION', keys: ['userLocation', 'User Location', 'location', 'Location', 'USER_LOCATION', 'LOCATION'] },
+  { header: 'POSITION NAME', keys: ['userPositionName', 'User Position Name', 'positionName', 'Position Name', 'USER_POSITION_NAME', 'POSITION_NAME'] },
+  { header: 'LAST UPDATED BY', keys: ['lastUpdatedBy', 'Last Updated By', 'LAST_UPDATED_BY'] },
+  { header: 'LAST UPDATED DATE', keys: ['lastUpdatedDate', 'Last Updated Date', 'LAST_UPDATED_DATE'] },
+  { header: 'SELF CERTIFIED', keys: ['certifierSelfCertified', 'Certifier Self-Certified', 'selfCertified', 'Self Certified', 'CERTIFIER_SELF_CERTIFIED', 'SELF_CERTIFIED'] },
+  { header: 'PENDING SUBMISSION', keys: ['pendingSubmission', 'Pending Submission', 'PENDING_SUBMISSION'] },
+  { header: 'COMMENT', keys: ['comment', 'Comment', 'comments', 'Comments', 'COMMENTS', 'COMMENT'] },
+  { header: 'COMMENT BY', keys: ['commentBy', 'Comment By', 'COMMENT_BY'] },
+  { header: 'LAST DECISION BY', keys: ['certifierLastUpdatedBy', 'Certifier Last Updated By', 'lastDecisionBy', 'Last Decision By', 'CERTIFIER_LAST_UPDATED_BY', 'LAST_DECISION_BY'] },
+  { header: 'LAST DECISION DATE', keys: ['certifierLastUpdatedDate', 'Certifier Last Updated Date', 'lastDecisionDate', 'Last Decision Date', 'CERTIFIER_LAST_UPDATED_DATE', 'LAST_DECISION_DATE'] },
 ];
 
 export function wsVal(row: any, keys: string[]): string {

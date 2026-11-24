@@ -161,7 +161,7 @@ export interface UserDetailsBipRow {
 export class BipClient {
   private axiosInstance: AxiosInstance;
   public reportPath = '/Custom/Claaps Access Certification Review Report.xdo';
-  public reviewReportPath = '/Custom/Claaps Access_certifier_worksheet.xdo';
+  public reviewReportPath = '/shared/Custom/Access certification worksheet.xdo';
   /**
    * Priority candidates for the main Access Certification Campaign List report.
    */
@@ -182,6 +182,10 @@ export class BipClient {
    */
   public readonly certifierWorksheetReportPaths = [
     process.env.BIP_WORKSHEET_REPORT_PATH,
+    '/shared/Custom/Access certification worksheet.xdo',
+    '/shared/Custom/Access certification worksheet',
+    '/Custom/Access certification worksheet.xdo',
+    '/Custom/Access certification worksheet',
     '/Custom/Claaps Access_certifier_worksheet.xdo',
     '/Custom/Claaps Access_certifier_worksheet',
     '/Custom/Claaps Access_Certifier_Worksheet.xdo',
@@ -502,7 +506,7 @@ export class BipClient {
     for (const item of items) {
       const type = String(item?.type || '');
       const absPath = String(item?.absolutePath || '');
-      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access_certifier_worksheet|certifier_worksheet|claaps.*worksheet)/i.test(absPath)) {
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.?certification.?worksheet|access_certifier_worksheet|certifier_worksheet|claaps.*worksheet)/i.test(absPath)) {
         if (await this.isReportExist(absPath)) return absPath;
       }
     }
@@ -1918,9 +1922,17 @@ export class BipClient {
       action: row['Action'] || row['action'] || '',
       comment: commentVal,
       comments: commentVal,
+      commentBy: String(row['Comment By'] ?? row['commentBy'] ?? row['COMMENT_BY'] ?? '').trim(),
       followUpStatus: row['Follow-Up'] || row['followUpStatus'] || '',
-      lastDecisionBy: row['Last Decision By'] || row['lastDecisionBy'] || '',
-      lastDecisionDate: row['Last Decision Date'] || row['lastDecisionDate'] || ''
+      lastUpdatedBy: String(row['Last Updated By'] ?? row['lastUpdatedBy'] ?? row['LAST_UPDATED_BY'] ?? '').trim(),
+      lastUpdatedDate: String(row['Last Updated Date'] ?? row['lastUpdatedDate'] ?? row['LAST_UPDATED_DATE'] ?? '').trim(),
+      certifierSelfCertified: String(row['Certifier Self-Certified'] ?? row['certifierSelfCertified'] ?? row['Self Certified'] ?? row['selfCertified'] ?? row['CERTIFIER_SELF_CERTIFIED'] ?? '').trim(),
+      selfCertified: String(row['Certifier Self-Certified'] ?? row['certifierSelfCertified'] ?? row['Self Certified'] ?? row['selfCertified'] ?? row['CERTIFIER_SELF_CERTIFIED'] ?? '').trim(),
+      pendingSubmission: String(row['Pending Submission'] ?? row['pendingSubmission'] ?? row['PENDING_SUBMISSION'] ?? '').trim(),
+      certifierLastUpdatedBy: String(row['Certifier Last Updated By'] ?? row['certifierLastUpdatedBy'] ?? row['CERTIFIER_LAST_UPDATED_BY'] ?? '').trim(),
+      lastDecisionBy: String(row['Certifier Last Updated By'] ?? row['certifierLastUpdatedBy'] ?? row['Last Decision By'] ?? row['lastDecisionBy'] ?? row['CERTIFIER_LAST_UPDATED_BY'] ?? '').trim(),
+      certifierLastUpdatedDate: String(row['Certifier Last Updated Date'] ?? row['certifierLastUpdatedDate'] ?? row['CERTIFIER_LAST_UPDATED_DATE'] ?? '').trim(),
+      lastDecisionDate: String(row['Certifier Last Updated Date'] ?? row['certifierLastUpdatedDate'] ?? row['Last Decision Date'] ?? row['lastDecisionDate'] ?? row['CERTIFIER_LAST_UPDATED_DATE'] ?? '').trim()
     };
   }
 
