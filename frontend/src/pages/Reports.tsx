@@ -2006,8 +2006,8 @@ export default function Reports({
                 totalCount={rhSummaryData.length}
                 appliedFilters={[]}
                 availableColumns={[
-                  { key: 'roleCode', label: 'Role Code', defaultSelected: true },
                   { key: 'roleName', label: 'Role Name', defaultSelected: true },
+                  { key: 'roleCode', label: 'Role Code', defaultSelected: true },
                   { key: 'directCount', label: 'Direct', defaultSelected: true },
                   { key: 'indirectCount', label: 'Indirect', defaultSelected: true },
                   { key: 'totalCount', label: 'Total', defaultSelected: true },
@@ -3497,24 +3497,24 @@ export default function Reports({
                   <table className="enterprise-table" style={{ width: '100%', margin: 0 }}>
                     <thead>
                       <tr>
-                        <th style={{ width: '22%' }}>Role Code</th>
-                        <th style={{ width: '22%' }}>Role Name</th>
+                        <th style={{ width: '18%' }}>Role Name</th>
+                        <th style={{ width: '18%' }}>Role Code</th>
                         <th style={{ width: '10%' }}>Type</th>
-                        <th style={{ width: '18%' }}>Privilege Code</th>
+                        <th style={{ width: '18%' }}>Inherited from role code</th>
                         <th style={{ width: '18%' }}>Privilege Name</th>
-                        <th style={{ width: '10%' }}>Source</th>
+                        <th style={{ width: '18%' }}>Privilege Code</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rhPrivilegeDetailLoading ? (
                         Array.from({ length: 6 }).map((_, idx) => (
                           <tr key={`p-skel-${idx}`} className="animate-pulse">
-                            <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                             <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                            <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
                             <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                            <td><div style={{ height: '18px', width: '60px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px' }}></div></td>
+                            <td><div style={{ height: '14px', width: '140px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                             <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
-                            <td><div style={{ height: '14px', width: '80px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                            <td><div style={{ height: '14px', width: '120px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                           </tr>
                         ))
                       ) : rhPrivilegeDetailError ? (
@@ -3541,25 +3541,25 @@ export default function Reports({
                       ) : (
                         paginatedDetailsSlice.map((d: any, idx: number) => (
                           <tr key={`${d.privilegeCode}-${idx}`}>
+                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {selectedRolePrivilegeName || selectedRolePrivilegeCode}
+                            </td>
                             <td>
                               <code style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{selectedRolePrivilegeCode}</code>
-                            </td>
-                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {selectedRolePrivilegeName}
                             </td>
                             <td>
                               <span className={`badge ${d.type === 'DIRECT' ? 'badge-primary' : 'badge-purple'}`} style={{ fontSize: '0.68rem', fontWeight: 700 }}>
                                 {d.type}
                               </span>
                             </td>
-                            <td>
-                              <code style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>{d.privilegeCode}</code>
+                            <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '280px', wordBreak: 'break-word', lineHeight: 1.4 }}>
+                              {d.sourceRoles || selectedRolePrivilegeCode}
                             </td>
                             <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                               {d.privilegeName}
                             </td>
-                            <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '280px', wordBreak: 'break-word', lineHeight: 1.4 }}>
-                              {d.sourceRoles || selectedRolePrivilegeCode}
+                            <td>
+                              <code style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>{d.privilegeCode}</code>
                             </td>
                           </tr>
                         ))
@@ -3608,19 +3608,6 @@ export default function Reports({
                     <tr>
                       <th
                         onClick={() => {
-                          if (rhSummarySortField === 'roleCode') {
-                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-                          } else {
-                            setRhSummarySortField('roleCode');
-                            setRhSummarySortOrder('asc');
-                          }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        Role Code {rhSummarySortField === 'roleCode' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th
-                        onClick={() => {
                           if (rhSummarySortField === 'roleName') {
                             setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
                           } else {
@@ -3631,6 +3618,19 @@ export default function Reports({
                         style={{ cursor: 'pointer' }}
                       >
                         Role Name {rhSummarySortField === 'roleName' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                      <th
+                        onClick={() => {
+                          if (rhSummarySortField === 'roleCode') {
+                            setRhSummarySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRhSummarySortField('roleCode');
+                            setRhSummarySortOrder('asc');
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        Role Code {rhSummarySortField === 'roleCode' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th
                         onClick={() => {
@@ -3677,8 +3677,8 @@ export default function Reports({
                     {hierarchyLoading ? (
                       Array.from({ length: 8 }).map((_, idx) => (
                         <tr key={`rh-skel-${idx}`} className="animate-pulse">
-                          <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                           <td><div style={{ height: '14px', width: '220px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
+                          <td><div style={{ height: '14px', width: '160px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}></div></td>
                           <td style={{ textAlign: 'center' }}><div style={{ height: '18px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', margin: '0 auto' }}></div></td>
                           <td style={{ textAlign: 'center' }}><div style={{ height: '18px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', margin: '0 auto' }}></div></td>
                           <td style={{ textAlign: 'center' }}><div style={{ height: '18px', width: '40px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', margin: '0 auto' }}></div></td>
@@ -3708,16 +3708,16 @@ export default function Reports({
                           style={{ cursor: 'pointer' }}
                           title="Click to view Role Privilege Detail"
                         >
-                          <td>
-                            <code style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                              {item.roleCode}
-                            </code>
-                          </td>
                           <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                               <Shield size={13} style={{ flexShrink: 0, color: 'var(--accent-blue)' }} />
                               {item.roleName}
                             </span>
+                          </td>
+                          <td>
+                            <code style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                              {item.roleCode}
+                            </code>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <span className="badge badge-primary" style={{ fontSize: '0.74rem', fontWeight: 600, minWidth: '32px', display: 'inline-block' }}>
