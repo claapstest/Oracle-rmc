@@ -1223,27 +1223,37 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
             key={colKey}
             style={{ 
               fontSize: '0.85rem', 
+              width: isWrap ? '340px' : '240px',
               minWidth: '220px', 
-              maxWidth: isWrap ? '450px' : '260px', 
-              overflow: isWrap ? 'visible' : 'hidden', 
-              textOverflow: isWrap ? 'clip' : 'ellipsis', 
-              whiteSpace: isWrap ? 'normal' : 'nowrap',
-              wordBreak: 'break-word',
-              lineHeight: 1.4
+              maxWidth: isWrap ? '380px' : '260px', 
+              overflow: 'hidden', 
+              lineHeight: 1.4,
+              verticalAlign: 'top'
             }} 
             title={String(rawVal || '')}
           >
             {rawVal ? (
               <span 
-                className="badge" 
                 style={{
                   fontSize: '0.74rem',
                   fontWeight: 600,
                   backgroundColor: 'rgba(16, 185, 129, 0.12)',
                   color: '#34D399',
                   border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: isWrap ? 'block' : 'inline-block',
+                  width: isWrap ? '100%' : 'auto',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  borderRadius: isWrap ? '8px' : '9999px',
+                  padding: isWrap ? '0.45rem 0.65rem' : '0.2rem 0.65rem',
                   whiteSpace: isWrap ? 'normal' : 'nowrap',
-                  textAlign: 'left'
+                  overflow: 'hidden',
+                  textOverflow: isWrap ? 'clip' : 'ellipsis',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'anywhere',
+                  textAlign: 'left',
+                  lineHeight: 1.45,
+                  transition: 'all 0.2s ease'
                 }}
               >
                 {rawVal}
