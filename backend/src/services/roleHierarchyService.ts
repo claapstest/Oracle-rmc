@@ -11,8 +11,37 @@ import { encryptRawField, trackingColumns } from '../security/encryptedRecordWri
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CACHE_FILE_PATH = path.join(__dirname, '../../oracle_role_hierarchy_cache.json');
-const ROLE_PRIVILEGE_COUNT_CACHE_PATH = path.join(__dirname, '../../role_privilege_count_cache.json');
+
+function getHierarchyCacheFilePath(): string {
+  const candidates = [
+    path.resolve(__dirname, '../../oracle_role_hierarchy_cache.json'),
+    path.resolve(process.cwd(), 'oracle_role_hierarchy_cache.json'),
+    path.resolve(process.cwd(), 'backend/oracle_role_hierarchy_cache.json'),
+    path.resolve(__dirname, '../oracle_role_hierarchy_cache.json'),
+    path.resolve(__dirname, '../../../oracle_role_hierarchy_cache.json'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
+function getPrivilegeCountCacheFilePath(): string {
+  const candidates = [
+    path.resolve(__dirname, '../../role_privilege_count_cache.json'),
+    path.resolve(process.cwd(), 'role_privilege_count_cache.json'),
+    path.resolve(process.cwd(), 'backend/role_privilege_count_cache.json'),
+    path.resolve(__dirname, '../role_privilege_count_cache.json'),
+    path.resolve(__dirname, '../../../role_privilege_count_cache.json'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
+const CACHE_FILE_PATH = getHierarchyCacheFilePath();
+const ROLE_PRIVILEGE_COUNT_CACHE_PATH = getPrivilegeCountCacheFilePath();
 
 export interface RolePrivilegeSummaryItem {
   roleCode: string;
@@ -89,7 +118,7 @@ export class RoleHierarchyService {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         return new URL(rawUrl).host;
       }
-    } catch (_) {}
+    } catch (_) { }
     return rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'eiiv-dev14.fa.us6.oraclecloud.com';
   }
 
@@ -218,7 +247,7 @@ export class RoleHierarchyService {
       // Clean up SOAP file immediately
       try {
         if (fs.existsSync(tempSoapFile)) fs.unlinkSync(tempSoapFile);
-      } catch (_) {}
+      } catch (_) { }
 
       const xmlSize = fs.statSync(tempXmlFile).size;
       console.log(`[RoleHierarchyService] Decoded ${(xmlSize / (1024 * 1024)).toFixed(2)} MB raw XML payload. Extracting hierarchy records...`);
@@ -281,7 +310,7 @@ export class RoleHierarchyService {
           if (fs.existsSync(tempXmlFile)) {
             fs.unlinkSync(tempXmlFile);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       console.log(`[RoleHierarchyService] Extracted ${rawRows.length.toLocaleString()} raw hierarchy rows and ${privMap.size.toLocaleString()} unique privilege groups.`);
@@ -300,7 +329,7 @@ export class RoleHierarchyService {
             roleCodeMap.set(r.role_name.trim().toLowerCase(), r.role_code);
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const items: RoleHierarchyItem[] = [];
       const seenKeys = new Set<string>();
@@ -551,9 +580,9 @@ export class RoleHierarchyService {
             this.memoryCache = parsedSeed.items;
             this.compactCache = null;
             this.lastSyncedAt = parsedSeed.lastSyncedAt || new Date().toISOString();
-            this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => {});
+            this.seedDatabaseIfEmpty(parsedSeed.items).catch(() => { });
           }
-        } catch (_) {}
+        } catch (_) { }
       }
     })().finally(() => {
       this.dbLoadPromise = null;
@@ -588,7 +617,7 @@ export class RoleHierarchyService {
       // reconcile PostgreSQL asynchronously once in the background.
       if (this.memoryCache && this.memoryCache.length > 0) {
         if (!this.dbLoadPromise) {
-          this.ensureLoadedFromDb(false).catch(() => {});
+          this.ensureLoadedFromDb(false).catch(() => { });
         }
       } else {
         await this.ensureLoadedFromDb(false);
@@ -733,7 +762,7 @@ export class RoleHierarchyService {
           privilegeCount: Array.isArray(r.privileges) ? r.privileges.length : 0,
         }));
       }
-    } catch (_) {}
+    } catch (_) { }
 
     const report = targetedItems.length > 0 ? { items: targetedItems } : await this.getHierarchyReport();
     const items = report.items;
@@ -749,8 +778,8 @@ export class RoleHierarchyService {
 
     const canonicalName = directMatch
       ? (directMatch.childRole.toLowerCase() === targetLower || (directMatch.roleCode && directMatch.roleCode.toLowerCase() === targetLower)
-          ? directMatch.childRole
-          : (directMatch.roleName.toLowerCase() === targetLower ? directMatch.roleName : directMatch.parentRole))
+        ? directMatch.childRole
+        : (directMatch.roleName.toLowerCase() === targetLower ? directMatch.roleName : directMatch.parentRole))
       : target;
     const canonicalLower = canonicalName.toLowerCase();
     const roleCode = directMatch?.roleCode || `ORA_${canonicalName.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`;
@@ -1082,7 +1111,7 @@ export class RoleHierarchyService {
     } else if (!this.dbLoaded) {
       if (this.memoryCache && this.memoryCache.length > 0) {
         if (!this.dbLoadPromise) {
-          this.ensureLoadedFromDb(false).catch(() => {});
+          this.ensureLoadedFromDb(false).catch(() => { });
         }
       } else {
         await this.ensureLoadedFromDb(false);
