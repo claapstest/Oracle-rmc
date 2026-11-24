@@ -386,7 +386,7 @@ export default function Reports({
   const [rhPrivilegeDetailData, setRhPrivilegeDetailData] = useState<any>(null);
   const [rhPrivilegeDetailLoading, setRhPrivilegeDetailLoading] = useState<boolean>(false);
   const [rhPrivilegeDetailError, setRhPrivilegeDetailError] = useState<string>('');
-  const [rhPrivilegeDetailTab, setRhPrivilegeDetailTab] = useState<'direct' | 'indirect'>('direct');
+  const [rhPrivilegeDetailTab, setRhPrivilegeDetailTab] = useState<'all' | 'direct' | 'indirect'>('all');
   const [rolePrivilegeDetailSearch, setRolePrivilegeDetailSearch] = useState<string>('');
   const [rolePrivilegeDetailPage, setRolePrivilegeDetailPage] = useState<number>(1);
   const [rolePrivilegeDetailPageSize, setRolePrivilegeDetailPageSize] = useState<number>(25);
@@ -959,7 +959,7 @@ export default function Reports({
     setRhPrivilegeDetailLoading(true);
     setRhPrivilegeDetailError('');
     setRhPrivilegeDetailData(null);
-    setRhPrivilegeDetailTab('direct');
+    setRhPrivilegeDetailTab('all');
     setRolePrivilegeDetailSearch('');
     setRolePrivilegeDetailPage(1);
 
@@ -1562,9 +1562,11 @@ export default function Reports({
   // 4b. Role Privilege Detail Privileges Filtered
   const activeDetails = useMemo(() => {
     if (!rhPrivilegeDetailData?.details) return [];
-    let items = rhPrivilegeDetailData.details.filter((d: any) =>
-      rhPrivilegeDetailTab === 'direct' ? d.type === 'DIRECT' : d.type === 'INDIRECT'
-    );
+    let items = rhPrivilegeDetailData.details.filter((d: any) => {
+      if (rhPrivilegeDetailTab === 'all') return true;
+      const t = String(d?.type || '').toUpperCase();
+      return rhPrivilegeDetailTab === 'direct' ? t === 'DIRECT' : t === 'INDIRECT';
+    });
     if (rolePrivilegeDetailSearch.trim()) {
       const q = rolePrivilegeDetailSearch.toLowerCase().trim();
       items = items.filter((d: any) =>
@@ -3442,6 +3444,23 @@ export default function Reports({
                   <div style={{ display: 'flex', gap: '0.4rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border-color)' }}>
                     <button
                       type="button"
+                      onClick={() => { setRhPrivilegeDetailTab('all'); setRolePrivilegeDetailPage(1); }}
+                      className={rhPrivilegeDetailTab === 'all' ? 'btn btn-primary' : 'btn btn-secondary'}
+                      style={{
+                        padding: '0.35rem 0.95rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: rhPrivilegeDetailTab === 'all' ? 'var(--accent-blue)' : 'transparent',
+                        color: rhPrivilegeDetailTab === 'all' ? '#ffffff' : 'var(--text-secondary)'
+                      }}
+                    >
+                      All ({rhPrivilegeDetailData?.totalCount ?? (rhPrivilegeDetailData?.details?.length ?? 0)})
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => { setRhPrivilegeDetailTab('direct'); setRolePrivilegeDetailPage(1); }}
                       className={rhPrivilegeDetailTab === 'direct' ? 'btn btn-primary' : 'btn btn-secondary'}
                       style={{
@@ -3535,7 +3554,7 @@ export default function Reports({
                       ) : activeDetails.length === 0 ? (
                         <tr>
                           <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
-                            No {rhPrivilegeDetailTab} privileges found for this role.
+                            No {rhPrivilegeDetailTab === 'all' ? '' : `${rhPrivilegeDetailTab} `}privileges found for this role.
                           </td>
                         </tr>
                       ) : (
@@ -3572,7 +3591,7 @@ export default function Reports({
                 {activeDetails.length > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.5rem 0' }}>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Showing {(rolePrivilegeDetailPage - 1) * rolePrivilegeDetailPageSize + 1} to {Math.min(rolePrivilegeDetailPage * rolePrivilegeDetailPageSize, activeDetails.length)} of <strong>{activeDetails.length.toLocaleString()}</strong> {rhPrivilegeDetailTab} privileges
+                      Showing {(rolePrivilegeDetailPage - 1) * rolePrivilegeDetailPageSize + 1} to {Math.min(rolePrivilegeDetailPage * rolePrivilegeDetailPageSize, activeDetails.length)} of <strong>{activeDetails.length.toLocaleString()}</strong> {rhPrivilegeDetailTab === 'all' ? '' : `${rhPrivilegeDetailTab} `}privileges
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

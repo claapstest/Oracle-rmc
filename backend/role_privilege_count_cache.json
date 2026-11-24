@@ -12910,5 +12910,25 @@
       }
     ],
     "cachedAt": "2026-11-23T16:16:44.984Z"
+  },
+  "ora__do_not_use_benefits_specialist_data": {
+    "success": true,
+    "roleCode": "ORA__DO_NOT_USE_BENEFITS_SPECIALIST_DATA",
+    "roleName": "",
+    "directCount": 0,
+    "indirectCount": 0,
+    "totalCount": 0,
+    "details": [],
+    "cachedAt": "2026-11-24T07:37:11.967Z"
+  },
+  "ora_human_resource_specialist_data_job_001": {
+    "success": true,
+    "roleCode": "ORA_HUMAN_RESOURCE_SPECIALIST_DATA_JOB_001",
+    "roleName": "",
+    "directCount": 0,
+    "indirectCount": 0,
+    "totalCount": 0,
+    "details": [],
+    "cachedAt": "2026-11-24T07:37:21.483Z"
   }
 }
