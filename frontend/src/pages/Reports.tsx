@@ -1925,45 +1925,6 @@ export default function Reports({
               />
             )}
 
-            {activeReportId === 'INCIDENTS_DETAILED' && (
-              <EnterpriseExportControl
-                filename={`${incidentsDomain.toLowerCase()}_control_${selectedIncidentsControlId}_incidents_detailed`}
-                sheetName={incidentsDomain === 'TRANSACTION' ? 'Transaction Incidents' : 'Access Incidents'}
-                reportTitle={`Advanced ${incidentsDomain === 'TRANSACTION' ? 'Transaction' : 'Access'} Control ${selectedIncidentsControlId} Incident Detailed Audit`}
-                dataSource="Oracle Fusion Risk Management Cloud"
-                entityName="Incidents"
-                buttonText="Export Excel"
-                currentPageData={paginatedSlice}
-                filteredCount={isIncidentsServerPaging ? incidentsServerTotal : filteredIncidents.length}
-                totalCount={isIncidentsServerPaging ? Math.max(incidentsServerGrandTotal, incidentsServerTotal) : incidentsData.length}
-                appliedFilters={incidentsActiveFilters}
-                availableColumns={currentIncidentColumns.map(col => ({
-                  key: col.key,
-                  label: col.label,
-                  defaultSelected: visibleIncidentKeys.has(col.key),
-                  getValue: (i: any) => {
-                    const val = getIncidentAttr(i, col.key, {
-                      controlName: resolveIncidentControlName(i),
-                      controlType: col.key === 'controlType' ? (i.controlType || (incidentsDomain === 'TRANSACTION' ? '174' : '173')) : undefined,
-                      isTxControl: incidentsDomain === 'TRANSACTION'
-                    });
-                    if (col.key === 'controlType') return formatControlTypeName(val);
-                    return val !== null && val !== undefined && val !== '' ? String(val) : 'None';
-                  }
-                }))}
-                onFetchScopeData={async (scope) => {
-                  if (scope === 'PAGE') return paginatedSlice;
-                  // ALL-controls mode pages server-side: the component only holds
-                  // the visible page, so pull the full set from the backend.
-                  if (isIncidentsServerPaging) {
-                    return fetchAllIncidentsForExport(scope === 'FILTERED' ? 'FILTERED' : 'ALL');
-                  }
-                  if (scope === 'FILTERED') return filteredIncidents;
-                  return incidentsData;
-                }}
-              />
-            )}
-
             {activeReportId === 'USER_ROLE_MAPPING' && (
               <EnterpriseExportControl
                 filename="users_role_mapping"
@@ -2670,6 +2631,41 @@ export default function Reports({
                   <RefreshCw size={13} className={incidentsLoading ? 'animate-spin' : ''} />
                   <span>{incidentsLoading ? 'Refreshing...' : 'Refresh'}</span>
                 </button>
+
+                <EnterpriseExportControl
+                  filename={`${incidentsDomain.toLowerCase()}_control_${selectedIncidentsControlId}_incidents_detailed`}
+                  sheetName={incidentsDomain === 'TRANSACTION' ? 'Transaction Incidents' : 'Access Incidents'}
+                  reportTitle={`Advanced ${incidentsDomain === 'TRANSACTION' ? 'Transaction' : 'Access'} Control ${selectedIncidentsControlId} Incident Detailed Audit`}
+                  dataSource="Oracle Fusion Risk Management Cloud"
+                  entityName="Incidents"
+                  buttonText="Export Excel"
+                  currentPageData={paginatedSlice}
+                  filteredCount={isIncidentsServerPaging ? incidentsServerTotal : filteredIncidents.length}
+                  totalCount={isIncidentsServerPaging ? Math.max(incidentsServerGrandTotal, incidentsServerTotal) : incidentsData.length}
+                  appliedFilters={incidentsActiveFilters}
+                  availableColumns={currentIncidentColumns.map(col => ({
+                    key: col.key,
+                    label: col.label,
+                    defaultSelected: visibleIncidentKeys.has(col.key),
+                    getValue: (i: any) => {
+                      const val = getIncidentAttr(i, col.key, {
+                        controlName: resolveIncidentControlName(i),
+                        controlType: col.key === 'controlType' ? (i.controlType || (incidentsDomain === 'TRANSACTION' ? '174' : '173')) : undefined,
+                        isTxControl: incidentsDomain === 'TRANSACTION'
+                      });
+                      if (col.key === 'controlType') return formatControlTypeName(val);
+                      return val !== null && val !== undefined && val !== '' ? String(val) : 'None';
+                    }
+                  }))}
+                  onFetchScopeData={async (scope) => {
+                    if (scope === 'PAGE') return paginatedSlice;
+                    if (isIncidentsServerPaging) {
+                      return fetchAllIncidentsForExport(scope === 'FILTERED' ? 'FILTERED' : 'ALL');
+                    }
+                    if (scope === 'FILTERED') return filteredIncidents;
+                    return incidentsData;
+                  }}
+                />
               </div>
             </div>
 
