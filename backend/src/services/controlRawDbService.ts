@@ -206,9 +206,6 @@ export class ControlRawDbService {
     if (rawControl.Priority === undefined && rawControl.EnforcementType !== undefined) {
       rawControl.Priority = rawControl.EnforcementType;
     }
-    delete rawControl.ScheduledBy;
-    delete rawControl.LatestJobId;
-
     const write = await encryptRawField('oracle_raw_controls', { control_id: cleanId }, rawControl, host);
 
     const sql = `
