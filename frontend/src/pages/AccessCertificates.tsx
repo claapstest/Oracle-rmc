@@ -42,6 +42,7 @@ const WORKSHEET_HEADER_OVERRIDES: Record<string, string> = {
   'user position name': 'Position Name',
   'certifier self-certified': 'Self Certified',
   'certifier self certified': 'Self Certified',
+  'certfier self certified': 'Self Certified',
   'certifier last updated by': 'Last Decision By',
   'certifier last updated date': 'Last Decision Date',
 };
@@ -274,7 +275,7 @@ export default function AccessCertificates({
         : undefined;
 
     if (sourceCols) {
-      return sourceCols.map((colName) => {
+      const cols: WorksheetColumn[] = sourceCols.map((colName) => {
         const header = mapWorksheetHeader(colName);
         return {
           header,
@@ -282,6 +283,23 @@ export default function AccessCertificates({
           icon: /role\s*name/i.test(header) ? 'role' : undefined,
         };
       });
+
+      // Ensure Role Code column is always present (inject after Role Name if missing)
+      const hasRoleCode = sourceCols.some(c => /role\s*code/i.test(c));
+      if (!hasRoleCode) {
+        const roleNameIdx = cols.findIndex(c => /role\s*name/i.test(c.header));
+        const roleCodeCol: WorksheetColumn = {
+          header: 'ROLE CODE',
+          keys: ['Role Code', 'ROLE_CODE', 'roleCode'],
+        };
+        if (roleNameIdx >= 0) {
+          cols.splice(roleNameIdx + 1, 0, roleCodeCol);
+        } else {
+          cols.push(roleCodeCol);
+        }
+      }
+
+      return cols;
     }
     return WORKSHEET_COLUMNS;
   }, [worksheetRows]);
