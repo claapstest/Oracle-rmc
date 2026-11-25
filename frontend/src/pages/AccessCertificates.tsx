@@ -18,6 +18,7 @@ import {
 import { api } from '../services/api.js';
 import { exportToExcel } from '../utils/excelExport';
 import { TableLoadingState } from '../components/TableLoadingState';
+import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 
 interface AccessCertificatesProps {
   environmentMode?: 'DEMO' | 'ORACLE_FUSION';
@@ -797,29 +798,32 @@ export default function AccessCertificates({
               </div>
 
               {/* Export Button */}
-              <button
-                type="button"
-                onClick={exportWorksheetToExcel}
-                disabled={filteredWorksheetRows.length === 0}
-                title="Export Certifier Worksheet table to Excel (.xlsx)"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.48rem 0.95rem',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#1E293B',
-                  cursor: filteredWorksheetRows.length === 0 ? 'not-allowed' : 'pointer',
-                  opacity: filteredWorksheetRows.length === 0 ? 0.6 : 1
+              <EnterpriseExportControl
+                filename={`Certifier_Worksheet_${drillDownCertId || 'export'}`}
+                sheetName="Certifier Worksheet"
+                reportTitle={`Oracle Access Certification Worksheet - ${drillDownSummary?.name || drillDownSummary?.certificationName || `Certification #${drillDownCertId || ''}`}`}
+                dataSource={environmentMode === 'ORACLE_FUSION' ? 'Live Oracle Fusion API' : 'Sample Data'}
+                entityName="Records"
+                buttonText="Export Excel"
+                currentPageData={paginatedWorksheetRows}
+                filteredCount={filteredWorksheetRows.length}
+                totalCount={worksheetRows.length}
+                appliedFilters={[
+                  ...(drillDownCertId ? [{ label: 'Certification ID', value: String(drillDownCertId) }] : []),
+                  ...(worksheetSearchTerm.trim() ? [{ label: 'Filter', value: worksheetSearchTerm }] : [])
+                ]}
+                availableColumns={activeWorksheetColumns.map((c) => ({
+                  key: c.keys[0],
+                  label: c.header,
+                  defaultSelected: true,
+                  getValue: (r: any) => wsVal(r, c.keys) || '—'
+                }))}
+                onFetchScopeData={async (scope) => {
+                  if (scope === 'PAGE') return paginatedWorksheetRows;
+                  if (scope === 'FILTERED') return filteredWorksheetRows;
+                  return worksheetRows;
                 }}
-              >
-                <FileSpreadsheet size={14} style={{ color: '#10B981' }} />
-                <span>Export Excel</span>
-              </button>
+              />
             </div>
           </div>
 
