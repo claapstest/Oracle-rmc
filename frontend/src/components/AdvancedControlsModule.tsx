@@ -2089,11 +2089,9 @@ export const AdvancedControlsModule: React.FC<AdvancedControlsModuleProps> = ({
       { key: 'lastUpdateDate', label: 'Last Updated Date', defaultSelected: true, getValue: c => c.lastUpdateDate || '' },
       { key: 'description', label: 'Description', defaultSelected: false, getValue: c => c.description || '' },
       { key: 'enforcementType', label: 'Priority', defaultSelected: false, getValue: c => c.enforcementType || '' },
-      { key: 'latestJobId', label: 'Job ID', defaultSelected: false, getValue: c => c.latestJobId || '' },
       { key: 'createdBy', label: 'Created By', defaultSelected: false, getValue: c => c.createdBy || '' },
       { key: 'creationDate', label: 'Creation Date', defaultSelected: false, getValue: c => c.creationDate || '' },
       { key: 'lastUpdatedBy', label: 'Updated By', defaultSelected: false, getValue: c => c.lastUpdatedBy || '' },
-      { key: 'scheduledBy', label: 'Scheduled By', defaultSelected: false, getValue: c => c.scheduledBy || '' },
     ];
   }, []);
 
