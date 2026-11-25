@@ -3242,7 +3242,7 @@ export default function Reports({
                           key={c.key}
                           style={c.stickyLeft
                             ? { position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'var(--bg-secondary)', minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', boxShadow: '2px 0 5px rgba(0,0,0,0.08)' }
-                            : { minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', ...((c.key === 'priority' || c.key === 'numberOfOccurrences') ? { textAlign: 'center' as const } : {}) }}
+                            : { minWidth: c.minWidth || '140px', whiteSpace: 'nowrap', ...((c.key === 'priority') ? { textAlign: 'center' as const } : {}) }}
                         >
                           {c.label.toUpperCase()}
                         </th>
@@ -4305,10 +4305,6 @@ export default function Reports({
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Group</span>
                       <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'group'))}</span>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Number of Occurrences</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{renderFieldVal(getIncidentAttr(selectedIncidentDetail, 'numberOfOccurrences'))}</span>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Attachments</span>
