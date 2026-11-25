@@ -131,7 +131,7 @@ export default function AccessCertificates({
         onRegisterBack({
           canGoBack: true,
           onBack: backToList,
-          label: 'Access Certificates'
+          label: 'Access Certification'
         });
       } else if (isActive) {
         onRegisterBack(null);
