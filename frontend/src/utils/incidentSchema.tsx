@@ -51,7 +51,6 @@ export const ACCESS_INCIDENT_COLUMNS: IncidentColumnDef[] = [
   { key: 'closedDate', label: 'Closed Date', defaultVisible: true, minWidth: '140px' },
   { key: 'creationDate', label: 'Creation Date', defaultVisible: true, minWidth: '140px' },
   { key: 'controlType', label: 'Control Type', defaultVisible: true, minWidth: '150px' },
-  { key: 'numberOfOccurrences', label: 'Number of Occurrences', defaultVisible: true, minWidth: '185px' },
 ];
 
 // Transaction Controls Incidents columns (Oracle Type 174)
@@ -76,7 +75,6 @@ export const TRANSACTION_INCIDENT_COLUMNS: IncidentColumnDef[] = [
   { key: 'group', label: 'Group', defaultVisible: true, minWidth: '260px' },
   { key: 'attachments', label: 'Attachments', defaultVisible: true, minWidth: '130px' },
   { key: 'comments', label: 'Comments', defaultVisible: true, minWidth: '140px' },
-  { key: 'numberOfOccurrences', label: 'Number of Occurrences', defaultVisible: true, minWidth: '185px' },
 ];
 
 export const formatOracleDateValue = (dateStr: string | null | undefined) => {
