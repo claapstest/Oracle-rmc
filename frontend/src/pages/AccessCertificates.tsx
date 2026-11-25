@@ -33,29 +33,30 @@ interface WorksheetColumn {
   icon?: 'role';
 }
 
-// Certifier worksheet columns (11). Matches the exact Oracle BI Publisher report layout
-// created for Claaps Access_certifier_worksheet.
+// Fallback certifier worksheet columns when source report headers are not attached.
+// Preserves original Oracle BI Publisher report column names (undoes custom renames).
 export const WORKSHEET_COLUMNS: WorksheetColumn[] = [
-  { header: 'CERTIFIER ID', keys: ['certifierId', 'Certifier ID', 'CERTIFIER_ID'] },
-  { header: 'CERTIFICATION NAME', keys: ['certificationName', 'Certification Name', 'name', 'CERTIFICATION_NAME'] },
-  { header: 'ROLE NAME', keys: ['jobRoleName', 'Job Role Name', 'roleName', 'Role Name', 'JOB_ROLE_NAME', 'ROLE_NAME'], icon: 'role' },
-  { header: 'USER NAME', keys: ['userName', 'User Name', 'ownerName', 'Owner Name', 'USER_NAME'] },
-  { header: 'DIRECT MANAGER', keys: ['userManagerName', 'User Manager Name', 'managerName', 'Manager Name', 'certifiedManager', 'Certified Manager', 'directManager', 'Direct Manager', 'USER_MANAGER_NAME', 'MANAGER_NAME'] },
-  { header: 'ACTION', keys: ['action', 'Action', 'certificationAction', 'ACTION'] },
-  { header: 'CREATION DATE', keys: ['creationDate', 'Creation Date', 'CREATION_DATE'] },
-  { header: 'CREATED BY', keys: ['createdBy', 'Created By', 'CREATED_BY'] },
-  { header: 'BUSINESS UNIT', keys: ['userBusinessUnit', 'User Business Unit', 'USER_BUSINESS_UNIT', 'userRoleBusinessUnit', 'User-Role Business Unit', 'businessUnit', 'Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'BUSINESS_UNIT'] },
-  { header: 'JOB NAME', keys: ['userJobName', 'User Job Name', 'jobName', 'Job Name', 'USER_JOB_NAME', 'JOB_NAME'] },
-  { header: 'USER LOCATION', keys: ['userLocation', 'User Location', 'location', 'Location', 'USER_LOCATION', 'LOCATION'] },
-  { header: 'POSITION NAME', keys: ['userPositionName', 'User Position Name', 'positionName', 'Position Name', 'USER_POSITION_NAME', 'POSITION_NAME'] },
-  { header: 'LAST UPDATED BY', keys: ['lastUpdatedBy', 'Last Updated By', 'LAST_UPDATED_BY'] },
-  { header: 'LAST UPDATED DATE', keys: ['lastUpdatedDate', 'Last Updated Date', 'LAST_UPDATED_DATE'] },
-  { header: 'SELF CERTIFIED', keys: ['certifierSelfCertified', 'Certifier Self-Certified', 'selfCertified', 'Self Certified', 'CERTIFIER_SELF_CERTIFIED', 'SELF_CERTIFIED'] },
-  { header: 'PENDING SUBMISSION', keys: ['pendingSubmission', 'Pending Submission', 'PENDING_SUBMISSION'] },
-  { header: 'COMMENT', keys: ['comment', 'Comment', 'comments', 'Comments', 'COMMENTS', 'COMMENT'] },
-  { header: 'COMMENT BY', keys: ['commentBy', 'Comment By', 'COMMENT_BY'] },
-  { header: 'LAST DECISION BY', keys: ['certifierLastUpdatedBy', 'Certifier Last Updated By', 'lastDecisionBy', 'Last Decision By', 'CERTIFIER_LAST_UPDATED_BY', 'LAST_DECISION_BY'] },
-  { header: 'LAST DECISION DATE', keys: ['certifierLastUpdatedDate', 'Certifier Last Updated Date', 'lastDecisionDate', 'Last Decision Date', 'CERTIFIER_LAST_UPDATED_DATE', 'LAST_DECISION_DATE'] },
+  { header: 'CERTIFIER ID', keys: ['Certifier ID', 'CERTIFIER_ID', 'certifierId'] },
+  { header: 'CERTIFICATION NAME', keys: ['Certification Name', 'CERTIFICATION_NAME', 'certificationName', 'name'] },
+  { header: 'JOB ROLE NAME', keys: ['Job Role Name', 'JOB_ROLE_NAME', 'jobRoleName', 'Role Name', 'ROLE_NAME', 'roleName'], icon: 'role' },
+  { header: 'ROLE CODE', keys: ['Role Code', 'ROLE_CODE', 'roleCode'] },
+  { header: 'USER NAME', keys: ['User Name', 'USER_NAME', 'userName', 'Owner Name', 'ownerName'] },
+  { header: 'USER MANAGER NAME', keys: ['User Manager Name', 'USER_MANAGER_NAME', 'userManagerName', 'Manager Name', 'MANAGER_NAME', 'managerName', 'Certified Manager', 'certifiedManager', 'Direct Manager', 'directManager'] },
+  { header: 'ACTION', keys: ['Action', 'ACTION', 'action', 'certificationAction'] },
+  { header: 'CREATION DATE', keys: ['Creation Date', 'CREATION_DATE', 'creationDate'] },
+  { header: 'CREATED BY', keys: ['Created By', 'CREATED_BY', 'createdBy'] },
+  { header: 'USER BUSINESS UNIT', keys: ['User Business Unit', 'USER_BUSINESS_UNIT', 'userBusinessUnit', 'User-Role Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'userRoleBusinessUnit', 'Business Unit', 'BUSINESS_UNIT', 'businessUnit'] },
+  { header: 'USER JOB NAME', keys: ['User Job Name', 'USER_JOB_NAME', 'userJobName', 'Job Name', 'JOB_NAME', 'jobName'] },
+  { header: 'USER LOCATION', keys: ['User Location', 'USER_LOCATION', 'userLocation', 'Location', 'LOCATION', 'location'] },
+  { header: 'USER POSITION NAME', keys: ['User Position Name', 'USER_POSITION_NAME', 'userPositionName', 'Position Name', 'POSITION_NAME', 'positionName'] },
+  { header: 'LAST UPDATED BY', keys: ['Last Updated By', 'LAST_UPDATED_BY', 'lastUpdatedBy'] },
+  { header: 'LAST UPDATED DATE', keys: ['Last Updated Date', 'LAST_UPDATED_DATE', 'lastUpdatedDate'] },
+  { header: 'CERTIFIER SELF-CERTIFIED', keys: ['Certifier Self-Certified', 'CERTIFIER_SELF_CERTIFIED', 'certifierSelfCertified', 'Self Certified', 'SELF_CERTIFIED', 'selfCertified'] },
+  { header: 'PENDING SUBMISSION', keys: ['Pending Submission', 'PENDING_SUBMISSION', 'pendingSubmission'] },
+  { header: 'COMMENT', keys: ['Comment', 'COMMENT', 'comment', 'Comments', 'COMMENTS', 'comments'] },
+  { header: 'COMMENT BY', keys: ['Comment By', 'COMMENT_BY', 'commentBy'] },
+  { header: 'CERTIFIER LAST UPDATED BY', keys: ['Certifier Last Updated By', 'CERTIFIER_LAST_UPDATED_BY', 'certifierLastUpdatedBy', 'Last Decision By', 'LAST_DECISION_BY', 'lastDecisionBy'] },
+  { header: 'CERTIFIER LAST UPDATED DATE', keys: ['Certifier Last Updated Date', 'CERTIFIER_LAST_UPDATED_DATE', 'certifierLastUpdatedDate', 'Last Decision Date', 'LAST_DECISION_DATE', 'lastDecisionDate'] },
 ];
 
 export function wsVal(row: any, keys: string[]): string {
@@ -247,14 +248,32 @@ export default function AccessCertificates({
     }
   }, [initialCertificationId, certifications]);
 
-  // Filtered worksheet rows based on search term (matches across all 23 columns)
+  // Derive columns directly from the BI report source headers when present
+  const activeWorksheetColumns = useMemo<WorksheetColumn[]>(() => {
+    const firstRow = worksheetRows[0];
+    const sourceCols: string[] | undefined =
+      Array.isArray(firstRow?._sourceColumns) && firstRow._sourceColumns.length > 0
+        ? firstRow._sourceColumns
+        : undefined;
+
+    if (sourceCols) {
+      return sourceCols.map((colName) => ({
+        header: colName,
+        keys: [colName],
+        icon: /role\s*name/i.test(colName) ? 'role' : undefined,
+      }));
+    }
+    return WORKSHEET_COLUMNS;
+  }, [worksheetRows]);
+
+  // Filtered worksheet rows based on search term (matches across all active columns)
   const filteredWorksheetRows = useMemo(() => {
     if (!worksheetSearchTerm.trim()) return worksheetRows;
     const term = worksheetSearchTerm.toLowerCase().trim();
     return worksheetRows.filter((r) => {
-      return WORKSHEET_COLUMNS.some((c) => wsVal(r, c.keys).toLowerCase().includes(term));
+      return activeWorksheetColumns.some((c) => wsVal(r, c.keys).toLowerCase().includes(term));
     });
-  }, [worksheetRows, worksheetSearchTerm]);
+  }, [worksheetRows, worksheetSearchTerm, activeWorksheetColumns]);
 
   // Pagination for worksheet rows
   const totalWorksheetRecords = filteredWorksheetRows.length;
@@ -338,7 +357,7 @@ export default function AccessCertificates({
           label: '#',
           getValue: (_r: any, idx?: number) => (idx !== undefined ? idx + 1 : '')
         },
-        ...WORKSHEET_COLUMNS.map((c) => ({
+        ...activeWorksheetColumns.map((c) => ({
           key: c.keys[0],
           label: c.header,
           getValue: (r: any) => wsVal(r, c.keys)
@@ -805,13 +824,13 @@ export default function AccessCertificates({
             </div>
           </div>
 
-          {/* REQUIRED CERTIFIER WORKSHEET TABLE (23 COLUMNS) */}
+          {/* CERTIFIER WORKSHEET TABLE (ALL SOURCE BI REPORT COLUMNS) */}
           <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
                   <th style={{ padding: '0.85rem 1rem', width: '45px', fontWeight: 700 }}>#</th>
-                  {WORKSHEET_COLUMNS.map((c) => (
+                  {activeWorksheetColumns.map((c) => (
                     <th key={c.header} style={{ padding: '0.85rem 1rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{c.header}</th>
                   ))}
                 </tr>
@@ -821,12 +840,12 @@ export default function AccessCertificates({
                   <TableLoadingState
                     title="Loading Certifier Worksheet from Oracle Fusion..."
                     subtitle="Retrieving user access details and assignment actions"
-                    colSpan={WORKSHEET_COLUMNS.length + 1}
+                    colSpan={activeWorksheetColumns.length + 1}
                     skeletonRows={4}
                   />
                 ) : paginatedWorksheetRows.length === 0 ? (
                   <tr>
-                    <td colSpan={WORKSHEET_COLUMNS.length + 1} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                    <td colSpan={activeWorksheetColumns.length + 1} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
                       <Users size={32} style={{ color: '#94A3B8', margin: '0 auto 0.75rem auto' }} />
                       <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#334155' }}>
                         No user access records found for this certification.
@@ -852,7 +871,7 @@ export default function AccessCertificates({
                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                       >
                         <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#64748B' }}>{rowNum}</td>
-                        {WORKSHEET_COLUMNS.map((c) => {
+                        {activeWorksheetColumns.map((c) => {
                           const v = wsVal(row, c.keys) || '—';
                           return (
                             <td key={c.header} style={{ padding: '0.9rem 1rem', color: '#334155', whiteSpace: 'nowrap' }}>
