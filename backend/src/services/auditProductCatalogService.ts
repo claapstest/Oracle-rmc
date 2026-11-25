@@ -10,9 +10,11 @@ export interface AuditBusinessObject {
   displayName: string;
   isSupported?: boolean;
   status?: 'SUPPORTED' | 'UNSUPPORTED';
+  restProduct?: string;
   restBusinessObjectType?: string;
   restValue?: string;
   payloadTemplate?: any;
+  payloadOverrides?: Record<string, string>;
   aliases?: string[];
 }
 
@@ -84,7 +86,8 @@ export class AuditProductCatalogService {
     try {
       if (fs.existsSync(catalogPath)) {
         const raw = fs.readFileSync(catalogPath, 'utf-8');
-        this.products = JSON.parse(raw);
+        const parsed: AuditProduct[] = JSON.parse(raw);
+        this.products = parsed.map((product) => this.hydrateProduct(product));
       } else {
         console.warn(`[Audit Product Catalog] Config file not found at ${catalogPath}`);
         this.products = [];
@@ -93,6 +96,61 @@ export class AuditProductCatalogService {
       console.error('[Audit Product Catalog] Failed to load catalog:', err.message);
       this.products = [];
     }
+  }
+
+  /**
+   * Hydrates compact catalog entries so every supported business object has a complete
+   * `payloadTemplate` and `restProduct` at runtime, while keeping the JSON easy to edit.
+   */
+  private hydrateProduct(product: AuditProduct): AuditProduct {
+    const baseRestProduct = (product.restProduct || product.instanceProductName || '').trim() || null;
+    const isZeroBo = !product.requiresBusinessObjectType;
+    const defaultFlags = isZeroBo
+      ? {
+          eventType: 'ALL',
+          timeZone: 'UTC',
+          includeChildObjects: 'false',
+          includeImpersonator: 'false',
+          includeAttributes: 'false',
+          attributeDetailMode: 'false',
+          includeExtendedObjectIdentiferColumns: 'false',
+        }
+      : {
+          eventType: 'ALL',
+          timeZone: 'UTC',
+          includeChildObjects: 'true',
+          includeImpersonator: 'false',
+          includeAttributes: 'true',
+          attributeDetailMode: 'true',
+          includeExtendedObjectIdentiferColumns: 'true',
+        };
+
+    const hydratedBos = (product.businessObjects || []).map((bo) => {
+      const effectiveRestProduct = (bo.restProduct || bo.payloadTemplate?.product || baseRestProduct || '').trim() || undefined;
+      const effectiveVo = (bo.restBusinessObjectType || bo.restValue || bo.payloadTemplate?.businessObjectType || '').trim() || undefined;
+      const mergedTemplate = {
+        ...defaultFlags,
+        ...(product.defaultPayloadTemplate || {}),
+        ...(bo.payloadTemplate || {}),
+        ...(bo.payloadOverrides || {}),
+        ...(effectiveRestProduct ? { product: effectiveRestProduct } : {}),
+        ...(effectiveVo !== undefined ? { businessObjectType: effectiveVo } : {}),
+        ...(product.productId && !bo.payloadTemplate?.productId ? { productId: product.productId } : {}),
+      };
+      return {
+        ...bo,
+        restProduct: effectiveRestProduct,
+        restBusinessObjectType: effectiveVo,
+        restValue: bo.restValue || effectiveVo,
+        payloadTemplate: bo.isSupported === false ? bo.payloadTemplate : mergedTemplate,
+      };
+    });
+
+    return {
+      ...product,
+      restProduct: baseRestProduct,
+      businessObjects: hydratedBos,
+    };
   }
 
   public getAllProducts(): AuditProduct[] {
