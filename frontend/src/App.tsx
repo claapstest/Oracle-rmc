@@ -54,7 +54,7 @@ interface RiskChildNavItem {
 
 const RISK_CHILDREN: RiskChildNavItem[] = [
   { id: 'risk-controls', label: 'Advanced Controls', icon: Scale },
-  { id: 'risk-certificates', label: 'Access Certificates', icon: Award }
+  { id: 'risk-certificates', label: 'Access Certification', icon: Award }
 ];
 
 const RISK_CHILD_IDS = new Set(RISK_CHILDREN.map(c => c.id));
@@ -79,7 +79,7 @@ const PAGE_TITLE_MAP: Record<string, string> = {
   roles: 'Roles Catalog',
   audit: 'Audit Trail',
   'risk-controls': 'Advanced Controls',
-  'risk-certificates': 'Access Certificates',
+  'risk-certificates': 'Access Certification',
   reports: 'Reports',
   settings: 'Oracle Integration',
   'command-center': 'Oracle API Console'

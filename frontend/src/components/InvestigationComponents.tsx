@@ -1386,7 +1386,7 @@ function getTableColumns(
                   borderRadius: '4px',
                   whiteSpace: 'nowrap'
                 }}
-                title="Open in Access Certificates Screen"
+                title="Open in Access Certification Screen"
               >
                 <span>Open</span>
               </button>

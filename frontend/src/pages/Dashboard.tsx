@@ -556,7 +556,7 @@ export default function Dashboard({
       }] : []),
       ...(can('risk-certificates') ? [{
         key: 'access-governance',
-        title: 'Access Certificates',
+        title: 'Access Certification',
         subtitle: 'Audit user certification worksheets and review records.',
         status: 'Certification reviews active',
         icon: <Scale size={22} />,
