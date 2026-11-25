@@ -686,7 +686,7 @@ apiRouter.post('/auth/logout', enforceBodySizeLimit('POST /auth/logout'), valida
       const decoded = tokenService.decodeToken(token);
       if (!extractedUserId) extractedUserId = decoded.payload.sub;
       if (!extractedSessionId) extractedSessionId = decoded.payload.sid;
-    } catch (_) {}
+    } catch (_) { }
   } else if (token && !extractedSessionId) {
     extractedSessionId = token;
   }
@@ -695,7 +695,7 @@ apiRouter.post('/auth/logout', enforceBodySizeLimit('POST /auth/logout'), valida
   if (!extractedUserId && extractedEmail) {
     try {
       const uRes = await authService.getUserByEmail ? await authService.getUserByEmail(extractedEmail) : null;
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const validation = token ? await authService.validateSession(token, false) : { valid: false, session: undefined };
@@ -2440,7 +2440,7 @@ apiRouter.get('/reports/role-hierarchy', requirePrivilege(['REPORTS', 'REPORTS_R
     try {
       const summary = await oracleService.getRolePrivilegeSummary(false);
       summaryItems = summary.items || [];
-    } catch (_) {}
+    } catch (_) { }
     res.json({ ...result, summaryItems });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -2622,15 +2622,8 @@ apiRouter.post('/audit/query', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), 
   }
 });
 
-// POST /api/audit/sync - On-demand synchronization of audit trail records via pipeline (VYR-040)
+// POST /api/audit/sync - Live REST API query (no bulk database sync)
 apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/sync'), async (req: Request, res: Response) => {
-  if (ingestionPipeline.isRunning()) {
-    return res.status(409).json({
-      success: false,
-      code: 'SYNC_IN_PROGRESS',
-      message: 'A synchronization operation is already in progress. Please wait for it to complete.'
-    });
-  }
   try {
     const {
       product,
@@ -2639,64 +2632,43 @@ apiRouter.post('/audit/sync', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), v
       toDate
     } = req.body || {};
 
-    const currentUser = res.locals.email || 'SYSTEM';
-    logAudit(currentUser, 'AUDIT_SYNC_TRIGGERED', `Triggered audit trail sync for product: ${product || 'All Active Products'}, BO: ${businessObjectType || 'All'}`);
-
     if (!product || product === '__ALL__') {
-      const domainResult = await ingestionPipeline.runDomain(
-        'audit', oracleService, currentUser, { fromDate, toDate }
-      );
-
-      if (!domainResult.success && domainResult.error?.includes('already in progress')) {
-        return res.status(409).json({
-          success: false,
-          code: 'SYNC_IN_PROGRESS',
-          message: domainResult.error,
-        });
-      }
-
       return res.json({
         ...oracleService.getModeInfo(),
-        success: domainResult.success,
-        message: domainResult.success
-          ? 'Audit Trail sync completed via ingestion pipeline.'
-          : `Audit sync failed: ${domainResult.error}`,
-        detail: domainResult.detail,
-        durationMs: domainResult.durationMs,
-        dataSource: 'Live Oracle Fusion API'
+        success: true,
+        message: 'Audit Trail now fetches directly from Oracle Fusion REST API in real time (no database sync needed).',
+        dataSource: 'Live Oracle Fusion REST API'
       });
     }
 
-    // Product-level sync — still calls auditRawDbService.syncProduct directly
-    // because the pipeline's audit runner is the multi-product incremental sync
-    const syncResult = await auditRawDbService.syncProduct(
+    const result = await oracleService.getAuditHistory({
       product,
-      (oracleService as any).client,
-      auditProductCatalogService,
-      { fromDate, toDate, businessObject: businessObjectType }
-    );
+      businessObjectType,
+      fromDate,
+      toDate,
+      pageNumber: 1,
+      pageSize: 500
+    });
 
     res.json({
       ...oracleService.getModeInfo(),
-      success: true,
-      message: `Audit records for ${syncResult.product} successfully synchronized (${fromDate || 'recent'} to ${toDate || 'now'}). Synced ${syncResult.syncedCount} records (${syncResult.savedCount} newly saved).`,
-      syncedCount: syncResult.syncedCount,
-      savedCount: syncResult.savedCount,
-      totalRecords: syncResult.syncedCount,
-      lastSynced: syncResult.lastSyncedAt,
-      dataSource: 'Live Oracle Fusion API'
+      ...result,
+      syncedCount: result.totalRecords,
+      savedCount: 0,
+      message: `Fetched ${result.totalRecords} live audit record(s) from Oracle Fusion REST API.`,
+      dataSource: 'Live Oracle Fusion REST API'
     });
   } catch (err) {
-    console.error('[API Router] Audit sync failed:', err);
+    console.error('[API Router] Audit live refresh failed:', err);
     res.json({
       success: false,
-      message: (err as Error).message || 'Failed to sync audit trail from Oracle Fusion',
+      message: (err as Error).message || 'Failed to fetch audit trail from Oracle Fusion REST API',
       ...oracleService.getModeInfo()
     });
   }
 });
 
-// POST /api/audit/sync/product - Product-level audit synchronization on-demand
+// POST /api/audit/sync/product - Live REST API query for a product (no database sync)
 apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_READ']), validateBody('POST /audit/sync/product'), async (req: Request, res: Response) => {
   try {
     const { product, businessObject, fromDate, toDate } = req.body || {};
@@ -2704,27 +2676,27 @@ apiRouter.post('/audit/sync/product', requirePrivilege(['AUDIT_TRAIL', 'AUDIT_RE
       return res.status(400).json({ success: false, message: 'Product parameter is required.' });
     }
 
-    const currentUser = res.locals.email || 'SYSTEM';
-    logAudit(currentUser, 'PRODUCT_AUDIT_SYNC', `Triggered product-level audit sync for: ${product} (BO: ${businessObject || 'All'})`);
-
-    const syncResult = await auditRawDbService.syncProduct(
+    const result = await oracleService.getAuditHistory({
       product,
-      (oracleService as any).client,
-      auditProductCatalogService,
-      { fromDate, toDate, businessObject }
-    );
+      businessObjectType: businessObject,
+      fromDate,
+      toDate,
+      pageNumber: 1,
+      pageSize: 500
+    });
 
     res.json({
       ...oracleService.getModeInfo(),
-      success: true,
-      message: `Audit records for ${syncResult.product} successfully synchronized. Synced ${syncResult.syncedCount} records (${syncResult.savedCount} newly saved).`,
-      ...syncResult
+      ...result,
+      syncedCount: result.totalRecords,
+      savedCount: 0,
+      message: `Fetched ${result.totalRecords} live audit record(s) from Oracle Fusion REST API.`
     });
   } catch (err: any) {
-    console.error('[API Router] Product audit sync failed:', err);
+    console.error('[API Router] Product audit live fetch failed:', err);
     res.status(500).json({
       success: false,
-      message: err.message || 'Failed to sync product audit records',
+      message: err.message || 'Failed to fetch product audit records from REST API',
       ...oracleService.getModeInfo()
     });
   }

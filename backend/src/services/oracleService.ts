@@ -2577,48 +2577,7 @@ class OracleService {
       };
     }
 
-    // Check if wide date range (> 30 days) or database source requested or historical year (< 2026)
-    const isHistorical = Boolean((fromDateStr && fromDateStr < '2026-01-01') || (toDateStr && toDateStr < '2026-01-01'));
-    const preferDb = params.source === 'database' || isWideRange || isHistorical;
-    if (preferDb && !this.isDemoMode()) {
-      try {
-        const queryPageSize = params.pageSize && params.pageSize > 0 ? params.pageSize : 500;
-        const dbResult = await auditRawDbService.getRawAuditRecords({
-          product: resolution.product?.productName || resolution.product?.displayName || productQuery,
-          businessObjectType: resolution.businessObject?.displayName || params.businessObjectType,
-          fromDate: fromDateStr,
-          toDate: toDateStr,
-          username: params.username,
-          action: params.action,
-          pageNumber,
-          pageSize: queryPageSize
-        });
-
-        if (params.source === 'database' || dbResult.totalCount > 0 || isWideRange || isHistorical) {
-          const mappedLogs = dbResult.rawItems.flatMap((a: any, idx: number) =>
-            this.mapRawAuditItemToRows(a, idx, boDisplayName, restBusinessObjectType)
-          );
-
-          return {
-            success: true,
-            dataSource: 'PostgreSQL Database (Raw Oracle Fusion Data)',
-            logs: mappedLogs,
-            totalRecords: mappedLogs.length > dbResult.totalCount ? mappedLogs.length : dbResult.totalCount,
-            pageNumber,
-            pageSize: queryPageSize,
-            product: resolution.product?.id,
-            productDisplayName,
-            businessObject: resolution.businessObject?.id,
-            businessObjectDisplayName: boDisplayName,
-            dateRange: { fromDate: fromDateStr, toDate: toDateStr }
-          };
-        }
-      } catch (err: any) {
-        console.warn('[Audit Raw DB Query]:', err.message);
-      }
-    }
-
-    // 3. Query Live Oracle Fusion Audit REST endpoint with tested product-specific payload
+    // 3. Query Live Oracle Fusion Audit REST endpoint directly (REST API only, no DB read/write)
     this.assertLiveInstance('Audit history');
     try {
       const template = resolution.businessObject?.payloadTemplate || resolution.product?.defaultPayloadTemplate;
@@ -2685,23 +2644,57 @@ class OracleService {
       console.log(`[AUDIT DEBUG] toDate:\n${toDateStr}`);
 
       const queryPageSize = params.pageSize && params.pageSize > 0 ? params.pageSize : 500;
-      const response = await this.client.getAuditHistory(payload, { pageNumber, pageSize: queryPageSize });
 
-      if (response?.status === 'FAIL' || response?.error) {
-        const errorDetail = response?.error?.errorDetail?.[0]?.detail || response?.error?.detail || response?.error?.title || 'Oracle Fusion audit query failed';
-        throw new Error(errorDetail);
+      // Split into <= 30-day windows because Oracle Fusion REST API enforces a 30-day max per request
+      const buildDateChunks = (startIso: string, endIso: string): Array<{ fromDate: string; toDate: string }> => {
+        const sParts = startIso.split('-').map(Number);
+        const eParts = endIso.split('-').map(Number);
+        let curMs = Date.UTC(sParts[0], sParts[1] - 1, sParts[2]);
+        const endMs = Date.UTC(eParts[0], eParts[1] - 1, eParts[2]);
+        const chunks: Array<{ fromDate: string; toDate: string }> = [];
+        const dayMs = 24 * 60 * 60 * 1000;
+        const fmtUtc = (ms: number) => new Date(ms).toISOString().split('T')[0];
+
+        while (curMs <= endMs) {
+          const chunkEndMs = Math.min(curMs + 29 * dayMs, endMs);
+          chunks.push({ fromDate: fmtUtc(curMs), toDate: fmtUtc(chunkEndMs) });
+          curMs = chunkEndMs + dayMs;
+        }
+        return chunks;
+      };
+
+      const chunks = isWideRange ? buildDateChunks(fromDateStr, toDateStr) : [{ fromDate: fromDateStr, toDate: toDateStr }];
+      const audits: any[] = [];
+      let totalResultsSum = 0;
+
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+        const batch = chunks.slice(i, i + BATCH_SIZE);
+        const responses = await Promise.all(
+          batch.map((c) =>
+            this.client.getAuditHistory(
+              { ...payload, fromDate: c.fromDate, toDate: c.toDate },
+              { pageNumber, pageSize: queryPageSize }
+            )
+          )
+        );
+        for (const resp of responses) {
+          if (resp?.status === 'FAIL' || resp?.error) {
+            const errorDetail = resp?.error?.errorDetail?.[0]?.detail || resp?.error?.detail || resp?.error?.title || 'Oracle Fusion audit query failed';
+            throw new Error(errorDetail);
+          }
+          const chunkAudits = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
+          audits.push(...chunkAudits);
+          totalResultsSum += Number(resp?.totalResults || chunkAudits.length || 0);
+        }
       }
 
-      const audits = Array.isArray(response?.auditData) ? response.auditData : (response?.auditHistory || response?.items || []);
-
-      console.log(`[AUDIT DEBUG] Oracle response status:\n${response?.status || (audits.length > 0 ? 'SUCCESS' : 'EMPTY')}`);
-      console.log(`[AUDIT DEBUG] Oracle auditData count:\n${audits.length}`);
+      console.log(`[AUDIT DEBUG] Oracle REST chunks=${chunks.length}, auditData count=${audits.length}`);
 
       if (audits.length === 0) {
-        // Live-instance-only: return empty live result, never fallback snapshot data.
         return {
           success: true,
-          dataSource: 'Live Oracle Fusion API',
+          dataSource: 'Live Oracle Fusion REST API',
           logs: [],
           totalRecords: 0,
           pageNumber,
@@ -2712,14 +2705,6 @@ class OracleService {
           businessObjectDisplayName: boDisplayName,
           dateRange: { fromDate: fromDateStr, toDate: toDateStr }
         };
-      }
-
-      if (audits.length > 0) {
-        auditRawDbService.saveRawAuditRecords(
-          resolution.product?.productName || resolution.product?.displayName || productQuery,
-          resolution.businessObject?.displayName || boDisplayName,
-          audits
-        ).catch(e => console.warn('[Audit Raw DB Auto-Save Error]:', e.message));
       }
 
       let mappedLogs = audits.flatMap((a: any, idx: number) =>
@@ -2761,9 +2746,9 @@ class OracleService {
 
       return {
         success: true,
-        dataSource: this.getModeInfo().dataSource,
+        dataSource: 'Live Oracle Fusion REST API',
         logs: mappedLogs,
-        totalRecords: response?.totalResults || mappedLogs.length,
+        totalRecords: totalResultsSum || mappedLogs.length,
         pageNumber,
         pageSize: queryPageSize,
         product: resolution.product?.id,

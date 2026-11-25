@@ -103,8 +103,13 @@ export default function Audit({
         : '');
   const [selectedBOId, setSelectedBOId] = useState<string>(rawInitialBO || 'document_records');
 
-  // Filter state - supports 2025 through current date
-  const [fromDate, setFromDate] = useState<string>(() => initialFromDate || '2025-01-01');
+  // Filter state - default to Last 30 Days for fast live REST API queries
+  const [fromDate, setFromDate] = useState<string>(() => {
+    if (initialFromDate) return initialFromDate;
+    const d = new Date(getTodayIsoDate());
+    d.setDate(d.getDate() - 29);
+    return d.toISOString().split('T')[0];
+  });
   const [toDate, setToDate] = useState<string>(() => initialToDate || getTodayIsoDate());
   const [userQuery, setUserQuery] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
@@ -487,46 +492,18 @@ export default function Audit({
     handleSearch(1, targetProdId, targetBOId, '2026-10-03', '2026-10-13', 'ALL', '');
   };
 
-  // Synchronize Audit Trail on-demand from Oracle Fusion
+  // Refresh live Audit Trail directly via Oracle Fusion REST API
   const handleSyncAudit = async () => {
     setIsSyncing(true);
     setSyncNotice('');
     setError('');
     try {
-      const prod = products.find(p => p.id === selectedProductId);
-      const selectedBO = prod?.businessObjects.find(b => b.id === selectedBOId);
-
-      const res = await api.syncAuditTrail({
-        product: prod?.productName || prod?.displayName || selectedProductId,
-        businessObjectType: selectedBO?.displayName || selectedBOId || undefined,
-        fromDate,
-        toDate
-      });
-
-      if (res?.success) {
-        setLastSyncedTime(new Date().toLocaleTimeString());
-        setSyncNotice(res.message || 'Audit trail successfully synchronized with Oracle Fusion.');
-        if (res.logs && Array.isArray(res.logs) && res.logs.length > 0) {
-          setHasSearched(true);
-          setLogs(res.logs);
-          setTotalRecords(res.totalRecords || res.logs.length);
-          setDataSource(res.dataSource || '');
-          setLastQuerySummary({
-            productDisplayName: cleanProductName(prod?.displayName || 'Oracle Fusion'),
-            businessObjectDisplayName: selectedBO?.displayName || 'Standard Object',
-            fromDate: res.dateRange?.fromDate || fromDate,
-            toDate: res.dateRange?.toDate || toDate,
-            count: res.totalRecords || res.logs.length
-          });
-        } else {
-          await handleSearch(1);
-        }
-      } else {
-        setError(res?.message || 'Sync completed with warnings.');
-      }
+      await handleSearch(1);
+      setLastSyncedTime(new Date().toLocaleTimeString());
+      setSyncNotice('Fetched live audit records directly from Oracle Fusion REST API.');
     } catch (err: any) {
-      console.error('Audit sync error:', err);
-      setError(err?.message || 'Failed to sync audit trail.');
+      console.error('Audit refresh error:', err);
+      setError(err?.message || 'Failed to refresh live audit trail.');
     } finally {
       setIsSyncing(false);
     }
@@ -635,10 +612,10 @@ export default function Audit({
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
               transition: 'all 0.15s ease'
             }}
-            title="Fetch latest audit records"
+            title="Fetch latest live audit records from Oracle Fusion REST API"
           >
             <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Audit Trail'}</span>
+            <span>{isSyncing ? 'Refreshing...' : 'Refresh Live Data'}</span>
           </button>
         </div>
       </div>

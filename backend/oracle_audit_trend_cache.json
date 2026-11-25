@@ -190,5 +190,65 @@
     "inserts": 12,
     "updates": 0,
     "deletes": 0
+  },
+  "2026-11-17": {
+    "count": 4,
+    "inserts": 4,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-11-07": {
+    "count": 72,
+    "inserts": 72,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-11-05": {
+    "count": 204,
+    "inserts": 144,
+    "updates": 0,
+    "deletes": 60
+  },
+  "2026-06-07": {
+    "count": 2,
+    "inserts": 2,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-06-05": {
+    "count": 2,
+    "inserts": 2,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-06-03": {
+    "count": 856,
+    "inserts": 856,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-06-02": {
+    "count": 221,
+    "inserts": 221,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-06-29": {
+    "count": 1,
+    "inserts": 1,
+    "updates": 0,
+    "deletes": 0
+  },
+  "2026-06-26": {
+    "count": 1704,
+    "inserts": 1703,
+    "updates": 1,
+    "deletes": 0
+  },
+  "2026-06-25": {
+    "count": 852,
+    "inserts": 852,
+    "updates": 0,
+    "deletes": 0
   }
 }

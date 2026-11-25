@@ -767,6 +767,51 @@ export class AuditRawDbService {
    * Synchronizes audit trail records for a specific product on-demand.
    * Uses rolling window from the product's last_synced_at to now.
    */
+  /**
+   * Builds a complete Oracle getAuditHistory payload from a resolved catalog entry,
+   * preserving product, businessObjectType, and all 5 attribute/child query flags.
+   */
+  private buildAuditQueryPayload(
+    resolution: { product?: any; businessObject?: any },
+    fromDateStr: string,
+    toDateStr: string,
+    fallbackProductName: string
+  ): Record<string, any> {
+    const template = resolution.businessObject?.payloadTemplate || resolution.product?.defaultPayloadTemplate;
+    const restProduct =
+      resolution.businessObject?.restProduct ||
+      resolution.product?.restProduct ||
+      resolution.product?.shortCodes?.[0] ||
+      fallbackProductName;
+    const restBO = resolution.businessObject?.restBusinessObjectType || resolution.businessObject?.restValue;
+    const isZeroBo = !resolution.product?.requiresBusinessObjectType;
+
+    const payload: Record<string, any> = {
+      fromDate: fromDateStr,
+      toDate: toDateStr,
+      eventType: 'ALL',
+    };
+
+    if (template?.productId) payload.productId = template.productId;
+    else if (resolution.product?.productId) payload.productId = resolution.product.productId;
+
+    if (template?.product) payload.product = String(template.product).trim();
+    else if (!payload.productId && restProduct) payload.product = String(restProduct).trim();
+
+    if (template?.businessObjectType !== undefined) payload.businessObjectType = template.businessObjectType;
+    else if (restBO) payload.businessObjectType = restBO;
+
+    payload.timeZone = template?.timeZone || 'UTC';
+    payload.includeChildObjects = template?.includeChildObjects ?? (isZeroBo ? 'false' : 'true');
+    payload.includeImpersonator = template?.includeImpersonator ?? 'false';
+    payload.includeAttributes = template?.includeAttributes ?? (isZeroBo ? 'false' : 'true');
+    payload.attributeDetailMode = template?.attributeDetailMode ?? (isZeroBo ? 'false' : 'true');
+    payload.includeExtendedObjectIdentiferColumns =
+      template?.includeExtendedObjectIdentiferColumns ?? (isZeroBo ? 'false' : 'true');
+
+    return payload;
+  }
+
   public async syncProduct(
     productName: string,
     oracleClient?: any,
@@ -820,26 +865,7 @@ export class AuditRawDbService {
         const resolution = catalogService?.resolveAuditRequest(normalizedProduct, boItem.businessObject);
         if (!resolution || resolution.status !== 'CONFIRMED') continue;
 
-        const template = resolution.businessObject?.payloadTemplate || resolution.product?.defaultPayloadTemplate;
-        const restProduct = resolution.product?.restProduct || resolution.product?.shortCodes?.[0] || normalizedProduct;
-        const restBO = resolution.businessObject?.restBusinessObjectType || resolution.businessObject?.restValue;
-
-        const payload: any = {
-          fromDate: fromDateStr,
-          toDate: toDateStr,
-          eventType: 'ALL'
-        };
-
-        if (template?.productId) payload.productId = template.productId;
-        else if (resolution.product?.productId) payload.productId = resolution.product.productId;
-
-        if (template?.product) payload.product = template.product;
-        else if (!payload.productId && restProduct) payload.product = restProduct;
-
-        if (template?.businessObjectType) payload.businessObjectType = template.businessObjectType;
-        else if (restBO) payload.businessObjectType = restBO;
-
-        if (template?.timeZone) payload.timeZone = template.timeZone;
+        const payload = this.buildAuditQueryPayload(resolution, fromDateStr, toDateStr, normalizedProduct);
 
         const resp = await client.getAuditHistory(payload, { pageNumber: 1, pageSize: 500 });
         const rawItems = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
@@ -989,26 +1015,7 @@ export class AuditRawDbService {
         const resolution = catalogService?.resolveAuditRequest(t.product, t.businessObject);
         if (!resolution || resolution.status !== 'CONFIRMED') continue;
 
-        const template = resolution.businessObject?.payloadTemplate || resolution.product?.defaultPayloadTemplate;
-        const restProduct = resolution.product?.restProduct || resolution.product?.shortCodes?.[0] || t.product;
-        const restBO = resolution.businessObject?.restBusinessObjectType || resolution.businessObject?.restValue;
-
-        const payload: any = {
-          fromDate: fromDateStr,
-          toDate: toDateStr,
-          eventType: 'ALL'
-        };
-
-        if (template?.productId) payload.productId = template.productId;
-        else if (resolution.product?.productId) payload.productId = resolution.product.productId;
-
-        if (template?.product) payload.product = template.product;
-        else if (!payload.productId && restProduct) payload.product = restProduct;
-
-        if (template?.businessObjectType) payload.businessObjectType = template.businessObjectType;
-        else if (restBO) payload.businessObjectType = restBO;
-
-        if (template?.timeZone) payload.timeZone = template.timeZone;
+        const payload = this.buildAuditQueryPayload(resolution, fromDateStr, toDateStr, t.product);
 
         const resp = await client.getAuditHistory(payload, { pageNumber: 1, pageSize: 500 });
         const rawItems = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
