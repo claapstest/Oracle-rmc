@@ -60,6 +60,7 @@
     "test:vyr53": "node scripts/test_story_053_security_audit_logging.cjs",
     "test:vyr54": "node scripts/test_story_054_dependency_secret_scanning.cjs",
     "test:vyr55": "node scripts/test_story_055_secrets_management.cjs",
+    "test:vyr56": "node scripts/test_story_056_jwt_session_unit.cjs",
     "test:epic3": "npm run test:vyr19 && npm run test:vyr20 && npm run test:vyr22 && npm run test:vyr23 && npm run test:vyr24 && npm run test:vyr25 && npm run test:vyr26",
     "test:epic4": "npm run test:vyr27 && npm run test:vyr28 && npm run test:vyr29 && npm run test:vyr30 && npm run test:vyr31",
     "test:epic5": "npm run test:vyr39 && npm run test:vyr40 && npm run test:vyr41 && npm run test:vyr42 && npm run test:vyr43 && npm run test:vyr44 && npm run test:vyr45 && npm run test:vyr46",
