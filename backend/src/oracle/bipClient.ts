@@ -1733,8 +1733,8 @@ export class BipClient {
         parsedRows.push(record);
       }
 
-      // Map raw BIP columns to application fields
-      const normalizedRows = parsedRows.map((r) => this.normalizeCertifierRow(r, cleanCertId));
+      // Map raw BIP columns to application fields while preserving all source columns & order
+      const normalizedRows = parsedRows.map((r) => this.normalizeCertifierRow(r, cleanCertId, headers));
 
       // Keep ALL rows belonging to the selected Certification ID
       const matchingRows = cleanCertId
@@ -1810,7 +1810,7 @@ export class BipClient {
    *  - User Business Unit: row['User Business Unit'] || row['Business Unit']
    *  - User Manager: row['Manager Name'] || row['User Manager']
    */
-  public normalizeCertifierRow(row: Record<string, any>, certIdDefault = ''): CertifierWorksheetRow {
+  public normalizeCertifierRow(row: Record<string, any>, certIdDefault = '', sourceColumns?: string[]): CertifierWorksheetRow {
     // Live-only: certification name comes strictly from the worksheet row.
     let certName = String(
       row['Certification Name'] ??
@@ -1902,6 +1902,8 @@ export class BipClient {
     const commentVal = String(row['Comment'] ?? row['comment'] ?? row['Comments'] ?? row['comments'] ?? '').trim();
 
     return {
+      ...row,
+      ...(Array.isArray(sourceColumns) && sourceColumns.length > 0 ? { _sourceColumns: sourceColumns } : {}),
       id: numericCertId,
       certificationId: numericCertId,
       name: certName,

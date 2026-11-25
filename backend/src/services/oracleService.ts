@@ -3873,7 +3873,9 @@ class OracleService {
     if (!forceRefresh) {
       try {
         const dbRows = await accessCertRawDbService.getWorksheetRows(cleanCertId);
-        if (dbRows && dbRows.length > 0) {
+        // Only serve from DB if rows already carry _sourceColumns (full raw BI columns);
+        // otherwise fall through to BIP once to backfill all source columns into PostgreSQL.
+        if (dbRows && dbRows.length > 0 && Array.isArray(dbRows[0]?._sourceColumns) && dbRows[0]._sourceColumns.length > 0) {
           return {
             success: true,
             certificationId: Number(cleanCertId) || cleanCertId,

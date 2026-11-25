@@ -616,8 +616,34 @@ export class ControlRawDbService {
       return 'ASSIGNED';
     };
 
-    const values: any[] = [];
-    const clauses: string[] = [];
+    const BATCH_SIZE = 1000; // 1000 * 26 = 26,000 params (PostgreSQL wire limit is 65,535)
+    let rowCount = 0;
+    let values: any[] = [];
+    let clauses: string[] = [];
+
+    const flushBatch = async (): Promise<void> => {
+      if (clauses.length === 0) return;
+      const ins = await query<{ cnt: number }>(`
+        WITH inserted AS (
+          INSERT INTO oracle_incident_rows (
+            environment_host, control_id, control_name, ord,
+            result_id, status, state, lifecycle, priority,
+            global_user, role_name, access_entitlement, access_point_name, access_point_type,
+            grouping_value, group_name, data_source, incident_information,
+            created_by, investigator, last_updated_by, raw,
+            is_encrypted, encryption_format_version, encryption_key_id, encrypted_at
+          )
+          VALUES ${clauses.join(', ')}
+          ON CONFLICT (environment_host, control_id, ord) DO NOTHING
+          RETURNING 1
+        )
+        SELECT COUNT(*)::int AS cnt FROM inserted
+      `, values);
+      rowCount += Number(ins.rows[0]?.cnt || 0);
+      values = [];
+      clauses = [];
+    };
+
     for (let i = 0; i < incidents.length; i++) {
       const el = incidents[i];
       if (!el || typeof el !== 'object') continue;
@@ -657,28 +683,13 @@ export class ControlRawDbService {
         typeof write.rawValue === 'string' ? write.rawValue : JSON.stringify(write.rawValue),
         ...trackingColumns(write)
       );
+
+      if (clauses.length >= BATCH_SIZE) {
+        await flushBatch();
+      }
     }
 
-    let rowCount = 0;
-    if (clauses.length > 0) {
-      const ins = await query<{ cnt: number }>(`
-        WITH inserted AS (
-          INSERT INTO oracle_incident_rows (
-            environment_host, control_id, control_name, ord,
-            result_id, status, state, lifecycle, priority,
-            global_user, role_name, access_entitlement, access_point_name, access_point_type,
-            grouping_value, group_name, data_source, incident_information,
-            created_by, investigator, last_updated_by, raw,
-            is_encrypted, encryption_format_version, encryption_key_id, encrypted_at
-          )
-          VALUES ${clauses.join(', ')}
-          ON CONFLICT (environment_host, control_id, ord) DO NOTHING
-          RETURNING 1
-        )
-        SELECT COUNT(*)::int AS cnt FROM inserted
-      `, values);
-      rowCount = Number(ins.rows[0]?.cnt || 0);
-    }
+    await flushBatch();
     await query(`
       INSERT INTO oracle_incident_rows_sync (environment_host, control_id, control_name, row_count, last_synced_at)
       SELECT environment_host, control_id, control_name, $3, COALESCE(last_synced_at, NOW())
