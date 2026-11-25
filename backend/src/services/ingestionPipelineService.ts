@@ -52,7 +52,6 @@ export type SyncDomain =
 export const ALL_SYNC_DOMAINS: readonly SyncDomain[] = [
   'controls',
   'roleHierarchy',
-  'audit',
   'usersRoles',
   'userAccess',
 ];
