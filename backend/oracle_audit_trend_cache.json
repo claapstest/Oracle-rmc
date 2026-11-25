@@ -192,22 +192,22 @@
     "deletes": 0
   },
   "2026-11-17": {
-    "count": 4,
-    "inserts": 4,
+    "count": 6,
+    "inserts": 6,
     "updates": 0,
     "deletes": 0
   },
   "2026-11-07": {
-    "count": 72,
-    "inserts": 72,
+    "count": 108,
+    "inserts": 108,
     "updates": 0,
     "deletes": 0
   },
   "2026-11-05": {
-    "count": 204,
-    "inserts": 144,
+    "count": 306,
+    "inserts": 216,
     "updates": 0,
-    "deletes": 60
+    "deletes": 90
   },
   "2026-06-07": {
     "count": 2,

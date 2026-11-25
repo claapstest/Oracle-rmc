@@ -20,10 +20,27 @@ export interface OtbiQueryResult {
   error?: string;
 }
 
+export interface GenericOtbiRow {
+  [key: string]: string;
+}
+
+export interface GenericOtbiQueryResult {
+  success: boolean;
+  columns: string[];
+  rows: GenericOtbiRow[];
+  totalRawRows: number;
+  pagesFetched: number;
+  queryId?: string;
+  finished: boolean;
+  durationMs: number;
+  error?: string;
+}
+
 export class OtbiClient {
   private axiosInstance: AxiosInstance;
   private readonly defaultTimeoutMs = 120000; // 2 minutes for large datasets
   public readonly reportPath = '/shared/Custom/CLAAPS privilege_Role_mapping';
+  public readonly accessCertOtbiReportPath = '/shared/Custom/CLPS Acess Certification OTBI';
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -314,6 +331,169 @@ export class OtbiClient {
       finished,
       returnedQueryId
     };
+  }
+
+  /**
+   * Parses a generic OTBI XML response with dynamic columns.
+   * Extracts column headers from the first row and returns rows as key-value objects.
+   */
+  public parseGenericXmlQueryResponse(xmlData: string): {
+    columns: string[];
+    rows: GenericOtbiRow[];
+    finished: boolean;
+    returnedQueryId?: string;
+  } {
+    const finishedMatch = xmlData.match(/<(?:\w+:)?finished[^>]*>([^<]+)<\/(?:\w+:)?finished>/i);
+    const finished = finishedMatch ? finishedMatch[1].trim().toLowerCase() === 'true' : true;
+
+    const queryIdMatch = xmlData.match(/<(?:\w+:)?queryID[^>]*>([^<]+)<\/(?:\w+:)?queryID>/i);
+    const returnedQueryId = queryIdMatch ? queryIdMatch[1].trim() : undefined;
+
+    const columns: string[] = [];
+    const columnHeaderRegex = /(?:<Column\d+>|&lt;Column\d+&gt;)([\s\S]*?)(?:<\/Column\d+>|&lt;\/Column\d+&gt;)/gi;
+
+    const rowRegex = /<Row>([\s\S]*?)<\/Row>|&lt;Row&gt;([\s\S]*?)&lt;\/Row&gt;/gi;
+    const rows: GenericOtbiRow[] = [];
+    let headersParsed = false;
+    let match;
+
+    while ((match = rowRegex.exec(xmlData)) !== null) {
+      const rowContent = match[1] || match[2];
+      const colValues: string[] = [];
+      let colMatch;
+      const colRegex = /(?:<Column(\d+)>|&lt;Column(\d+)&gt;)([\s\S]*?)(?:<\/Column\d+>|&lt;\/Column\d+&gt;)/gi;
+      while ((colMatch = colRegex.exec(rowContent)) !== null) {
+        colValues.push(this.decodeXmlEntities(colMatch[3].trim()));
+      }
+
+      if (!headersParsed && colValues.length > 0) {
+        // Check if this is a header row (OTBI often sends column headers in first Row)
+        const looksLikeHeaders = colValues.some(v =>
+          /^(certification|certifier|user|role|job|action|status|creation|comment|pending|last|due|owner|manager|business|position|location|department)/i.test(v)
+        );
+        if (looksLikeHeaders) {
+          columns.push(...colValues);
+          headersParsed = true;
+          continue;
+        }
+      }
+
+      if (columns.length === 0 && colValues.length > 0) {
+        for (let i = 0; i < colValues.length; i++) {
+          columns.push(`Column${i}`);
+        }
+      }
+
+      if (colValues.length > 0) {
+        const row: GenericOtbiRow = {};
+        for (let i = 0; i < colValues.length; i++) {
+          const colName = i < columns.length ? columns[i] : `Column${i}`;
+          row[colName] = colValues[i];
+        }
+        rows.push(row);
+      }
+    }
+
+    return { columns, rows, finished, returnedQueryId };
+  }
+
+  /**
+   * Fetches a generic OTBI analysis report with dynamic column support.
+   * Returns all rows as Record<string, string>[] with actual column names from the report.
+   */
+  public async fetchGenericOtbiAnalysis(reportPath: string): Promise<GenericOtbiQueryResult> {
+    const startTime = Date.now();
+    let sessionId = '';
+    let allColumns: string[] = [];
+    const allRows: GenericOtbiRow[] = [];
+    let pagesFetched = 0;
+    let queryId: string | undefined;
+    let isFinished = false;
+
+    try {
+      sessionId = await this.logon();
+      const baseUrl = this.getBaseUrl();
+      const queryEndpoint = `${baseUrl}/analytics-ws/saw.dll?SoapImpl=xmlViewService`;
+
+      console.log(`[OTBI Client] Executing generic analysis "${reportPath}" via XmlViewService...`);
+      const initialEnvelope = this.generateExecuteQueryEnvelope(reportPath, sessionId);
+
+      const res = await this.axiosInstance.post(queryEndpoint, initialEnvelope, {
+        headers: { 'SOAPAction': '#executeXMLQuery' }
+      });
+
+      pagesFetched++;
+      const { columns, rows, finished, returnedQueryId } = this.parseGenericXmlQueryResponse(res.data);
+      allColumns = columns;
+      allRows.push(...rows);
+      isFinished = finished;
+      queryId = returnedQueryId;
+
+      console.log(`[OTBI Client] Page ${pagesFetched}: retrieved ${rows.length} rows, ${columns.length} columns (finished=${finished}).`);
+
+      const maxPages = 50;
+      while (!isFinished && queryId && pagesFetched < maxPages) {
+        console.log(`[OTBI Client] Fetching next page (page ${pagesFetched + 1}) for queryID ${queryId}...`);
+        const fetchNextEnvelope = this.generateFetchNextEnvelope(queryId, sessionId);
+
+        const pageRes = await this.axiosInstance.post(queryEndpoint, fetchNextEnvelope, {
+          headers: { 'SOAPAction': '#fetchNext' }
+        });
+
+        pagesFetched++;
+        const pageResult = this.parseGenericXmlQueryResponse(pageRes.data);
+        if (allColumns.length === 0 && pageResult.columns.length > 0) {
+          allColumns = pageResult.columns;
+        }
+        allRows.push(...pageResult.rows);
+        isFinished = pageResult.finished;
+        console.log(`[OTBI Client] Page ${pagesFetched}: retrieved ${pageResult.rows.length} rows (total: ${allRows.length}, finished=${isFinished}).`);
+
+        if (pageResult.rows.length === 0) break;
+      }
+
+      const durationMs = Date.now() - startTime;
+      console.log(`[OTBI Client] Completed generic analysis fetch: ${allRows.length} total rows, ${allColumns.length} columns in ${pagesFetched} page(s) (${durationMs}ms).`);
+
+      return {
+        success: true,
+        columns: allColumns,
+        rows: allRows,
+        totalRawRows: allRows.length,
+        pagesFetched,
+        queryId,
+        finished: isFinished,
+        durationMs
+      };
+    } catch (err: any) {
+      const durationMs = Date.now() - startTime;
+      console.error(`[OTBI Client] Failed to fetch generic OTBI analysis "${reportPath}":`, err.message);
+      return {
+        success: false,
+        columns: allColumns,
+        rows: allRows,
+        totalRawRows: allRows.length,
+        pagesFetched,
+        queryId,
+        finished: isFinished,
+        durationMs,
+        error: err.message
+      };
+    } finally {
+      if (sessionId) {
+        await this.logoff(sessionId);
+      }
+    }
+  }
+
+  /**
+   * Fetches the Access Certification OTBI report from /shared/Custom/CLPS Acess Certification OTBI.
+   * Returns all rows for all certifications; caller filters by Certification ID.
+   */
+  public async fetchAccessCertificationOtbiReport(): Promise<GenericOtbiQueryResult> {
+    const reportPath = process.env.OTBI_ACCESS_CERT_REPORT_PATH || this.accessCertOtbiReportPath;
+    console.log(`[OTBI Client] Fetching Access Certification OTBI report: "${reportPath}"`);
+    return this.fetchGenericOtbiAnalysis(reportPath);
   }
 
   private escapeXml(unsafe: string): string {

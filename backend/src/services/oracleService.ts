@@ -15,6 +15,7 @@ import { roleHierarchyService } from './roleHierarchyService.js';
 import { auditRawDbService } from './auditRawDbService.js';
 import { controlRawDbService, IncidentQueryFilters, MAX_BULK_INCIDENT_PAGE_SIZE } from './controlRawDbService.js';
 import { accessCertRawDbService } from './accessCertRawDbService.js';
+import { otbiClient } from '../oracle/otbiClient.js';
 export { classifyRoleRecord };
 
 function getRolesCachePath(): string {
@@ -63,6 +64,37 @@ function getPrivilegesCachePath(): string {
 const ROLES_CACHE_FILE = getRolesCachePath();
 const PRIVILEGES_CACHE_FILE = getPrivilegesCachePath();
 const USERS_METRICS_CACHE_FILE = getUsersMetricsCachePath();
+
+let _roleNameToCodeMap: Map<string, string> | null = null;
+let _roleNameToCodeMapAt = 0;
+
+function getRoleNameToCodeMap(): Map<string, string> {
+  const now = Date.now();
+  if (_roleNameToCodeMap && now - _roleNameToCodeMapAt < 60 * 60 * 1000) {
+    return _roleNameToCodeMap;
+  }
+  const map = new Map<string, string>();
+  try {
+    const cachePath = getRolesCachePath();
+    if (fs.existsSync(cachePath)) {
+      const parsed = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+      if (parsed?.roles && Array.isArray(parsed.roles)) {
+        for (const role of parsed.roles) {
+          const name = String(role.displayName || '').trim();
+          const code = String(role.roleCode || role.id || '').trim();
+          if (name && code) {
+            map.set(name.toLowerCase(), code);
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('[OracleService] Failed to load role name->code map:', err.message);
+  }
+  _roleNameToCodeMap = map;
+  _roleNameToCodeMapAt = now;
+  return map;
+}
 import {
   mockUsers,
   mockRoles,
@@ -3874,7 +3906,110 @@ class OracleService {
       }
     }
 
-    // 1. First run the existing BIP report
+    // 1. Try the OTBI Access Certification report first (primary source)
+    let otbiRows: any[] | null = null;
+    let otbiColumns: string[] = [];
+    try {
+      const otbiResult = await otbiClient.fetchAccessCertificationOtbiReport();
+      if (otbiResult.success && otbiResult.rows.length > 0) {
+        otbiColumns = otbiResult.columns;
+        // Filter rows matching the requested Certification ID
+        const certIdKey = otbiColumns.find(c =>
+          /certification\s*id/i.test(c)
+        ) || 'Certification Id';
+        const allOtbiRows = otbiResult.rows;
+        const matchingOtbiRows = allOtbiRows.filter(r => {
+          const rowCertId = String(r[certIdKey] || '').trim();
+          return rowCertId === cleanCertId;
+        });
+        if (matchingOtbiRows.length > 0) {
+          otbiRows = matchingOtbiRows;
+          console.log(`[OracleService] OTBI Access Cert report: ${matchingOtbiRows.length} rows matched Certification ID "${cleanCertId}" (${allOtbiRows.length} total).`);
+        } else {
+          console.warn(`[OracleService] OTBI Access Cert report returned ${allOtbiRows.length} rows but none matched Certification ID "${cleanCertId}".`);
+        }
+
+        // Save all campaigns partitioned by cert ID in the background
+        const campaignGroups = new Map<string, any[]>();
+        for (const row of allOtbiRows) {
+          const cId = String(row[certIdKey] || '').trim();
+          if (cId) {
+            if (!campaignGroups.has(cId)) campaignGroups.set(cId, []);
+            campaignGroups.get(cId)!.push(row);
+          }
+        }
+        for (const [grpCertId, grpRows] of campaignGroups.entries()) {
+          const normalizedGrp = grpRows.map(r => bipClient.normalizeCertifierRow(r, grpCertId, otbiColumns));
+          accessCertRawDbService.saveRawWorksheetRows(grpCertId, normalizedGrp).catch(err => {
+            console.warn(`[OracleService] Background OTBI Worksheet DB save error for ${grpCertId}:`, err.message);
+          });
+        }
+      }
+    } catch (otbiErr: any) {
+      console.warn(`[OracleService] OTBI Access Certification report error for ${cleanCertId}:`, otbiErr.message);
+    }
+
+    // 2. If OTBI succeeded, normalize and return those rows
+    if (otbiRows && otbiRows.length > 0) {
+      const numId = Number(cleanCertId) || cleanCertId;
+      const normalizedData = otbiRows.map(r => bipClient.normalizeCertifierRow(r, cleanCertId, otbiColumns));
+
+      // Retrieve HCM user access data for Direct Manager enrichment
+      let userReport: any = null;
+      try {
+        userReport = await userAccessReportService.getUserAccessReport();
+      } catch (hcmErr: any) {
+        console.warn('[OracleService] HCM User Access report cache lookup error:', hcmErr.message);
+      }
+
+      const userManagerMap = new Map<string, string>();
+      const userBuMap = new Map<string, string>();
+      const userDeptMap = new Map<string, string>();
+
+      if (userReport && Array.isArray(userReport.data)) {
+        for (const r of userReport.data) {
+          if (r.username && r.manager) userManagerMap.set(r.username.toUpperCase(), r.manager);
+          if (r.displayName && r.manager) userManagerMap.set(r.displayName.toUpperCase(), r.manager);
+          if (r.username && r.businessUnit) userBuMap.set(r.username.toUpperCase(), r.businessUnit);
+          if (r.username && r.department) userDeptMap.set(r.username.toUpperCase(), r.department);
+        }
+      }
+
+      const roleCodeMap = getRoleNameToCodeMap();
+      const enrichedData = normalizedData.map((row: any) => {
+        const uName = (row.userName || row.ownerName || '').toUpperCase();
+        const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
+        const bu = row.businessUnit || userBuMap.get(uName) || '';
+        const dept = row.department || userDeptMap.get(uName) || '';
+        const existingRoleCode = row.roleCode || row['Role Code'] || '';
+        const roleName = row.roleName || row.jobRoleName || row['Job Role Name'] || '';
+        const resolvedRoleCode = existingRoleCode || (roleName ? roleCodeMap.get(roleName.toLowerCase()) || '' : '');
+        return {
+          ...row,
+          id: numId,
+          certificationId: numId,
+          directManager: directMgr,
+          businessUnit: bu,
+          department: dept,
+          roleCode: resolvedRoleCode,
+          'Role Code': resolvedRoleCode
+        };
+      });
+
+      accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
+        console.warn(`[OracleService] Background OTBI Worksheet DB save error for ${cleanCertId}:`, err.message);
+      });
+
+      return {
+        success: true,
+        certificationId: numId,
+        count: enrichedData.length,
+        data: enrichedData,
+        source: 'Oracle OTBI (CLPS Access Certification OTBI)'
+      };
+    }
+
+    // 3. Fall back to the existing BIP report
     let bipResult: any = null;
     try {
       bipResult = await bipClient.runCertifierWorksheetReport(cleanCertId);
@@ -3882,7 +4017,7 @@ class OracleService {
       console.warn(`[OracleService] BIP Certifier Worksheet report error for ${cleanCertId}:`, bipErr.message);
     }
 
-    // 2. Retrieve HCM user access data for Direct Manager enrichment
+    // 4. Retrieve HCM user access data for Direct Manager enrichment
     let userReport: any = null;
     try {
       userReport = await userAccessReportService.getUserAccessReport();
@@ -3911,9 +4046,7 @@ class OracleService {
       }
     }
 
-    // 3. If BIP returned genuine multi-row user worksheet data, preserve ALL rows and enrich with HCM Direct Manager.
-    // Live-only detection: a genuine worksheet carries user + role identity on its rows.
-    // (Header-only/campaign rows have neither and fall through to the honest empty result.)
+    // 5. If BIP returned genuine multi-row user worksheet data, preserve ALL rows and enrich with HCM Direct Manager.
     const firstBipRow = bipResult?.data?.[0];
     const hasUserWorksheetRow = Boolean(
       (firstBipRow?.userName || firstBipRow?.ownerName) &&
@@ -3928,16 +4061,18 @@ class OracleService {
         (bipResult.data.length === 1 && hasUserWorksheetRow));
 
     if (isRealBipWorksheet) {
-      // Live-only: certification name comes from the worksheet row itself.
       const mappedName = bipResult.data[0]?.certificationName || bipResult.data[0]?.name || `Certification ${cleanCertId}`;
       const numId = Number(cleanCertId) || cleanCertId;
+      const roleCodeMap = getRoleNameToCodeMap();
 
       const enrichedData = bipResult.data.map((row: any) => {
         const uName = (row.userName || row.ownerName || '').toUpperCase();
         const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
-        // Live-only: HCM enrichment fills blanks with real HCM values; otherwise blank stays blank.
         const bu = row.businessUnit || userBuMap.get(uName) || '';
         const dept = row.department || userDeptMap.get(uName) || '';
+        const existingRoleCode = row.roleCode || row['Role Code'] || '';
+        const roleName = row.roleName || row.jobRoleName || row['Job Role Name'] || '';
+        const resolvedRoleCode = existingRoleCode || (roleName ? roleCodeMap.get(roleName.toLowerCase()) || '' : '');
         return {
           ...row,
           id: numId,
@@ -3946,11 +4081,12 @@ class OracleService {
           certificationName: row.certificationName || mappedName,
           directManager: directMgr,
           businessUnit: bu,
-          department: dept
+          department: dept,
+          roleCode: resolvedRoleCode,
+          'Role Code': resolvedRoleCode
         };
       });
 
-      // Save all partitioned campaigns if sheet contained multiple campaigns
       if (bipResult.allData && bipResult.allData.length > 0) {
         const campaignGroups = new Map<string, any[]>();
         for (const row of bipResult.allData) {
@@ -3967,13 +4103,18 @@ class OracleService {
             const bu = row.businessUnit || userBuMap.get(uName) || '';
             const dept = row.department || userDeptMap.get(uName) || '';
             const numId = Number(grpCertId) || grpCertId;
+            const existingRoleCode = row.roleCode || row['Role Code'] || '';
+            const roleName = row.roleName || row.jobRoleName || row['Job Role Name'] || '';
+            const resolvedRoleCode = existingRoleCode || (roleName ? roleCodeMap.get(roleName.toLowerCase()) || '' : '');
             return {
               ...row,
               id: numId,
               certificationId: numId,
               directManager: directMgr,
               businessUnit: bu,
-              department: dept
+              department: dept,
+              roleCode: resolvedRoleCode,
+              'Role Code': resolvedRoleCode
             };
           });
           accessCertRawDbService.saveRawWorksheetRows(grpCertId, enrichedGrpData).catch(err => {
@@ -3981,7 +4122,6 @@ class OracleService {
           });
         }
       } else {
-        // Save to Database and update cache
         accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
           console.warn(`[OracleService] Background Worksheet DB save error for ${cleanCertId}:`, err.message);
         });
@@ -3995,9 +4135,7 @@ class OracleService {
       };
     }
 
-    // 4. Live-only: when BIP returns no genuine worksheet rows, report it honestly.
-    // No hardcoded specs, invented users, actions, or comments — the UI renders
-    // an empty state (report ran) or the error message (report failed).
+    // 6. Live-only: when neither OTBI nor BIP returns genuine worksheet rows, report it honestly.
     const worksheetRanOk = Boolean(bipResult && bipResult.success);
     return {
       success: worksheetRanOk,
