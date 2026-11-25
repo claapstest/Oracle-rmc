@@ -33,30 +33,46 @@ interface WorksheetColumn {
   icon?: 'role';
 }
 
+const WORKSHEET_HEADER_OVERRIDES: Record<string, string> = {
+  'job role name': 'Role Name',
+  'user manager name': 'Direct Manager',
+  'user business unit': 'Business Unit',
+  'user job name': 'Job Name',
+  'user position name': 'Position Name',
+  'certifier self-certified': 'Self Certified',
+  'certifier self certified': 'Self Certified',
+  'certifier last updated by': 'Last Decision By',
+  'certifier last updated date': 'Last Decision Date',
+};
+
+function mapWorksheetHeader(rawHeader: string): string {
+  const key = rawHeader.trim().toLowerCase().replace(/\s+/g, ' ');
+  return WORKSHEET_HEADER_OVERRIDES[key] ?? rawHeader;
+}
+
 // Fallback certifier worksheet columns when source report headers are not attached.
-// Preserves original Oracle BI Publisher report column names (undoes custom renames).
 export const WORKSHEET_COLUMNS: WorksheetColumn[] = [
   { header: 'CERTIFIER ID', keys: ['Certifier ID', 'CERTIFIER_ID', 'certifierId'] },
   { header: 'CERTIFICATION NAME', keys: ['Certification Name', 'CERTIFICATION_NAME', 'certificationName', 'name'] },
-  { header: 'JOB ROLE NAME', keys: ['Job Role Name', 'JOB_ROLE_NAME', 'jobRoleName', 'Role Name', 'ROLE_NAME', 'roleName'], icon: 'role' },
+  { header: 'ROLE NAME', keys: ['Job Role Name', 'JOB_ROLE_NAME', 'jobRoleName', 'Role Name', 'ROLE_NAME', 'roleName'], icon: 'role' },
   { header: 'ROLE CODE', keys: ['Role Code', 'ROLE_CODE', 'roleCode'] },
   { header: 'USER NAME', keys: ['User Name', 'USER_NAME', 'userName', 'Owner Name', 'ownerName'] },
-  { header: 'USER MANAGER NAME', keys: ['User Manager Name', 'USER_MANAGER_NAME', 'userManagerName', 'Manager Name', 'MANAGER_NAME', 'managerName', 'Certified Manager', 'certifiedManager', 'Direct Manager', 'directManager'] },
+  { header: 'DIRECT MANAGER', keys: ['User Manager Name', 'USER_MANAGER_NAME', 'userManagerName', 'Manager Name', 'MANAGER_NAME', 'managerName', 'Certified Manager', 'certifiedManager', 'Direct Manager', 'directManager'] },
   { header: 'ACTION', keys: ['Action', 'ACTION', 'action', 'certificationAction'] },
   { header: 'CREATION DATE', keys: ['Creation Date', 'CREATION_DATE', 'creationDate'] },
   { header: 'CREATED BY', keys: ['Created By', 'CREATED_BY', 'createdBy'] },
-  { header: 'USER BUSINESS UNIT', keys: ['User Business Unit', 'USER_BUSINESS_UNIT', 'userBusinessUnit', 'User-Role Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'userRoleBusinessUnit', 'Business Unit', 'BUSINESS_UNIT', 'businessUnit'] },
-  { header: 'USER JOB NAME', keys: ['User Job Name', 'USER_JOB_NAME', 'userJobName', 'Job Name', 'JOB_NAME', 'jobName'] },
+  { header: 'BUSINESS UNIT', keys: ['User Business Unit', 'USER_BUSINESS_UNIT', 'userBusinessUnit', 'User-Role Business Unit', 'USER_ROLE_BUSINESS_UNIT', 'userRoleBusinessUnit', 'Business Unit', 'BUSINESS_UNIT', 'businessUnit'] },
+  { header: 'JOB NAME', keys: ['User Job Name', 'USER_JOB_NAME', 'userJobName', 'Job Name', 'JOB_NAME', 'jobName'] },
   { header: 'USER LOCATION', keys: ['User Location', 'USER_LOCATION', 'userLocation', 'Location', 'LOCATION', 'location'] },
-  { header: 'USER POSITION NAME', keys: ['User Position Name', 'USER_POSITION_NAME', 'userPositionName', 'Position Name', 'POSITION_NAME', 'positionName'] },
+  { header: 'POSITION NAME', keys: ['User Position Name', 'USER_POSITION_NAME', 'userPositionName', 'Position Name', 'POSITION_NAME', 'positionName'] },
   { header: 'LAST UPDATED BY', keys: ['Last Updated By', 'LAST_UPDATED_BY', 'lastUpdatedBy'] },
   { header: 'LAST UPDATED DATE', keys: ['Last Updated Date', 'LAST_UPDATED_DATE', 'lastUpdatedDate'] },
-  { header: 'CERTIFIER SELF-CERTIFIED', keys: ['Certifier Self-Certified', 'CERTIFIER_SELF_CERTIFIED', 'certifierSelfCertified', 'Self Certified', 'SELF_CERTIFIED', 'selfCertified'] },
+  { header: 'SELF CERTIFIED', keys: ['Certifier Self-Certified', 'CERTIFIER_SELF_CERTIFIED', 'certifierSelfCertified', 'Self Certified', 'SELF_CERTIFIED', 'selfCertified'] },
   { header: 'PENDING SUBMISSION', keys: ['Pending Submission', 'PENDING_SUBMISSION', 'pendingSubmission'] },
   { header: 'COMMENT', keys: ['Comment', 'COMMENT', 'comment', 'Comments', 'COMMENTS', 'comments'] },
   { header: 'COMMENT BY', keys: ['Comment By', 'COMMENT_BY', 'commentBy'] },
-  { header: 'CERTIFIER LAST UPDATED BY', keys: ['Certifier Last Updated By', 'CERTIFIER_LAST_UPDATED_BY', 'certifierLastUpdatedBy', 'Last Decision By', 'LAST_DECISION_BY', 'lastDecisionBy'] },
-  { header: 'CERTIFIER LAST UPDATED DATE', keys: ['Certifier Last Updated Date', 'CERTIFIER_LAST_UPDATED_DATE', 'certifierLastUpdatedDate', 'Last Decision Date', 'LAST_DECISION_DATE', 'lastDecisionDate'] },
+  { header: 'LAST DECISION BY', keys: ['Certifier Last Updated By', 'CERTIFIER_LAST_UPDATED_BY', 'certifierLastUpdatedBy', 'Last Decision By', 'LAST_DECISION_BY', 'lastDecisionBy'] },
+  { header: 'LAST DECISION DATE', keys: ['Certifier Last Updated Date', 'CERTIFIER_LAST_UPDATED_DATE', 'certifierLastUpdatedDate', 'Last Decision Date', 'LAST_DECISION_DATE', 'lastDecisionDate'] },
 ];
 
 export function wsVal(row: any, keys: string[]): string {
@@ -257,11 +273,14 @@ export default function AccessCertificates({
         : undefined;
 
     if (sourceCols) {
-      return sourceCols.map((colName) => ({
-        header: colName,
-        keys: [colName],
-        icon: /role\s*name/i.test(colName) ? 'role' : undefined,
-      }));
+      return sourceCols.map((colName) => {
+        const header = mapWorksheetHeader(colName);
+        return {
+          header,
+          keys: [colName],
+          icon: /role\s*name/i.test(header) ? 'role' : undefined,
+        };
+      });
     }
     return WORKSHEET_COLUMNS;
   }, [worksheetRows]);
