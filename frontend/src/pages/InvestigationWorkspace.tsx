@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { TableExportControl } from '../components/TableExportControl';
+import { EnterpriseExportControl } from '../components/EnterpriseExportControl';
 import { TableLoadingState } from '../components/TableLoadingState';
 
 // Global in-memory cache of user profiles to prevent repeated or N+1 lookups
@@ -986,6 +987,35 @@ export default function InvestigationWorkspace({
                         Roles ({filteredAssignedRoles.length}{rolesSearch.trim() && data?.assignedRoles?.length ? ` of ${data.assignedRoles.length}` : ''})
                       </h4>
                       {data?.assignedRoles && data.assignedRoles.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <EnterpriseExportControl
+                          filename={`${data?.username || entity.id || entity.name}_assigned_roles`}
+                          sheetName="Assigned Roles"
+                          reportTitle={`Assigned Roles — ${data?.username || entity.name || entity.id}`}
+                          entityName="Roles"
+                          buttonText="Export Excel"
+                          currentPageData={filteredAssignedRoles.map((role: any) => ({
+                            roleName: typeof role === 'string' ? role : (role.roleName || role.displayName || role.roleCode || ''),
+                            roleCode: typeof role === 'string' ? role : (role.roleCode || role.value || ''),
+                            autoProvisioned: typeof role === 'object' ? (role.autoProvisioned ?? '—') : '—'
+                          }))}
+                          filteredCount={filteredAssignedRoles.length}
+                          totalCount={data?.assignedRoles?.length || filteredAssignedRoles.length}
+                          appliedFilters={[]}
+                          availableColumns={[
+                            { key: 'roleName', label: 'Role', defaultSelected: true },
+                            { key: 'roleCode', label: 'Role Code', defaultSelected: true },
+                            { key: 'autoProvisioned', label: 'Auto-Provisioned', defaultSelected: true }
+                          ]}
+                          onFetchScopeData={async (scope) => {
+                            const roles = scope === 'ALL' ? (data?.assignedRoles || []) : filteredAssignedRoles;
+                            return roles.map((role: any) => ({
+                              roleName: typeof role === 'string' ? role : (role.roleName || role.displayName || role.roleCode || ''),
+                              roleCode: typeof role === 'string' ? role : (role.roleCode || role.value || ''),
+                              autoProvisioned: typeof role === 'object' ? (role.autoProvisioned ?? '—') : '—'
+                            }));
+                          }}
+                        />
                         <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
                           <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                           <input
@@ -1028,6 +1058,7 @@ export default function InvestigationWorkspace({
                               <X size={14} />
                             </button>
                           )}
+                        </div>
                         </div>
                       )}
                     </div>
