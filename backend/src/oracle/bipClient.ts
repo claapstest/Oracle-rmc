@@ -186,6 +186,10 @@ export class BipClient {
    */
   public readonly certifierWorksheetReportPaths = [
     process.env.BIP_WORKSHEET_REPORT_PATH,
+    '/shared/Custom/CLPS Access Certification Report.xdo',
+    '/shared/Custom/CLPS Access Certification Report',
+    '/Custom/CLPS Access Certification Report.xdo',
+    '/Custom/CLPS Access Certification Report',
     '/shared/Custom/Access certification worksheet.xdo',
     '/shared/Custom/Access certification worksheet',
     '/Custom/Access certification worksheet.xdo',
@@ -510,7 +514,7 @@ export class BipClient {
     for (const item of items) {
       const type = String(item?.type || '');
       const absPath = String(item?.absolutePath || '');
-      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(access.?certification.?worksheet|access_certifier_worksheet|certifier_worksheet|claaps.*worksheet)/i.test(absPath)) {
+      if (/report/i.test(type) && /\.xdo$/i.test(absPath) && /(CLPS.*Access.*Certification.*Report|access.?certification.?worksheet|access_certifier_worksheet|certifier_worksheet|claaps.*worksheet)/i.test(absPath)) {
         if (await this.isReportExist(absPath)) return absPath;
       }
     }
@@ -1670,7 +1674,11 @@ export class BipClient {
         'manager name',
         'due date',
         'status',
-        'user name'
+        'user name',
+        'job role name',
+        'certifier',
+        'self certified',
+        'access certification details'
       ];
 
       for (let r = 0; r < Math.min(15, rawRows.length); r++) {
@@ -1698,7 +1706,8 @@ export class BipClient {
       for (let c = 0; c < headerRow.length; c++) {
         const rawCol = headerRow[c];
         if (rawCol && typeof rawCol === 'string' && rawCol.trim() !== '') {
-          headers.push(rawCol.trim());
+          // Strip "Access Certification Details." prefix from column names
+          headers.push(rawCol.trim().replace(/^Access Certification Details\.\s*/i, ''));
         } else {
           headers.push(`col_${c + 1}`);
         }
@@ -1843,6 +1852,9 @@ export class BipClient {
       row['Manager Name'] ??
       row['managerName'] ??
       row['MANAGER_NAME'] ??
+      row['User Manager Name'] ??
+      row['userManagerName'] ??
+      row['USER_MANAGER_NAME'] ??
       row['Certified Manager'] ??
       row['certifiedManager'] ??
       row['CERTIFIED_MANAGER'] ??
@@ -1942,13 +1954,13 @@ export class BipClient {
       followUpStatus: row['Follow-Up'] || row['followUpStatus'] || '',
       lastUpdatedBy: String(row['Last Updated By'] ?? row['lastUpdatedBy'] ?? row['LAST_UPDATED_BY'] ?? '').trim(),
       lastUpdatedDate: String(row['Last Updated Date'] ?? row['lastUpdatedDate'] ?? row['LAST_UPDATED_DATE'] ?? '').trim(),
-      certifierSelfCertified: String(row['Certifier Self-Certified'] ?? row['certifierSelfCertified'] ?? row['Self Certified'] ?? row['selfCertified'] ?? row['CERTIFIER_SELF_CERTIFIED'] ?? '').trim(),
-      selfCertified: String(row['Certifier Self-Certified'] ?? row['certifierSelfCertified'] ?? row['Self Certified'] ?? row['selfCertified'] ?? row['CERTIFIER_SELF_CERTIFIED'] ?? '').trim(),
+      certifierSelfCertified: String(row['Certfier Self certified'] ?? row['Certifier Self-Certified'] ?? row['certifierSelfCertified'] ?? row['Self Certified'] ?? row['selfCertified'] ?? row['Self certified'] ?? row['CERTIFIER_SELF_CERTIFIED'] ?? '').trim(),
+      selfCertified: String(row['Certfier Self certified'] ?? row['Certifier Self-Certified'] ?? row['certifierSelfCertified'] ?? row['Self Certified'] ?? row['selfCertified'] ?? row['Self certified'] ?? row['CERTIFIER_SELF_CERTIFIED'] ?? '').trim(),
       pendingSubmission: String(row['Pending Submission'] ?? row['pendingSubmission'] ?? row['PENDING_SUBMISSION'] ?? '').trim(),
-      certifierLastUpdatedBy: String(row['Certifier Last Updated By'] ?? row['certifierLastUpdatedBy'] ?? row['CERTIFIER_LAST_UPDATED_BY'] ?? '').trim(),
-      lastDecisionBy: String(row['Certifier Last Updated By'] ?? row['certifierLastUpdatedBy'] ?? row['Last Decision By'] ?? row['lastDecisionBy'] ?? row['CERTIFIER_LAST_UPDATED_BY'] ?? '').trim(),
-      certifierLastUpdatedDate: String(row['Certifier Last Updated Date'] ?? row['certifierLastUpdatedDate'] ?? row['CERTIFIER_LAST_UPDATED_DATE'] ?? '').trim(),
-      lastDecisionDate: String(row['Certifier Last Updated Date'] ?? row['certifierLastUpdatedDate'] ?? row['Last Decision Date'] ?? row['lastDecisionDate'] ?? row['CERTIFIER_LAST_UPDATED_DATE'] ?? '').trim()
+      certifierLastUpdatedBy: String(row['Certifier Last Updated By'] ?? row['certifier last updated by'] ?? row['certifierLastUpdatedBy'] ?? row['CERTIFIER_LAST_UPDATED_BY'] ?? '').trim(),
+      lastDecisionBy: String(row['Certifier Last Updated By'] ?? row['certifier last updated by'] ?? row['certifierLastUpdatedBy'] ?? row['Last Decision By'] ?? row['lastDecisionBy'] ?? row['CERTIFIER_LAST_UPDATED_BY'] ?? '').trim(),
+      certifierLastUpdatedDate: String(row['Certifier Last Updated Date'] ?? row['certifier last updated date'] ?? row['certifierLastUpdatedDate'] ?? row['CERTIFIER_LAST_UPDATED_DATE'] ?? '').trim(),
+      lastDecisionDate: String(row['Certifier Last Updated Date'] ?? row['certifier last updated date'] ?? row['certifierLastUpdatedDate'] ?? row['Last Decision Date'] ?? row['lastDecisionDate'] ?? row['CERTIFIER_LAST_UPDATED_DATE'] ?? '').trim()
     };
   }
 
