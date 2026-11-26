@@ -570,9 +570,12 @@ export class UserAccessReportService {
     try {
       await this.persistToDatabase({ summary, data: report, calculatedAt });
     } catch (dbErr: any) {
-      console.warn('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
+      console.error('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
+      throw dbErr;
     }
     this.cachedReport = { summary, data: report, calculatedAt };
+    this.cachedDirectoryUsers = [];
+    this.cachedDirectorySourceRef = null;
     this.saveToDisk(this.cachedReport);
 
     console.log(
@@ -936,6 +939,9 @@ export class UserAccessReportService {
       if (this.isGenerating && this.generationPromise) {
         return this.generationPromise;
       }
+      this.cachedReport = null;
+      this.cachedDirectoryUsers = [];
+      this.cachedDirectorySourceRef = null;
       this.isGenerating = true;
       this.generationPromise = this.generateUserAccessReport()
         .finally(() => {
