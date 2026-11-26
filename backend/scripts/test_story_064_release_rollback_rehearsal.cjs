@@ -31,7 +31,7 @@ if (!process.env.DATABASE_URL && !process.env.DATABASE_URI) {
 const TEST_PORT = 5064;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 const REHEARSAL_HOST = 'vyr064-rehearsal.oraclecloud.com';
-const SENTINEL = 'VYR064_REHEARSAL_SECRET_91';
+const SENTINEL = `VYR064_REHEARSAL_${crypto.randomBytes(6).toString('hex')}`;
 
 let passed = 0;
 let failed = 0;
@@ -153,7 +153,7 @@ async function run() {
   const { initializeAuthProvider } = require(path.join(repoRoot, 'backend/dist/auth/index.js'));
   const { corsMiddleware, securityHeadersMiddleware } = require(path.join(repoRoot, 'backend/dist/security/securityHeadersService.js'));
   const { rateLimitService } = require(path.join(repoRoot, 'backend/dist/security/rateLimitService.js'));
-  const { validateStartupConfig } = require(path.join(repoRoot, 'backend/dist/security/configValidator.js'));
+  const { KNOWN_DEFAULT_FALLBACK_KEYS, validateStartupConfig } = require(path.join(repoRoot, 'backend/dist/security/configValidator.js'));
   const { EncryptionMigrationService } = require(path.join(repoRoot, 'backend/dist/security/encryptionMigrationService.js'));
   const { EncryptionError, EncryptionService, KeyLifecycleRegistry, LocalKeyProvider } = require(path.join(repoRoot, 'backend/dist/security/encryptionService.js'));
   const { buildTableRecordAad } = require(path.join(repoRoot, 'backend/dist/security/encryptionContract.js'));
@@ -200,7 +200,7 @@ async function run() {
     schemaReport.missingColumns
   );
 
-  process.env.ORACLE_ENCRYPTION_KEY = 'default-fallback-security-key-oracle-fusion';
+  process.env.ORACLE_ENCRYPTION_KEY = Array.from(KNOWN_DEFAULT_FALLBACK_KEYS)[0];
   delete process.env.JWT_PRIVATE_KEY;
   const badStrict = validateStartupConfig({ environment: 'production', strict: true, throwOnError: false });
   report(
@@ -208,14 +208,14 @@ async function run() {
     'Pre-flight production gate fails closed when fallback encryption/JWT keys are present'
   );
 
-  process.env.ORACLE_ENCRYPTION_KEY = 'vyr064-prod-grade-32plus-char-encryption-key!!';
+  process.env.ORACLE_ENCRYPTION_KEY = crypto.randomBytes(24).toString('hex');
   process.env.JWT_PRIVATE_KEY = crypto.generateKeyPairSync('rsa', {
     modulusLength: 2048,
     privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     publicKeyEncoding: { type: 'spki', format: 'pem' },
   }).privateKey;
   process.env.ORACLE_USERNAME = process.env.ORACLE_USERNAME || 'veyra_sync_svc';
-  process.env.ORACLE_PASSWORD = process.env.ORACLE_PASSWORD || 'RehearsalPass!99';
+  process.env.ORACLE_PASSWORD = process.env.ORACLE_PASSWORD || crypto.randomBytes(12).toString('hex');
   const goodStrict = validateStartupConfig({ environment: 'production', strict: true, throwOnError: false });
   report(
     goodStrict.valid === true && goodStrict.errors.length === 0,
@@ -405,7 +405,9 @@ async function run() {
       await dbClient.query('DELETE FROM oracle_raw_users WHERE environment_host = $1', [REHEARSAL_HOST]);
       const K1 = 'vyr064-k1';
       const K2 = 'vyr064-k2';
-      const registry = new KeyLifecycleRegistry(new LocalKeyProvider(K1, 'vyr064-kek-secret-1'));
+      const k1TestMaterial = crypto.randomBytes(16).toString('hex');
+      const k2TestMaterial = crypto.randomBytes(16).toString('hex');
+      const registry = new KeyLifecycleRegistry(new LocalKeyProvider(K1, k1TestMaterial));
       const rotService = new EncryptionService(registry);
 
       for (let i = 1; i <= 2; i++) {
@@ -421,7 +423,7 @@ async function run() {
         );
       }
 
-      registry.addKey(K2, 'vyr064-kek-secret-2');
+      registry.addKey(K2, k2TestMaterial);
       registry.activate(K2);
       report(
         registry.getActiveKeyId() === K2 && registry.getStatus(K1) === 'RETIRING',
