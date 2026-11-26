@@ -2368,6 +2368,18 @@ apiRouter.get('/users/:id', requireUsersListAccess, async (req: Request, res: Re
   try {
     const id = req.params.id;
     const source = (req.query.source as string || '').toLowerCase();
+    if (source === 'database' || source === 'oracle-db') {
+      const dbUser = await userAccessReportService.getDirectoryUserByUsername(id);
+      if (dbUser) {
+        return res.json({ success: true, user: dbUser, dataSource: 'PostgreSQL Database' });
+      }
+      // Fall back to live Oracle lookup if not yet in PostgreSQL report
+      const oracleUser = await oracleService.getUser(id);
+      if (oracleUser) {
+        return res.json({ success: true, user: oracleUser, ...oracleService.getModeInfo() });
+      }
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found in database or Oracle directory.' });
+    }
     if (source === 'oracle' || source === 'scim') {
       const oracleUser = await oracleService.getUser(id);
       if (oracleUser) {

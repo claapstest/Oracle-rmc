@@ -296,10 +296,10 @@ export default function InvestigationWorkspace({
           });
 
       } else {
-        // User identity investigation
+        // User identity investigation: load from PostgreSQL report (oracle_raw_user_access) first
         setLoading(true);
         try {
-          const userRes = await api.getUser(entity.id);
+          const userRes = await api.getUser(entity.id, 'database');
           const userObj = userRes?.user || userRes;
           if (isMounted && userObj) {
             setData(userObj);
