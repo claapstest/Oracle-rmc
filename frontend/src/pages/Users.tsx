@@ -378,26 +378,6 @@ export default function Users({
               )}
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <div style={{
-              padding: '0.4rem 0.95rem',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '9999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              color: '#ffffff',
-              backdropFilter: 'blur(8px)'
-            }}>
-              {activeCategoryFilter && activeCategoryFilter !== 'ALL'
-                ? `${(directoryTotal > 0 ? directoryTotal : totalResults).toLocaleString()} ${getCategoryBadgeLabel(activeCategoryFilter)}`
-                : (directoryTotal > 0
-                    ? `${directoryTotal.toLocaleString()} Users in Directory`
-                    : totalResults > 0
-                      ? `${totalResults.toLocaleString()} Users in Directory`
-                      : 'Loading directory...')}
-            </div>
-          </div>
         </div>
 
         {error && (
@@ -534,7 +514,7 @@ export default function Users({
                 <th>Business Unit</th>
                 <th>Location</th>
                 <th>Manager</th>
-                <th style={{ position: 'sticky', right: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 2, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)' }}>Action</th>
+                <th style={{ position: 'sticky', right: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 2, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', minWidth: '90px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -587,13 +567,14 @@ export default function Users({
                         }}
                         className="btn btn-secondary"
                         style={{
-                          padding: '0.2rem 0.5rem',
-                          fontSize: '0.72rem',
+                          padding: '0.3rem 0.75rem',
+                          fontSize: '0.75rem',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.25rem',
+                          gap: '0.35rem',
                           color: 'var(--accent-blue)',
-                          borderColor: 'rgba(53, 99, 233, 0.25)'
+                          borderColor: 'rgba(53, 99, 233, 0.25)',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         <span>Inspect</span>
