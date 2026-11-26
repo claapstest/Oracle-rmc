@@ -46,8 +46,6 @@ const WORKSHEET_HEADER_OVERRIDES: Record<string, string> = {
   'certifier last updated by': 'Last Decision By',
   'certifier last updated date': 'Last Decision Date',
   'self certified': 'Self Certified',
-  'last updated by': 'Last Decision By',
-  'last updated date': 'Last Decision Date',
 };
 
 function mapWorksheetHeader(rawHeader: string): string {
@@ -278,14 +276,16 @@ export default function AccessCertificates({
         : undefined;
 
     if (sourceCols) {
-      const cols: WorksheetColumn[] = sourceCols.map((colName) => {
-        const header = mapWorksheetHeader(colName);
-        return {
-          header,
-          keys: [colName],
-          icon: /role\s*name/i.test(header) ? 'role' : undefined,
-        };
-      });
+      const cols: WorksheetColumn[] = sourceCols
+        .filter((colName) => !/^certification\s*id$/i.test(colName.trim()))
+        .map((colName) => {
+          const header = mapWorksheetHeader(colName);
+          return {
+            header,
+            keys: [colName],
+            icon: /role\s*name/i.test(header) ? 'role' : undefined,
+          };
+        });
 
       // Ensure Role Code column is always present (inject after Role Name if missing)
       const hasRoleCode = sourceCols.some(c => /role\s*code/i.test(c));
