@@ -1074,6 +1074,70 @@ export class UserAccessReportService {
   }
 
   /**
+   * Resolves assigned members for a role from the BI User Role Auto-Provisioning report
+   * (/Custom/CLAAPS_User_Role_AutoProvisioning.xdo), enriched with displayName/email/active
+   * from the synced directory. Returns null if the BIP report is unavailable (0 total rows).
+   */
+  public async getRoleMembersFromBipReport(
+    roleCode: string,
+    roleName: string
+  ): Promise<Array<{ id: string; userName: string; displayName: string; email: string | null; active: boolean }> | null> {
+    const bipRows = await this.getBipRowsCached();
+    if (!bipRows || bipRows.length === 0) {
+      return null;
+    }
+
+    const targetCode = (roleCode || '').trim().toLowerCase();
+    const targetName = (roleName || '').trim().toLowerCase();
+    if (!targetCode && !targetName) return [];
+
+    const uniqueUsernames = new Map<string, string>();
+    for (const r of bipRows) {
+      const uname = (r.username || '').trim();
+      if (!uname) continue;
+      const rCode = (r.roleCode || '').trim().toLowerCase();
+      const rName = (r.roleName || '').trim().toLowerCase();
+      const matches =
+        (targetCode && (rCode === targetCode || rName === targetCode)) ||
+        (targetName && (rCode === targetName || rName === targetName));
+      if (matches) {
+        const key = uname.toUpperCase();
+        if (!uniqueUsernames.has(key)) {
+          uniqueUsernames.set(key, uname);
+        }
+      }
+    }
+
+    if (uniqueUsernames.size === 0) {
+      return [];
+    }
+
+    const dirUsers = await this.getDirectoryUsersCached().catch(() => null);
+    const dirMap = new Map<string, any>();
+    if (dirUsers) {
+      for (const u of dirUsers) {
+        if (u.userName) dirMap.set(String(u.userName).toUpperCase(), u);
+      }
+    }
+
+    const members = Array.from(uniqueUsernames.entries()).map(([upper, uname]) => {
+      const dir = dirMap.get(upper);
+      return {
+        id: uname,
+        userName: uname,
+        displayName: dir?.displayName || uname,
+        email: dir?.email || null,
+        active: dir ? dir.active !== false : true
+      };
+    });
+
+    members.sort((a, b) =>
+      (a.displayName || a.userName).localeCompare(b.displayName || b.userName)
+    );
+    return members;
+  }
+
+  /**
    * Aggregates the dashboard's User Account Health buckets from the same directory
    * population the Users list renders, so a user counted Inactive here is the same
    * user shown Inactive there. Returns null when no report rows exist, in which case
