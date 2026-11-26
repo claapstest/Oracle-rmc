@@ -2034,7 +2034,37 @@ class OracleService {
       return members;
     }
 
-    // 1. First check if knownRole in authoritativeRoles already has direct members with real usernames
+    // 1. Query oracle_raw_user_access in PostgreSQL first (authoritative synced user-role assignments)
+    try {
+      const dbRes = await query<{
+        username: string;
+        display_name: string;
+        email: string;
+        active: boolean;
+      }>(
+        `SELECT DISTINCT username, display_name, email, active
+         FROM oracle_raw_user_access
+         WHERE (role_code ILIKE $1 OR role_name ILIKE $1 OR role_code ILIKE $2 OR role_name ILIKE $2)
+         ORDER BY display_name ASC NULLS LAST, username ASC`,
+        [canonicalCode, canonicalName]
+      );
+      if (dbRes.rows && dbRes.rows.length > 0) {
+        const members = dbRes.rows.map((r: any) => ({
+          id: r.username,
+          userName: r.username,
+          displayName: r.display_name || r.username,
+          email: r.email || null,
+          active: r.active !== false
+        }));
+        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, members, 5 * 60 * 1000);
+        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, members, 5 * 60 * 1000);
+        return members;
+      }
+    } catch (dbErr: any) {
+      console.warn(`[Oracle Service] PostgreSQL user access lookup for "${roleNameOrCode}":`, dbErr.message);
+    }
+
+    // 2. Fallback: check if knownRole in authoritativeRoles has direct members with real usernames
     if (knownRole && Array.isArray(knownRole.members) && knownRole.members.length > 0) {
       const valid = knownRole.members
         .filter((m: any) => m.value || m.display)
@@ -2046,41 +2076,10 @@ class OracleService {
           active: m.active !== false
         }));
       if (valid.length > 0 && !valid[0].userName.startsWith('usr_')) {
-        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, valid, 15 * 60 * 1000);
-        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, valid, 15 * 60 * 1000);
+        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, valid, 5 * 60 * 1000);
+        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, valid, 5 * 60 * 1000);
         return valid;
       }
-    }
-
-    // 2. Query oracle_raw_user_access in PostgreSQL for authoritative direct user assignments
-    try {
-      const dbRes = await query<{
-        username: string;
-        display_name: string;
-        email: string;
-        active: boolean;
-      }>(
-        `SELECT DISTINCT username, display_name, email, active
-         FROM oracle_raw_user_access
-         WHERE (role_code ILIKE $1 OR role_name ILIKE $1 OR role_code ILIKE $2 OR role_name ILIKE $2)
-         ORDER BY display_name ASC NULLS LAST, username ASC
-         LIMIT 200`,
-        [canonicalCode, canonicalName]
-      );
-      if (dbRes.rows && dbRes.rows.length > 0) {
-        const members = dbRes.rows.map((r: any) => ({
-          id: r.username,
-          userName: r.username,
-          displayName: r.display_name || r.username,
-          email: r.email || null,
-          active: r.active !== false
-        }));
-        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, members, 15 * 60 * 1000);
-        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, members, 15 * 60 * 1000);
-        return members;
-      }
-    } catch (dbErr: any) {
-      console.warn(`[Oracle Service] PostgreSQL user access lookup for "${roleNameOrCode}":`, dbErr.message);
     }
 
     try {
