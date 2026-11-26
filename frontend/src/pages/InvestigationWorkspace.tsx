@@ -969,6 +969,25 @@ export default function InvestigationWorkspace({
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500, wordBreak: 'break-word' }}>{value}</span>
                         </div>
                       ))}
+                      <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.75rem', padding: '0.3rem 0', fontSize: '0.85rem' }}>
+                        <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>Status</span>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontWeight: 600,
+                          color: data?.active !== false ? '#16a34a' : '#dc2626'
+                        }}>
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: data?.active !== false ? '#16a34a' : '#dc2626',
+                            display: 'inline-block'
+                          }} />
+                          {data?.active !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
