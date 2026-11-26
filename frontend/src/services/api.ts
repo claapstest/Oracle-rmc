@@ -135,8 +135,8 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   const body = options.body ? String(options.body) : '';
   const requestKey = `${method}:${endpoint}:${body}`;
 
-  // Instant response from client-side cache for GET requests within 2 minutes (bypass for /users and /admin/sync)
-  if (method === 'GET' && !endpoint.startsWith('/users') && !endpoint.startsWith('/admin/sync/')) {
+  // Instant response from client-side cache for GET requests within 2 minutes (bypass for /users, /members, and /admin/sync)
+  if (method === 'GET' && !endpoint.startsWith('/users') && !endpoint.startsWith('/admin/sync/') && !endpoint.includes('/members')) {
     const cached = clientCache.get(requestKey);
     if (cached && Date.now() - cached.timestamp < 2 * 60 * 1000) {
       return cached.data;

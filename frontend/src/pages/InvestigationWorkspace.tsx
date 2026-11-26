@@ -218,7 +218,7 @@ export default function InvestigationWorkspace({
         api.getRoleMembers(targetRoleParam)
           .then(res => {
             if (!isMounted) return;
-            if (res?.members && res.members.length > 0) {
+            if (Array.isArray(res?.members)) {
               setMembersData(res.members);
               // Seed global user lookup cache
               res.members.forEach((m: any) => {
@@ -487,7 +487,7 @@ export default function InvestigationWorkspace({
 
   // Memoized Assigned Members resolution, filtering & pagination (Must precede conditional early return)
   const resolvedMemberList: any[] = useMemo(() => {
-    if (membersData && membersData.length > 0) {
+    if (membersData !== null) {
       return membersData;
     }
     // Fallback: If data.members is available from initial role load
@@ -1175,7 +1175,8 @@ export default function InvestigationWorkspace({
                     totalCount={filteredMembers.length}
                     columns={[
                       { key: 'displayName', label: 'Display Name', getValue: (m: any) => m.displayName || m.name || m.userName || '' },
-                      { key: 'userName', label: 'User Name', getValue: (m: any) => m.userName || m.id || m.value || '' }
+                      { key: 'userName', label: 'User Name', getValue: (m: any) => m.userName || m.id || m.value || '' },
+                      { key: 'active', label: 'Status', getValue: (m: any) => (m.active !== false ? 'Active' : 'Inactive') }
                     ]}
                   />
                 </div>
@@ -1227,9 +1228,10 @@ export default function InvestigationWorkspace({
                 <table className="enterprise-table" style={{ fontSize: '0.82rem', width: '100%' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '40%' }}>DISPLAY NAME</th>
-                      <th style={{ width: '35%' }}>USER NAME</th>
-                      <th style={{ width: '25%', textAlign: 'right' }}>INVESTIGATION</th>
+                      <th style={{ width: '35%' }}>DISPLAY NAME</th>
+                      <th style={{ width: '30%' }}>USER NAME</th>
+                      <th style={{ width: '15%' }}>STATUS</th>
+                      <th style={{ width: '20%', textAlign: 'right' }}>INVESTIGATION</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1239,6 +1241,7 @@ export default function InvestigationWorkspace({
                         const resolvedDisplayName = m.displayName?.trim() || '';
                         const isResolving = membersLoading && !resolvedDisplayName;
                         const displayLabel = resolvedDisplayName ? resolvedDisplayName : (isResolving ? 'Loading...' : (m.userName || 'Unknown User'));
+                        const isMemberActive = m.active !== false;
 
                         return (
                           <tr key={idx} style={{ transition: 'background-color 0.15s ease' }}>
@@ -1264,6 +1267,11 @@ export default function InvestigationWorkspace({
                               }}>
                                 {userCode || '—'}
                               </code>
+                            </td>
+                            <td>
+                              <span className={`badge ${isMemberActive ? 'badge-active' : 'badge-inactive'}`}>
+                                {isMemberActive ? 'Active' : 'Inactive'}
+                              </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>
                               <button 
@@ -1291,7 +1299,7 @@ export default function InvestigationWorkspace({
                     ) : (
                       membersLoading ? (
                         <TableLoadingState
-                          colSpan={3}
+                          colSpan={4}
                           title="Resolving Assigned Members from Oracle Fusion..."
                           subtitle="Querying role membership hierarchy and identity accounts..."
                           skeletonRows={3}

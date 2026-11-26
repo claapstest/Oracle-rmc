@@ -2034,7 +2034,18 @@ class OracleService {
       return members;
     }
 
-    // 1. Query oracle_raw_user_access in PostgreSQL first (authoritative synced user-role assignments)
+    // 1. Primary source: BI User Role Auto-Provisioning report (/Custom/CLAAPS_User_Role_AutoProvisioning.xdo)
+    try {
+      const { userAccessReportService } = await import('./userAccessReportService.js');
+      const bipMembers = await userAccessReportService.getRoleMembersFromBipReport(canonicalCode, canonicalName);
+      if (bipMembers !== null) {
+        return bipMembers;
+      }
+    } catch (bipErr: any) {
+      console.warn(`[Oracle Service] BIP Auto-Provisioning role members lookup for "${roleNameOrCode}":`, bipErr.message);
+    }
+
+    // 2. Fallback: Query oracle_raw_user_access in PostgreSQL
     try {
       const dbRes = await query<{
         username: string;
@@ -2049,16 +2060,18 @@ class OracleService {
         [canonicalCode, canonicalName]
       );
       if (dbRes.rows && dbRes.rows.length > 0) {
-        const members = dbRes.rows.map((r: any) => ({
+        return dbRes.rows.map((r: any) => ({
           id: r.username,
           userName: r.username,
           displayName: r.display_name || r.username,
           email: r.email || null,
           active: r.active !== false
         }));
-        this.setInCache(`role_members:${canonicalName.toLowerCase()}`, members, 5 * 60 * 1000);
-        this.setInCache(`role_members:${canonicalCode.toLowerCase()}`, members, 5 * 60 * 1000);
-        return members;
+      }
+      // If oracle_raw_user_access is populated, 0 matching rows is authoritative (avoid stale role_members cache / SCIM)
+      const hasSyncedUsers = await query<{ exists: number }>(`SELECT 1 AS exists FROM oracle_raw_user_access LIMIT 1`);
+      if (hasSyncedUsers.rows.length > 0) {
+        return [];
       }
     } catch (dbErr: any) {
       console.warn(`[Oracle Service] PostgreSQL user access lookup for "${roleNameOrCode}":`, dbErr.message);
