@@ -144,7 +144,7 @@ export class ProtectedDataError extends Error {
   }
 }
 
-const SENSITIVE_ASSIGNMENT = /\b(password|passwd|pwd|secret|client_?secret|token|access_?token|refresh_?token|api_?key|private_?key|master_?key|dek|kek|authorization|cookie)\b(\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&|}]+)/gi;
+const SENSITIVE_ASSIGNMENT = /\b(password|new_?password|current_?password|reset_?code|passwd|pwd|secret|client_?secret|token|access_?token|refresh_?token|api_?key|private_?key|master_?key|encryption_?key|dek|kek|authorization|cookie)\b(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&|}]+)/gi;
 
 /**
  * Masks credentials, tokens, key material and encoded payloads from text

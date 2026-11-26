@@ -77,7 +77,7 @@ const isProduction = config.nodeEnv === 'production';
  * - Images from self and data: URIs (chart/avatar inlining)
  * - No iframing by third parties
  */
-export const securityHeadersMiddleware: RequestHandler = helmet({
+const helmetMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -111,13 +111,18 @@ export const securityHeadersMiddleware: RequestHandler = helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   // Disable browser DNS prefetching to prevent privacy leaks
   dnsPrefetchControl: { allow: false },
-  // Remove X-Powered-By header
+  // Remove X-Powered-By header (enforced in wrapper below for Helmet v8 compatibility)
   xPoweredBy: false,
   // Prevent IE from opening downloads in the site's context
   ieNoOpen: true,
   // XSS filter — legacy but still useful for older browsers
   xXssProtection: true,
 }) as unknown as RequestHandler;
+
+export const securityHeadersMiddleware: RequestHandler = (req, res, next) => {
+  res.removeHeader('X-Powered-By');
+  return helmetMiddleware(req, res, next);
+};
 
 /**
  * Returns the currently resolved allowed origins (useful for diagnostics/tests).

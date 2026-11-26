@@ -82,19 +82,37 @@ const CONFIG_FILE_PATH = path.join(__dirname, '../oracle_config.json');
 // Derive 32-byte encryption key
 const ENCRYPTION_KEY_RAW = process.env.ORACLE_ENCRYPTION_KEY || 'default-fallback-security-key-oracle-fusion';
 const ENCRYPTION_KEY = crypto.createHash('sha256').update(ENCRYPTION_KEY_RAW).digest();
-const ALGORITHM = 'aes-256-cbc';
+const LEGACY_CBC_ALGORITHM = 'aes-256-cbc';
+const GCM_ALGORITHM = 'aes-256-gcm';
 
+// VYR-063: Encrypt persisted Oracle config secrets using authenticated AES-256-GCM (v2).
 export function encrypt(text: string): string {
   if (!text) return '';
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv(GCM_ALGORITHM, ENCRYPTION_KEY, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted;
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `v2:${iv.toString('hex')}:${authTag}:${encrypted}`;
 }
 
 export function decrypt(text: string): string {
   if (!text) return '';
+  if (text.startsWith('v2:')) {
+    const parts = text.split(':');
+    if (parts.length !== 4) {
+      throw new Error('Invalid encrypted config format (v2).');
+    }
+    const iv = Buffer.from(parts[1], 'hex');
+    const authTag = Buffer.from(parts[2], 'hex');
+    const encryptedText = Buffer.from(parts[3], 'hex');
+    const decipher = crypto.createDecipheriv(GCM_ALGORITHM, ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedText, undefined, 'utf8') as string;
+    decrypted += decipher.final('utf8') as string;
+    return decrypted;
+  }
+
   const parts = text.split(':');
   if (parts.length !== 2) {
     // Migration fallback for existing plaintext config files
@@ -103,13 +121,13 @@ export function decrypt(text: string): string {
   try {
     const iv = Buffer.from(parts[0], 'hex');
     const encryptedText = Buffer.from(parts[1], 'hex');
-    const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    const decipher = crypto.createDecipheriv(LEGACY_CBC_ALGORITHM, ENCRYPTION_KEY, iv);
     let decrypted = decipher.update(encryptedText, undefined, 'utf8') as string;
     decrypted += decipher.final('utf8') as string;
     return decrypted;
   } catch (err) {
-    console.error('[Crypto Error] Failed to decrypt secret. Falling back to original value.', (err as Error).message);
-    return text;
+    console.error('[Crypto Error] Failed to decrypt legacy secret.', (err as Error).message);
+    throw new Error('Failed to decrypt persisted config secret.');
   }
 }
 

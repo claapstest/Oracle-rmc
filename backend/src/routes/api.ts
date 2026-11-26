@@ -810,6 +810,7 @@ apiRouter.post('/auth/reset-password', authRateLimiter, enforceBodySizeLimit('PO
 
 const investigationSnapshots = new Map<string, {
   id: string;
+  userId: string | null;
   user: string;
   payload: any;
   createdAt: number;
@@ -826,7 +827,18 @@ function purgeExpiredSnapshots() {
   }
 }
 
-// POST /investigations - Save temporary investigation snapshot
+function isInvestigationAuthorized(
+  snapshot: { userId: string | null; user: string },
+  res: Response
+): boolean {
+  const isAdmin = res.locals.isAdmin === true || res.locals.role === 'SITE_ADMIN' || (res.locals.permissions || []).includes('ALL');
+  if (isAdmin) return true;
+  if (snapshot.userId && res.locals.userId && snapshot.userId === res.locals.userId) return true;
+  if (snapshot.user && res.locals.email && snapshot.user.toLowerCase() === String(res.locals.email).toLowerCase()) return true;
+  return false;
+}
+
+// POST /investigations - Save temporary investigation snapshot (VYR-063: owner-bound)
 apiRouter.post('/investigations', requireAuth, enforceBodySizeLimit('POST /investigations'), validateBody('POST /investigations'), (req: Request, res: Response) => {
   const { id, payload } = req.body;
   if (!id || !payload) {
@@ -835,6 +847,23 @@ apiRouter.post('/investigations', requireAuth, enforceBodySizeLimit('POST /inves
 
   purgeExpiredSnapshots();
 
+  const existing = investigationSnapshots.get(id);
+  if (existing && !isInvestigationAuthorized(existing, res)) {
+    securityEventLogger.record({
+      eventType: 'PRIVILEGED_DATA_ACCESS',
+      userId: res.locals.userId || null,
+      targetType: 'investigation',
+      targetId: id,
+      result: 'DENIED',
+      details: { reason: 'IDOR_OVERWRITE_ATTEMPT' },
+    });
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. You cannot overwrite another user\'s investigation snapshot.'
+    });
+  }
+
   if (investigationSnapshots.size > 200) {
     const oldestKey = investigationSnapshots.keys().next().value;
     if (oldestKey) investigationSnapshots.delete(oldestKey);
@@ -842,6 +871,7 @@ apiRouter.post('/investigations', requireAuth, enforceBodySizeLimit('POST /inves
 
   investigationSnapshots.set(id, {
     id,
+    userId: res.locals.userId || null,
     user: res.locals.email,
     payload,
     createdAt: Date.now()
@@ -850,7 +880,7 @@ apiRouter.post('/investigations', requireAuth, enforceBodySizeLimit('POST /inves
   res.json({ success: true, id });
 });
 
-// GET /investigations/:id - Retrieve investigation snapshot for authenticated user
+// GET /investigations/:id - Retrieve investigation snapshot (VYR-063: owner or Site Admin only)
 apiRouter.get('/investigations/:id', requireAuth, (req: Request, res: Response) => {
   const { id } = req.params;
   purgeExpiredSnapshots();
@@ -858,6 +888,22 @@ apiRouter.get('/investigations/:id', requireAuth, (req: Request, res: Response) 
   const snapshot = investigationSnapshots.get(id);
   if (!snapshot) {
     return res.status(404).json({ success: false, message: 'Investigation snapshot not found or expired.' });
+  }
+
+  if (!isInvestigationAuthorized(snapshot, res)) {
+    securityEventLogger.record({
+      eventType: 'PRIVILEGED_DATA_ACCESS',
+      userId: res.locals.userId || null,
+      targetType: 'investigation',
+      targetId: id,
+      result: 'DENIED',
+      details: { reason: 'IDOR_READ_ATTEMPT' },
+    });
+    return res.status(403).json({
+      success: false,
+      code: 'FORBIDDEN',
+      message: 'Access denied. You do not have permission to access this investigation snapshot.'
+    });
   }
 
   res.json({ success: true, data: snapshot.payload });

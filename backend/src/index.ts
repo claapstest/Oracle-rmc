@@ -16,11 +16,13 @@ import { userAccessReportService } from './services/userAccessReportService.js';
 import { apiRouter } from './routes/api.js';
 import { initializeAuthProvider, keyManager } from './auth/index.js';
 import { corsMiddleware, securityHeadersMiddleware } from './security/securityHeadersService.js';
+import { maskSensitive } from './security/cryptoFailure.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.disable('x-powered-by');
 
 // VYR-048: Configure trusted proxy support carefully to prevent IP spoofing
 const trustProxySetting = (process.env.TRUST_PROXY || '').trim().toLowerCase();
@@ -71,23 +73,25 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
-// Logger middleware
+// Logger middleware (VYR-063: mask all sensitive credential/reset/key fields)
 app.use((req, res, next) => {
-  // Never log passwords, tokens, or credentials
-  const bodyCopy = { ...req.body };
-  if (bodyCopy.password) bodyCopy.password = '******';
-  if (bodyCopy.token) bodyCopy.token = '******';
+  const SENSITIVE_BODY_FIELDS = [
+    'password', 'newPassword', 'currentPassword', 'resetCode', 'token',
+    'accessToken', 'refreshToken', 'clientSecret', 'privateKey', 'secret',
+    'encryptionKey', 'code', 'authorization'
+  ];
+  const bodyCopy = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+  for (const field of SENSITIVE_BODY_FIELDS) {
+    if (bodyCopy[field] !== undefined) bodyCopy[field] = '******';
+  }
   if (bodyCopy.payload && typeof bodyCopy.payload === 'object') {
     bodyCopy.payload = '[Investigation Payload Object]';
   }
-  
+
   let bodyStr = '';
   if (req.method !== 'GET') {
     try {
-      bodyStr = JSON.stringify(bodyCopy);
-      if (bodyStr.length > 300) {
-        bodyStr = bodyStr.substring(0, 300) + '... (truncated)';
-      }
+      bodyStr = maskSensitive(JSON.stringify(bodyCopy), 300);
     } catch (_) {
       bodyStr = '[Unserializable body]';
     }
@@ -166,6 +170,38 @@ if (hasFrontendBuild) {
     });
   });
 }
+
+// VYR-063: Global Express error handler prevents HTML stack traces or internal error leaks
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (res.headersSent) return;
+  if (err?.type === 'entity.parse.failed' || (err instanceof SyntaxError && 'body' in err)) {
+    return res.status(400).json({
+      success: false,
+      code: 'INVALID_JSON',
+      message: 'Malformed JSON request body.'
+    });
+  }
+  if (err?.type === 'entity.too.large' || err?.status === 413) {
+    return res.status(413).json({
+      success: false,
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'Request payload exceeds maximum allowed size.'
+    });
+  }
+  if (typeof err?.message === 'string' && err.message.includes('not allowed by CORS policy')) {
+    return res.status(403).json({
+      success: false,
+      code: 'CORS_FORBIDDEN',
+      message: 'Origin is not allowed by CORS policy.'
+    });
+  }
+  console.error('[Global Error Handler]:', maskSensitive(String(err?.message || err || 'Unknown error'), 500));
+  return res.status(500).json({
+    success: false,
+    code: 'INTERNAL_ERROR',
+    message: 'An unexpected internal error occurred.'
+  });
+});
 
 // Start Server
 loadPersistedConfig();
