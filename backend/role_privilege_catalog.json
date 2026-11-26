@@ -1,11 +1,11 @@
 {
   "metadata": {
     "instance": "eiiv-dev14",
-    "lastUpdated": "2026-11-20T05:35:59.836Z",
+    "lastUpdated": "2026-11-25T11:37:50.428Z",
     "source": "Oracle Fusion",
     "roleCount": 2703,
-    "privilegeCount": 4136,
-    "mappingCount": 5850,
+    "privilegeCount": 4140,
+    "mappingCount": 6208,
     "status": "READY"
   },
   "roles": {
@@ -109,19 +109,291 @@
       "name": "DEL View Secured Help ContentJOB",
       "code": "DEL_ATK_HELP_SECURED_VIEW_DUTY_JOB",
       "type": "DUTY",
-      "privileges": []
+      "privileges": [
+        "Absence Entry Using Calendar",
+        "Access FUSE Directory Page",
+        "Access FUSE Performance and Career Planning Page",
+        "Access FUSE Personal Information Page",
+        "Access HCM Common Components",
+        "Access Intelligent Agent Chat",
+        "Access Internal Candidate Experience",
+        "Access Knowledge from HCM",
+        "Access Learner Self-Service Work Area",
+        "Access My Career and Performance",
+        "Access My Communications",
+        "Access My Pay",
+        "Access My Time and Absences",
+        "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+        "Access Oracle Taleo Recruiting Cloud Service",
+        "Access Person Spotlight",
+        "Access Quick Actions",
+        "Access Tap Application",
+        "Access What to Learn",
+        "Align Performance Goals",
+        "Approve Transactions",
+        "Cancel Performance Goals",
+        "Claim Shifts",
+        "Copy Development Goals",
+        "Copy Performance Goals",
+        "Cover Shift",
+        "Create Non-Catalog Learning Requests by Learner",
+        "Create Service Request from HCM",
+        "Delete Development Goals",
+        "Delete Performance Goals",
+        "Download Desktop Integrator",
+        "Drop Shift",
+        "Extend Performance Goals",
+        "Give Anytime Feedback",
+        "Launch Oracle Social Network",
+        "Manage Data Visualization Preference",
+        "Manage Favorite Colleagues",
+        "Manage Goal Management Notifications",
+        "Manage Mentorship",
+        "Manage My Contact Information Mobile",
+        "Manage My Documents Mobile",
+        "Manage My Personal Information Mobile",
+        "Manage My Portrait Work Area",
+        "Manage My Welcome Tab",
+        "Manage My Wellness",
+        "Manage My Wellness Team",
+        "Manage Own HCM Channel Messages",
+        "Manage Person Allocated Checklist by Worker",
+        "Manage Reports and Analytics",
+        "Manage Reputation Overview",
+        "Manage Reputation Scores",
+        "Manage Scheduled Processes",
+        "Manage Social Roles",
+        "Manage Volunteering",
+        "Manage Webcenter Services",
+        "Move Performance Goals",
+        "Print Learning Completion Certificate",
+        "Record External Learning by Learner",
+        "Record and View Issue",
+        "Report Time by Web Clock",
+        "Request Deletion of Time Entries",
+        "Run Talent Profile Summary Report",
+        "Share Development Goals",
+        "Share Performance Goals",
+        "Swap Shift",
+        "Use REST Service - Activity Summaries",
+        "Use REST Service - Address Lists of Values",
+        "Use REST Service - Content Items List of Values",
+        "Use REST Service - Individual Compensation Lists of Values",
+        "Use REST Service - Job Families List of Values",
+        "Use REST Service - Model Profiles List of Values",
+        "Use REST Service - Questionnaire Lists of Values",
+        "Use REST Service - Scheduling Lists of Values",
+        "Use REST Service - Time Card Lists of Values",
+        "Use REST Service - Users and Roles Lists of Values",
+        "Use REST Service - Volunteering Lists of Values",
+        "Use REST Service - Wellness Lists of Values",
+        "Use REST Service - Workforce Reputation Lists of Values",
+        "Use Time Card Templates",
+        "Validate Project Time and Labor Time Card",
+        "View Calendar by Worker",
+        "View Employee Common Setup Data",
+        "View Notification Details",
+        "View Search Results of Jobs Posted Internally",
+        "View Skill Recommendations",
+        "View Team Schedule by Worker",
+        "View Time by Calendar",
+        "View Trading Community Common Setup",
+        "Workforce Reputation Subscription User"
+      ]
     },
     "View Secured Custom Help": {
       "name": "View Secured Custom Help",
       "code": "ORA_ATK_HELP_SECURED_VIEW_DUTY_HCM",
       "type": "DUTY",
-      "privileges": []
+      "privileges": [
+        "Absence Entry Using Calendar",
+        "Access FUSE Directory Page",
+        "Access FUSE Performance and Career Planning Page",
+        "Access FUSE Personal Information Page",
+        "Access HCM Common Components",
+        "Access Internal Candidate Experience",
+        "Access Knowledge from HCM",
+        "Access Learner Self-Service Work Area",
+        "Access My Career and Performance",
+        "Access My Communications",
+        "Access My Pay",
+        "Access My Time and Absences",
+        "Access Person Spotlight",
+        "Access Quick Actions",
+        "Access What to Learn",
+        "Align Performance Goals",
+        "Approve Transactions",
+        "Cancel Performance Goals",
+        "Claim Shifts",
+        "Copy Development Goals",
+        "Copy Performance Goals",
+        "Cover Shift",
+        "Create Service Request from HCM",
+        "Delete Development Goals",
+        "Delete Performance Goals",
+        "Download Desktop Integrator",
+        "Drop Shift",
+        "Extend Performance Goals",
+        "Give Anytime Feedback",
+        "Launch Oracle Social Network",
+        "Manage Favorite Colleagues",
+        "Manage Goal Management Notifications",
+        "Manage Mentorship",
+        "Manage My Portrait Work Area",
+        "Manage My Welcome Tab",
+        "Manage Own HCM Channel Messages",
+        "Manage Person Allocated Checklist by Worker",
+        "Manage Reports and Analytics",
+        "Manage Reputation Overview",
+        "Manage Reputation Scores",
+        "Manage Scheduled Processes",
+        "Manage Social Roles",
+        "Manage Webcenter Services",
+        "Move Performance Goals",
+        "Report Time by Web Clock",
+        "Request Deletion of Time Entries",
+        "Run Talent Profile Summary Report",
+        "Share Development Goals",
+        "Share Performance Goals",
+        "Swap Shift",
+        "Use REST Service - Address Lists of Values",
+        "Use REST Service - Content Items List of Values",
+        "Use REST Service - Individual Compensation Lists of Values",
+        "Use REST Service - Job Families List of Values",
+        "Use REST Service - Model Profiles List of Values",
+        "Use REST Service - Questionnaire Lists of Values",
+        "Use REST Service - Scheduling Lists of Values",
+        "Use REST Service - Time Card Lists of Values",
+        "Use REST Service - Users and Roles Lists of Values",
+        "Use REST Service - Workforce Reputation Lists of Values",
+        "Use Time Card Templates",
+        "Validate Project Time and Labor Time Card",
+        "View Calendar by Worker",
+        "View Notification Details",
+        "View Search Results of Jobs Posted Internally",
+        "View Skill Recommendations",
+        "View Team Schedule by Worker",
+        "View Time by Calendar",
+        "View Trading Community Common Setup",
+        "Workforce Reputation Subscription User",
+        "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+        "Access Oracle Taleo Recruiting Cloud Service",
+        "Access Tap Application",
+        "Create Non-Catalog Learning Requests by Learner",
+        "Manage Data Visualization Preference",
+        "Manage My Contact Information Mobile",
+        "Manage My Documents Mobile",
+        "Manage My Personal Information Mobile",
+        "Manage My Wellness",
+        "Manage My Wellness Team",
+        "Manage Volunteering",
+        "Print Learning Completion Certificate",
+        "Record External Learning by Learner",
+        "Record and View Issue",
+        "Use REST Service - Activity Summaries",
+        "Use REST Service - Volunteering Lists of Values",
+        "Use REST Service - Wellness Lists of Values",
+        "View Employee Common Setup Data",
+        "Define Absence Plans",
+        "Manage Absence Entitlement Band",
+        "Manage Absence Entries",
+        "Manage Benefit Eligibility Profile",
+        "Manage Benefit Participant Enrollment Certification",
+        "Manage Life Event Reason",
+        "Manage Person Eligibility Derived Factor",
+        "Run Participation Process Absence"
+      ]
     },
     "View Secured Custom Help Custom": {
       "name": "View Secured Custom Help Custom",
       "code": "ATK_HELP_SECURED_VIEW_DUTY_HCM_CUSTOM",
       "type": "DUTY",
-      "privileges": []
+      "privileges": [
+        "Absence Entry Using Calendar",
+        "Access FUSE Directory Page",
+        "Access FUSE Performance and Career Planning Page",
+        "Access FUSE Personal Information Page",
+        "Access HCM Common Components",
+        "Access Internal Candidate Experience",
+        "Access Knowledge from HCM",
+        "Access Learner Self-Service Work Area",
+        "Access My Career and Performance",
+        "Access My Pay",
+        "Access My Time and Absences",
+        "Access Oracle Taleo Recruiting Cloud Service",
+        "Access Person Spotlight",
+        "Access Quick Actions",
+        "Access Tap Application",
+        "Access What to Learn",
+        "Align Performance Goals",
+        "Approve Transactions",
+        "Cancel Performance Goals",
+        "Claim Shifts",
+        "Copy Development Goals",
+        "Copy Performance Goals",
+        "Cover Shift",
+        "Create Non-Catalog Learning Requests by Learner",
+        "Create Service Request from HCM",
+        "Delete Development Goals",
+        "Delete Performance Goals",
+        "Download Desktop Integrator",
+        "Drop Shift",
+        "Extend Performance Goals",
+        "Give Anytime Feedback",
+        "Launch Oracle Social Network",
+        "Manage Data Visualization Preference",
+        "Manage Favorite Colleagues",
+        "Manage Goal Management Notifications",
+        "Manage Mentorship",
+        "Manage My Contact Information Mobile",
+        "Manage My Documents Mobile",
+        "Manage My Personal Information Mobile",
+        "Manage My Portrait Work Area",
+        "Manage My Welcome Tab",
+        "Manage My Wellness",
+        "Manage My Wellness Team",
+        "Manage Own HCM Channel Messages",
+        "Manage Person Allocated Checklist by Worker",
+        "Manage Reports and Analytics",
+        "Manage Reputation Overview",
+        "Manage Reputation Scores",
+        "Manage Scheduled Processes",
+        "Manage Social Roles",
+        "Manage Volunteering",
+        "Manage Webcenter Services",
+        "Move Performance Goals",
+        "Print Learning Completion Certificate",
+        "Record External Learning by Learner",
+        "Record and View Issue",
+        "Report Time by Web Clock",
+        "Run Talent Profile Summary Report",
+        "Share Development Goals",
+        "Share Performance Goals",
+        "Swap Shift",
+        "Use REST Service - Address Lists of Values",
+        "Use REST Service - Content Items List of Values",
+        "Use REST Service - Individual Compensation Lists of Values",
+        "Use REST Service - Job Families List of Values",
+        "Use REST Service - Model Profiles List of Values",
+        "Use REST Service - Questionnaire Lists of Values",
+        "Use REST Service - Scheduling Lists of Values",
+        "Use REST Service - Time Card Lists of Values",
+        "Use REST Service - Users and Roles Lists of Values",
+        "Use REST Service - Volunteering Lists of Values",
+        "Use REST Service - Wellness Lists of Values",
+        "Use REST Service - Workforce Reputation Lists of Values",
+        "Use Time Card Templates",
+        "Validate Project Time and Labor Time Card",
+        "View Calendar by Worker",
+        "View Notification Details",
+        "View Search Results of Jobs Posted Internally",
+        "View Skill Recommendations",
+        "View Team Schedule by Worker",
+        "View Time by Calendar",
+        "View Trading Community Common Setup",
+        "Workforce Reputation Subscription User",
+        "Access Intelligent Agent Chat"
+      ]
     },
     "View Secured Help Content": {
       "name": "View Secured Help Content",
@@ -9098,7 +9370,97 @@
       "name": "Deloitte Employee Agent Test",
       "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
       "type": "ABSTRACT",
-      "privileges": []
+      "privileges": [
+        "Absence Entry Using Calendar",
+        "Access FUSE Directory Page",
+        "Access FUSE Performance and Career Planning Page",
+        "Access FUSE Personal Information Page",
+        "Access HCM Common Components",
+        "Access Intelligent Agent Chat",
+        "Access Internal Candidate Experience",
+        "Access Knowledge from HCM",
+        "Access Learner Self-Service Work Area",
+        "Access My Career and Performance",
+        "Access My Communications",
+        "Access My Pay",
+        "Access My Time and Absences",
+        "Access My Wellness, Corporate Social Responsibility, and Personal Brand",
+        "Access Oracle Taleo Recruiting Cloud Service",
+        "Access Person Spotlight",
+        "Access Quick Actions",
+        "Access Tap Application",
+        "Access What to Learn",
+        "Align Performance Goals",
+        "Approve Transactions",
+        "Cancel Performance Goals",
+        "Claim Shifts",
+        "Copy Development Goals",
+        "Copy Performance Goals",
+        "Cover Shift",
+        "Create Non-Catalog Learning Requests by Learner",
+        "Create Service Request from HCM",
+        "Delete Development Goals",
+        "Delete Performance Goals",
+        "Download Desktop Integrator",
+        "Drop Shift",
+        "Extend Performance Goals",
+        "Give Anytime Feedback",
+        "Launch Oracle Social Network",
+        "Manage Data Visualization Preference",
+        "Manage Favorite Colleagues",
+        "Manage Goal Management Notifications",
+        "Manage Mentorship",
+        "Manage My Contact Information Mobile",
+        "Manage My Documents Mobile",
+        "Manage My Personal Information Mobile",
+        "Manage My Portrait Work Area",
+        "Manage My Welcome Tab",
+        "Manage My Wellness",
+        "Manage My Wellness Team",
+        "Manage Own HCM Channel Messages",
+        "Manage Person Allocated Checklist by Worker",
+        "Manage Reports and Analytics",
+        "Manage Reputation Overview",
+        "Manage Reputation Scores",
+        "Manage Scheduled Processes",
+        "Manage Social Roles",
+        "Manage Volunteering",
+        "Manage Webcenter Services",
+        "Move Performance Goals",
+        "Print Learning Completion Certificate",
+        "Record External Learning by Learner",
+        "Record and View Issue",
+        "Report Time by Web Clock",
+        "Request Deletion of Time Entries",
+        "Run Talent Profile Summary Report",
+        "Share Development Goals",
+        "Share Performance Goals",
+        "Swap Shift",
+        "Use REST Service - Activity Summaries",
+        "Use REST Service - Address Lists of Values",
+        "Use REST Service - Content Items List of Values",
+        "Use REST Service - Individual Compensation Lists of Values",
+        "Use REST Service - Job Families List of Values",
+        "Use REST Service - Model Profiles List of Values",
+        "Use REST Service - Questionnaire Lists of Values",
+        "Use REST Service - Scheduling Lists of Values",
+        "Use REST Service - Time Card Lists of Values",
+        "Use REST Service - Users and Roles Lists of Values",
+        "Use REST Service - Volunteering Lists of Values",
+        "Use REST Service - Wellness Lists of Values",
+        "Use REST Service - Workforce Reputation Lists of Values",
+        "Use Time Card Templates",
+        "Validate Project Time and Labor Time Card",
+        "View Calendar by Worker",
+        "View Employee Common Setup Data",
+        "View Notification Details",
+        "View Search Results of Jobs Posted Internally",
+        "View Skill Recommendations",
+        "View Team Schedule by Worker",
+        "View Time by Calendar",
+        "View Trading Community Common Setup",
+        "Workforce Reputation Subscription User"
+      ]
     },
     "EMPLOYEE_NO_SAVE": {
       "name": "EMPLOYEE_NO_SAVE",
@@ -24362,6 +24724,11 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
         }
       ]
     },
@@ -29313,6 +29680,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -36332,6 +36709,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -40233,6 +40620,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -51184,6 +51581,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -58390,6 +58797,16 @@
           "name": "Risk Administrator",
           "code": "ORA_GTG_RISK_ADMINISTRATOR_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -58513,6 +58930,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -58757,6 +59184,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -58779,6 +59216,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -58800,6 +59247,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -58907,6 +59364,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -59502,6 +59969,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -60956,6 +61433,11 @@
           "name": "BI Author Role",
           "code": "ABDEL_IRC_HIRING_MANAGER_ABSTRACT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -61375,6 +61857,11 @@
         {
           "name": "BI Author Role",
           "code": "ABDEL_IRC_HIRING_MANAGER_ABSTRACT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -62266,6 +62753,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -63968,6 +64465,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64033,6 +64540,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64050,6 +64567,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64066,6 +64593,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -64155,6 +64692,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -64293,6 +64840,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64406,6 +64963,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64422,6 +64989,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -64488,6 +65065,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64516,6 +65103,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -64594,6 +65191,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -64610,6 +65217,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -64651,6 +65268,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -64967,6 +65594,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -65152,6 +65789,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -65229,6 +65876,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -65245,6 +65902,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -65347,6 +66014,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -65387,6 +66064,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -68955,6 +69642,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -71967,6 +72664,11 @@
           "name": "BI Author Role",
           "code": "ABDEL_IRC_HIRING_MANAGER_ABSTRACT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -72219,6 +72921,11 @@
           "name": "BI Author Role",
           "code": "ABDEL_IRC_HIRING_MANAGER_ABSTRACT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -72259,6 +72966,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -76354,6 +77071,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -76394,6 +77121,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -78825,6 +79562,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -78841,6 +79588,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79322,6 +80079,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79333,6 +80100,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79346,6 +80123,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79357,6 +80144,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79370,6 +80167,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79381,6 +80188,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79394,6 +80211,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79405,6 +80232,11 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79418,6 +80250,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79429,6 +80271,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79442,6 +80294,11 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79453,6 +80310,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79466,6 +80333,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79477,6 +80354,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79490,6 +80377,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79501,6 +80398,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79514,6 +80421,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79525,6 +80442,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79538,6 +80465,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79549,6 +80486,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79562,6 +80509,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79573,6 +80530,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79586,6 +80553,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79597,6 +80574,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79610,6 +80597,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79621,6 +80618,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79634,6 +80641,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79645,6 +80662,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79658,6 +80685,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79669,6 +80706,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79682,6 +80729,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79693,6 +80750,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79706,6 +80773,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79717,6 +80794,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79730,6 +80817,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79741,6 +80838,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79754,6 +80861,11 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79765,6 +80877,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79778,6 +80900,11 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79789,6 +80916,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79802,6 +80939,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79813,6 +80960,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79826,6 +80983,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79837,6 +81004,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79850,6 +81027,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79861,6 +81048,11 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79874,6 +81066,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79885,6 +81087,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -79898,6 +81110,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79910,6 +81132,16 @@
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
           "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
         }
       ]
     },
@@ -79921,6 +81153,16 @@
         {
           "name": "DEL View Secured Custom HelpJOB",
           "code": "DEL_PER_EMPLOYEE_AGENT_JOB",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help Custom",
+          "code": "AK_PER_EMPLOYEE_ABSTRACT_CUSTOM",
+          "type": "JOB"
+        },
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]
@@ -80053,6 +81295,54 @@
         {
           "name": "Application Implementation Consultant",
           "code": "ORA_ASM_APPLICATION_IMPLEMENTATION_CONSULTANT_JOB",
+          "type": "JOB"
+        }
+      ]
+    },
+    "Define Absence Plans": {
+      "name": "Define Absence Plans",
+      "code": "BEN_MANAGE_ABSENCE_PLANS_PRIV",
+      "description": "Allows configuration and management of manage absence plans",
+      "roles": [
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
+        }
+      ]
+    },
+    "Manage Absence Entitlement Band": {
+      "name": "Manage Absence Entitlement Band",
+      "code": "BEN_MANAGE_ABSENCE_ENTITLEMENT_BAND_PRIV",
+      "description": "Allows configuration and management of absence entitlement bands",
+      "roles": [
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
+        }
+      ]
+    },
+    "Manage Absence Entries": {
+      "name": "Manage Absence Entries",
+      "code": "ANC_MANAGE_ABSENCE_ENTRIES_PRIV",
+      "description": "Allows creation, deletion, and updating of absence entries.",
+      "roles": [
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
+          "type": "JOB"
+        }
+      ]
+    },
+    "Manage Life Event Reason": {
+      "name": "Manage Life Event Reason",
+      "code": "BEN_MANAGE_LIFE_EVENT_REASON_PRIV",
+      "description": "Allows benefit professionals to manage benefit life events.",
+      "roles": [
+        {
+          "name": "View Secured Custom Help",
+          "code": "ORA_PER_CONTINGENT_WORKER_ABSTRACT",
           "type": "JOB"
         }
       ]

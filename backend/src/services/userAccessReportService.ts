@@ -230,6 +230,8 @@ export class UserAccessReportService {
       );
 
       await client.query('COMMIT');
+      this.cachedDirectoryUsers = [];
+      this.cachedDirectorySourceRef = null;
       console.log(`[User Access Report] Persisted ${payload.data.length} rows to PostgreSQL (oracle_raw_user_access).`);
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -392,6 +394,78 @@ export class UserAccessReportService {
     return primary?.value || user.emails[0]?.value || null;
   }
 
+  // 0. User Accounts REST API (master account list + userAccountRoles, including *APPID accounts)
+  async getAllUserAccounts(): Promise<any[]> {
+    const accounts: any[] = [];
+    let offset = 0;
+    const pageSize = 100;
+
+    console.log('[User Access Report] Fetching userAccounts with expanded userAccountRoles...');
+    try {
+      while (true) {
+        const response = await this.client.get('/hcmRestApi/resources/11.13.18.05/userAccounts', {
+          params: {
+            limit: pageSize,
+            offset,
+            expand: 'userAccountRoles',
+            onlyData: true
+          }
+        });
+        const data = response.data || {};
+        const items = data.items || [];
+        if (items.length === 0) break;
+
+        accounts.push(...items);
+        console.log(`[User Access Report] userAccounts retrieved: ${accounts.length}`);
+
+        if (!data.hasMore) {
+          break;
+        }
+        offset += items.length;
+      }
+    } catch (err: any) {
+      console.warn('[User Access Report] userAccounts REST fetch failed (falling back to SCIM master list):', err?.message || err);
+      return [];
+    }
+
+    return accounts;
+  }
+
+  // 0b. User Accounts LOV REST API (captures full account list + Suspended/ActiveFlag)
+  async getAllUserAccountsLOV(): Promise<any[]> {
+    const lovItems: any[] = [];
+    let offset = 0;
+    const pageSize = 500;
+
+    console.log('[User Access Report] Fetching userAccountsLOV...');
+    try {
+      while (true) {
+        const response = await this.client.get('/hcmRestApi/resources/11.13.18.05/userAccountsLOV', {
+          params: {
+            limit: pageSize,
+            offset,
+            onlyData: true
+          }
+        });
+        const data = response.data || {};
+        const items = data.items || [];
+        if (items.length === 0) break;
+
+        lovItems.push(...items);
+        if (!data.hasMore) {
+          break;
+        }
+        offset += items.length;
+      }
+      console.log(`[User Access Report] userAccountsLOV retrieved: ${lovItems.length}`);
+    } catch (err: any) {
+      console.warn('[User Access Report] userAccountsLOV REST fetch failed:', err?.message || err);
+      return [];
+    }
+
+    return lovItems;
+  }
+
   // 1. SCIM Users - Master population
   async getAllScimUsers(): Promise<any[]> {
     const users: any[] = [];
@@ -478,119 +552,253 @@ export class UserAccessReportService {
     }
   }
 
+  private async finalizeAndPersistReport(
+    report: UserAccessReportRow[],
+    summary: UserAccessReportSummary,
+    startTime: number,
+    sourceLabel: string
+  ): Promise<UserAccessReportResult> {
+    const calculatedAt = new Date().toISOString();
+    const result: UserAccessReportResult = {
+      success: true,
+      summary,
+      data: report,
+      calculatedAt,
+      source: 'PostgreSQL Database'
+    };
+
+    try {
+      await this.persistToDatabase({ summary, data: report, calculatedAt });
+    } catch (dbErr: any) {
+      console.warn('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
+    }
+    this.cachedReport = { summary, data: report, calculatedAt };
+    this.saveToDisk(this.cachedReport);
+
+    console.log(
+      `[User Access Report] ${sourceLabel} complete: ${summary.totalUsers} users, ` +
+      `${report.length} report rows in ${Date.now() - startTime}ms`
+    );
+    return result;
+  }
+
   // Core generator method
   async generateUserAccessReport(): Promise<UserAccessReportResult> {
     this.recreateClient();
 
-    console.log('[User Access Report] Starting report generation from live Oracle Fusion APIs...');
+    console.log('[User Access Report] Starting report generation from live Oracle Fusion REST APIs...');
     const startTime = Date.now();
 
-    // 1. First attempt to use authoritative User Details BIP report (/Custom/userdetails report.xdo)
-    // and merge with BIP Auto-Provisioning report (/Custom/CLAAPS_User_Role_AutoProvisioning.xdo)
-    let userDetailsRows: any[] = [];
-    try {
-      const { bipClient } = await import('../oracle/bipClient.js');
-      userDetailsRows = await bipClient.runUserDetailsReport();
-    } catch (e: any) {
-      console.warn('[User Access Report] Failed to fetch User Details report from BIP, falling back to SCIM:', e.message);
+    // 1. Primary path: REST APIs (userAccounts + userAccountsLOV master + userAccountRoles, SCIM for non-APPID profiles, Public Workers for HR fields)
+    const [userAccounts, userAccountsLov, scimUsers, workers, bipRows] = await Promise.all([
+      this.getAllUserAccounts(),
+      this.getAllUserAccountsLOV(),
+      this.getAllScimUsers().catch((err: any) => {
+        console.warn('[User Access Report] SCIM Users fetch failed:', err?.message || err);
+        return [] as any[];
+      }),
+      this.getWorkersCached().catch((err: any) => {
+        console.warn('[User Access Report] Public Workers fetch failed:', err?.message || err);
+        return [] as any[];
+      }),
+      this.getBipRowsCached().catch((err: any) => {
+        console.warn('[User Access Report] BIP Auto-Provisioning fetch failed:', err?.message || err);
+        return [] as any[];
+      })
+    ]);
+
+    console.log(
+      `[User Access Report] Fetched ${userAccounts.length} userAccounts, ${userAccountsLov.length} userAccountsLOV, ` +
+      `${scimUsers.length} SCIM users, ${workers.length} Public Workers, ${bipRows.length} BIP role rows in ${Date.now() - startTime}ms`
+    );
+
+    // Index BIP rows by USERNAME|ROLE_CODE (upper-cased) for merge
+    const bipMap = new Map<string, { roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>();
+    for (const r of bipRows) {
+      const key = `${(r.username || '').toUpperCase()}|${(r.roleCode || '').toUpperCase()}`;
+      if (!r.username) continue;
+      bipMap.set(key, { roleName: r.roleName || '', roleCode: r.roleCode || '', autoProvisioned: r.autoProvisioned ?? null });
     }
 
-    if (userDetailsRows.length > 0) {
-      console.log(`[User Access Report] Using BIP User Details as master population: ${userDetailsRows.length} unique users.`);
-      const bipRows = await this.getBipRowsCached();
-      console.log(`[User Access Report] Fetched ${bipRows.length} Auto-Provisioning role assignments.`);
+    // Build index by Username.toUpperCase() for LOV, SCIM users, and Public Workers
+    const lovMap = new Map<string, any>();
+    for (const lov of userAccountsLov) {
+      if (!lov.Username) continue;
+      lovMap.set(String(lov.Username).toUpperCase(), lov);
+    }
 
-      // Index Auto-Provisioning roles by USERNAME.toUpperCase() -> Array of roles
-      const userRolesMap = new Map<string, Array<{ roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>>();
-      for (const r of bipRows) {
-        if (!r.username) continue;
-        const uKey = r.username.toUpperCase();
-        let arr = userRolesMap.get(uKey);
-        if (!arr) {
-          arr = [];
-          userRolesMap.set(uKey, arr);
-        }
-        arr.push({
-          roleName: r.roleName || '',
-          roleCode: r.roleCode || '',
-          autoProvisioned: r.autoProvisioned ?? null
-        });
-      }
+    const scimMap = new Map<string, any>();
+    for (const su of scimUsers) {
+      if (!su.userName) continue;
+      scimMap.set(String(su.userName).toUpperCase(), su);
+    }
 
+    const workerMap = new Map<string, any>();
+    for (const worker of workers) {
+      if (!worker.Username) continue;
+      workerMap.set(worker.Username.toUpperCase(), worker);
+    }
+
+    // Build master population: start from userAccounts, merge any extra accounts from userAccountsLOV,
+    // then include any SCIM-only users not returned by either.
+    const masterEntries: Array<{ username: string; account: any | null; lov: any | null; scimUser: any | null }> = [];
+    const seenUsernames = new Set<string>();
+
+    for (const acc of userAccounts) {
+      const username = String(acc.Username || '').trim();
+      if (!username) continue;
+      const upper = username.toUpperCase();
+      if (seenUsernames.has(upper)) continue;
+      seenUsernames.add(upper);
+      const isAppId = upper.endsWith('APPID');
+      masterEntries.push({
+        username,
+        account: acc,
+        lov: lovMap.get(upper) || null,
+        scimUser: isAppId ? null : (scimMap.get(upper) || null)
+      });
+    }
+
+    for (const lov of userAccountsLov) {
+      const username = String(lov.Username || '').trim();
+      if (!username) continue;
+      const upper = username.toUpperCase();
+      if (seenUsernames.has(upper)) continue;
+      seenUsernames.add(upper);
+      const isAppId = upper.endsWith('APPID');
+      masterEntries.push({
+        username,
+        account: null,
+        lov,
+        scimUser: isAppId ? null : (scimMap.get(upper) || null)
+      });
+    }
+
+    for (const su of scimUsers) {
+      const username = String(su.userName || '').trim();
+      if (!username) continue;
+      const upper = username.toUpperCase();
+      if (seenUsernames.has(upper)) continue;
+      seenUsernames.add(upper);
+      masterEntries.push({
+        username,
+        account: null,
+        lov: lovMap.get(upper) || null,
+        scimUser: upper.endsWith('APPID') ? null : su
+      });
+    }
+
+    if (masterEntries.length > 0) {
       const report: UserAccessReportRow[] = [];
-      let totalUsers = userDetailsRows.length;
+      const totalUsers = masterEntries.length;
       let usersWithRoles = 0;
       let usersWithoutRoles = 0;
       let totalRoleAssignments = 0;
       let activeUsers = 0;
       let inactiveUsers = 0;
 
-      for (const u of userDetailsRows) {
-        const username = u.username;
-        const isActive = Boolean(u.active);
-        if (isActive) activeUsers++;
-        else inactiveUsers++;
+      for (const entry of masterEntries) {
+        const { username, account, lov, scimUser } = entry;
+        const isAppId = username.toUpperCase().endsWith('APPID');
 
-        const uRoles = userRolesMap.get(username.toUpperCase()) || [];
-        // USER_CATEGORY now comes from the BIP report (resolved from PER_LDAP_USERS);
-        // 'DEFAULT' remains the fallback for accounts with no LDAP sync history.
-        const userCategory = u.userCategory || 'DEFAULT';
-        const personNumber = u.personNumber || null;
-        const firstName = u.firstName || null;
-        const lastName = u.lastName || null;
-        const displayName = u.fullName || `${firstName || ''} ${lastName || ''}`.trim() || username;
-        const email = u.email || null;
-        const department = u.department || null;
-        const job = u.job || null;
-        const businessUnit = u.businessUnit || null;
-        const location = u.location || null;
-        const manager = u.manager || null;
+        // Active status: derive from userAccounts / userAccountsLOV SuspendedFlag/Suspended (authoritative PER_USERS.SUSPENDED),
+        // because SCIM `active` and Oracle `ActiveFlag` often report suspended accounts as true.
+        const accOrLov = account || lov;
+        const isSuspended = accOrLov
+          ? String(accOrLov.SuspendedFlag ?? accOrLov.Suspended ?? 'N').toUpperCase() === 'Y'
+          : false;
+        const isActive = accOrLov
+          ? (!isSuspended && accOrLov.ActiveFlag !== false && scimUser?.active !== false)
+          : (scimUser && typeof scimUser.active === 'boolean' ? scimUser.active : true);
 
-        if (uRoles.length === 0) {
+        if (isActive) {
+          activeUsers++;
+        } else {
+          inactiveUsers++;
+        }
+
+        // Skip SCIM/Public Workers enrichment for *APPID accounts (they have no SCIM/worker data)
+        const worker = !isAppId ? (workerMap.get(username.toUpperCase()) || null) : null;
+        const primaryEmail = scimUser ? this.getPrimaryEmail(scimUser) : null;
+
+        // Determine primary assignment
+        const assignments = worker?.assignments || [];
+        const assignment =
+          assignments.find((a: any) => a.PrimaryAssignmentFlag === true) ||
+          assignments.find((a: any) => a.PrimaryFlag === true) ||
+          assignments[0] ||
+          null;
+
+        const managerName = assignment?.ManagerName || null;
+
+        // Merge roles from userAccounts (userAccountRoles) and SCIM (roles), deduplicated by roleCode/roleName
+        const rawAccountRoles = account?.userAccountRoles;
+        const accountRolesList: any[] = Array.isArray(rawAccountRoles)
+          ? rawAccountRoles
+          : Array.isArray(rawAccountRoles?.items)
+            ? rawAccountRoles.items
+            : [];
+        const scimRolesList: any[] = Array.isArray(scimUser?.roles) ? scimUser.roles : [];
+
+        const mergedRolesMap = new Map<string, { roleCode: string | null; roleName: string | null }>();
+        for (const r of accountRolesList) {
+          const roleCode = r.RoleCommonName || r.RoleName || null;
+          const roleName = r.RoleName || r.RoleCommonName || null;
+          const key = String(roleCode || roleName || '').toUpperCase();
+          if (key && !mergedRolesMap.has(key)) {
+            mergedRolesMap.set(key, { roleCode, roleName });
+          }
+        }
+        for (const r of scimRolesList) {
+          const roleCode = r.value || null;
+          const roleName = r.displayName || null;
+          const key = String(roleCode || roleName || '').toUpperCase();
+          if (key && !mergedRolesMap.has(key)) {
+            mergedRolesMap.set(key, { roleCode, roleName });
+          }
+        }
+        const roles = Array.from(mergedRolesMap.values());
+
+        const baseRow = {
+          username,
+          userCategory: scimUser ? this.getUserCategory(scimUser) : (isAppId ? 'APPID' : 'DEFAULT'),
+          firstName: scimUser?.name?.givenName || null,
+          lastName: scimUser?.name?.familyName || null,
+          displayName: scimUser?.displayName || null,
+          email: primaryEmail,
+          active: isActive,
+          personId: worker?.PersonId ? String(worker.PersonId) : null,
+          personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
+          department: assignment?.DepartmentName || null,
+          job: assignment?.JobName || null,
+          businessUnit: assignment?.BusinessUnitName || null,
+          location: assignment?.LocationName || null,
+          manager: managerName
+        };
+
+        if (roles.length === 0) {
           usersWithoutRoles++;
           report.push({
-            username,
-            userCategory,
-            firstName,
-            lastName,
-            displayName,
-            email,
-            active: isActive,
+            ...baseRow,
             roleName: null,
             roleCode: null,
-            autoProvisioned: null,
-            personId: null,
-            personNumber,
-            department,
-            job,
-            businessUnit,
-            location,
-            manager
+            autoProvisioned: null
           });
-        } else {
-          usersWithRoles++;
-          totalRoleAssignments += uRoles.length;
-          for (const role of uRoles) {
-            report.push({
-              username,
-              userCategory,
-              firstName,
-              lastName,
-              displayName,
-              email,
-              active: isActive,
-              roleName: role.roleName || null,
-              roleCode: role.roleCode || null,
-              autoProvisioned: role.autoProvisioned,
-              personId: null,
-              personNumber,
-              department,
-              job,
-              businessUnit,
-              location,
-              manager
-            });
-          }
+          continue;
+        }
+
+        usersWithRoles++;
+        totalRoleAssignments += roles.length;
+
+        for (const role of roles) {
+          const bipKey = `${username.toUpperCase()}|${(role.roleCode || '').toUpperCase()}`;
+          const bip = bipMap.get(bipKey);
+          report.push({
+            ...baseRow,
+            roleName: bip?.roleName || role.roleName,
+            roleCode: bip?.roleCode || role.roleCode,
+            autoProvisioned: bip?.autoProvisioned ?? null
+          });
         }
       }
 
@@ -603,142 +811,107 @@ export class UserAccessReportService {
         inactiveUsers
       };
 
-      const calculatedAt = new Date().toISOString();
-      const result: UserAccessReportResult = {
-        success: true,
-        summary,
-        data: report,
-        calculatedAt,
-        source: 'PostgreSQL Database'
-      };
-
-      // Persist to PostgreSQL and update caches
-      try {
-        await this.persistToDatabase({ summary, data: report, calculatedAt });
-      } catch (dbErr: any) {
-        console.warn('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
-      }
-      this.cachedReport = { summary, data: report, calculatedAt };
-      this.saveToDisk(this.cachedReport);
-
-      console.log(`[User Access Report] User Access Report (BIP Master) complete: ${totalUsers} users, ${report.length} report rows, ${Date.now() - startTime}ms`);
-      return result;
+      return this.finalizeAndPersistReport(report, summary, startTime, 'REST Primary (userAccounts + SCIM + Workers)');
     }
 
-    // --- FALLBACK TO SCIM + WORKERS IF USER DETAILS REPORT IS NOT AVAILABLE ---
-    console.log('[User Access Report] BIP User Details not available; executing SCIM + Public Workers fallback...');
-    // Concurrently fetch SCIM Users (master), Public Workers (enrichment), BIP Auto-Provisioned (roles)
-    const [scimUsers, workers, bipRows] = await Promise.all([
-      this.getAllScimUsers(),
-      this.getWorkersCached(),
-      this.getBipRowsCached()
-    ]);
+    // 2. Fallback path: BIP User Details report (/Custom/userdetails report.xdo) if REST APIs returned no accounts
+    console.warn('[User Access Report] REST APIs returned 0 users; falling back to BIP User Details report...');
+    let userDetailsRows: any[] = [];
+    try {
+      const { bipClient } = await import('../oracle/bipClient.js');
+      userDetailsRows = await bipClient.runUserDetailsReport();
+    } catch (e: any) {
+      console.warn('[User Access Report] Failed to fetch User Details report from BIP:', e.message);
+    }
 
-    console.log(`[User Access Report] Fetched ${scimUsers.length} SCIM users, ${workers.length} Public Workers, ${bipRows.length} BIP role rows in ${Date.now() - startTime}ms`);
-
-    // Index BIP rows by USERNAME|ROLE_CODE (upper-cased) for merge
-    const bipMap = new Map<string, { roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>();
+    const userRolesMap = new Map<string, Array<{ roleName: string; roleCode: string; autoProvisioned: 'Yes' | 'No' | null }>>();
     for (const r of bipRows) {
-      const key = `${(r.username || '').toUpperCase()}|${(r.roleCode || '').toUpperCase()}`;
       if (!r.username) continue;
-      bipMap.set(key, { roleName: r.roleName || '', roleCode: r.roleCode || '', autoProvisioned: r.autoProvisioned ?? null });
-    }
-
-    // Build index by Username.toUpperCase()
-    const workerMap = new Map<string, any>();
-    for (const worker of workers) {
-      if (!worker.Username) continue;
-      workerMap.set(worker.Username.toUpperCase(), worker);
+      const uKey = r.username.toUpperCase();
+      let arr = userRolesMap.get(uKey);
+      if (!arr) {
+        arr = [];
+        userRolesMap.set(uKey, arr);
+      }
+      arr.push({
+        roleName: r.roleName || '',
+        roleCode: r.roleCode || '',
+        autoProvisioned: r.autoProvisioned ?? null
+      });
     }
 
     const report: UserAccessReportRow[] = [];
-
-    // Summary counters calculated from actual retrieved SCIM data
-    let totalUsers = scimUsers.length;
+    const totalUsers = userDetailsRows.length;
     let usersWithRoles = 0;
     let usersWithoutRoles = 0;
     let totalRoleAssignments = 0;
     let activeUsers = 0;
     let inactiveUsers = 0;
 
-    // Master Population Rule: Iterate over SCIM Users so every SCIM user is retained!
-    for (const user of scimUsers) {
-      const username = user.userName || '';
-      const isActive = typeof user.active === 'boolean' ? user.active : true;
+    for (const u of userDetailsRows) {
+      const username = u.username;
+      const isActive = Boolean(u.active);
+      if (isActive) activeUsers++;
+      else inactiveUsers++;
 
-      if (isActive) {
-        activeUsers++;
-      } else {
-        inactiveUsers++;
-      }
+      const uRoles = userRolesMap.get(username.toUpperCase()) || [];
+      const userCategory = u.userCategory || 'DEFAULT';
+      const personNumber = u.personNumber || null;
+      const firstName = u.firstName || null;
+      const lastName = u.lastName || null;
+      const displayName = u.fullName || `${firstName || ''} ${lastName || ''}`.trim() || username;
+      const email = u.email || null;
+      const department = u.department || null;
+      const job = u.job || null;
+      const businessUnit = u.businessUnit || null;
+      const location = u.location || null;
+      const manager = u.manager || null;
 
-      const worker = workerMap.get(username.toUpperCase()) || null;
-      const roles = user.roles || [];
-      const primaryEmail = this.getPrimaryEmail(user);
-
-      // Determine primary assignment
-      const assignments = worker?.assignments || [];
-      const assignment =
-        assignments.find((a: any) => a.PrimaryAssignmentFlag === true) ||
-        assignments.find((a: any) => a.PrimaryFlag === true) ||
-        assignments[0] ||
-        null;
-
-      const managerName = assignment?.ManagerName || null;
-
-      // Handle users without roles: MUST appear in report with null role fields
-      if (roles.length === 0) {
+      if (uRoles.length === 0) {
         usersWithoutRoles++;
         report.push({
           username,
-          userCategory: this.getUserCategory(user),
-          firstName: user.name?.givenName || null,
-          lastName: user.name?.familyName || null,
-          displayName: user.displayName || null,
-          email: primaryEmail,
+          userCategory,
+          firstName,
+          lastName,
+          displayName,
+          email,
           active: isActive,
           roleName: null,
           roleCode: null,
           autoProvisioned: null,
-          personId: worker?.PersonId ? String(worker.PersonId) : null,
-          personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
-          department: assignment?.DepartmentName || null,
-          job: assignment?.JobName || null,
-          businessUnit: assignment?.BusinessUnitName || null,
-          location: assignment?.LocationName || null,
-          manager: managerName
+          personId: null,
+          personNumber,
+          department,
+          job,
+          businessUnit,
+          location,
+          manager
         });
-        continue;
-      }
-
-      usersWithRoles++;
-      totalRoleAssignments += roles.length;
-
-      // Produce ONE row per assigned role, merged with BIP authoritative Role Name/Code + Auto-Provisioned
-      for (const role of roles) {
-        const scimRoleCode = role.value || null;
-        const scimRoleName = role.displayName || null;
-        const bipKey = `${username.toUpperCase()}|${(scimRoleCode || '').toUpperCase()}`;
-        const bip = bipMap.get(bipKey);
-        report.push({
-          username,
-          userCategory: this.getUserCategory(user),
-          firstName: user.name?.givenName || null,
-          lastName: user.name?.familyName || null,
-          displayName: user.displayName || null,
-          email: primaryEmail,
-          active: isActive,
-          roleName: bip?.roleName || scimRoleName,
-          roleCode: bip?.roleCode || scimRoleCode,
-          autoProvisioned: bip?.autoProvisioned ?? null,
-          personId: worker?.PersonId ? String(worker.PersonId) : null,
-          personNumber: worker?.PersonNumber ? String(worker.PersonNumber) : null,
-          department: assignment?.DepartmentName || null,
-          job: assignment?.JobName || null,
-          businessUnit: assignment?.BusinessUnitName || null,
-          location: assignment?.LocationName || null,
-          manager: managerName
-        });
+      } else {
+        usersWithRoles++;
+        totalRoleAssignments += uRoles.length;
+        for (const role of uRoles) {
+          report.push({
+            username,
+            userCategory,
+            firstName,
+            lastName,
+            displayName,
+            email,
+            active: isActive,
+            roleName: role.roleName || null,
+            roleCode: role.roleCode || null,
+            autoProvisioned: role.autoProvisioned,
+            personId: null,
+            personNumber,
+            department,
+            job,
+            businessUnit,
+            location,
+            manager
+          });
+        }
       }
     }
 
@@ -751,26 +924,7 @@ export class UserAccessReportService {
       inactiveUsers
     };
 
-    const calculatedAt = new Date().toISOString();
-    const result: UserAccessReportResult = {
-      success: true,
-      summary,
-      data: report,
-      calculatedAt,
-      source: 'PostgreSQL Database'
-    };
-
-    // Persist to PostgreSQL and update caches
-    try {
-      await this.persistToDatabase({ summary, data: report, calculatedAt });
-    } catch (dbErr: any) {
-      console.warn('[User Access Report] Failed to persist generated report to PostgreSQL:', dbErr.message);
-    }
-    this.cachedReport = { summary, data: report, calculatedAt };
-    this.saveToDisk(this.cachedReport);
-
-    console.log(`[User Access Report] Report generated successfully with ${report.length} rows for ${totalUsers} users in ${Date.now() - startTime}ms`);
-    return result;
+    return this.finalizeAndPersistReport(report, summary, startTime, 'BIP Fallback');
   }
 
   // Public retrieval method: reads strictly from PostgreSQL (only syncs from Oracle when syncFromOracle is true)
@@ -894,6 +1048,23 @@ export class UserAccessReportService {
     }
 
     return this.cachedDirectoryUsers;
+  }
+
+  /**
+   * Looks up a single directory user (profile + all assigned roles from the report)
+   * by username or displayName (case-insensitive) from PostgreSQL `oracle_raw_user_access`.
+   */
+  public async getDirectoryUserByUsername(identifier: string): Promise<any | null> {
+    const clean = (identifier || '').trim().toLowerCase();
+    if (!clean) return null;
+    const directoryUsers = await this.getDirectoryUsersCached();
+    if (!directoryUsers || directoryUsers.length === 0) return null;
+
+    return (
+      directoryUsers.find((u) => (u.userName || '').toLowerCase() === clean) ||
+      directoryUsers.find((u) => (u.displayName || '').toLowerCase() === clean) ||
+      null
+    );
   }
 
   /**
