@@ -40,7 +40,7 @@ export class OtbiClient {
   private axiosInstance: AxiosInstance;
   private readonly defaultTimeoutMs = 120000; // 2 minutes for large datasets
   public readonly reportPath = '/shared/Custom/CLAAPS privilege_Role_mapping';
-  public readonly accessCertOtbiReportPath = '/shared/Custom/CLPS Acess Certification OTBI';
+  public readonly accessCertOtbiReportPath = '/shared/Custom/CLPS Access Certification Report';
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -369,10 +369,12 @@ export class OtbiClient {
       if (!headersParsed && colValues.length > 0) {
         // Check if this is a header row (OTBI often sends column headers in first Row)
         const looksLikeHeaders = colValues.some(v =>
-          /^(certification|certifier|user|role|job|action|status|creation|comment|pending|last|due|owner|manager|business|position|location|department)/i.test(v)
+          /^(Access Certification Details\.|certification|certifier|user|role|job|action|status|creation|comment|pending|last|due|owner|manager|business|position|location|department)/i.test(v)
         );
         if (looksLikeHeaders) {
-          columns.push(...colValues);
+          // Strip "Access Certification Details." prefix from column names
+          const cleaned = colValues.map(v => v.replace(/^Access Certification Details\.\s*/i, ''));
+          columns.push(...cleaned);
           headersParsed = true;
           continue;
         }
@@ -388,7 +390,9 @@ export class OtbiClient {
         const row: GenericOtbiRow = {};
         for (let i = 0; i < colValues.length; i++) {
           const colName = i < columns.length ? columns[i] : `Column${i}`;
-          row[colName] = colValues[i];
+          // Strip any remaining "Access Certification Details." prefix on row keys
+          const cleanColName = colName.replace(/^Access Certification Details\.\s*/i, '');
+          row[cleanColName] = colValues[i];
         }
         rows.push(row);
       }
@@ -487,13 +491,34 @@ export class OtbiClient {
   }
 
   /**
-   * Fetches the Access Certification OTBI report from /shared/Custom/CLPS Acess Certification OTBI.
+   * Fetches the Access Certification OTBI report from /shared/Custom/CLPS Access Certification Report.
    * Returns all rows for all certifications; caller filters by Certification ID.
+   * Tries the primary path first, then falls back to the legacy OTBI analysis path.
    */
   public async fetchAccessCertificationOtbiReport(): Promise<GenericOtbiQueryResult> {
-    const reportPath = process.env.OTBI_ACCESS_CERT_REPORT_PATH || this.accessCertOtbiReportPath;
-    console.log(`[OTBI Client] Fetching Access Certification OTBI report: "${reportPath}"`);
-    return this.fetchGenericOtbiAnalysis(reportPath);
+    const envPath = process.env.OTBI_ACCESS_CERT_REPORT_PATH;
+    const candidates = [
+      envPath,
+      this.accessCertOtbiReportPath,
+      '/shared/Custom/CLPS Acess Certification OTBI',
+    ].filter(Boolean) as string[];
+
+    for (const reportPath of candidates) {
+      try {
+        console.log(`[OTBI Client] Trying Access Certification OTBI report: "${reportPath}"`);
+        const result = await this.fetchGenericOtbiAnalysis(reportPath);
+        if (result.success && result.rows.length > 0) {
+          console.log(`[OTBI Client] Access Certification report "${reportPath}" returned ${result.rows.length} rows.`);
+          return result;
+        }
+      } catch (err: any) {
+        console.warn(`[OTBI Client] Access Certification report "${reportPath}" failed: ${err.message}`);
+      }
+    }
+
+    const primaryPath = envPath || this.accessCertOtbiReportPath;
+    console.log(`[OTBI Client] Fetching Access Certification OTBI report (final attempt): "${primaryPath}"`);
+    return this.fetchGenericOtbiAnalysis(primaryPath);
   }
 
   private escapeXml(unsafe: string): string {
