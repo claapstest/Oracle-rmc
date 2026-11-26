@@ -280,6 +280,23 @@ export class OracleFusionClient {
     }
   }
 
+  async getUserAccounts(params: { limit?: number; offset?: number; expand?: string; onlyData?: boolean } = {}) {
+    try {
+      this.requireInstanceConfigured('User Accounts');
+      const response = await this.client.get('/hcmRestApi/resources/11.13.18.05/userAccounts', {
+        params: {
+          limit: params.limit ?? 100,
+          offset: params.offset ?? 0,
+          expand: params.expand ?? 'userAccountRoles',
+          onlyData: params.onlyData ?? true,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      this.handleError(error, 'User Accounts API');
+    }
+  }
+
   async getWorkerAssignments(personId: string | number) {
     try {
       this.requireInstanceConfigured('Worker Assignments');
