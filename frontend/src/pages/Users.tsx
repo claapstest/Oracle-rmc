@@ -473,7 +473,7 @@ export default function Users({
               { key: 'businessUnit', label: 'Business Unit', defaultSelected: true, getValue: (u: any) => u.businessUnit || '' },
               { key: 'location', label: 'Location', defaultSelected: true, getValue: (u: any) => u.location || '' },
               { key: 'manager', label: 'Manager', defaultSelected: true, getValue: (u: any) => u.manager || '' },
-              { key: 'assignedRoles', label: 'All Assigned Roles', defaultSelected: false, getValue: (u: any) => u.assignedRoles?.map((r: any) => typeof r === 'string' ? r : (`${r.roleName || r.roleCode || ''} [${r.roleCode || ''}]${r.autoProvisioned ? ` Auto:${r.autoProvisioned}` : ''}`)).join('; ') }
+              { key: 'assignedRoles', label: 'All Assigned Roles', defaultSelected: false, getValue: (u: any) => u.assignedRoles?.map((r: any) => typeof r === 'string' ? r : (r.roleName || r.roleCode || '')).filter(Boolean).join(', ') }
             ]}
             onFetchScopeData={async (scope) => {
               if (scope === 'PAGE') return filteredUsers;
