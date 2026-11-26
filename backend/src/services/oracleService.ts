@@ -3902,9 +3902,14 @@ class OracleService {
     if (!forceRefresh) {
       try {
         const dbRows = await accessCertRawDbService.getWorksheetRows(cleanCertId);
-        // Only serve from DB if rows already carry _sourceColumns (full raw BI columns);
-        // otherwise fall through to BIP once to backfill all source columns into PostgreSQL.
-        if (dbRows && dbRows.length > 0 && Array.isArray(dbRows[0]?._sourceColumns) && dbRows[0]._sourceColumns.length > 0) {
+        const srcCols: string[] = Array.isArray(dbRows?.[0]?._sourceColumns) ? dbRows[0]._sourceColumns : [];
+        const hasCleanBipColumns =
+          srcCols.length > 0 &&
+          srcCols.some((c) => /^role\s*code$/i.test(String(c).trim())) &&
+          !srcCols.some((c) => /access\s*certification\s*(details|comments)\./i.test(String(c)));
+        // Only serve from DB if rows already carry clean BIP _sourceColumns (including Role Code);
+        // otherwise fall through to BIP once to replace stale OTBI/old cache in PostgreSQL.
+        if (dbRows && dbRows.length > 0 && hasCleanBipColumns) {
           return {
             success: true,
             certificationId: Number(cleanCertId) || cleanCertId,
@@ -3918,110 +3923,7 @@ class OracleService {
       }
     }
 
-    // 1. Try the OTBI Access Certification report first (primary source)
-    let otbiRows: any[] | null = null;
-    let otbiColumns: string[] = [];
-    try {
-      const otbiResult = await otbiClient.fetchAccessCertificationOtbiReport();
-      if (otbiResult.success && otbiResult.rows.length > 0) {
-        otbiColumns = otbiResult.columns;
-        // Filter rows matching the requested Certification ID
-        const certIdKey = otbiColumns.find(c =>
-          /certification\s*id/i.test(c)
-        ) || 'Certification Id';
-        const allOtbiRows = otbiResult.rows;
-        const matchingOtbiRows = allOtbiRows.filter(r => {
-          const rowCertId = String(r[certIdKey] || '').trim();
-          return rowCertId === cleanCertId;
-        });
-        if (matchingOtbiRows.length > 0) {
-          otbiRows = matchingOtbiRows;
-          console.log(`[OracleService] OTBI Access Cert report: ${matchingOtbiRows.length} rows matched Certification ID "${cleanCertId}" (${allOtbiRows.length} total).`);
-        } else {
-          console.warn(`[OracleService] OTBI Access Cert report returned ${allOtbiRows.length} rows but none matched Certification ID "${cleanCertId}".`);
-        }
-
-        // Save all campaigns partitioned by cert ID in the background
-        const campaignGroups = new Map<string, any[]>();
-        for (const row of allOtbiRows) {
-          const cId = String(row[certIdKey] || '').trim();
-          if (cId) {
-            if (!campaignGroups.has(cId)) campaignGroups.set(cId, []);
-            campaignGroups.get(cId)!.push(row);
-          }
-        }
-        for (const [grpCertId, grpRows] of campaignGroups.entries()) {
-          const normalizedGrp = grpRows.map(r => bipClient.normalizeCertifierRow(r, grpCertId, otbiColumns));
-          accessCertRawDbService.saveRawWorksheetRows(grpCertId, normalizedGrp).catch(err => {
-            console.warn(`[OracleService] Background OTBI Worksheet DB save error for ${grpCertId}:`, err.message);
-          });
-        }
-      }
-    } catch (otbiErr: any) {
-      console.warn(`[OracleService] OTBI Access Certification report error for ${cleanCertId}:`, otbiErr.message);
-    }
-
-    // 2. If OTBI succeeded, normalize and return those rows
-    if (otbiRows && otbiRows.length > 0) {
-      const numId = Number(cleanCertId) || cleanCertId;
-      const normalizedData = otbiRows.map(r => bipClient.normalizeCertifierRow(r, cleanCertId, otbiColumns));
-
-      // Retrieve HCM user access data for Direct Manager enrichment
-      let userReport: any = null;
-      try {
-        userReport = await userAccessReportService.getUserAccessReport();
-      } catch (hcmErr: any) {
-        console.warn('[OracleService] HCM User Access report cache lookup error:', hcmErr.message);
-      }
-
-      const userManagerMap = new Map<string, string>();
-      const userBuMap = new Map<string, string>();
-      const userDeptMap = new Map<string, string>();
-
-      if (userReport && Array.isArray(userReport.data)) {
-        for (const r of userReport.data) {
-          if (r.username && r.manager) userManagerMap.set(r.username.toUpperCase(), r.manager);
-          if (r.displayName && r.manager) userManagerMap.set(r.displayName.toUpperCase(), r.manager);
-          if (r.username && r.businessUnit) userBuMap.set(r.username.toUpperCase(), r.businessUnit);
-          if (r.username && r.department) userDeptMap.set(r.username.toUpperCase(), r.department);
-        }
-      }
-
-      const roleCodeMap = getRoleNameToCodeMap();
-      const enrichedData = normalizedData.map((row: any) => {
-        const uName = (row.userName || row.ownerName || '').toUpperCase();
-        const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
-        const bu = row.businessUnit || userBuMap.get(uName) || '';
-        const dept = row.department || userDeptMap.get(uName) || '';
-        const existingRoleCode = row.roleCode || row['Role Code'] || '';
-        const roleName = row.roleName || row.jobRoleName || row['Job Role Name'] || '';
-        const resolvedRoleCode = existingRoleCode || (roleName ? roleCodeMap.get(roleName.toLowerCase()) || '' : '');
-        return {
-          ...row,
-          id: numId,
-          certificationId: numId,
-          directManager: directMgr,
-          businessUnit: bu,
-          department: dept,
-          roleCode: resolvedRoleCode,
-          'Role Code': resolvedRoleCode
-        };
-      });
-
-      accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
-        console.warn(`[OracleService] Background OTBI Worksheet DB save error for ${cleanCertId}:`, err.message);
-      });
-
-      return {
-        success: true,
-        certificationId: numId,
-        count: enrichedData.length,
-        data: enrichedData,
-        source: 'Oracle OTBI (CLPS Access Certification OTBI)'
-      };
-    }
-
-    // 3. Fall back to the existing BIP report
+    // 1. Try BI Publisher Certifier Worksheet report first (primary source: /Custom/CLPS Access Certification Report.xdo)
     let bipResult: any = null;
     try {
       bipResult = await bipClient.runCertifierWorksheetReport(cleanCertId);
@@ -4029,7 +3931,7 @@ class OracleService {
       console.warn(`[OracleService] BIP Certifier Worksheet report error for ${cleanCertId}:`, bipErr.message);
     }
 
-    // 4. Retrieve HCM user access data for Direct Manager enrichment
+    // 2. Retrieve HCM user access data for Direct Manager enrichment
     let userReport: any = null;
     try {
       userReport = await userAccessReportService.getUserAccessReport();
@@ -4058,7 +3960,7 @@ class OracleService {
       }
     }
 
-    // 5. If BIP returned genuine multi-row user worksheet data, preserve ALL rows and enrich with HCM Direct Manager.
+    // 3. If BIP returned genuine user worksheet data, preserve ALL rows and enrich with HCM Direct Manager.
     const firstBipRow = bipResult?.data?.[0];
     const hasUserWorksheetRow = Boolean(
       (firstBipRow?.userName || firstBipRow?.ownerName) &&
@@ -4143,11 +4045,90 @@ class OracleService {
         success: true,
         certificationId: numId,
         count: enrichedData.length,
-        data: enrichedData
+        data: enrichedData,
+        source: 'Oracle BI Publisher (CLPS Access Certification Report)'
       };
     }
 
-    // 6. Live-only: when neither OTBI nor BIP returns genuine worksheet rows, report it honestly.
+    // 4. Fall back to the OTBI Access Certification report if BIP returned no rows
+    let otbiRows: any[] | null = null;
+    let otbiColumns: string[] = [];
+    try {
+      const otbiResult = await otbiClient.fetchAccessCertificationOtbiReport();
+      if (otbiResult.success && otbiResult.rows.length > 0) {
+        otbiColumns = otbiResult.columns;
+        const certIdKey = otbiColumns.find(c =>
+          /certification\s*id/i.test(c)
+        ) || 'Certification Id';
+        const allOtbiRows = otbiResult.rows;
+        const matchingOtbiRows = allOtbiRows.filter(r => {
+          const rowCertId = String(r[certIdKey] || '').trim();
+          return rowCertId === cleanCertId;
+        });
+        if (matchingOtbiRows.length > 0) {
+          otbiRows = matchingOtbiRows;
+          console.log(`[OracleService] OTBI Access Cert report: ${matchingOtbiRows.length} rows matched Certification ID "${cleanCertId}" (${allOtbiRows.length} total).`);
+        } else {
+          console.warn(`[OracleService] OTBI Access Cert report returned ${allOtbiRows.length} rows but none matched Certification ID "${cleanCertId}".`);
+        }
+
+        const campaignGroups = new Map<string, any[]>();
+        for (const row of allOtbiRows) {
+          const cId = String(row[certIdKey] || '').trim();
+          if (cId) {
+            if (!campaignGroups.has(cId)) campaignGroups.set(cId, []);
+            campaignGroups.get(cId)!.push(row);
+          }
+        }
+        for (const [grpCertId, grpRows] of campaignGroups.entries()) {
+          const normalizedGrp = grpRows.map(r => bipClient.normalizeCertifierRow(r, grpCertId, otbiColumns));
+          accessCertRawDbService.saveRawWorksheetRows(grpCertId, normalizedGrp).catch(err => {
+            console.warn(`[OracleService] Background OTBI Worksheet DB save error for ${grpCertId}:`, err.message);
+          });
+        }
+      }
+    } catch (otbiErr: any) {
+      console.warn(`[OracleService] OTBI Access Certification report error for ${cleanCertId}:`, otbiErr.message);
+    }
+
+    if (otbiRows && otbiRows.length > 0) {
+      const numId = Number(cleanCertId) || cleanCertId;
+      const normalizedData = otbiRows.map(r => bipClient.normalizeCertifierRow(r, cleanCertId, otbiColumns));
+      const roleCodeMap = getRoleNameToCodeMap();
+      const enrichedData = normalizedData.map((row: any) => {
+        const uName = (row.userName || row.ownerName || '').toUpperCase();
+        const directMgr = row.directManager || userManagerMap.get(uName) || row.certifiedManager || null;
+        const bu = row.businessUnit || userBuMap.get(uName) || '';
+        const dept = row.department || userDeptMap.get(uName) || '';
+        const existingRoleCode = row.roleCode || row['Role Code'] || '';
+        const roleName = row.roleName || row.jobRoleName || row['Job Role Name'] || '';
+        const resolvedRoleCode = existingRoleCode || (roleName ? roleCodeMap.get(roleName.toLowerCase()) || '' : '');
+        return {
+          ...row,
+          id: numId,
+          certificationId: numId,
+          directManager: directMgr,
+          businessUnit: bu,
+          department: dept,
+          roleCode: resolvedRoleCode,
+          'Role Code': resolvedRoleCode
+        };
+      });
+
+      accessCertRawDbService.saveRawWorksheetRows(cleanCertId, enrichedData).catch(err => {
+        console.warn(`[OracleService] Background OTBI Worksheet DB save error for ${cleanCertId}:`, err.message);
+      });
+
+      return {
+        success: true,
+        certificationId: numId,
+        count: enrichedData.length,
+        data: enrichedData,
+        source: 'Oracle OTBI (CLPS Access Certification OTBI)'
+      };
+    }
+
+    // 5. Live-only: when neither BIP nor OTBI returns genuine worksheet rows, report it honestly.
     const worksheetRanOk = Boolean(bipResult && bipResult.success);
     return {
       success: worksheetRanOk,

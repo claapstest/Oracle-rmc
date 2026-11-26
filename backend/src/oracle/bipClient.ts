@@ -186,10 +186,10 @@ export class BipClient {
    */
   public readonly certifierWorksheetReportPaths = [
     process.env.BIP_WORKSHEET_REPORT_PATH,
-    '/shared/Custom/CLPS Access Certification Report.xdo',
-    '/shared/Custom/CLPS Access Certification Report',
     '/Custom/CLPS Access Certification Report.xdo',
     '/Custom/CLPS Access Certification Report',
+    '/shared/Custom/CLPS Access Certification Report.xdo',
+    '/shared/Custom/CLPS Access Certification Report',
     '/shared/Custom/Access certification worksheet.xdo',
     '/shared/Custom/Access certification worksheet',
     '/Custom/Access certification worksheet.xdo',
@@ -959,8 +959,8 @@ export class BipClient {
 
       return await this.parseCertifierWorksheetSoapResponse(response.data, cleanCertId);
     } catch (axiosErr: any) {
-      this.accessCertResolvedPath = null;
-      this.accessCertResolvedAt = 0;
+      this.worksheetResolvedPath = null;
+      this.worksheetResolvedAt = 0;
       if (axiosErr.response && axiosErr.response.data) {
         console.error(`[BIP Client] Oracle responded with HTTP ${axiosErr.response.status}`);
         try {
@@ -1706,8 +1706,13 @@ export class BipClient {
       for (let c = 0; c < headerRow.length; c++) {
         const rawCol = headerRow[c];
         if (rawCol && typeof rawCol === 'string' && rawCol.trim() !== '') {
-          // Strip "Access Certification Details." prefix from column names
-          headers.push(rawCol.trim().replace(/^Access Certification Details\.\s*/i, ''));
+          // Strip OTBI-style subject area prefix (e.g. "Access Certification Details".) and quotes
+          const cleanedHeader = rawCol
+            .trim()
+            .replace(/^"?[^".]+"?\.\s*/i, '')
+            .replace(/^"(.*)"$/, '$1')
+            .trim();
+          headers.push(cleanedHeader || `col_${c + 1}`);
         } else {
           headers.push(`col_${c + 1}`);
         }
