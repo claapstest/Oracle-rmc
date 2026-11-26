@@ -45,6 +45,9 @@ const WORKSHEET_HEADER_OVERRIDES: Record<string, string> = {
   'certfier self certified': 'Self Certified',
   'certifier last updated by': 'Last Decision By',
   'certifier last updated date': 'Last Decision Date',
+  'self certified': 'Self Certified',
+  'last updated by': 'Last Decision By',
+  'last updated date': 'Last Decision Date',
 };
 
 function mapWorksheetHeader(rawHeader: string): string {
