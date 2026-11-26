@@ -465,7 +465,7 @@ export default function Users({
               { key: 'firstName', label: 'First Name', defaultSelected: true, getValue: (u: any) => u.firstName || '' },
               { key: 'lastName', label: 'Last Name', defaultSelected: true, getValue: (u: any) => u.lastName || '' },
               { key: 'email', label: 'Email Address', defaultSelected: true, getValue: (u: any) => u.email || 'N/A' },
-              { key: 'status', label: 'Active', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
+              { key: 'status', label: 'Status', defaultSelected: true, getValue: (u: any) => u.active ? 'Active' : 'Inactive' },
               { key: 'roleCount', label: 'Number of Roles', defaultSelected: true, getValue: (u: any) => Array.isArray(u.assignedRoles) ? u.assignedRoles.length : (typeof u.roleCount === 'number' ? u.roleCount : 0) },
               { key: 'personNumber', label: 'Person Number', defaultSelected: true, getValue: (u: any) => u.personNumber || '' },
               { key: 'department', label: 'Department', defaultSelected: true, getValue: (u: any) => u.department || '' },
@@ -526,7 +526,7 @@ export default function Users({
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Email Address</th>
-                <th>Active</th>
+                <th>Status</th>
                 <th>Number of Roles</th>
                 <th>Person Number</th>
                 <th>Department</th>
