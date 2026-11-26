@@ -1992,8 +1992,8 @@ export default function Reports({
                 availableColumns={[
                   { key: 'roleName', label: 'Role Name', defaultSelected: true },
                   { key: 'roleCode', label: 'Role Code', defaultSelected: true },
-                  { key: 'directCount', label: 'Direct', defaultSelected: true },
-                  { key: 'indirectCount', label: 'Indirect', defaultSelected: true },
+                  { key: 'directCount', label: 'Direct Privileges', defaultSelected: true },
+                  { key: 'indirectCount', label: 'Indirect Privileges', defaultSelected: true },
                   { key: 'totalCount', label: 'Total', defaultSelected: true },
                 ]}
                 onFetchScopeData={async (scope) => {
@@ -2825,17 +2825,6 @@ export default function Reports({
                   <span>Refresh</span>
                 </button>
 
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSyncHierarchyLive}
-                  disabled={hierarchyLoading || rhSyncing}
-                  style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
-                  title="Re-run live BIP query against Oracle Fusion"
-                >
-                  <Database size={14} className={rhSyncing ? 'animate-spin' : ''} />
-                  <span>{rhSyncing ? 'Syncing BIP Live...' : 'Sync Oracle Fusion BIP'}</span>
-                </button>
               </div>
             </div>
 
@@ -3458,19 +3447,6 @@ export default function Reports({
                     <span>Back to Role Hierarchy Summary</span>
                   </button>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => loadPrivilegeDetail(selectedRolePrivilegeCode, selectedRolePrivilegeName, true)}
-                      disabled={rhPrivilegeDetailLoading}
-                      className="btn btn-secondary"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
-                      title="Sync live from Oracle Fusion BIP"
-                    >
-                      <RefreshCw size={14} className={rhPrivilegeDetailLoading ? 'animate-spin' : ''} />
-                      <span>{rhPrivilegeDetailLoading ? 'Querying Oracle...' : 'Refresh Live (BIP)'}</span>
-                    </button>
-                  </div>
                 </div>
 
                 {/* Role Privilege Detail Card & Metadata */}
@@ -3756,7 +3732,7 @@ export default function Reports({
                         }}
                         style={{ cursor: 'pointer', textAlign: 'center', width: '120px' }}
                       >
-                        Direct {rhSummarySortField === 'directCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                        Direct Privileges {rhSummarySortField === 'directCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th
                         onClick={() => {
@@ -3769,7 +3745,7 @@ export default function Reports({
                         }}
                         style={{ cursor: 'pointer', textAlign: 'center', width: '120px' }}
                       >
-                        Indirect {rhSummarySortField === 'indirectCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
+                        Indirect Privileges {rhSummarySortField === 'indirectCount' ? (rhSummarySortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th
                         onClick={() => {
