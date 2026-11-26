@@ -50,10 +50,10 @@ export type SyncDomain =
   | 'userAccess';
 
 export const ALL_SYNC_DOMAINS: readonly SyncDomain[] = [
+  'userAccess',
   'controls',
   'roleHierarchy',
   'usersRoles',
-  'userAccess',
 ];
 
 const DOMAIN_LABELS: Record<SyncDomain, string> = {
