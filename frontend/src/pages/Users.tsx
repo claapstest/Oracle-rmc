@@ -130,7 +130,12 @@ export default function Users({
       if (normCat && normCat !== 'ALL') {
         if (normCat === 'NO_ROLES' || normCat === 'WITHOUT_ROLES' || normCat === 'USERS_WITHOUT_ROLES') {
           matchesInsight = !user.assignedRoles || user.assignedRoles.length === 0;
-        } else if (normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS' || normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS') {
+        } else if (normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS') {
+          matchesInsight = Boolean(user.assignedRoles && user.assignedRoles.some((r: any) => {
+            const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
+            return val.includes('Security Administrator') || val.includes('IT Security Manager');
+          }));
+        } else if (normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS') {
           matchesInsight = Boolean(user.assignedRoles && user.assignedRoles.some((r: any) => {
             const val = typeof r === 'string' ? r : (r.roleName || r.roleCode || '');
             return val.includes('Security Administrator') || val.includes('IT Security Manager') || val.includes('AP Manager');
