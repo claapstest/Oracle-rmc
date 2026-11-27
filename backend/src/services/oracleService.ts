@@ -2711,25 +2711,42 @@ class OracleService {
       const audits: any[] = [];
       let totalResultsSum = 0;
 
-      const BATCH_SIZE = 3;
-      for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-        const batch = chunks.slice(i, i + BATCH_SIZE);
-        const responses = await Promise.all(
-          batch.map((c) =>
-            this.client.getAuditHistory(
-              { ...payload, fromDate: c.fromDate, toDate: c.toDate },
-              { pageNumber, pageSize: queryPageSize }
-            )
-          )
-        );
-        for (const resp of responses) {
+      const MAX_PAGES_PER_CHUNK = 10; // Safety cap: up to 5,000 records per 30-day chunk
+      const fetchChunkAllPages = async (c: { fromDate: string; toDate: string }) => {
+        const chunkItems: any[] = [];
+        let curPage = pageNumber;
+        let reportedTotal = 0;
+
+        while (curPage < pageNumber + MAX_PAGES_PER_CHUNK) {
+          const resp = await this.client.getAuditHistory(
+            { ...payload, fromDate: c.fromDate, toDate: c.toDate },
+            { pageNumber: curPage, pageSize: queryPageSize }
+          );
           if (resp?.status === 'FAIL' || resp?.error) {
             const errorDetail = resp?.error?.errorDetail?.[0]?.detail || resp?.error?.detail || resp?.error?.title || 'Oracle Fusion audit query failed';
             throw new Error(errorDetail);
           }
-          const chunkAudits = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
-          audits.push(...chunkAudits);
-          totalResultsSum += Number(resp?.totalResults || chunkAudits.length || 0);
+          const pageAudits = Array.isArray(resp?.auditData) ? resp.auditData : (resp?.auditHistory || resp?.items || []);
+          chunkItems.push(...pageAudits);
+          if (curPage === pageNumber && resp?.totalResults) {
+            reportedTotal = Number(resp.totalResults) || 0;
+          }
+          if (resp?.hasMore === false || pageAudits.length < queryPageSize) {
+            break;
+          }
+          curPage++;
+        }
+
+        return { chunkItems, chunkTotal: Math.max(reportedTotal, chunkItems.length) };
+      };
+
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+        const batch = chunks.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(batch.map((c) => fetchChunkAllPages(c)));
+        for (const r of results) {
+          audits.push(...r.chunkItems);
+          totalResultsSum += r.chunkTotal;
         }
       }
 
