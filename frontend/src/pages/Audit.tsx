@@ -132,9 +132,6 @@ export default function Audit({
       setDateWarning('');
     }
     setFromDate(validVal);
-    if (toDate && validVal <= toDate) {
-      handleSearch(1, selectedProductId, selectedBOId, validVal, toDate);
-    }
   };
 
   const handleToDateChange = (val: string) => {
@@ -154,9 +151,6 @@ export default function Audit({
       setDateWarning('');
     }
     setToDate(validVal);
-    if (fromDate && fromDate <= validVal) {
-      handleSearch(1, selectedProductId, selectedBOId, fromDate, validVal);
-    }
   };
 
   // Query Results & Status
@@ -303,7 +297,7 @@ export default function Audit({
   }, [fromDate, toDate]);
 
   // Quick range preset handler - updates dates AND triggers immediate search
-  const setQuickRange = (range: 'today' | '7d' | '30d' | 'ytd' | '2025') => {
+  const setQuickRange = (range: 'today' | '7d' | '30d') => {
     const todayStr = getTodayIsoDate();
     let newFrom = fromDate;
     let newTo = toDate;
@@ -320,12 +314,6 @@ export default function Audit({
       d.setDate(d.getDate() - 29);
       newFrom = d.toISOString().split('T')[0];
       newTo = todayStr;
-    } else if (range === 'ytd') {
-      newFrom = '2026-01-01';
-      newTo = todayStr;
-    } else if (range === '2025') {
-      newFrom = '2025-01-01';
-      newTo = '2025-12-31';
     }
     setFromDate(newFrom);
     setToDate(newTo);
@@ -333,29 +321,8 @@ export default function Audit({
     handleSearch(1, selectedProductId, selectedBOId, newFrom, newTo);
   };
 
-  // Auto-run initial search once product catalog is loaded
-  const [hasAutoSearched, setHasAutoSearched] = useState(false);
-  useEffect(() => {
-    if (!hasAutoSearched && products.length > 0 && selectedProductId) {
-      const currentProd = products.find(p => p.id === selectedProductId);
-      const isBOValid = !currentProd?.requiresBusinessObjectType || Boolean(selectedBOId);
-      if (isBOValid) {
-        setHasAutoSearched(true);
-        handleSearch(1, selectedProductId, selectedBOId, fromDate, toDate);
-      }
-    }
-  }, [products, selectedProductId, selectedBOId, hasAutoSearched, fromDate, toDate]);
-
-  // Re-run search if selected BO or product changes after initial search has run
-  useEffect(() => {
-    if (hasAutoSearched && products.length > 0 && selectedProductId) {
-      const currentProd = products.find(p => p.id === selectedProductId);
-      const isBOValid = !currentProd?.requiresBusinessObjectType || Boolean(selectedBOId);
-      if (isBOValid) {
-        handleSearch(1, selectedProductId, selectedBOId, fromDate, toDate);
-      }
-    }
-  }, [selectedProductId, selectedBOId]);
+  // Audit logs are fetched on demand when the user clicks Search Audit (or Quick Range Presets / Refresh),
+  // avoiding automatic REST API requests on initial page open or dropdown changes.
 
   // Execute Search
   const handleSearch = async (
@@ -489,7 +456,10 @@ export default function Audit({
     setError('');
     setConfigNotice('');
     setDateWarning('');
-    handleSearch(1, targetProdId, targetBOId, '2026-10-03', '2026-10-13', 'ALL', '');
+    setLogs([]);
+    setTotalRecords(0);
+    setHasSearched(false);
+    setLastQuerySummary(null);
   };
 
   // Refresh live Audit Trail directly via Oracle Fusion REST API
@@ -926,41 +896,7 @@ export default function Audit({
             onClick={() => setQuickRange('30d')}
             disabled={isSearching}
           >
-            Last 30 Days (Live API)
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ 
-              padding: '0.22rem 0.75rem', 
-              fontSize: '0.74rem', 
-              borderRadius: '9999px',
-              border: '1px solid var(--accent-blue)',
-              color: 'var(--accent-blue)',
-              background: 'rgba(37, 99, 235, 0.08)',
-              fontWeight: 600
-            }}
-            onClick={() => setQuickRange('ytd')}
-            disabled={isSearching}
-          >
-            2026 Full Range (Jan 01 – Present)
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ 
-              padding: '0.22rem 0.75rem', 
-              fontSize: '0.74rem', 
-              borderRadius: '9999px',
-              border: '1px solid #10b981',
-              color: '#059669',
-              background: 'rgba(16, 185, 129, 0.08)',
-              fontWeight: 600
-            }}
-            onClick={() => setQuickRange('2025')}
-            disabled={isSearching}
-          >
-            2025 Full Year (All 12 Months)
+            Last 30 Days
           </button>
         </div>
       </div>

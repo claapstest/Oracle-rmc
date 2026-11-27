@@ -100,14 +100,14 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
   const [formPassword, setFormPassword] = useState('');
   const [formAccess, setFormAccess] = useState<string[]>(['Fusion - Production']);
   const [sendInvitation, setSendInvitation] = useState(true);
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; role?: string; access?: string }>({});
-  const [touched, setTouched] = useState<{ name?: boolean; email?: boolean }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; role?: string; access?: string; password?: string }>({});
+  const [touched, setTouched] = useState<{ name?: boolean; email?: boolean; password?: boolean }>({});
   const [createdEmail, setCreatedEmail] = useState('');
 
   // AC7 — admin@admin.com stays local and keeps the Site Admin role.
   const adminLocked = isSiteAdminEmail(formEmail);
   const effectiveRole = adminLocked ? 'SITE_ADMIN' : formRole;
-  const createInput = { name: formName, email: formEmail, role: effectiveRole, access: formAccess };
+  const createInput = { name: formName, email: formEmail, role: effectiveRole, access: formAccess, password: formPassword };
   const createValid = isCreateUserValid(createInput, users);
   // Live errors so blocked submits (AC9) still explain themselves (AC8/AC11).
   const liveErrors = validateCreateUser(createInput, users);
@@ -115,6 +115,7 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
   const emailError = showCreate ? (fieldErrors.email || (touched.email ? liveErrors.email : undefined)) : undefined;
   const accessError = showCreate ? (fieldErrors.access || (formAccess.length === 0 ? liveErrors.access : undefined)) : undefined;
   const roleError = showCreate ? fieldErrors.role : undefined;
+  const passwordError = showCreate ? (fieldErrors.password || (touched.password ? liveErrors.password : undefined)) : undefined;
 
   useEffect(() => {
     const delay = searchTerm ? 350 : 0;
@@ -209,7 +210,11 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
     // AC1-AC5 — client validation first; no API call when invalid.
     const errs = validateCreateUser(createInput, users);
     setFieldErrors(errs);
-    if (errs.name || errs.email || errs.role || errs.access) return;
+    setTouched({ name: true, email: true, password: true });
+    if (errs.name || errs.email || errs.role || errs.access || errs.password) {
+      setModalError('Please fill in all required fields correctly.');
+      return;
+    }
     const email = normalizeUserEmail(formEmail);
     const displayName = formName.trim();
     setSubmitting(true);
@@ -219,7 +224,7 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
         displayName,
         role: effectiveRole,
         status: formStatus,
-        ...(formPassword ? { password: formPassword } : {}),
+        password: formPassword,
         applicationAccess: formAccess,
         sendInvitation
       });
@@ -247,6 +252,10 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
     const displayName = formName.trim();
     if (!displayName) {
       setModalError('Full name is required.');
+      return;
+    }
+    if (formPassword && formPassword.length < 8) {
+      setModalError('Password must be at least 8 characters.');
       return;
     }
     setSubmitting(true);
@@ -792,7 +801,7 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
                 </button>
               </div>
             ) : (
-            <form onSubmit={showCreate ? handleCreate : handleEdit}>
+            <form onSubmit={showCreate ? handleCreate : handleEdit} noValidate>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>Full Name *</label>
               <input className="form-input" style={{ width: '100%', marginBottom: nameError ? '0.3rem' : '0.9rem' }} placeholder="Enter full name" value={formName} onChange={(e) => { setFormName(e.target.value); if (showCreate) setFieldErrors((p) => ({ ...p, name: undefined })); }} onBlur={() => setTouched((t) => ({ ...t, name: true }))} aria-invalid={!!nameError} />
               {nameError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '0.78rem', marginBottom: '0.9rem' }}>{nameError}</div>}
@@ -844,13 +853,14 @@ export default function AppUsersList({ hasAccess, onInvestigateUser }: AppUsersL
                 <option value="ACTIVE">Active</option>
                 <option value="DISABLED">Inactive</option>
               </select>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>{showCreate ? 'Password (optional)' : 'New password (optional)'}</label>
-              <input className="form-input" type="password" style={{ width: '100%', marginBottom: '1.25rem' }} placeholder={showCreate ? 'Leave blank to set later' : 'Leave blank to keep current'} value={formPassword} onChange={(e) => setFormPassword(e.target.value)} autoComplete="new-password" />
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>{showCreate ? 'Password *' : 'New password (optional)'}</label>
+              <input className="form-input" type="password" required={showCreate} minLength={showCreate ? 8 : undefined} style={{ width: '100%', marginBottom: passwordError ? '0.3rem' : '1.25rem' }} placeholder={showCreate ? 'Enter password (min 8 characters)' : 'Leave blank to keep current'} value={formPassword} onChange={(e) => { setFormPassword(e.target.value); if (showCreate) setFieldErrors((p) => ({ ...p, password: undefined })); }} onBlur={() => setTouched((t) => ({ ...t, password: true }))} aria-invalid={!!passwordError} autoComplete="new-password" />
+              {passwordError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '0.78rem', marginBottom: '1.25rem' }}>{passwordError}</div>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowCreate(false); setEditingUser(null); setCreatedEmail(''); }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting || (showCreate && !createValid)}>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? 'Saving...' : showCreate ? 'Create User' : 'Save Changes'}
                 </button>
               </div>

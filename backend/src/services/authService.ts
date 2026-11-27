@@ -2535,8 +2535,10 @@ export class AuthService {
       }
     }
 
+    let newPasswordHash: string | null = null;
     if (data.password) {
-      user.passwordHash = await bcrypt.hash(data.password, 10);
+      newPasswordHash = await bcrypt.hash(data.password, 10);
+      user.passwordHash = newPasswordHash;
       user.setupCompleted = true;
     }
 
@@ -2545,8 +2547,14 @@ export class AuthService {
     // Update in PostgreSQL if available
     try {
       await dbQuery(
-        `UPDATE veyra_user SET display_name = $1, status = $2, updated_at = NOW(), updated_by = $3 WHERE email = $4 OR id::text = $5`,
-        [user.displayName, user.status, data.updatedBy || 'AUTH_SERVICE', userKey, idOrEmail]
+        `UPDATE veyra_user
+         SET display_name = $1,
+             status = $2,
+             password_hash = COALESCE($6, password_hash),
+             updated_at = NOW(),
+             updated_by = $3
+         WHERE LOWER(email) = LOWER($4) OR id::text = $5`,
+        [user.displayName, user.status, data.updatedBy || 'AUTH_SERVICE', userKey, idOrEmail, newPasswordHash]
       );
       if (data.role) {
         const uRes = await dbQuery(`SELECT id FROM veyra_user WHERE email = $1`, [userKey]);
