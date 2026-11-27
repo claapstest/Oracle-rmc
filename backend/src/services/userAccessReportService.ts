@@ -1231,7 +1231,15 @@ export class UserAccessReportService {
       } else if (normCat === 'MULTIPLE_ROLES' || normCat === 'MULTIPLE_ROLE_USERS') {
         scopedUsers = scopedUsers.filter((u) => u.assignedRoles.length > 1);
       } else if (
-        normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS' ||
+        normCat === 'ADMIN_ROLES' || normCat === 'SECURITY_ADMINISTRATORS' || normCat === 'SECURITY_ADMINS'
+      ) {
+        scopedUsers = scopedUsers.filter((u) =>
+          u.assignedRoles.some((r: any) => {
+            const val = r.roleName || r.roleCode || '';
+            return val.includes('Security Administrator') || val.includes('IT Security Manager');
+          })
+        );
+      } else if (
         normCat === 'HIGH_RISK' || normCat === 'HIGH_RISK_USERS' || normCat === 'HIGH_RISK_ROLE_USERS'
       ) {
         scopedUsers = scopedUsers.filter((u) =>
