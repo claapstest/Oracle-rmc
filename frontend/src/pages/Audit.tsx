@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Search, 
   FileClock, 
   Filter, 
   ShieldAlert, 
-  RefreshCw, 
+  RefreshCw,
   ChevronDown, 
   ChevronRight, 
   Calendar, 
@@ -76,6 +76,136 @@ const cleanProductName = (name?: string): string => {
   return name.replace(/\s*\([^)]*\)$/, '').trim();
 };
 
+/**
+ * Normalizes a manually entered date (YYYY-MM-DD or MM/DD/YYYY) to YYYY-MM-DD if valid,
+ * or returns null if the string is not a valid calendar date.
+ */
+const normalizeManualDate = (raw: string): string | null => {
+  const s = raw.trim();
+  let year: number;
+  let month: number;
+  let day: number;
+
+  const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+  const slashMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if (isoMatch) {
+    year = Number(isoMatch[1]);
+    month = Number(isoMatch[2]);
+    day = Number(isoMatch[3]);
+  } else if (slashMatch) {
+    month = Number(slashMatch[1]);
+    day = Number(slashMatch[2]);
+    year = Number(slashMatch[3]);
+  } else {
+    return null;
+  }
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (
+    d.getUTCFullYear() !== year ||
+    d.getUTCMonth() !== month - 1 ||
+    d.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+};
+
+interface HybridDateInputProps {
+  value: string;
+  min: string;
+  max: string;
+  disabled?: boolean;
+  onChange: (val: string) => void;
+  onCommit: (val: string) => void;
+  onEnter?: () => void;
+}
+
+function HybridDateInput({ value, min, max, disabled, onChange, onCommit, onEnter }: HybridDateInputProps) {
+  const pickerRef = useRef<HTMLInputElement | null>(null);
+  const pickerValue = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+
+  const openPicker = () => {
+    if (disabled || !pickerRef.current) return;
+    const el = pickerRef.current as HTMLInputElement & { showPicker?: () => void };
+    if (typeof el.showPicker === 'function') {
+      try {
+        el.showPicker();
+        return;
+      } catch {
+        // Fallback to focus + click if showPicker throws
+      }
+    }
+    el.focus();
+    el.click();
+  };
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <input
+        type="text"
+        inputMode="numeric"
+        className="form-input"
+        style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 2.2rem 0.45rem 0.65rem' }}
+        placeholder="YYYY-MM-DD"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => onCommit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onCommit(value);
+            onEnter?.();
+          }
+        }}
+        disabled={disabled}
+      />
+      <button
+        type="button"
+        onClick={openPicker}
+        disabled={disabled}
+        title="Select date from calendar"
+        aria-label="Open calendar"
+        style={{
+          position: 'absolute',
+          right: '0.45rem',
+          background: 'none',
+          border: 'none',
+          padding: '0.2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+          cursor: disabled ? 'not-allowed' : 'pointer'
+        }}
+      >
+        <Calendar size={15} />
+      </button>
+      <input
+        ref={pickerRef}
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        min={min}
+        max={max}
+        value={pickerValue}
+        onChange={(e) => onCommit(e.target.value)}
+        disabled={disabled}
+        style={{
+          position: 'absolute',
+          right: '0.45rem',
+          width: '1px',
+          height: '1px',
+          opacity: 0,
+          pointerEvents: 'none'
+        }}
+      />
+    </div>
+  );
+}
+
 export interface AuditProps {
   initialBOId?: string;
   initialProductId?: string;
@@ -115,42 +245,39 @@ export default function Audit({
   const [actionFilter, setActionFilter] = useState<string>('ALL');
 
   // Calendar year 2025-present bound handlers
-  const handleFromDateChange = (val: string) => {
-    if (!val) {
-      setFromDate('');
-      return;
+  const validateAndClampDate = (val: string): string | null => {
+    const trimmed = val.trim();
+    if (!trimmed) return '';
+    const normalized = normalizeManualDate(trimmed);
+    if (!normalized) {
+      setDateWarning('Enter a valid date in YYYY-MM-DD (or MM/DD/YYYY) format.');
+      return null;
     }
     const maxDate = getTodayIsoDate();
-    let validVal = val;
-    if (val < MIN_ALLOWED_AUDIT_DATE) {
+    if (normalized < MIN_ALLOWED_AUDIT_DATE) {
       setDateWarning('Audit records are available from 01 Jan 2025 to present. Prior years are not supported.');
-      validVal = MIN_ALLOWED_AUDIT_DATE;
-    } else if (val > maxDate) {
-      setDateWarning('Future dates beyond the current date are not supported.');
-      validVal = maxDate;
-    } else {
-      setDateWarning('');
+      return MIN_ALLOWED_AUDIT_DATE;
     }
-    setFromDate(validVal);
+    if (normalized > maxDate) {
+      setDateWarning('Future dates beyond the current date are not supported.');
+      return maxDate;
+    }
+    setDateWarning('');
+    return normalized;
   };
 
-  const handleToDateChange = (val: string) => {
-    if (!val) {
-      setToDate('');
-      return;
+  const handleFromDateCommit = (val: string) => {
+    const clamped = validateAndClampDate(val);
+    if (clamped !== null) {
+      setFromDate(clamped);
     }
-    const maxDate = getTodayIsoDate();
-    let validVal = val;
-    if (val < MIN_ALLOWED_AUDIT_DATE) {
-      setDateWarning('Audit records are available from 01 Jan 2025 to present. Prior years are not supported.');
-      validVal = MIN_ALLOWED_AUDIT_DATE;
-    } else if (val > maxDate) {
-      setDateWarning('Future dates beyond the current date are not supported.');
-      validVal = maxDate;
-    } else {
-      setDateWarning('');
+  };
+
+  const handleToDateCommit = (val: string) => {
+    const clamped = validateAndClampDate(val);
+    if (clamped !== null) {
+      setToDate(clamped);
     }
-    setToDate(validVal);
   };
 
   // Query Results & Status
@@ -162,11 +289,6 @@ export default function Audit({
   const [error, setError] = useState<string>('');
   const [configNotice, setConfigNotice] = useState<string>('');
   const [dateWarning, setDateWarning] = useState<string>('');
-
-  // Sync Audit Trail state
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
-  const [syncNotice, setSyncNotice] = useState<string>('');
 
   // Summary State of last successful search
   const [lastQuerySummary, setLastQuerySummary] = useState<{
@@ -334,18 +456,28 @@ export default function Audit({
     overrideAction?: string,
     overrideUser?: string
   ) => {
-    const qFrom = overrideFromDate !== undefined ? overrideFromDate : fromDate;
-    const qTo = overrideToDate !== undefined ? overrideToDate : toDate;
+    const rawFrom = overrideFromDate !== undefined ? overrideFromDate : fromDate;
+    const rawTo = overrideToDate !== undefined ? overrideToDate : toDate;
+    const qFrom = rawFrom ? (normalizeManualDate(rawFrom) || '') : '';
+    const qTo = rawTo ? (normalizeManualDate(rawTo) || '') : '';
     const qAction = overrideAction !== undefined ? overrideAction : actionFilter;
     const qUser = overrideUser !== undefined ? overrideUser : userQuery;
 
-    if (qFrom && qFrom < MIN_ALLOWED_AUDIT_DATE) {
-      setError('Audit records are available for calendar years 2025 and 2026. Prior years are not supported.');
+    if (!qFrom || !qTo) {
+      setError('Please enter valid Date From and Date To values (YYYY-MM-DD).');
       return;
     }
 
-    if (qTo && qTo > MAX_ALLOWED_AUDIT_DATE) {
-      setError('Audit records beyond October 2026 are not supported in this Oracle Fusion instance.');
+    if (qFrom !== rawFrom) setFromDate(qFrom);
+    if (qTo !== rawTo) setToDate(qTo);
+
+    if (qFrom < MIN_ALLOWED_AUDIT_DATE) {
+      setError('Audit records are available from 01 Jan 2025 to present. Prior years are not supported.');
+      return;
+    }
+
+    if (qTo > MAX_ALLOWED_AUDIT_DATE) {
+      setError('Future dates beyond the current date are not supported.');
       return;
     }
 
@@ -462,23 +594,6 @@ export default function Audit({
     setLastQuerySummary(null);
   };
 
-  // Refresh live Audit Trail directly via Oracle Fusion REST API
-  const handleSyncAudit = async () => {
-    setIsSyncing(true);
-    setSyncNotice('');
-    setError('');
-    try {
-      await handleSearch(1);
-      setLastSyncedTime(new Date().toLocaleTimeString());
-      setSyncNotice('Fetched live audit records directly from Oracle Fusion REST API.');
-    } catch (err: any) {
-      console.error('Audit refresh error:', err);
-      setError(err?.message || 'Failed to refresh live audit trail.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   // Toggle Row Expansion
   const toggleRowExpansion = (id: string) => {
     setExpandedRowIds(prev => {
@@ -544,61 +659,7 @@ export default function Audit({
             View and investigate audit history across configured applications.
           </p>
         </div>
-        <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div style={{
-            padding: '0.45rem 1rem',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            borderRadius: '9999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: '#ffffff',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            <FileClock size={15} />
-            <span>{hasSearched ? `${totalRecords} Records Found` : 'Oracle Fusion Connected'}</span>
-          </div>
-
-          <button
-            id="btn-sync-audit-trail"
-            onClick={handleSyncAudit}
-            disabled={isSyncing}
-            className="btn btn-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              fontSize: '0.82rem',
-              padding: '0.45rem 1rem',
-              borderRadius: '8px',
-              cursor: isSyncing ? 'not-allowed' : 'pointer',
-              fontWeight: 700,
-              backgroundColor: '#1d4ed8',
-              border: '1px solid rgba(255, 255, 255, 0.35)',
-              color: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
-              transition: 'all 0.15s ease'
-            }}
-            title="Fetch latest live audit records from Oracle Fusion REST API"
-          >
-            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-            <span>{isSyncing ? 'Refreshing...' : 'Refresh Live Data'}</span>
-          </button>
-        </div>
       </div>
-
-      {/* Sync Success Notice */}
-      {syncNotice && (
-        <div className="glass-panel animate-fade-in" style={{ padding: '0.85rem 1.25rem', borderLeft: '4px solid #10b981', marginBottom: '1.25rem', background: 'rgba(16, 185, 129, 0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <RefreshCw size={16} style={{ color: '#10b981', flexShrink: 0 }} />
-            <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', fontWeight: 500 }}>{syncNotice}</div>
-          </div>
-        </div>
-      )}
 
       {/* Error Alert */}
       {error && (
@@ -648,11 +709,6 @@ export default function Audit({
             <Filter size={16} style={{ color: 'var(--accent-blue)' }} />
             <span>Audit Filters &amp; Scope</span>
           </div>
-          {lastSyncedTime && (
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              Audit synced: <strong style={{ color: 'var(--accent-blue)' }}>{lastSyncedTime}</strong>
-            </span>
-          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
@@ -728,20 +784,17 @@ export default function Audit({
           {/* C. Date From */}
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              Date From (2025 – 2026)
+              Date From
             </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="date"
-                className="form-input"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
-                min={MIN_ALLOWED_AUDIT_DATE}
-                max={MAX_ALLOWED_AUDIT_DATE}
-                value={fromDate}
-                onChange={(e) => handleFromDateChange(e.target.value)}
-                disabled={isSearching}
-              />
-            </div>
+            <HybridDateInput
+              value={fromDate}
+              min={MIN_ALLOWED_AUDIT_DATE}
+              max={MAX_ALLOWED_AUDIT_DATE}
+              disabled={isSearching}
+              onChange={setFromDate}
+              onCommit={handleFromDateCommit}
+              onEnter={() => handleSearch(1)}
+            />
             <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
               Allowed: Jan 01, 2025 – Present
             </span>
@@ -750,20 +803,17 @@ export default function Audit({
           {/* D. Date To */}
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              Date To (2025 – 2026)
+              Date To
             </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="date"
-                className="form-input"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
-                min={MIN_ALLOWED_AUDIT_DATE}
-                max={MAX_ALLOWED_AUDIT_DATE}
-                value={toDate}
-                onChange={(e) => handleToDateChange(e.target.value)}
-                disabled={isSearching}
-              />
-            </div>
+            <HybridDateInput
+              value={toDate}
+              min={MIN_ALLOWED_AUDIT_DATE}
+              max={MAX_ALLOWED_AUDIT_DATE}
+              disabled={isSearching}
+              onChange={setToDate}
+              onCommit={handleToDateCommit}
+              onEnter={() => handleSearch(1)}
+            />
             <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
               Allowed: Jan 01, 2025 – Present
             </span>
