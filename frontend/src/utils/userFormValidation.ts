@@ -17,6 +17,7 @@ export interface CreateUserInput {
   email: string;
   role: string;
   access: string[];
+  password?: string;
 }
 
 export interface CreateUserErrors {
@@ -24,6 +25,7 @@ export interface CreateUserErrors {
   email?: string;
   role?: string;
   access?: string;
+  password?: string;
 }
 
 export function isSiteAdminEmail(email: string): boolean {
@@ -63,6 +65,14 @@ export function validateCreateUser(
   if (access.length === 0) {
     errors.access = 'Select at least one application access.';
   }
+  const password = input.password ?? '';
+  if (!password) {
+    errors.password = 'Password is required.';
+  } else if (password.length < 8) {
+    errors.password = 'Password must be at least 8 characters.';
+  } else if (password.length > 128) {
+    errors.password = 'Password must be 128 characters or fewer.';
+  }
   return errors;
 }
 
@@ -71,5 +81,5 @@ export function isCreateUserValid(
   existingUsers: Array<{ email?: string }>
 ): boolean {
   const errors = validateCreateUser(input, existingUsers);
-  return !errors.name && !errors.email && !errors.role && !errors.access;
+  return !errors.name && !errors.email && !errors.role && !errors.access && !errors.password;
 }

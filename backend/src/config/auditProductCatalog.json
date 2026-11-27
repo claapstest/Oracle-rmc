@@ -235,7 +235,7 @@
     ],
     "instanceProductName": "ORA_FND_AUDIT_POLICY",
     "restProduct": "ORA_FND_AUDIT_POLICY",
-    "productId": "ORA_FND_AUDIT_POLICY",
+    "productId": null,
     "mappingStatus": "CONFIRMED",
     "requiresBusinessObjectType": true,
     "businessObjects": [
